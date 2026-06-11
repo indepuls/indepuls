@@ -269,7 +269,6 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
   .card{padding:14px;}
 }
 </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body data-theme="obm">
 
@@ -5275,6 +5274,8 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <!-- ═══════════════════════════════════════════════════
      INDÉPULS — AUTH OVERLAY
 ═══════════════════════════════════════════════════ -->
@@ -5339,8 +5340,18 @@ document.addEventListener('DOMContentLoaded', () => {
   var SUPABASE_KEY = 'sb_publishable_0WwnUzbGt_AMwCNz8sEBiA_HiHctRSu';
   var APP_TYPE = 'freelance';
 
-  var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  window._sb = sb;
+  var _authTimeout = setTimeout(function() { showForm(); }, 5000);
+
+  var sb;
+  try {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window._sb = sb;
+  } catch(e) {
+    console.warn('Supabase init failed:', e);
+    clearTimeout(_authTimeout);
+    showForm();
+    return;
+  }
 
   var _authMode = 'login';
 
@@ -5363,6 +5374,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function hideOverlay() {
+    clearTimeout(_authTimeout);
     var overlay = document.getElementById('auth-overlay');
     overlay.style.transition = 'opacity .3s';
     overlay.style.opacity = '0';
@@ -5370,6 +5382,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showForm() {
+    clearTimeout(_authTimeout);
     document.getElementById('auth-loading').style.display = 'none';
     document.getElementById('auth-form').style.display = '';
   }
@@ -5411,16 +5424,17 @@ document.addEventListener('DOMContentLoaded', () => {
           parsed = applyDefaults(parsed);
           DATA = parsed;
         }
+        if (typeof renderAll === 'function') renderAll();
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
   }
 
   async function syncToCloud() {
     try {
-      var res = await sb.auth.getUser();
-      if (!res.data || !res.data.user) return;
+      var res = await sb.auth.getSession();
+      if (!res.data || !res.data.session) return;
       await sb.from('user_data').upsert({
-        user_id: res.data.user.id,
+        user_id: res.data.session.user.id,
         app_type: APP_TYPE,
         data: DATA,
         updated_at: new Date().toISOString()
@@ -5466,25 +5480,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'SIGNED_IN' && session) {
-      await loadFromCloud(session.user);
-      if (typeof renderAll === 'function') renderAll();
-      hideOverlay();
-      setTimeout(addLogoutButton, 200);
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      if (session) {
+        await loadFromCloud(session.user);
+        hideOverlay();
+        setTimeout(addLogoutButton, 200);
+      } else {
+        showForm();
+      }
     }
   });
-
-  (async function() {
-    var res = await sb.auth.getSession();
-    if (res.data && res.data.session) {
-      await loadFromCloud(res.data.session.user);
-      if (typeof renderAll === 'function') renderAll();
-      hideOverlay();
-      setTimeout(addLogoutButton, 200);
-    } else {
-      showForm();
-    }
-  })();
 
 })();
 </script>
