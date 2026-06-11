@@ -5750,6 +5750,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  var _cloudLoaded = false;
+
   function hideOverlay() {
     var overlay = document.getElementById('auth-overlay');
     if (!overlay) return;
@@ -5791,9 +5793,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof renderAll === 'function') renderAll();
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
+    _cloudLoaded = true;
   }
 
   async function syncToCloud() {
+    if (!_cloudLoaded) return;
     try {
       var res = await sb.auth.getSession();
       if (!res.data || !res.data.session) return;
