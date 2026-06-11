@@ -325,7 +325,10 @@ function goLast() {
   if (id) go(id);
 }
 
+var _selectorReady = false;
 function initSelector() {
+  if (_selectorReady) return;
+  _selectorReady = true;
   var last = localStorage.getItem('indepuls_lastSession');
   if (last === 'coaching') { localStorage.removeItem('indepuls_lastSession'); last = null; }
   if (last && SESSIONS[last]) {
