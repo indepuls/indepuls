@@ -5857,8 +5857,6 @@ document.addEventListener('DOMContentLoaded', () => {
         var overlay = document.getElementById('auth-overlay');
         if (overlay) overlay.innerHTML = '<div style="text-align:center;font-family:\'Lato\',sans-serif;color:#7a7a8a"><p style="margin-bottom:16px">Session expirée.</p><a href="/" style="background:#141538;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">← Retour à l\'accueil</a></div>';
       }
-    } else if (event === 'SIGNED_OUT') {
-      try { window.parent.location.href = '/'; } catch(e) { window.location.href = '/'; }
     }
   });
 })();
