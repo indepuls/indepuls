@@ -324,7 +324,6 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
     </div>
     <div class="topbar-actions">
       <div class="ts" id="last-save-info"></div>
-      <button class="btn btn-out btn-sm" onclick="importData()">⬆ <span class="btn-label">Importer</span></button>
       <button class="btn btn-save" id="btn-save" onclick="exportData()">💾 <span class="btn-label">Sauvegarder mes données</span></button>
     </div>
   </div>
@@ -653,10 +652,10 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
     <div class="tab-pane" id="tab-donnees">
       <div class="card mb16">
         <div class="card-header">
-          <div><div class="card-title">Sauvegarde locale</div><div class="card-sub">Vos données restent dans votre navigateur — aucun serveur</div></div>
+          <div><div class="card-title">Sauvegarde cloud</div><div class="card-sub">Vos données sont synchronisées sur votre compte Indépuls</div></div>
         </div>
-        <p class="ts mb16" style="line-height:1.7">Indépuls Artisan fonctionne entièrement en local. Cela signifie que <strong>vider le cache, changer de navigateur ou réinstaller Windows</strong> peut entraîner une perte définitive de vos données. Exportez régulièrement.</p>
-        <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter ma sauvegarde maintenant</span></button>
+        <p class="ts mb16" style="line-height:1.7">Indépuls sauvegarde automatiquement vos données sur votre compte à chaque modification. Vous pouvez vous connecter depuis n'importe quel appareil et retrouver vos données à jour. En complément, vous pouvez exporter une sauvegarde locale.</p>
+        <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter une sauvegarde locale</span></button>
       </div>
       <div class="reset-zone">
         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
@@ -764,12 +763,12 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
         </div>
       </div>
 
-      <div class="step-card" style="border-left:3px solid var(--warn);">
-        <div class="step-num" style="background:var(--warn);">6</div>
+      <div class="step-card" style="border-left:3px solid var(--ok);">
+        <div class="step-num" style="background:var(--ok);">6</div>
         <div class="step-body" style="flex:1">
-          <h3>Sauvegardez régulièrement</h3>
-          <p>Vos données vivent dans votre navigateur uniquement. Exportez votre sauvegarde JSON au moins une fois par semaine.</p>
-          <span class="step-cta" onclick="exportData()">→ Exporter maintenant</span>
+          <h3>Vos données sont sauvegardées automatiquement</h3>
+          <p>Chaque modification est synchronisée sur votre compte. Connectez-vous depuis n'importe quel appareil pour retrouver vos données. Vous pouvez aussi exporter une sauvegarde locale en cas de besoin.</p>
+          <span class="step-cta" onclick="exportData()">→ Exporter une sauvegarde locale</span>
         </div>
       </div>
 
