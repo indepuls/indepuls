@@ -321,10 +321,6 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
       <div class="topbar-title" id="topbar-title">Tableau de bord</div>
       <div id="year-badge" style="background:rgba(91,44,74,.12);color:var(--acc);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;"></div>
     </div>
-    <div class="topbar-actions">
-      <div class="ts" id="last-save-info"></div>
-      <button class="btn btn-save" id="btn-save" onclick="exportData()">💾 <span class="btn-label">Sauvegarder mes données</span></button>
-    </div>
   </div>
 
   <!-- DASHBOARD -->
@@ -641,7 +637,10 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
           <div><div class="card-title">Sauvegarde cloud</div><div class="card-sub">Vos données sont synchronisées sur votre compte Indépuls</div></div>
         </div>
         <p class="ts mb16" style="line-height:1.7">Indépuls sauvegarde automatiquement vos données sur votre compte à chaque modification. Vous pouvez vous connecter depuis n'importe quel appareil et retrouver vos données à jour. En complément, vous pouvez exporter une sauvegarde locale.</p>
-        <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter une sauvegarde locale</span></button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter une sauvegarde</span></button>
+          <button class="btn btn-out" onclick="importData()" style="display:inline-flex;justify-content:center">⬆ <span>Importer une sauvegarde</span></button>
+        </div>
       </div>
       <div class="reset-zone">
         <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
