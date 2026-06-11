@@ -153,9 +153,6 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 .info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--brd);color:var(--tl);font-size:10px;font-weight:700;cursor:help;vertical-align:middle;margin-left:3px;}
 .rentab-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--brd);}
 .rentab-row:last-child{border-bottom:none;}
-.save-banner{position:fixed;bottom:20px;right:20px;background:var(--warn);color:#fff;padding:13px 18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:500;max-width:300px;display:none;font-size:13px;line-height:1.4;}
-.save-banner.show{display:block;}
-.save-banner-close{position:absolute;top:7px;right:10px;background:none;border:none;color:#fff;cursor:pointer;font-size:16px;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px;}
 
 .w-mb{margin-bottom:16px;}
@@ -1240,12 +1237,6 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 <input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <!-- SAVE BANNER -->
-<div class="save-banner" id="save-banner">
-  <button class="save-banner-close" onclick="dismissSaveBanner()">✕</button>
-  <strong>💾 Pensez à sauvegarder vos données.</strong><br>
-  <span id="save-banner-date" class="ts" style="color:rgba(255,255,255,.8)"></span><br>
-  <button class="btn btn-out btn-sm mt8" onclick="exportData();dismissSaveBanner()" style="color:#fff;border-color:rgba(255,255,255,.5)">Télécharger ma sauvegarde</button>
-</div>
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
@@ -1590,37 +1581,12 @@ function handleImport(event) {
   reader.readAsText(file);
 }
 
-// ── RAPPEL SAUVEGARDE ────────────────────────────────────────
 function checkSaveReminder() {
-  if (!DATA.lastSave) {
-    if(!DATA.isExample) {
-      setTimeout(showLocalDataNotice, 4000);
-      setTimeout(() => { if (!DATA.lastSave) showSaveBanner(); }, 10*60*1000);
-    }
-    return;
-  }
-  const lastR = DATA.lastSaveReminder ? new Date(DATA.lastSaveReminder) : null;
-  const weekAgo = new Date(Date.now() - 7*86400000);
-  if (!lastR || lastR < weekAgo) setTimeout(showSaveBanner, 3000);
+  if (!DATA.lastSave && !DATA.isExample) setTimeout(showLocalDataNotice, 4000);
 }
-function triggerSaveReminderIfNeeded() {
-  if (DATA.isExample || DATA.lastSave) return;
-  const realM = DATA.missions.filter(m=>!m.isManagement&&!m.isExample).length;
-  if (realM >= 2 && !sessionStorage.getItem('artisan_save_reminded')) {
-    sessionStorage.setItem('artisan_save_reminded','1');
-    setTimeout(showSaveBanner, 800);
-  }
-}
-function showSaveBanner() {
-  const el = document.getElementById('save-banner-date');
-  el.textContent = DATA.lastSave
-    ? 'Dernière sauvegarde : ' + new Date(DATA.lastSave).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})
-    : 'Aucune sauvegarde effectuée.';
-  document.getElementById('save-banner').classList.add('show');
-  DATA.lastSaveReminder = new Date().toISOString();
-  saveData();
-}
-function dismissSaveBanner() { document.getElementById('save-banner').classList.remove('show'); }
+function triggerSaveReminderIfNeeded() {}
+function showSaveBanner() {}
+function dismissSaveBanner() {}
 function showLocalDataNotice() {
   if(DATA.lastSave || localStorage.getItem('indepuls_artisan_notice_shown')) return;
   localStorage.setItem('indepuls_artisan_notice_shown','1');
