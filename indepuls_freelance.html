@@ -5276,61 +5276,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- ═══════════════════════════════════════════════════
-     INDÉPULS — AUTH OVERLAY
-═══════════════════════════════════════════════════ -->
 <style>
-#auth-overlay{position:fixed;inset:0;z-index:99999;background:#F1EFEA;display:flex;align-items:center;justify-content:center;font-family:'Lato',system-ui,sans-serif;}
-#auth-box{background:#fff;border-radius:16px;padding:40px 36px;max-width:400px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.12);border:1px solid #e0dcd6;}
-.auth-title{font-family:'Playfair Display',Georgia,serif;font-size:26px;color:#141538;font-weight:700;text-align:center;margin-bottom:4px;}
-.auth-sub{font-size:13px;color:#7a7a8a;text-align:center;margin-bottom:28px;line-height:1.5;}
-.auth-tabs{display:flex;gap:0;margin-bottom:24px;border:1.5px solid #e0dcd6;border-radius:10px;overflow:hidden;}
-.auth-tab{flex:1;padding:9px;border:none;background:transparent;color:#7a7a8a;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .2s;}
-.auth-tab.active{background:#141538;color:#fff;}
-.auth-label{display:block;font-size:11px;font-weight:700;color:#7a7a8a;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
-.auth-input{width:100%;padding:10px 12px;border:1.5px solid #e0dcd6;border-radius:8px;font-size:14px;font-family:inherit;color:#141538;outline:none;transition:border-color .2s;box-sizing:border-box;}
-.auth-input:focus{border-color:#5B2C4A;}
-.auth-fgroup{margin-bottom:14px;}
-.auth-errmsg{color:#b91c1c;font-size:12px;text-align:center;min-height:16px;margin-bottom:12px;}
-.auth-okmsg{color:#2d7a4f;font-size:12px;text-align:center;min-height:16px;margin-bottom:12px;}
-#auth-msg{min-height:16px;font-size:12px;text-align:center;margin-bottom:12px;}
-.auth-btn{width:100%;padding:12px;background:#141538;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s;margin-bottom:12px;}
-.auth-btn:hover{opacity:.85;}
-.auth-btn:disabled{opacity:.4;cursor:not-allowed;}
-#auth-forgot-wrap{text-align:center;}
-#auth-forgot-wrap button{background:none;border:none;color:#7a7a8a;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;}
-#auth-loading{display:flex;align-items:center;justify-content:center;gap:10px;color:#7a7a8a;font-size:14px;padding:20px 0;}
+#auth-overlay{position:fixed;inset:0;z-index:99999;background:#F1EFEA;display:flex;align-items:center;justify-content:center;}
 </style>
 
 <div id="auth-overlay">
-  <div id="auth-box">
-    <div id="auth-loading">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BB9E81" stroke-width="2.5">
-        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path>
-      </svg>
-      Chargement...
-    </div>
-    <div id="auth-form" style="display:none;">
-      <div class="auth-title">Indépuls</div>
-      <div class="auth-sub" id="auth-sub-text">Accédez à votre espace</div>
-      <div class="auth-tabs">
-        <button class="auth-tab active" id="tab-login" onclick="setAuthMode('login')">Connexion</button>
-        <button class="auth-tab" id="tab-signup" onclick="setAuthMode('signup')">Créer un compte</button>
-      </div>
-      <div class="auth-fgroup">
-        <label class="auth-label">Email</label>
-        <input id="auth-email" class="auth-input" type="email" placeholder="vous@example.com" onkeydown="if(event.key==='Enter')handleAuthSubmit()">
-      </div>
-      <div class="auth-fgroup">
-        <label class="auth-label">Mot de passe</label>
-        <input id="auth-password" class="auth-input" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleAuthSubmit()">
-      </div>
-      <div id="auth-msg"></div>
-      <button class="auth-btn" onclick="handleAuthSubmit()" id="auth-submit-btn">Se connecter</button>
-      <div id="auth-forgot-wrap">
-        <button onclick="handleResetPassword()">Mot de passe oublié ?</button>
-      </div>
-    </div>
+  <div style="display:flex;align-items:center;gap:10px;color:#7a7a8a;font-size:14px;font-family:'Lato',system-ui,sans-serif">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BB9E81" stroke-width="2.5">
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path>
+    </svg>
+    Chargement...
   </div>
 </div>
 
@@ -5340,51 +5295,21 @@ document.addEventListener('DOMContentLoaded', () => {
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobG1kdXhwdnRwbHZpZGdhYmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTc2NDAsImV4cCI6MjA5NjczMzY0MH0.xdxYnOS1T6QYG6RUsmWP7C8Nle1u3BxfHraXMqQ3rvo';
   var APP_TYPE = 'freelance';
 
-  var _authTimeout = setTimeout(function() { showForm(); }, 5000);
-
   var sb;
   try {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     window._sb = sb;
   } catch(e) {
-    console.warn('Supabase init failed:', e);
-    clearTimeout(_authTimeout);
-    showForm();
+    window.parent.location.href = '/';
     return;
   }
 
-  var _authMode = 'login';
-
-  window.setAuthMode = function(mode) {
-    _authMode = mode;
-    var isLogin = mode === 'login';
-    document.getElementById('tab-login').classList.toggle('active', isLogin);
-    document.getElementById('tab-signup').classList.toggle('active', !isLogin);
-    document.getElementById('auth-submit-btn').textContent = isLogin ? 'Se connecter' : 'Créer mon compte';
-    document.getElementById('auth-forgot-wrap').style.display = isLogin ? '' : 'none';
-    document.getElementById('auth-sub-text').textContent = isLogin ? 'Accédez à votre espace' : 'Créez votre compte gratuit';
-    document.getElementById('auth-msg').textContent = '';
-    document.getElementById('auth-msg').className = '';
-  };
-
-  function setAuthMsg(msg, ok) {
-    var el = document.getElementById('auth-msg');
-    el.textContent = msg;
-    el.className = ok ? 'auth-okmsg' : 'auth-errmsg';
-  }
-
   function hideOverlay() {
-    clearTimeout(_authTimeout);
     var overlay = document.getElementById('auth-overlay');
+    if (!overlay) return;
     overlay.style.transition = 'opacity .3s';
     overlay.style.opacity = '0';
     setTimeout(function() { overlay.style.display = 'none'; }, 300);
-  }
-
-  function showForm() {
-    clearTimeout(_authTimeout);
-    document.getElementById('auth-loading').style.display = 'none';
-    document.getElementById('auth-form').style.display = '';
   }
 
   function addLogoutButton() {
@@ -5400,14 +5325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.onclick = async function() {
       if (!confirm('Se déconnecter ?')) return;
       await sb.auth.signOut();
-      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-      if (typeof getDefaultData === 'function') DATA = getDefaultData();
-      var overlay = document.getElementById('auth-overlay');
-      overlay.style.display = 'flex';
-      overlay.style.opacity = '1';
-      showForm();
-      if (typeof renderAll === 'function') renderAll();
-      btn.remove();
+      window.parent.location.href = '/';
     };
     sbBottom.insertBefore(btn, sbBottom.firstChild);
   }
@@ -5448,49 +5366,19 @@ document.addEventListener('DOMContentLoaded', () => {
     syncToCloud();
   };
 
-  window.handleAuthSubmit = async function() {
-    var email = document.getElementById('auth-email').value.trim();
-    var password = document.getElementById('auth-password').value;
-    if (!email || !password) { setAuthMsg('Renseignez votre email et mot de passe.', false); return; }
-    var btn = document.getElementById('auth-submit-btn');
-    btn.disabled = true; btn.textContent = '...';
-
-    if (_authMode === 'login') {
-      var r = await sb.auth.signInWithPassword({ email: email, password: password });
-      if (r.error) {
-        setAuthMsg(r.error.message === 'Invalid login credentials' ? 'Email ou mot de passe incorrect.' : r.error.message, false);
-        btn.disabled = false; btn.textContent = 'Se connecter';
-      }
-    } else {
-      var r = await sb.auth.signUp({ email: email, password: password });
-      if (r.error) {
-        setAuthMsg(r.error.message, false);
-      } else {
-        setAuthMsg('Compte créé ! Vérifiez votre email pour confirmer.', true);
-      }
-      btn.disabled = false; btn.textContent = 'Créer mon compte';
-    }
-  };
-
-  window.handleResetPassword = async function() {
-    var email = document.getElementById('auth-email').value.trim();
-    if (!email) { setAuthMsg("Entrez votre email d'abord.", false); return; }
-    await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
-    setAuthMsg('Email envoyé ! Vérifiez votre boîte.', true);
-  };
-
   sb.auth.onAuthStateChange(async function(event, session) {
-    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+    if (event === 'INITIAL_SESSION') {
       if (session) {
         await loadFromCloud(session.user);
         hideOverlay();
         setTimeout(addLogoutButton, 200);
       } else {
-        showForm();
+        window.parent.location.href = '/';
       }
+    } else if (event === 'SIGNED_OUT') {
+      window.parent.location.href = '/';
     }
   });
-
 })();
 </script>
 
