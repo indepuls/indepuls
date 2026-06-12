@@ -254,6 +254,19 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
   .topbar-title{font-size:16px;}
   .notice-hero{padding:20px;}
   .notice-hero h2{font-size:18px;}
+  /* Missions : masquer colonnes secondaires */
+  #page-missions table th:nth-child(1),#page-missions table td:nth-child(1),
+  #page-missions table th:nth-child(3),#page-missions table td:nth-child(3),
+  #page-missions table th:nth-child(6),#page-missions table td:nth-child(6),
+  #page-missions table th:nth-child(7),#page-missions table td:nth-child(7),
+  #page-missions table th:nth-child(8),#page-missions table td:nth-child(8),
+  #page-missions table th:nth-child(9),#page-missions table td:nth-child(9){display:none;}
+  .mob-hide{display:none !important;}
+  /* Dashboard accordéon */
+  #page-dashboard .card-header{cursor:pointer;user-select:none;position:relative;padding-right:24px;}
+  #page-dashboard .card-header::after{content:'▾';font-size:13px;color:var(--tl);position:absolute;right:0;top:50%;transform:translateY(-50%);}
+  #page-dashboard .card.mob-collapsed .card-header::after{content:'▸';}
+  #page-dashboard .card.mob-collapsed>*:not(.card-header){display:none !important;}
 }
 
 /* 480px — g4 1col, padding minimal */
@@ -2499,6 +2512,14 @@ function renderDashboard() {
   }
 
   document.getElementById('dashboard-content').innerHTML=(isSASU()?renderSasuCard(d):'')+bilanCard+fixed+bottomRow;
+  initMobileAccordion();
+}
+
+function initMobileAccordion() {
+  if(window.innerWidth > 640) return;
+  document.querySelectorAll('#page-dashboard .card').forEach((c,i) => {
+    i === 0 ? c.classList.remove('mob-collapsed') : c.classList.add('mob-collapsed');
+  });
 }
 
 // ── WIDGET : PROVISIONS (côté droit du donut) ────────────────
@@ -4539,13 +4560,13 @@ function renderDepenses() {
   // ── Thead dynamique avec tri ──
   const thead=document.getElementById('dep-thead');
   if(thead) thead.innerHTML=`<tr>
-    <th class="sortable" onclick="sortDep('date')">Date${si('date')}</th>
+    <th class="mob-hide sortable" onclick="sortDep('date')">Date${si('date')}</th>
     <th class="sortable" onclick="sortDep('libelle')">Libellé${si('libelle')}</th>
-    <th>Catégorie</th>
+    <th class="mob-hide">Catégorie</th>
     <th class="sortable" onclick="sortDep('montant')">Montant${si('montant')}</th>
     ${tva?`<th>TVA récup.</th>`:''}
-    <th class="sortable" onclick="sortDep('recurrence')">Récurrence${si('recurrence')}</th>
-    <th class="sortable" onclick="sortDep('chantier')">Chantier lié${si('chantier')}</th>
+    <th class="mob-hide sortable" onclick="sortDep('recurrence')">Récurrence${si('recurrence')}</th>
+    <th class="mob-hide sortable" onclick="sortDep('chantier')">Chantier lié${si('chantier')}</th>
     <th></th>
   </tr>`;
 
@@ -4624,15 +4645,15 @@ function renderDepenses() {
   tbody.innerHTML=filtered.map(d=>{
     const m=d.chantierId?DATA.missions.find(x=>x.id===d.chantierId):null;
     const chanCell=m
-      ?`<td class="ts"><span style="font-weight:600">📦 ${m.client||'—'}</span>${m.description?`<div class="ts" style="color:var(--tl)">${m.description}</div>`:''}</td>`
-      :`<td class="ts" style="color:var(--tl)">—</td>`;
+      ?`<td class="mob-hide ts"><span style="font-weight:600">📦 ${m.client||'—'}</span>${m.description?`<div class="ts" style="color:var(--tl)">${m.description}</div>`:''}</td>`
+      :`<td class="mob-hide ts" style="color:var(--tl)">—</td>`;
     return `<tr>
-      <td>${d.date}</td>
+      <td class="mob-hide">${d.date}</td>
       <td class="fb">${d.libelle}</td>
-      <td><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
+      <td class="mob-hide"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
       <td class="fb">${fmtE(d.montant)}</td>
       ${tvaTd(d)}
-      <td><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''):''}</td>
+      <td class="mob-hide"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''):''}</td>
       ${chanCell}
       <td><button class="btn btn-out btn-xs" onclick="openDepModal('${d.id}')">✏️</button> <button class="btn btn-del btn-xs" onclick="deleteDepense('${d.id}')">🗑</button></td>
     </tr>`;
@@ -5661,6 +5682,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSbTimer();
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
+  document.getElementById('page-dashboard').addEventListener('click', e => {
+    if(window.innerWidth > 640) return;
+    const hdr = e.target.closest('.card-header');
+    if(hdr) hdr.closest('.card')?.classList.toggle('mob-collapsed');
+  });
 });
 </script>
 
