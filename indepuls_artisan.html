@@ -2007,7 +2007,7 @@ function wTresorerieKPI() {
   const anchorLabel=anchor?`Basé sur solde réel du ${(DATA.params.soldeReelDate||'').replace('-','/')}`:' Estimé depuis trésorerie de départ';
   return `<div class="kpi neu">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px">
-      <div class="kpi-label">🏦 Trésorerie disponible</div>
+      <div class="kpi-label">🏦 Trésorerie disponible — aujourd'hui <span class="info-tip" title="Estimation du solde de votre compte société à ce jour. Calcul : trésorerie de départ (ou solde réel saisi) + CA encaissé + entrées hors-CA − dépenses − rémunérations versées, depuis le début de l'année jusqu'au mois en cours. Cliquez ✏️ pour caler sur votre vrai solde bancaire.">?</span></div>
       <button onclick="openTresoAnchorForm()" style="position:relative;z-index:2;background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1;flex-shrink:0" title="Mettre à jour le solde réel">✏️</button>
     </div>
     <div class="kpi-val" style="color:${color}">${fmtE(treso,0)}</div>
