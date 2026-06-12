@@ -366,8 +366,9 @@ html,body{overflow-x:hidden;}
     padding-top:8px;border-top:1px solid var(--brd);margin-top:2px;
   }
   #page-depenses .tbl-wrap .dep-act .btn{flex:1;justify-content:center;}
-  /* Barre résumé : scroll horizontal sur mobile */
-  #dep-summary > div{overflow-x:auto!important;overflow-y:visible!important;-webkit-overflow-scrolling:touch;}
+  /* Barres résumé : scroll horizontal sur mobile */
+  #dep-summary > div,
+  #rev-summary > div{overflow-x:auto!important;overflow-y:visible!important;-webkit-overflow-scrolling:touch;}
   /* Alert : afficher en bloc pour éviter les colonnes flex */
   #page-depenses .alert{display:block;}
 
