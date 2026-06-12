@@ -342,18 +342,28 @@ html,body{overflow-x:hidden;}
 
   /* Dépenses : mise en carte */
   #page-depenses .tbl-wrap tr{
-    display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;
-    background:var(--card);border:1px solid var(--brd);
+    display:block;background:var(--card);border:1px solid var(--brd);
     border-radius:10px;padding:12px;margin-bottom:8px;
   }
-  #page-depenses .tbl-wrap td{display:block;padding:0;border:none;}
-  #page-depenses .tbl-wrap td:nth-child(2){flex:1;min-width:0;font-weight:600;}
-  #page-depenses .tbl-wrap td:nth-child(4){flex-shrink:0;font-weight:700;}
-  #page-depenses .tbl-wrap td:last-child{
-    width:100%;display:flex;gap:6px;
-    padding-top:8px;border-top:1px solid var(--brd);margin-top:2px;
+  #page-depenses .tbl-wrap td{border:none;padding:0;}
+  #page-depenses .tbl-wrap td[data-label="Libellé"]{
+    display:block;font-weight:700;font-size:15px;
+    padding-bottom:8px !important;margin-bottom:6px;border-bottom:1px solid var(--brd);
   }
-  #page-depenses .tbl-wrap td:last-child .btn{flex:1;justify-content:center;}
+  #page-depenses .tbl-wrap td[data-label]:not([data-label="Libellé"]){
+    display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:13px;
+  }
+  #page-depenses .tbl-wrap td[data-label]:not([data-label="Libellé"])::before{
+    content:attr(data-label);font-size:11px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;
+  }
+  #page-depenses .tbl-wrap td[data-label="Montant"]{
+    padding-top:8px !important;margin-top:4px;
+    border-top:1px solid var(--brd) !important;font-weight:700;font-size:14px;
+  }
+  #page-depenses .tbl-wrap td:last-child:not([data-label]){
+    display:flex;gap:6px;padding-top:8px !important;border-top:1px solid var(--brd);margin-top:4px;
+  }
+  #page-depenses .tbl-wrap td:last-child:not([data-label]) .btn{flex:1;justify-content:center;}
 
   /* Graphiques */
   canvas{max-height:200px!important;}
@@ -4806,19 +4816,19 @@ function renderDepenses() {
   }
 
   // ── Rendu des lignes ──
-  const tvaTd=d=>tva?(d.tvaDeductible?`<td class="ts tok">${fmtE(d.montantTVA||0)}</td>`:`<td class="ts" style="color:var(--tl)">—</td>`):'';
+  const tvaTd=d=>tva?(d.tvaDeductible?`<td class="ts tok" data-label="TVA récup.">${fmtE(d.montantTVA||0)}</td>`:`<td class="ts" data-label="TVA récup." style="color:var(--tl)">—</td>`):'';
   tbody.innerHTML=filtered.map(d=>{
     const m=d.chantierId?DATA.missions.find(x=>x.id===d.chantierId):null;
     const chanCell=m
-      ?`<td class="mob-hide ts"><span style="font-weight:600">📦 ${m.client||'—'}</span>${m.description?`<div class="ts" style="color:var(--tl)">${m.description}</div>`:''}</td>`
-      :`<td class="mob-hide ts" style="color:var(--tl)">—</td>`;
+      ?`<td class="ts" data-label="Chantier"><span style="font-weight:600">📦 ${m.client||'—'}</span>${m.description?`<div class="ts" style="color:var(--tl)">${m.description}</div>`:''}</td>`
+      :`<td class="ts" data-label="Chantier" style="color:var(--tl)">—</td>`;
     return `<tr>
-      <td class="mob-hide">${d.date}</td>
-      <td class="fb">${d.libelle}</td>
-      <td class="mob-hide"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
-      <td class="fb">${fmtE(d.montant)}</td>
+      <td data-label="Date">${d.date}</td>
+      <td class="fb" data-label="Libellé">${d.libelle}</td>
+      <td data-label="Catégorie"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
+      <td class="fb" data-label="Montant">${fmtE(d.montant)}</td>
       ${tvaTd(d)}
-      <td class="mob-hide"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''):''}</td>
+      <td data-label="Récurrence"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''):''}</td>
       ${chanCell}
       <td><button class="btn btn-out btn-xs" onclick="openDepModal('${d.id}')">✏️</button> <button class="btn btn-del btn-xs" onclick="deleteDepense('${d.id}')">🗑</button></td>
     </tr>`;
