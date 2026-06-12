@@ -2002,7 +2002,7 @@ function saveSasuSoldeReel(val) {
 function deleteSasuSoldeReel() {
   delete DATA.params.soldeReel;
   delete DATA.params.soldeReelDate;
-  saveData();renderDashboard();
+  saveData();closeModal('modal-treso-anchor');renderDashboard();
 }
 function wTresorerieKPI() {
   const proj=getSasuProjectionFinAnnee();
