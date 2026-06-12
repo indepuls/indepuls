@@ -225,6 +225,10 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 .btn-label{}/* visible by default */
 .btn-save.just-saved{animation:none !important;background:var(--ok) !important;}
 
+/* === OVERFLOW GUARD GLOBAL === */
+html,body{overflow-x:hidden;}
+.card,.tbl-wrap,.kpi{min-width:0;}
+
 /* 768px — drawer sidebar, grilles 1 col */
 @media(max-width:768px){
   .hamburger{display:flex;}
@@ -274,6 +278,15 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
   #page-missions .card-header .btn,
   #page-depenses .card-header .btn,
   #page-archives .card-header .btn{align-self:flex-start;}
+  /* Contenir le scroll horizontal sur chaque page */
+  .page{overflow-x:hidden;}
+  /* Dashboard : grids inline (bottomRow 1fr 1fr → 1 col) */
+  #page-dashboard [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+  /* Dashboard : bilan card repeat(4,1fr) → 2 cols */
+  #page-dashboard [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr 1fr !important;}
+  /* Revenus : scroll local uniquement dans le tbl-wrap */
+  #page-revenus .tbl-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
+  #page-revenus .tbl-wrap table{min-width:480px;}
 }
 
 /* ══════════════════════════════════════════════
@@ -355,6 +368,9 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
   /* Dashboard KPIs : 2 colonnes */
   #page-dashboard .g3,
   #page-dashboard .g4{grid-template-columns:1fr 1fr!important;}
+
+  /* Donut dépenses : min-width:160px légende → libérer */
+  #dep-donut-panel [style*="min-width:160px"]{min-width:0 !important;width:100%;}
 }
 
 /* ══════════════════════════════════════════════
@@ -364,6 +380,11 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
   #page-dashboard .g3,
   #page-dashboard .g4{grid-template-columns:1fr!important;}
   .card-header .btn-acc{width:100%;justify-content:center;}
+  /* Bilan card 4 cols → 1 col */
+  #page-dashboard [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr !important;}
+  /* KPI flex items — libérer min-width inline */
+  #page-dashboard [style*="min-width:130px"]{min-width:0 !important;}
+  [style*="min-width:90px"],[style*="min-width:80px"]{min-width:0 !important;}
 }
 </style>
 </head>
