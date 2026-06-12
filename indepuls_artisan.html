@@ -1747,7 +1747,7 @@ function applyDefaults(data) {
 }
 
 let DATA = getDefaultData();
-let _bilanDismissed = null;
+/* _bilanDismissed supprimé — persisté dans DATA.bilanDismissed */
 
 function loadData() {
   try {
@@ -2684,7 +2684,7 @@ function renderDashboard() {
   // ── Card bilan mensuel (1er du mois) ─────────────────────────
   let bilanCard='';
   const todayD=new Date(), todayKey=`${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,'0')}`;
-  if(_bilanDismissed!==todayKey && !DATA.isExample){
+  if(DATA.bilanDismissed!==todayKey && !DATA.isExample){
     const prevMo=todayD.getMonth()===0?12:todayD.getMonth(), prevY=todayD.getMonth()===0?todayD.getFullYear()-1:todayD.getFullYear();
     const prevMk=`${prevY}-${String(prevMo).padStart(2,'0')}`;
     const prevLabel=new Date(prevY,prevMo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
@@ -2716,7 +2716,7 @@ function renderDashboard() {
     bilanCard=`<div class="w-mb"><div class="card" style="border-left:4px solid var(--acc);background:linear-gradient(135deg,var(--card) 0%,rgba(91,44,74,.03) 100%)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700">📊 Bilan ${prevLabel}</div>
-        <button onclick="_bilanDismissed='${todayKey}';saveData();renderDashboard()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--tl);padding:0 4px" title="Fermer sans sauvegarder">×</button>
+        <button onclick="DATA.bilanDismissed='${todayKey}';saveData();renderDashboard()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--tl);padding:0 4px" title="Fermer sans sauvegarder">×</button>
       </div>
       <div class="g4" style="gap:10px">
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">CA brut</div><div style="font-size:20px;font-weight:700;color:var(--pri)">${fmtE(prevBrut)}</div>${diffSign?`<div style="font-size:11px;margin-top:2px">${diffSign} vs mois préc.</div>`:''}</div>
@@ -5765,7 +5765,7 @@ function saveBilanNote(mk,dismissKey){
   const text=(document.getElementById('bilan-note-input')?.value||'').trim();
   if(!DATA.bilans) DATA.bilans={};
   if(text) DATA.bilans[mk]={text,savedAt:new Date().toISOString()};
-  _bilanDismissed=dismissKey;
+  DATA.bilanDismissed=dismissKey;
   saveData();
   renderDashboard();
 }
