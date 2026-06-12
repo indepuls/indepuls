@@ -2006,9 +2006,9 @@ function wTresorerieKPI() {
   const anchor=DATA.params.soldeReel!=null;
   const anchorLabel=anchor?`Basé sur solde réel du ${(DATA.params.soldeReelDate||'').replace('-','/')}`:' Estimé depuis trésorerie de départ';
   return `<div class="kpi neu">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between">
-      <div><div class="kpi-ico">🏦</div><div class="kpi-label">Trésorerie disponible</div></div>
-      <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1" title="Mettre à jour le solde réel">✏️</button>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px">
+      <div class="kpi-label">🏦 Trésorerie disponible</div>
+      <button onclick="openTresoAnchorForm()" style="position:relative;z-index:2;background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1;flex-shrink:0" title="Mettre à jour le solde réel">✏️</button>
     </div>
     <div class="kpi-val" style="color:${color}">${fmtE(treso,0)}</div>
     <div class="kpi-sub" style="color:${color}">${badge} — ${moisCouverture>=99?'∞':moisCouverture} mois de charges couverts</div>
