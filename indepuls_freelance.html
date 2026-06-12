@@ -275,6 +275,9 @@ html,body{overflow-x:hidden;}
    MOBILE 768px — grids & layout général
 ══════════════════════════════════════════════ */
 @media(max-width:768px){
+  /* Empêche le débordement horizontal global */
+  body{overflow-x:hidden;}
+  .main{max-width:100%;overflow-x:hidden;}
   .g2,.g3,.g4,.g5,.g6{grid-template-columns:1fr !important;}
   .sante-layout{grid-template-columns:1fr !important;}
   .card-header{flex-wrap:wrap;gap:8px;}
@@ -290,6 +293,10 @@ html,body{overflow-x:hidden;}
   /* KPI cards : texte non tronqué */
   .kpi-label,.kpi-sub{overflow-wrap:anywhere;white-space:normal;}
   .card{overflow-wrap:anywhere;}
+  /* Alertes : éviter le rendu flex multi-colonnes */
+  .alert{display:block;}
+  /* Thème : 2 colonnes au lieu de 4 */
+  .theme-grid{grid-template-columns:repeat(2,1fr);}
 }
 
 /* ══════════════════════════════════════════════

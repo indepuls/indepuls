@@ -290,6 +290,10 @@ html,body{overflow-x:hidden;}
   /* KPI cards : texte non tronqué */
   .kpi-label,.kpi-sub{overflow-wrap:anywhere;white-space:normal;}
   .card{overflow-wrap:anywhere;}
+  /* Alertes : éviter le rendu flex multi-colonnes */
+  .alert{display:block;}
+  /* Thème : 2 colonnes au lieu de 4 */
+  .theme-grid{grid-template-columns:repeat(2,1fr);}
 }
 
 /* ══════════════════════════════════════════════
