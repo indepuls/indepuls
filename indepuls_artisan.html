@@ -3115,15 +3115,7 @@ function wKPIs({caBrut,objNet,thR,hT,proj,caTreso}) {
       <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.5">${phraseAnnuel}<br><span style="opacity:.85">À ce rythme, la projection de votre CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.</span></div>
     </div>
     ${isSASU()
-      ?(()=>{
-        const dep2=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
-        const rawCapa2=Math.round((caBrut-dep2)/12);
-        const capa=Math.max(0,rawCapa2);
-        const ecart2=capa-getSasuCoutRemuMensuel();
-        const capaC=ecart2>=0?'var(--ok)':ecart2>=-500?'var(--warn)':'var(--err)';
-        const capaSub=rawCapa2<=0?'Activité insuffisante pour dégager une rémunération':ecart2>=0?`Soutenable — marge +${fmtE(ecart2,0)}/mois`:ecart2>=-500?`Fragile — écart ${fmtE(ecart2,0)}/mois`:`Non soutenable — écart ${fmtE(ecart2,0)}/mois`;
-        return `<div class="kpi neu"><div class="kpi-ico">👤</div><div class="kpi-label">Rémunération cible / mois</div><div class="kpi-val">${fmtE(p.remunerationNette||0)}</div><div class="kpi-sub">Paramétré dans Mon profil</div><div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--brd)"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">Rémunération recommandée</div><div style="font-size:14px;font-weight:700;color:${capaC}">${fmtE(capa,0)}/mois</div><div style="font-size:11px;color:${capaC};margin-top:1px">${capaSub}</div></div></div>`;
-      })()
+      ?''
       :`<div class="kpi ${pctObj>=100?'good':pctObj>=75?'warn':'bad'}">
           <div class="kpi-ico">🎯</div>
           <div class="kpi-label">Revenu net — ${moisLabel}</div>
