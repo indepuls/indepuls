@@ -27,7 +27,6 @@ body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--te
 .nav-item.active{opacity:1;background:rgba(255,255,255,.14);border-left-color:var(--acc);font-weight:700;}
 .nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
 .sb-bottom{margin-top:auto;padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);}
-.sb-save{font-size:10px;color:rgba(255,255,255,.4);margin-bottom:10px;line-height:1.6;}
 .contact-encart{font-size:11px;opacity:.8;line-height:1.6;color:var(--sbt);}
 .contact-encart a{color:var(--sec);text-decoration:none;font-weight:700;}
 
@@ -237,7 +236,6 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
   .g2{grid-template-columns:1fr;}
   .g3{grid-template-columns:1fr;}
   .btn-label{display:none;}
-  #last-save-info{display:none;}
 }
 
 /* 640px — bottom sheet modal, g4 2col, tabs scroll, frow 1col */
@@ -301,7 +299,6 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
   </div>
 
   <div class="sb-bottom">
-    <div class="sb-save" id="sb-save-info"></div>
     <div class="contact-encart">
       Une question, un bug ou envie de découvrir mes services ?<br>
       <a href="mailto:fpatissier.pro@gmail.com">fpatissier.pro@gmail.com</a>
@@ -1613,7 +1610,6 @@ function exportData() {
   a.href = URL.createObjectURL(blob);
   a.download = `obm-pilot-sauvegarde-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
-  updateLastSaveInfo();
   dismissSaveBanner();
   showToast('✅ Sauvegarde téléchargée avec succès !');
   // Feedback visuel bouton
@@ -1664,21 +1660,6 @@ function showLocalDataNotice() {
   t.innerHTML='⚠️ <strong>Vos données sont enregistrées sur cet appareil uniquement.</strong><br>Pensez à télécharger régulièrement une sauvegarde pour éviter toute perte de données.<br><button onclick="exportData();this.closest(\'div\').remove()" style="margin-top:8px;display:inline-block;background:var(--warn);color:#fff;border:none;padding:5px 14px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:700">Télécharger ma sauvegarde</button>';
   document.body.appendChild(t); setTimeout(()=>{if(t.parentNode)t.remove();},12000);
 }
-function updateLastSaveInfo() {
-  const el=document.getElementById('last-save-info'), sbEl=document.getElementById('sb-save-info');
-  if(!DATA.lastSave){
-    if(el) el.textContent='⚠️ Non sauvegardé';
-    if(sbEl) sbEl.textContent='⚠️ Aucune sauvegarde effectuée';
-  } else {
-    const d=new Date(DATA.lastSave), now=new Date();
-    const isToday=d.toDateString()===now.toDateString();
-    const timeStr=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-    const dateStr=isToday?`aujourd'hui à ${timeStr}`:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long'});
-    if(el) el.textContent='💾 '+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-    if(sbEl) sbEl.textContent=`💾 Sauvegardé — ${dateStr}`;
-  }
-}
-
 // ── UTILITAIRES ──────────────────────────────────────────────
 function fmt(n, d=0) { return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}); }
 function fmtE(n, d) { const v=Number(n||0); const dec=d!==undefined?d:(v%1!==0?2:0); return fmt(v,dec)+' €'; }
@@ -2161,7 +2142,6 @@ function renderAll() {
   document.getElementById('archive-year-label').textContent = DATA.currentYear;
   document.getElementById('next-year-label').textContent = DATA.currentYear+1;
   document.getElementById('topbar-title').textContent = getPageTitle(currentPage);
-  updateLastSaveInfo();
   updateSbTimer();
 }
 
@@ -5200,39 +5180,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- BOUTON RETOUR INDÉPULS -->
+<!-- BOUTON CHANGER DE SESSION -->
 <script>
 (function(){
-  if(!localStorage.getItem('indepuls_lastSession')) return;
-  var btn = document.createElement('a');
-  btn.href = './indepuls.html';
-  btn.innerHTML = '&#8592; Accueil Indépuls';
-  btn.title = "Retour au choix de l'espace";
-  btn.style.cssText = [
-    'display:block',
-    'font-size:10px',
-    'font-weight:700',
-    'color:rgba(255,255,255,.45)',
-    'text-decoration:none',
-    'margin-bottom:10px',
-    'font-family:Lato,system-ui,sans-serif',
-    'letter-spacing:.3px',
-    'transition:color .15s',
-    'cursor:pointer'
-  ].join(';');
-  btn.onmouseenter = function(){ this.style.color='rgba(255,255,255,.9)'; };
-  btn.onmouseleave = function(){ this.style.color='rgba(255,255,255,.45)'; };
-  btn.onclick = function(e){
+  var btn = document.createElement('button');
+  btn.textContent = '← Changer de session';
+  btn.style.cssText = 'width:100%;padding:7px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.15);border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:10px;transition:all .2s;display:block;';
+  btn.onmouseenter = function(){ this.style.background='rgba(255,255,255,.18)'; this.style.color='rgba(255,255,255,.9)'; };
+  btn.onmouseleave = function(){ this.style.background='rgba(255,255,255,.08)'; this.style.color='rgba(255,255,255,.55)'; };
+  btn.onclick = function(){
     if(window.parent !== window){
-      e.preventDefault();
       try{ window.parent.backToSelector(); }
-      catch(err){ window.location.href = './indepuls.html'; }
-    }
+      catch(err){ window.location.href = '/'; }
+    } else { window.location.href = '/'; }
   };
-  // Insertion dans .sb-logo, avant le h1
-  var logo = document.querySelector('.sb-logo');
-  if(logo){ logo.insertBefore(btn, logo.firstChild); }
-  else { document.body.appendChild(btn); }
+  var sbBottom = document.querySelector('.sb-bottom');
+  if(sbBottom){ sbBottom.insertBefore(btn, sbBottom.firstChild); }
 })();
 </script>
 

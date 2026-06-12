@@ -10,53 +10,12 @@
 html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA;overflow:hidden;}
 
 /* ══════════════════════════════════════════
-   BARRE PERSISTANTE (mode iframe / HTTP)
-══════════════════════════════════════════ */
-#app-bar{
-  display:none;
-  position:fixed;top:0;left:0;right:0;
-  height:44px;z-index:9999;
-  background:#141538;
-  align-items:center;justify-content:space-between;
-  padding:0 16px;gap:12px;
-  box-shadow:0 2px 12px rgba(0,0,0,.3);
-}
-#app-bar.on{display:flex;}
-
-.bar-back{
-  display:flex;align-items:center;gap:6px;
-  background:rgba(255,255,255,.09);
-  border:1px solid rgba(255,255,255,.18);
-  color:#F1EFEA;border-radius:7px;
-  padding:5px 12px;font-size:12px;font-weight:700;
-  cursor:pointer;font-family:inherit;white-space:nowrap;
-  transition:background .15s;
-}
-.bar-back:hover{background:rgba(255,255,255,.18);}
-
-.bar-brand{
-  font-family:'Playfair Display',Georgia,serif;
-  font-size:15px;font-weight:700;color:#F1EFEA;
-  letter-spacing:.3px;white-space:nowrap;
-  position:absolute;left:50%;transform:translateX(-50%);
-}
-
-.bar-badge{
-  display:flex;align-items:center;gap:7px;
-  background:rgba(255,255,255,.1);
-  border-radius:20px;padding:4px 13px;
-  font-size:12px;font-weight:700;color:#F1EFEA;
-  white-space:nowrap;
-}
-.bar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-
-/* ══════════════════════════════════════════
    IFRAME (mode HTTP)
 ══════════════════════════════════════════ */
 #app-frame{
   display:none;
-  position:fixed;top:44px;left:0;right:0;bottom:0;
-  width:100%;height:calc(100% - 44px);
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  width:100%;height:100%;
   border:none;
 }
 #app-frame.on{display:block;}
@@ -207,16 +166,6 @@ html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA
   </div>
 </div>
 
-<!-- ── BARRE PERSISTANTE (visible en mode iframe) ── -->
-<div id="app-bar">
-  <button class="bar-back" onclick="backToSelector()">← Changer d'espace</button>
-  <div class="bar-badge">
-    <span class="bar-dot" id="bar-dot"></span>
-    <span id="bar-label"></span>
-  </div>
-  <button class="bar-back" onclick="portalLogout()" style="margin-left:auto">Déconnexion</button>
-</div>
-
 <!-- ── IFRAME (chargé en mode HTTP/HTTPS) ── -->
 <iframe id="app-frame" allowfullscreen title="Espace Indépuls"></iframe>
 
@@ -298,9 +247,6 @@ function go(id) {
   localStorage.setItem('indepuls_lastSession', id);
 
   if (useIframe) {
-    document.getElementById('bar-dot').style.background = s.color;
-    document.getElementById('bar-label').textContent = s.label;
-    document.getElementById('app-bar').classList.add('on');
     document.getElementById('app-frame').src = s.file;
     document.getElementById('app-frame').classList.add('on');
     document.getElementById('selector').classList.add('hidden');
@@ -313,7 +259,6 @@ function backToSelector() {
   var frame = document.getElementById('app-frame');
   frame.classList.remove('on');
   frame.src = '';
-  document.getElementById('app-bar').classList.remove('on');
   document.getElementById('selector').classList.remove('hidden');
 }
 
@@ -424,7 +369,6 @@ function initSelector() {
     if (!confirm('Se déconnecter ?')) return;
     var frame = document.getElementById('app-frame');
     if (frame) { frame.src = ''; frame.classList.remove('on'); }
-    document.getElementById('app-bar').classList.remove('on');
     document.getElementById('selector').classList.remove('hidden');
     await _sb.auth.signOut();
     showAuthOverlay();
