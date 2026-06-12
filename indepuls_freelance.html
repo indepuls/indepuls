@@ -278,15 +278,19 @@ html,body{overflow-x:hidden;}
   #page-missions .card-header .btn,
   #page-depenses .card-header .btn,
   #page-archives .card-header .btn{align-self:flex-start;}
-  /* Contenir le scroll horizontal sur chaque page */
-  .page{overflow-x:hidden;}
   /* Dashboard : grids inline (bottomRow 1fr 1fr → 1 col) */
   #page-dashboard [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
-  /* Dashboard : bilan card repeat(4,1fr) → 2 cols */
+  /* Dashboard : repeat(4,1fr) → 2 cols (bilan card, piliers, wKPIs strip) */
   #page-dashboard [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr 1fr !important;}
-  /* Revenus : scroll local uniquement dans le tbl-wrap */
+  /* Revenus : scroll local uniquement dans le tbl-wrap, pas de clip global */
   #page-revenus .tbl-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
   #page-revenus .tbl-wrap table{min-width:480px;}
+  /* Bandeaux stat (rev-summary / dep-summary) : wrapping réel */
+  #rev-summary [style*="white-space:nowrap"],
+  #dep-summary [style*="white-space:nowrap"]{white-space:normal !important;}
+  /* KPI cards : texte non tronqué */
+  .kpi-label,.kpi-sub{overflow-wrap:anywhere;white-space:normal;}
+  .card{overflow-wrap:anywhere;}
 }
 
 /* ══════════════════════════════════════════════
@@ -369,6 +373,8 @@ html,body{overflow-x:hidden;}
   #page-dashboard .g3,
   #page-dashboard .g4{grid-template-columns:1fr 1fr!important;}
 
+  /* Score Santé : 210px 1fr → 1 col (Score + Priorité empilés) */
+  #page-dashboard [style*="grid-template-columns:210px"]{grid-template-columns:1fr !important;}
   /* Donut dépenses : min-width:160px légende → libérer */
   #dep-donut-panel [style*="min-width:160px"]{min-width:0 !important;width:100%;}
 }
