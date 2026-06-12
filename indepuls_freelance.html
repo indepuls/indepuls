@@ -2172,18 +2172,29 @@ function getImpotsTaux() { return (DATA.params.impotsTaux||0)/100; }
 function isSASU() { return DATA.params.statut === 'sasu'; }
 function getTresorerieDepart() { return ((DATA.params.tresorerieParAnnee)||{})[DATA.currentYear]||0; }
 function getSasuCoutRemuMensuel() { const net=DATA.params.remunerationNette||0; const pct=DATA.params.coutRemunerationPct||80; return net*(1+pct/100); }
-function getSasuTresorerieActuelle() {
+function getSasuSoldeActuelEstime() {
+  // Solde estimé à ce jour (base pour la projection)
   const curMk=getCurrentMk();
-  const anchor=DATA.params.soldeReel!=null?DATA.params.soldeReel:null;
-  const anchorMk=DATA.params.soldeReelDate||null;
-  const base=anchor!=null?anchor:getTresorerieDepart();
-  const fromMk=anchor!=null&&anchorMk?anchorMk:`${DATA.currentYear}-01`;
-  const months=getCurrentYearMonths().filter(mk=>mk>=fromMk&&mk<=curMk);
-  const ca=months.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
-  const inflows=months.reduce((s,mk)=>s+getPonctuelsTresorerie(mk),0);
-  const dep=months.reduce((s,mk)=>s+getDepensesMois(mk),0);
-  const remu=getSasuCoutRemuMensuel()*months.length;
-  return Math.round(base+ca+inflows-dep-remu);
+  const allMonths=getCurrentYearMonths().filter(mk=>mk<=curMk);
+  const ca=allMonths.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
+  const inflows=allMonths.reduce((s,mk)=>s+getPonctuelsTresorerie(mk),0);
+  const dep=allMonths.reduce((s,mk)=>s+getDepensesMois(mk),0);
+  const remu=getSasuCoutRemuMensuel()*allMonths.length;
+  return Math.round(getTresorerieDepart()+ca+inflows-dep-remu);
+}
+function getSasuProjectionFinAnnee() {
+  const curMk=getCurrentMk();
+  const cm=parseInt(curMk.split('-')[1],10);
+  const moisRestants=12-cm; // mois strictement futurs (après le mois en cours)
+  // Base : solde réel saisi ou estimation automatique
+  const base=DATA.params.soldeReel!=null?DATA.params.soldeReel:getSasuSoldeActuelEstime();
+  // Rythme mensuel moyen sur les mois écoulés (hors mois en cours pour éviter le partiel)
+  const pastMonths=getCurrentYearMonths().filter(mk=>mk<curMk);
+  const n=Math.max(pastMonths.length,1);
+  const caAvg=pastMonths.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0)/n;
+  const depAvg=pastMonths.reduce((s,mk)=>s+getDepensesMois(mk),0)/n;
+  // Projection = base + (CA projeté − dépenses projetées − rémunérations) sur les mois restants
+  return Math.round(base+(caAvg-depAvg-getSasuCoutRemuMensuel())*moisRestants);
 }
 function saveSasuSoldeReel(val) {
   DATA.params.soldeReel=val;
@@ -2196,20 +2207,23 @@ function deleteSasuSoldeReel() {
   saveData();renderDashboard();
 }
 function wTresorerieKPI() {
-  const treso=getSasuTresorerieActuelle();
+  const proj=getSasuProjectionFinAnnee();
   const depMoy=getDepensesMoyenneMensuelle()+getSasuCoutRemuMensuel();
-  const moisCouverture=depMoy>0?Math.floor(treso/depMoy):99;
-  const color=moisCouverture>=3?'var(--ok)':moisCouverture>=1?'var(--warn)':'var(--err)';
-  const badge=moisCouverture>=3?'▲ Solide':moisCouverture>=1?'◐ Attention':'▼ Critique';
+  const color=proj>depMoy?'var(--ok)':proj>=0?'var(--warn)':'var(--err)';
+  const badge=proj>depMoy?'▲ Solide':proj>=0?'◐ Fragile':'▼ Déficit projeté';
   const anchor=DATA.params.soldeReel!=null;
-  const anchorLabel=anchor?`Basé sur solde réel du ${(DATA.params.soldeReelDate||'').replace('-','/')}`:' Estimé depuis trésorerie de départ';
+  const soldeActuel=anchor?DATA.params.soldeReel:getSasuSoldeActuelEstime();
+  const anchorLabel=anchor
+    ?`Solde réel saisi le ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} · Solde actuel estimé : ${fmtE(soldeActuel,0)}`
+    :`Solde actuel estimé : ${fmtE(soldeActuel,0)} (depuis trésorerie de départ)`;
+  const tooltipText=`Projection du solde de votre compte société au 31/12/${DATA.currentYear}. Calcul : solde actuel${anchor?' réel':'estimé'} + (CA moyen − dépenses moyennes − rémunération) × mois restants. Cliquez ✏️ pour saisir votre vrai solde bancaire aujourd'hui et affiner la projection.`;
   return `<div class="kpi neu">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px">
-      <div class="kpi-label">🏦 Trésorerie disponible — aujourd'hui <span class="info-tip" title="Estimation du solde de votre compte société à ce jour. Calcul : trésorerie de départ (ou solde réel saisi) + CA encaissé + entrées hors-CA − dépenses − rémunérations versées, depuis le début de l'année jusqu'au mois en cours. Cliquez ✏️ pour caler sur votre vrai solde bancaire.">?</span></div>
-      <button onclick="openTresoAnchorForm()" style="position:relative;z-index:2;background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1;flex-shrink:0" title="Mettre à jour le solde réel">✏️</button>
+      <div class="kpi-label">🏦 Trésorerie projetée fin ${DATA.currentYear} <span class="info-tip" title="${tooltipText}">?</span></div>
+      <button onclick="openTresoAnchorForm()" style="position:relative;z-index:2;background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1;flex-shrink:0" title="Saisir mon solde bancaire actuel">✏️</button>
     </div>
-    <div class="kpi-val" style="color:${color}">${fmtE(treso,0)}</div>
-    <div class="kpi-sub" style="color:${color}">${badge} — ${moisCouverture>=99?'∞':moisCouverture} mois de charges couverts</div>
+    <div class="kpi-val" style="color:${color}">${fmtE(proj,0)}</div>
+    <div class="kpi-sub" style="color:${color}">${badge}</div>
     <div style="font-size:10px;color:var(--tl);margin-top:6px">${anchorLabel}</div>
   </div>`;
 }
