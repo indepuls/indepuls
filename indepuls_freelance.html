@@ -155,6 +155,8 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px;}
 
 .w-mb{margin-bottom:16px;}
+.sante-layout{display:grid;grid-template-columns:210px 1fr;gap:12px;align-items:start;}
+.mob-kpi{flex:1;min-width:130px;}
 
 /* === EXAMPLE BANNER === */
 .welcome-example{background:linear-gradient(135deg,rgba(187,158,129,.1),rgba(91,44,74,.05));border:1px solid rgba(187,158,129,.4);border-left:4px solid var(--sec);border-radius:14px;padding:26px 28px;margin-bottom:22px;}
@@ -274,14 +276,11 @@ html,body{overflow-x:hidden;}
 ══════════════════════════════════════════════ */
 @media(max-width:768px){
   .g2,.g3,.g4,.g5,.g6{grid-template-columns:1fr !important;}
+  .sante-layout{grid-template-columns:1fr !important;}
   .card-header{flex-wrap:wrap;gap:8px;}
   #page-missions .card-header .btn,
   #page-depenses .card-header .btn,
   #page-archives .card-header .btn{align-self:flex-start;}
-  /* Dashboard : grids inline (bottomRow 1fr 1fr → 1 col) */
-  #page-dashboard [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
-  /* Dashboard : repeat(4,1fr) → 2 cols (bilan card, piliers, wKPIs strip) */
-  #page-dashboard [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr 1fr !important;}
   /* Revenus : scroll local uniquement dans le tbl-wrap, pas de clip global */
   #page-revenus .tbl-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
   #page-revenus .tbl-wrap table{min-width:480px;}
@@ -291,8 +290,6 @@ html,body{overflow-x:hidden;}
   /* KPI cards : texte non tronqué */
   .kpi-label,.kpi-sub{overflow-wrap:anywhere;white-space:normal;}
   .card{overflow-wrap:anywhere;}
-  /* Score Santé : 210px 1fr → 1 col dès 768px */
-  #page-dashboard [style*="grid-template-columns:210px"]{grid-template-columns:1fr !important;}
 }
 
 /* ══════════════════════════════════════════════
@@ -459,14 +456,8 @@ html,body{overflow-x:hidden;}
    MOBILE 480px — ultra compact
 ══════════════════════════════════════════════ */
 @media(max-width:480px){
-  #page-dashboard .g3,
-  #page-dashboard .g4{grid-template-columns:1fr!important;}
   .card-header .btn-acc{width:100%;justify-content:center;}
-  /* Bilan card 4 cols → 1 col */
-  #page-dashboard [style*="grid-template-columns:repeat(4"]{grid-template-columns:1fr !important;}
-  /* KPI flex items — libérer min-width inline */
-  #page-dashboard [style*="min-width:130px"]{min-width:0 !important;}
-  [style*="min-width:90px"],[style*="min-width:80px"]{min-width:0 !important;}
+  .mob-kpi{min-width:0;flex:1 1 calc(50% - 3px);}
 }
 </style>
 </head>
@@ -2446,7 +2437,7 @@ function renderDashboard() {
   fixed += '<div class="w-mb">'+wKPIs(d)+'</div>';
 
   // ── Graphique CA mensuel + TVA (fixes) ───────────────────────
-  const bottomRow=`<div class="w-mb"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">${wRepartitionCA(d)}${wProvisionsSide(d)}</div></div>`;
+  const bottomRow=`<div class="w-mb"><div class="g2" style="align-items:start">${wRepartitionCA(d)}${wProvisionsSide(d)}</div></div>`;
 
   // ── Card bilan mensuel (1er du mois) ─────────────────────────
   let bilanCard='';
@@ -2471,7 +2462,7 @@ function renderDashboard() {
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700">📊 Bilan ${prevLabel}</div>
         <button onclick="DATA.bilanDismissed='${todayKey}';saveData();renderDashboard()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--tl);padding:0 4px" title="Fermer sans sauvegarder">×</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div class="g4" style="gap:10px">
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">CA brut</div><div style="font-size:20px;font-weight:700;color:var(--pri)">${fmtE(prevBrut)}</div>${diffSign?`<div style="font-size:11px;margin-top:2px">${diffSign} vs mois préc.</div>`:''}</div>
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">Revenu net</div><div style="font-size:20px;font-weight:700;color:${prevNet>0?'var(--ok)':'var(--err)'}">${fmtE(prevNet)}</div><div style="font-size:11px;color:var(--tl);margin-top:2px">après charges</div></div>
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">Dépenses</div><div style="font-size:20px;font-weight:700;color:var(--text)">${fmtE(prevDep)}</div></div>
@@ -2675,7 +2666,7 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const capEmoji=capPct>100?'🔴':capPct>80?'🟠':charge>0?'🟢':'○';
   const capColor=capPct>100?'var(--err)':capPct>80?'var(--warn)':charge>0?'var(--ok)':'var(--tl)';
   const capSub=cap>0?(charge>0?`${fmt(Math.max(0,cap-charge),1)} h libres / sem`:'Aucune charge estimée'):`${fmt(cap,0)} h/sem max`;
-  return `<div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px 20px;border-left:4px solid var(--pri);display:grid;grid-template-columns:repeat(4,1fr);gap:0">
+  return `<div class="g4" style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px 20px;border-left:4px solid var(--pri);gap:0">
     <div style="padding-right:16px;border-right:1px solid var(--brd)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">CA ${DATA.currentYear}</div>
       <div style="font-size:20px;font-weight:700;color:var(--pri);line-height:1">${fmtE(caBrut)}</div>
@@ -2928,7 +2919,7 @@ function wTVAZone({caBrut,caTreso,caP,caV}) {
         else if(ecartImp>=0){tCl='var(--ok)';tIco='🟢';tMsg=`Couvert grâce aux impayés à encaisser (${fmtE(impTTC)} TTC).`;}
         else if(ecartTout>=0){tCl='var(--warn)';tIco='🟠';tMsg=`Tension — provisions couvertes seulement après facturation des missions en cours. Facturez rapidement.`;}
         else{tCl='var(--err)';tIco='🔴';tMsg=`Tension forte — provisions non couvertes même avec toutes les rentrées attendues.`;}
-        const kpi=(lbl,val,sub,clr)=>`<div style="flex:1;min-width:130px;background:var(--bg);border-radius:8px;padding:9px 12px${clr?';border-left:3px solid '+clr:''}"><div class="ts" style="font-size:11px;margin-bottom:3px">${lbl}</div><div style="font-weight:700;font-size:15px;${clr?'color:'+clr+';':''}">${val}</div>${sub?`<div class="ts" style="font-size:10px;margin-top:2px">${sub}</div>`:''}</div>`;
+        const kpi=(lbl,val,sub,clr)=>`<div class="mob-kpi" style="background:var(--bg);border-radius:8px;padding:9px 12px${clr?';border-left:3px solid '+clr:''}"><div class="ts" style="font-size:11px;margin-bottom:3px">${lbl}</div><div style="font-weight:700;font-size:15px;${clr?'color:'+clr+';':''}">${val}</div>${sub?`<div class="ts" style="font-size:10px;margin-top:2px">${sub}</div>`:''}</div>`;
         return `<div style="padding-top:12px;border-top:1px solid var(--brd)">
           <div class="ts mb8" style="font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl);font-size:10px">📊 Tendance</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
@@ -3389,7 +3380,7 @@ function wScoreSante(d) {
   const _mecCard=_actives.length?`<div class="card" style="padding:14px 18px;margin-bottom:12px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--ok);font-weight:700;margin-bottom:8px">🟢 Missions en cours · ${_actives.length}</div>${_activeRows}</div>`:'';
   return `<div>
     ${_mecCard}
-    <div style="display:grid;grid-template-columns:210px 1fr;gap:12px;margin-bottom:12px;align-items:start">
+    <div class="sante-layout" style="margin-bottom:12px">
       <div class="card" style="border-left:4px solid ${scoreColor};text-align:center;padding:20px 14px">
         <div style="position:relative;width:84px;height:84px;margin:0 auto 10px">
           <svg width="84" height="84" style="transform:rotate(-90deg)">
@@ -3410,7 +3401,7 @@ function wScoreSante(d) {
         ${alertsSection}
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+    <div class="g4" style="gap:10px">
       ${pilierCard('Rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
       ${pilierCard('Remplissage',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
       ${pilierCard('Trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso)}
