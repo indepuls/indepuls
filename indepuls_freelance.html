@@ -384,7 +384,7 @@ html,body{overflow-x:hidden;}
 
   /* ── Revenus : tableau → cartes mensuelles ── */
   #page-revenus .tbl-wrap{overflow:visible;}
-  #page-revenus .tbl-wrap table{display:block;width:100%;}
+  #page-revenus .tbl-wrap table{display:block;width:100%;min-width:0;}
   #page-revenus .tbl-wrap thead,
   #page-revenus .tbl-wrap tfoot{display:none;}
   #page-revenus .tbl-wrap tbody{display:block;}
@@ -392,27 +392,46 @@ html,body{overflow-x:hidden;}
     display:block;background:var(--card);border:1px solid var(--brd);
     border-radius:10px;padding:12px;margin-bottom:8px;
   }
-  #page-revenus .tbl-wrap td{background:transparent !important;border:none;padding:0;}
-  #page-revenus .tbl-wrap td[data-label="Mois"]{
+  #page-revenus .tbl-wrap td{background:transparent!important;border:none;padding:0;}
+  /* Mois → titre */
+  #page-revenus .tbl-wrap .rev-mois{
     display:block;font-weight:700;font-size:15px;
-    padding-bottom:8px !important;margin-bottom:6px;border-bottom:1px solid var(--brd);
+    padding-bottom:8px!important;margin-bottom:6px;border-bottom:1px solid var(--brd);
   }
-  #page-revenus .tbl-wrap td[data-label]:not([data-label="Mois"]):not([data-label="Ponctuels"]){
-    display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:13px;
+  /* Lignes label/valeur */
+  #page-revenus .tbl-wrap .rev-ca,
+  #page-revenus .tbl-wrap .rev-charges,
+  #page-revenus .tbl-wrap .rev-dep,
+  #page-revenus .tbl-wrap .rev-net{
+    display:flex;justify-content:space-between;align-items:baseline;
+    width:100%;padding:3px 0;font-size:13px;
   }
-  #page-revenus .tbl-wrap td[data-label]:not([data-label="Mois"]):not([data-label="Ponctuels"])::before{
-    content:attr(data-label);font-size:11px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;
+  #page-revenus .tbl-wrap .rev-ca::before{content:"CA services";}
+  #page-revenus .tbl-wrap .rev-charges::before{content:"Charges";}
+  #page-revenus .tbl-wrap .rev-dep::before{content:"Dépenses";}
+  #page-revenus .tbl-wrap .rev-net::before{content:"Net";}
+  #page-revenus .tbl-wrap .rev-ca::before,
+  #page-revenus .tbl-wrap .rev-charges::before,
+  #page-revenus .tbl-wrap .rev-dep::before,
+  #page-revenus .tbl-wrap .rev-net::before{
+    font-size:11px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;flex-shrink:0;
   }
-  #page-revenus .tbl-wrap td[data-label="Net"]{
-    padding-top:8px !important;margin-top:4px;
-    border-top:1px solid var(--brd) !important;font-weight:700;font-size:14px;
+  /* Net → ligne clé avec séparateur */
+  #page-revenus .tbl-wrap .rev-net{
+    padding-top:8px!important;margin-top:4px;
+    border-top:1px solid var(--brd)!important;font-weight:700;font-size:14px;
   }
-  #page-revenus .tbl-wrap td[data-label="Ponctuels"]{display:block;padding:4px 0;}
-  #page-revenus .tbl-wrap td[data-label="Ponctuels"]::before{
+  /* Colonnes masquées */
+  #page-revenus .tbl-wrap .rev-brut{display:none!important;}
+  #page-revenus .tbl-wrap .rev-tva{display:none!important;}
+  #page-revenus .tbl-wrap .rev-imp{display:none!important;}
+  /* Ponctuels → pleine largeur */
+  #page-revenus .tbl-wrap .rev-ponct{display:block;width:100%;padding:4px 0;}
+  #page-revenus .tbl-wrap .rev-ponct::before{
     content:"Ponctuels";display:block;font-size:11px;color:var(--tl);
     text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;
   }
-  #page-revenus .tbl-wrap td[data-label="Ponctuels"] .btn{width:100%;justify-content:center;}
+  #page-revenus .tbl-wrap .rev-ponct .btn{width:100%;justify-content:center;}
 
   /* ── Archives : tableau → cartes par année ── */
   #archives-table-zone .tbl-wrap,
@@ -4174,15 +4193,15 @@ function renderRevenus() {
     const poncList=(r.autresList||[]);
     const poncBtn=`<button class="btn btn-out btn-sm" onclick="openPonctuelsModal('${mk}')" style="font-size:11px;padding:3px 10px;white-space:nowrap">${poncList.length>0?fmtE(a)+(tresorerie>0?` +${fmtE(tresorerie)} hors CA`:''):'+ Ajouter'}</button>`;
     return `<tr ${brut===0&&tresorerie===0?'style="opacity:.5"':''}>
-      <td class="fb" data-label="Mois">${monthLabelFull(mk)}</td>
-      <td class="fb" style="background:${iB}" data-label="CA services">${fmtE(ca)}</td>
-      <td style="background:${iB}" data-label="Ponctuels">${poncBtn}</td>
-      <td class="fb" style="background:${iB}" data-label="Total brut">${fmtE(brut)}</td>
-      <td class="ts" style="background:${oB}" data-label="Charges">${fmtE(c)}</td>
-      ${tva?`<td class="ts" style="background:${oB}" data-label="TVA">${fmtE(tvaC)}</td>`:''}
-      ${showImp?`<td class="ts" style="background:${oB}" data-label="Impôt est.">${imp>0?fmtE(imp):'—'}</td>`:''}
-      <td class="ts" style="background:${oB}" data-label="Dépenses">${fmtE(dep)}</td>
-      <td class="fb ${nc}" data-label="Net">${fmtE(net)}</td></tr>`;
+      <td class="fb rev-mois" data-label="Mois">${monthLabelFull(mk)}</td>
+      <td class="fb rev-ca" data-label="CA services">${fmtE(ca)}</td>
+      <td class="rev-ponct" data-label="Ponctuels">${poncBtn}</td>
+      <td class="fb rev-brut" data-label="Total brut">${fmtE(brut)}</td>
+      <td class="ts rev-charges" data-label="Charges">${fmtE(c)}</td>
+      ${tva?`<td class="ts rev-tva" data-label="TVA">${fmtE(tvaC)}</td>`:''}
+      ${showImp?`<td class="ts rev-imp" data-label="Impôt est.">${imp>0?fmtE(imp):'—'}</td>`:''}
+      <td class="ts rev-dep" data-label="Dépenses">${fmtE(dep)}</td>
+      <td class="fb ${nc} rev-net" data-label="Net">${fmtE(net)}</td></tr>`;
   }).join('');
 
   tfoot.innerHTML=`<tr style="border-top:2px solid var(--brd);font-weight:700">
