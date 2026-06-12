@@ -347,18 +347,20 @@ html,body{overflow-x:hidden;}
     border-radius:10px;padding:12px;margin-bottom:8px;
   }
   #page-depenses .tbl-wrap td{display:block;padding:0;border:none;}
-  #page-depenses .tbl-wrap td[data-label="Date"]{display:none!important;}
-  #page-depenses .tbl-wrap td[data-label="Libellé"]{flex:1;min-width:0;font-weight:600;font-size:14px;overflow-wrap:anywhere;}
-  #page-depenses .tbl-wrap td[data-label="Catégorie"]{display:none!important;}
-  #page-depenses .tbl-wrap td[data-label="Montant"]{flex-shrink:0;font-weight:700;font-size:15px;}
-  #page-depenses .tbl-wrap td[data-label="TVA récup."]{display:none!important;}
-  #page-depenses .tbl-wrap td[data-label="Récurrence"]{width:100%;font-size:12px;color:var(--tl);}
-  #page-depenses .tbl-wrap td[data-label="Chantier"]{width:100%;font-size:12px;}
-  #page-depenses .tbl-wrap td:last-child:not([data-label]){
+  #page-depenses .tbl-wrap .dep-date{display:none!important;}
+  #page-depenses .tbl-wrap .dep-lbl{flex:1;min-width:0;font-weight:600;font-size:14px;overflow-wrap:anywhere;}
+  #page-depenses .tbl-wrap .dep-cat{display:none!important;}
+  #page-depenses .tbl-wrap .dep-amt{flex-shrink:0;font-weight:700;font-size:15px;}
+  #page-depenses .tbl-wrap .dep-tva{display:none!important;}
+  #page-depenses .tbl-wrap .dep-rec{width:100%;font-size:12px;color:var(--tl);}
+  #page-depenses .tbl-wrap .dep-chan{width:100%;font-size:12px;}
+  #page-depenses .tbl-wrap .dep-act{
     width:100%;display:flex;gap:6px;
     padding-top:8px;border-top:1px solid var(--brd);margin-top:2px;
   }
-  #page-depenses .tbl-wrap td:last-child:not([data-label]) .btn{flex:1;justify-content:center;}
+  #page-depenses .tbl-wrap .dep-act .btn{flex:1;justify-content:center;}
+  #dep-summary > div{overflow-x:auto!important;overflow-y:visible!important;-webkit-overflow-scrolling:touch;}
+  #page-depenses .alert{display:block;}
 
   /* Graphiques */
   canvas{max-height:200px!important;}
@@ -4811,21 +4813,21 @@ function renderDepenses() {
   }
 
   // ── Rendu des lignes ──
-  const tvaTd=d=>tva?(d.tvaDeductible?`<td class="ts tok" data-label="TVA récup.">${fmtE(d.montantTVA||0)}</td>`:`<td class="ts" data-label="TVA récup." style="color:var(--tl)">—</td>`):'';
+  const tvaTd=d=>tva?(d.tvaDeductible?`<td class="ts tok dep-tva" data-label="TVA récup.">${fmtE(d.montantTVA||0)}</td>`:`<td class="ts dep-tva" data-label="TVA récup." style="color:var(--tl)">—</td>`):'';
   tbody.innerHTML=filtered.map(d=>{
     const m=d.chantierId?DATA.missions.find(x=>x.id===d.chantierId):null;
     const chanCell=m
-      ?`<td class="ts" data-label="Chantier"><span style="font-weight:600">📦 ${m.client||'—'}</span>${m.description?`<div class="ts" style="color:var(--tl)">${m.description}</div>`:''}</td>`
-      :`<td class="ts" data-label="Chantier" style="color:var(--tl)">—</td>`;
+      ?`<td class="ts dep-chan" data-label="Chantier"><span style="font-weight:600">📦 ${m.client||'—'}</span>${m.description?`<div class="ts" style="color:var(--tl)">${m.description}</div>`:''}</td>`
+      :`<td class="ts dep-chan" data-label="Chantier" style="color:var(--tl)">—</td>`;
     return `<tr>
-      <td data-label="Date">${d.date}</td>
-      <td class="fb" data-label="Libellé">${d.libelle}</td>
-      <td data-label="Catégorie"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
-      <td class="fb" data-label="Montant">${fmtE(d.montant)}</td>
+      <td class="dep-date" data-label="Date">${d.date}</td>
+      <td class="fb dep-lbl" data-label="Libellé">${d.libelle}</td>
+      <td class="dep-cat" data-label="Catégorie"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
+      <td class="fb dep-amt" data-label="Montant">${fmtE(d.montant)}</td>
       ${tvaTd(d)}
-      <td data-label="Récurrence"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''):''}</td>
+      <td class="dep-rec" data-label="Récurrence"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''):''}</td>
       ${chanCell}
-      <td><button class="btn btn-out btn-xs" onclick="openDepModal('${d.id}')">✏️</button> <button class="btn btn-del btn-xs" onclick="deleteDepense('${d.id}')">🗑</button></td>
+      <td class="dep-act"><button class="btn btn-out btn-xs" onclick="openDepModal('${d.id}')">✏️</button> <button class="btn btn-del btn-xs" onclick="deleteDepense('${d.id}')">🗑</button></td>
     </tr>`;
   }).join('');
 
