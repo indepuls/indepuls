@@ -3177,7 +3177,7 @@ function openPilierDetail(key) {
   const navLabel = navLabels[p.navPage] || p.navPage;
   document.getElementById('pilier-modal-title').textContent = p.label;
   document.getElementById('pilier-modal-score').innerHTML =
-    `<span style="color:${p.c};font-weight:700">${p.pts}/25</span> &nbsp;·&nbsp; ${Math.round(p.pct)}%`;
+    `<span style="color:${p.c};font-weight:700">${p.pts} / 25</span>`;
   document.getElementById('pilier-modal-body').innerHTML = `
     <div style="height:4px;background:var(--brd);border-radius:2px;margin-bottom:14px;overflow:hidden">
       <div style="height:100%;width:${p.pct}%;background:${p.c};border-radius:2px"></div>
@@ -3386,7 +3386,7 @@ function wScoreSante(d) {
     {lbl:'TH réel',         val:hT>0?fmtE(thR,0)+'/h':'—',              c:rentC},
     {lbl:'Seuil min. TJM',  val:thMin>0?fmtE(tjmMin,0)+'/j':'Non défini', c:'var(--tl)'},
     {lbl:'Seuil min. TH',   val:thMin>0?fmtE(thMin,0)+'/h':'Non défini',  c:'var(--tl)'},
-    {lbl:'Écart TJM',       val:hT>0&&thMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':'−'+fmtE(gapTjm,0)+'/j'):'—', c:hT>0&&thMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'Écart TJM',       val:hT>0&&thMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&thMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
   ];
   if(pctObj!==null) rowsRent.push({lbl:'Objectif mensuel atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
