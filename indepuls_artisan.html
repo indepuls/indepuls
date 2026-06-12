@@ -123,6 +123,10 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 .modal{background:var(--card);border-radius:16px;padding:26px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;animation:modalIn .15s ease;}
 .modal-title{font-family:'Playfair Display',Georgia,serif;font-size:19px;color:var(--pri);margin-bottom:18px;}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--brd);}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.modal-head .modal-title{margin-bottom:4px;}
+.modal-close{flex-shrink:0;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s,color .15s;}
+.modal-close:hover{border-color:var(--pri);color:var(--pri);}
 
 /* === MISC COMPONENTS === */
 .prog-bar{height:8px;background:var(--brd);border-radius:4px;overflow:hidden;margin-top:6px;}
@@ -3465,6 +3469,8 @@ let _pilierData = {};
 function openPilierDetail(key) {
   const p = _pilierData[key];
   if (!p) return;
+  const navLabels = {params:'Paramètres',missions:'Chantiers',revenus:'Revenus',depenses:'Dépenses',dashboard:'Tableau de bord'};
+  const navLabel = navLabels[p.navPage] || p.navPage;
   document.getElementById('pilier-modal-title').textContent = p.label;
   document.getElementById('pilier-modal-score').innerHTML =
     `<span style="color:${p.c};font-weight:700">${p.pts}/25</span> &nbsp;·&nbsp; ${Math.round(p.pct)}%`;
@@ -3476,7 +3482,7 @@ function openPilierDetail(key) {
     ${p.adv ? `<div style="font-size:12px;color:var(--tl);line-height:1.45;padding:9px 11px;background:var(--bg);border-radius:6px;margin-bottom:14px">${p.adv}</div>` : ''}
     <div style="margin-bottom:14px">${p.rowsHTML}</div>
     <div style="font-size:11px;color:var(--tl);line-height:1.6;padding:9px 11px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;margin-bottom:14px">${p.meth}</div>
-    <button onclick="closeModal('modal-pilier');navigate('${p.navPage}')" style="width:100%;padding:8px;border-radius:7px;border:1px solid var(--brd);background:transparent;color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Voir le détail dans l'onglet →</button>
+    <button onclick="closeModal('modal-pilier');navigate('${p.navPage}')" style="width:100%;padding:8px;border-radius:7px;border:1px solid var(--brd);background:transparent;color:var(--acc);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">→ Onglet ${navLabel}</button>
   `;
   openModal('modal-pilier');
 }
@@ -3519,7 +3525,7 @@ function wScoreSante(d) {
   else if(sRent>=20){diagRent=`🟢 TJM réel ${thMin>0?`supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
   else if(sRent>=14){diagRent=`🟠 TJM proche de la cible${thMin>0&&gapTjm>0?` — il manque encore ${fmtE(gapTjm,0)}/j`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
   else if(sRent>=7){diagRent=`🔴 TJM inférieur${thMin>0?` de ${fmtE(gapTjm,0)}/j à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
-  else{diagRent=`🔴 TJM très faible${thMin>0?` — ${fmtE(tjmReel,0)}/j pour ${fmtE(tjmMin,0)}/j minimum`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+  else{diagRent=`🔴 TJM très faible${thMin>0?` — ${tjmReel>0?fmtE(tjmReel,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
 
   // ── PILIER 2 : REMPLISSAGE (25 pts) ──────────────────────────
   let sRemp=0;
