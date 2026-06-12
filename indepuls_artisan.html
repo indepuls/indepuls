@@ -1466,6 +1466,26 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<div class="modal-ov hidden" id="modal-treso-anchor" onclick="if(event.target===this)closeModal('modal-treso-anchor')">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <div><div class="modal-title">🏦 Mettre à jour la trésorerie</div><div class="modal-sub">Saisissez le solde réel de votre compte société</div></div>
+      <button class="modal-close" onclick="closeModal('modal-treso-anchor')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:8px">
+      <div style="font-size:12px;color:var(--tl);margin-bottom:10px">Solde réel au <span id="treso-anchor-date-label"></span> :</div>
+      <input id="treso-anchor-input" type="number" step="100" placeholder="Ex : 4 200" style="width:100%;padding:9px 12px;border:1px solid var(--brd);border-radius:8px;font-size:15px;background:var(--bg);color:var(--tx);box-sizing:border-box">
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="confirmTresoAnchor()" style="flex:1;padding:9px;background:var(--pri);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Enregistrer</button>
+        <button onclick="closeModal('modal-treso-anchor')" style="padding:9px 16px;background:none;border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px">Annuler</button>
+      </div>
+      <div id="treso-anchor-reset-row" style="display:none;margin-top:10px;text-align:center">
+        <button onclick="deleteSasuSoldeReel()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--tl);text-decoration:underline">Réinitialiser (revenir au calcul automatique)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <!-- SAVE BANNER -->
@@ -1985,27 +2005,27 @@ function wTresorerieKPI() {
   const badge=moisCouverture>=3?'▲ Solide':moisCouverture>=1?'◐ Attention':'▼ Critique';
   const anchor=DATA.params.soldeReel!=null;
   const anchorLabel=anchor?`Basé sur solde réel du ${(DATA.params.soldeReelDate||'').replace('-','/')}`:' Estimé depuis trésorerie de départ';
-  return `<div class="kpi neu" id="kpi-treso-sasu">
+  return `<div class="kpi neu">
     <div style="display:flex;align-items:flex-start;justify-content:space-between">
       <div><div class="kpi-ico">🏦</div><div class="kpi-label">Trésorerie disponible</div></div>
       <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1" title="Mettre à jour le solde réel">✏️</button>
     </div>
     <div class="kpi-val" style="color:${color}">${fmtE(treso,0)}</div>
     <div class="kpi-sub" style="color:${color}">${badge} — ${moisCouverture>=99?'∞':moisCouverture} mois de charges couverts</div>
-    <div style="font-size:10px;color:var(--tl);margin-top:6px">${anchorLabel}${anchor?` <button onclick="deleteSasuSoldeReel()" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--tl);padding:0;text-decoration:underline">Réinitialiser</button>`:''}</div>
-    <div id="treso-anchor-form" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
-      <div style="font-size:11px;color:var(--tl);margin-bottom:6px">Solde réel au ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})} :</div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <input id="treso-anchor-input" type="number" step="100" placeholder="Ex : 4 200" style="flex:1;padding:5px 8px;border:1px solid var(--brd);border-radius:6px;font-size:13px;background:var(--bg);color:var(--tx)">
-        <button onclick="confirmTresoAnchor()" style="padding:5px 12px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">OK</button>
-        <button onclick="closeTresoAnchorForm()" style="padding:5px 8px;background:none;border:1px solid var(--brd);border-radius:6px;cursor:pointer;font-size:12px">✕</button>
-      </div>
-    </div>
+    <div style="font-size:10px;color:var(--tl);margin-top:6px">${anchorLabel}</div>
   </div>`;
 }
-function openTresoAnchorForm(){const f=document.getElementById('treso-anchor-form');if(f){f.style.display='block';const inp=document.getElementById('treso-anchor-input');if(inp){inp.value=DATA.params.soldeReel!=null?DATA.params.soldeReel:'';inp.focus();}}}
-function closeTresoAnchorForm(){const f=document.getElementById('treso-anchor-form');if(f)f.style.display='none';}
-function confirmTresoAnchor(){const v=parseFloat(document.getElementById('treso-anchor-input').value);if(!isNaN(v)){saveSasuSoldeReel(v);}}
+function openTresoAnchorForm(){
+  const lbl=document.getElementById('treso-anchor-date-label');
+  if(lbl) lbl.textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const inp=document.getElementById('treso-anchor-input');
+  if(inp){inp.value=DATA.params.soldeReel!=null?DATA.params.soldeReel:'';}
+  const rst=document.getElementById('treso-anchor-reset-row');
+  if(rst) rst.style.display=DATA.params.soldeReel!=null?'block':'none';
+  openModal('modal-treso-anchor');
+  if(inp) setTimeout(()=>inp.focus(),50);
+}
+function confirmTresoAnchor(){const v=parseFloat(document.getElementById('treso-anchor-input').value);if(!isNaN(v)){saveSasuSoldeReel(v);closeModal('modal-treso-anchor');}}
 function getSasuTresorerieEstimee() {
   const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
   // Entrées trésorerie hors CA (remboursements, indemnités…) : pas de charges mais cash réel
