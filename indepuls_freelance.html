@@ -389,6 +389,8 @@ html,body{overflow-x:hidden;}
   /* Dashboard KPIs : 2 colonnes */
   #page-dashboard .g3,
   #page-dashboard .g4{grid-template-columns:1fr 1fr!important;}
+  /* Évolution CA (3e KPI) : pleine largeur quand il passe à la ligne */
+  #page-dashboard .g3 > *:nth-child(3){grid-column:1/-1;}
 
   /* Donut dépenses : min-width:160px légende → libérer */
   #dep-donut-panel [style*="min-width:160px"]{min-width:0 !important;width:100%;}
