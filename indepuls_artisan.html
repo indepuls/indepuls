@@ -381,6 +381,9 @@ html,body{overflow-x:hidden;}
   #page-dashboard .g3,
   #page-dashboard .g4{grid-template-columns:1fr 1fr!important;}
 
+  /* Donut CA répartition : grille 170px+1fr → colonne unique + centrage donut */
+  #page-dashboard [style*="grid-template-columns:170px"]{grid-template-columns:1fr!important;}
+  #page-dashboard [style*="width:160px"][style*="height:160px"]{margin:0 auto 12px;}
   /* Donut dépenses : min-width:160px légende → libérer */
   #dep-donut-panel [style*="min-width:160px"]{min-width:0 !important;width:100%;}
 
