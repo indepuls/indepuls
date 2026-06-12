@@ -2675,6 +2675,7 @@ function renderDashboard() {
   // ── Zones fixes (non personnalisables) ───────────────────────
   let fixed='';
   fixed+='<div class="w-mb">'+wScoreSante(d)+'</div>';
+  if(isSASU()) fixed+='<div class="w-mb">'+renderSasuCard(d)+'</div>';
   fixed+='<div class="w-mb">'+wKPIs(d)+'</div>';
 
   // ── Graphique CA mensuel + TVA (fixes) ───────────────────────
@@ -2733,7 +2734,7 @@ function renderDashboard() {
     </div></div>`;
   }
 
-  document.getElementById('dashboard-content').innerHTML=(isSASU()?renderSasuCard(d):'')+bilanCard+fixed+bottomRow;
+  document.getElementById('dashboard-content').innerHTML=bilanCard+fixed+bottomRow;
 }
 
 // ── WIDGET : PROVISIONS (côté droit du donut) ────────────────
@@ -3114,7 +3115,14 @@ function wKPIs({caBrut,objNet,thR,hT,proj,caTreso}) {
       <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.5">${phraseAnnuel}<br><span style="opacity:.85">À ce rythme, la projection de votre CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.</span></div>
     </div>
     ${isSASU()
-      ?`<div class="kpi neu"><div class="kpi-ico">👤</div><div class="kpi-label">Rémunération nette / mois</div><div class="kpi-val">${fmtE(p.remunerationNette||0)}</div><div class="kpi-sub">Paramétré dans Mon profil</div><div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${phraseNet}</div></div>`
+      ?(()=>{
+        const dep2=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
+        const capa=Math.round((caBrut-dep2)/12);
+        const ecart2=capa-getSasuCoutRemuMensuel();
+        const capaC=ecart2>=0?'var(--ok)':ecart2>=-500?'var(--warn)':'var(--err)';
+        const capaSub=ecart2>=0?`Soutenable — marge +${fmtE(ecart2,0)}/mois`:ecart2>=-500?`Fragile — écart ${fmtE(ecart2,0)}/mois`:`Non soutenable — écart ${fmtE(ecart2,0)}/mois`;
+        return `<div class="kpi neu"><div class="kpi-ico">👤</div><div class="kpi-label">Rémunération cible / mois</div><div class="kpi-val">${fmtE(p.remunerationNette||0)}</div><div class="kpi-sub">Paramétré dans Mon profil</div><div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--brd)"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">Rémunération recommandée</div><div style="font-size:14px;font-weight:700;color:${capaC}">${fmtE(capa,0)}/mois</div><div style="font-size:11px;color:${capaC};margin-top:1px">${capaSub}</div></div></div>`;
+      })()
       :`<div class="kpi ${pctObj>=100?'good':pctObj>=75?'warn':'bad'}">
           <div class="kpi-ico">🎯</div>
           <div class="kpi-label">Revenu net — ${moisLabel}</div>
@@ -5112,61 +5120,89 @@ function updateSasuPreview() {
 function renderSasuCard(d) {
   const tresoDepart=getTresorerieDepart();
   const caHT=d.caBrut;
+  const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
+  const remuNet=DATA.params.remunerationNette||0;
+  const coutRemuMensuel=getSasuCoutRemuMensuel();
+  const coutRemuAnnuel=coutRemuMensuel*12;
   const tvaCol=getTVACollecteeAnnuelle();
   const tvaDed=getTVADeductibleAnnuelle();
   const tvaNette=Math.max(0,tvaCol-tvaDed);
-  const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
-  const coutRemuAnnuel=getSasuCoutRemuMensuel()*12;
-  // CA est déjà HT — la TVA est un flux neutre (collectée puis reversée) → pas déduite
   const tresoEstimee=tresoDepart+caHT-dep-coutRemuAnnuel;
-  const tc=tresoEstimee>=0?'ok':'err';
-  const row=(lbl,val,sign,sub)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--brd)">
-    <span style="color:var(--tl);font-size:13px">${lbl}${sub?`<br><span style="font-size:11px;opacity:.7">${sub}</span>`:''}</span>
+
+  const capaciteMensuelle=Math.round((caHT-dep)/12);
+  const ecart=capaciteMensuelle-coutRemuMensuel;
+  const statut=ecart>=0?'ok':ecart>=-500?'warn':'err';
+  const accentC=statut==='ok'?'var(--ok)':statut==='warn'?'var(--warn)':'var(--err)';
+  const badgeLbl=statut==='ok'?'🟢 Soutenable':statut==='warn'?'🟠 Fragile':'🔴 Non soutenable';
+  const badgeCls=statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err';
+
+  let msgPrincipal, msgProjection;
+  if(statut==='ok'){
+    const margeAn=Math.round(ecart*12);
+    msgPrincipal=`Votre activité couvre actuellement votre rémunération cible. Marge de sécurité : <strong>+${fmtE(ecart,0)}/mois</strong> — soit <strong>${fmtE(margeAn)} de réserve annuelle</strong>.`;
+    msgProjection=`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--ok)">${fmtE(tresoEstimee)}</strong>.`;
+  } else if(statut==='warn'){
+    const manque=Math.abs(ecart);
+    const moisTenue=tresoDepart>0?Math.floor(tresoDepart/manque):0;
+    msgPrincipal=`Votre rémunération est actuellement soutenue grâce à votre trésorerie disponible. Il manque <strong>${fmtE(manque,0)}/mois</strong> — surveillez votre niveau d'activité.`;
+    msgProjection=moisTenue>0?`À activité constante, votre trésorerie tient encore <strong>${moisTenue} mois</strong>. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--warn)">${fmtE(tresoEstimee)}</strong>.`:`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--warn)">${fmtE(tresoEstimee)}</strong>.`;
+  } else {
+    const caManquant=Math.round(Math.abs(ecart)*12);
+    const moisAvantNeg=tresoDepart>0&&ecart<0?Math.floor(tresoDepart/Math.abs(ecart)):0;
+    msgPrincipal=`Votre rémunération actuelle n'est pas compatible avec le niveau d'activité observé. Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour maintenir votre rémunération cible.`;
+    msgProjection=moisAvantNeg>0?`À activité constante, votre trésorerie deviendra négative dans <strong>${moisAvantNeg} mois</strong>. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--err)">${fmtE(tresoEstimee)}</strong>.`:`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--err)">${fmtE(tresoEstimee)}</strong>.`;
+  }
+
+  const detailId='sasu-detail-'+Math.random().toString(36).slice(2);
+  const row=(lbl,val,sign)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px">
+    <span style="color:var(--tl)">${lbl}</span>
     <span style="font-weight:700">${sign}${val}</span>
   </div>`;
-  return `<div class="card w-mb" style="border-left:4px solid var(--acc)">
-    <div class="card-header">
-      <div><div class="card-title">🏢 Trésorerie SASU — ${DATA.currentYear}</div><div class="card-sub">Estimation simplifiée basée sur vos données saisies</div></div>
+
+  return `<div class="card" style="border-left:4px solid ${accentC}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:3px">🏦 Santé financière de la société</div>
+        <div style="font-size:14px;font-weight:700;color:var(--pri)">Rémunération recommandée</div>
+      </div>
+      <div class="alert ${badgeCls}" style="padding:4px 10px;font-size:12px;font-weight:700;border-radius:20px;margin:0">${badgeLbl}</div>
     </div>
-    <div class="g4 mb16">
-      <div class="kpi ${tc==='ok'?'good':'bad'}">
-        <div class="kpi-ico">🏦</div>
-        <div class="kpi-label">Trésorerie estimée fin ${DATA.currentYear}</div>
-        <div class="kpi-val" style="font-size:21px;color:var(--${tc})">${fmtE(tresoEstimee)}</div>
-        <div class="kpi-sub">Départ : ${fmtE(tresoDepart)}</div>
+    <div class="g3" style="gap:10px;margin-bottom:14px">
+      <div class="kpi neu" style="padding:11px 13px">
+        <div class="kpi-label">Rémunération cible</div>
+        <div class="kpi-val" style="font-size:20px">${fmtE(remuNet,0)}</div>
+        <div class="kpi-sub">/ mois (nets)</div>
       </div>
-      <div class="kpi neu">
-        <div class="kpi-ico">💶</div>
-        <div class="kpi-label">CA HT ${DATA.currentYear}</div>
-        <div class="kpi-val" style="font-size:21px">${fmtE(caHT)}</div>
-        <div class="kpi-sub">Encaissé / facturé</div>
+      <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
+        <div class="kpi-label">Rémunération recommandée</div>
+        <div class="kpi-val" style="font-size:20px;color:${accentC}">${fmtE(capaciteMensuelle,0)}</div>
+        <div class="kpi-sub">/ mois selon votre activité</div>
       </div>
-      <div class="kpi ${tvaNette>0?'warn':'neu'}">
-        <div class="kpi-ico">🧾</div>
-        <div class="kpi-label">TVA nette à provisionner</div>
-        <div class="kpi-val" style="font-size:21px">${fmtE(tvaNette)}</div>
-        <div class="kpi-sub">Collectée − déductible</div>
-      </div>
-      <div class="kpi neu">
-        <div class="kpi-ico">👤</div>
-        <div class="kpi-label">Coût rémunération / an</div>
-        <div class="kpi-val" style="font-size:21px">${fmtE(coutRemuAnnuel)}</div>
-        <div class="kpi-sub">${fmtE(DATA.params.remunerationNette||0)}/mois nets</div>
+      <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
+        <div class="kpi-label">Écart</div>
+        <div class="kpi-val" style="font-size:20px;color:${accentC}">${ecart>=0?'+':''}${fmtE(ecart,0)}</div>
+        <div class="kpi-sub">/ mois</div>
       </div>
     </div>
-    <div class="card-sub mb8" style="font-weight:700">Détail du calcul</div>
-    <div style="border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
-      ${row('Trésorerie de départ',fmtE(tresoDepart),'+')}
-      ${row('CA HT encaissé',fmtE(caHT),'+')}
-      ${row('Dépenses professionnelles',fmtE(dep),'−')}
-      ${row('Coût rémunération annuel',fmtE(coutRemuAnnuel),'−')}
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-weight:700;font-size:14px">
-        <span>= Trésorerie estimée fin ${DATA.currentYear}</span>
-        <span style="color:var(--${tc})">${fmtE(tresoEstimee)}</span>
+    <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${msgPrincipal}</div>
+    <div class="alert ${statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err'}" style="font-size:12px;margin-bottom:10px">${msgProjection}</div>
+    <div style="border-top:1px solid var(--brd);padding-top:10px">
+      <div style="font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="var p=document.getElementById('${detailId}');var open=p.style.display!=='none';p.style.display=open?'none':'block';this.querySelector('span').textContent=open?'Voir le détail du calcul →':'Masquer le détail ↑'">
+        <span>Voir le détail du calcul →</span>
+      </div>
+      <div id="${detailId}" style="display:none;margin-top:10px;border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
+        ${row('Trésorerie de départ',fmtE(tresoDepart),'+')}
+        ${row('CA HT encaissé (annualisé)',fmtE(caHT),'+')}
+        ${row('Dépenses professionnelles',fmtE(dep),'−')}
+        ${row('Rémunération (coût société)',fmtE(coutRemuAnnuel),'−')}
+        ${tvaNette>0?row('TVA nette à réserver',fmtE(tvaNette),'~'):''}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-weight:700;font-size:13px">
+          <span>Trésorerie prévisionnelle fin ${DATA.currentYear}</span>
+          <span style="color:${accentC}">${fmtE(tresoEstimee)}</span>
+        </div>
       </div>
     </div>
-    ${tvaNette>0?`<div class="alert al-warn mt8" style="font-size:12px">🧾 TVA nette à provisionner : <strong>${fmtE(tvaNette)}</strong> — à réserver séparément, hors trésorerie société courante.</div>`:''}
-    <div class="alert al-info mt8" style="font-size:11.5px">⚠️ Estimations simplifiées — IS, dividendes, amortissements, DSN non inclus. Ne remplace pas un expert-comptable.</div>
+    <div class="alert al-info mt8" style="font-size:11px">Estimations simplifiées — IS, dividendes, amortissements non inclus. Ne remplace pas un expert-comptable.</div>
   </div>`;
 }
 
