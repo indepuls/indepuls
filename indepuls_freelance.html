@@ -2902,10 +2902,11 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     ${isSASU()
       ?(()=>{
         const dep2=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
-        const capa=Math.round((caBrut-dep2)/12);
+        const rawCapa2=Math.round((caBrut-dep2)/12);
+        const capa=Math.max(0,rawCapa2);
         const ecart2=capa-getSasuCoutRemuMensuel();
         const capaC=ecart2>=0?'var(--ok)':ecart2>=-500?'var(--warn)':'var(--err)';
-        const capaSub=ecart2>=0?`Soutenable — marge +${fmtE(ecart2,0)}/mois`:ecart2>=-500?`Fragile — écart ${fmtE(ecart2,0)}/mois`:`Non soutenable — écart ${fmtE(ecart2,0)}/mois`;
+        const capaSub=rawCapa2<=0?'Activité insuffisante pour dégager une rémunération':ecart2>=0?`Soutenable — marge +${fmtE(ecart2,0)}/mois`:ecart2>=-500?`Fragile — écart ${fmtE(ecart2,0)}/mois`:`Non soutenable — écart ${fmtE(ecart2,0)}/mois`;
         return `<div class="kpi neu"><div class="kpi-ico">👤</div><div class="kpi-label">Rémunération cible / mois</div><div class="kpi-val">${fmtE(p.remunerationNette||0)}</div><div class="kpi-sub">Paramétré dans Mon profil</div><div style="margin-top:9px;padding-top:8px;border-top:1px solid var(--brd)"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">Rémunération recommandée</div><div style="font-size:14px;font-weight:700;color:${capaC}">${fmtE(capa,0)}/mois</div><div style="font-size:11px;color:${capaC};margin-top:1px">${capaSub}</div></div></div>`;
       })()
       :`<div class="kpi ${pctObj>=100?'good':pctObj>=75?'warn':'bad'}">
@@ -4775,7 +4776,7 @@ function renderSasuCard(d) {
   const tresoEstimee=tresoDepart+caHT-dep-coutRemuAnnuel;
 
   // ── Soutenabilité ──────────────────────────────────────────
-  const capaciteMensuelle=Math.round((caHT-dep)/12);
+  const capaciteMensuelle=Math.max(0,Math.round((caHT-dep)/12));
   const ecart=capaciteMensuelle-coutRemuMensuel;
   const statut=ecart>=0?'ok':ecart>=-500?'warn':'err';
   const accentC=statut==='ok'?'var(--ok)':statut==='warn'?'var(--warn)':'var(--err)';
@@ -4796,7 +4797,10 @@ function renderSasuCard(d) {
   } else {
     const caManquant=Math.round(Math.abs(ecart)*12);
     const moisAvantNeg=tresoDepart>0&&ecart<0?Math.floor(tresoDepart/Math.abs(ecart)):0;
-    msgPrincipal=`Votre rémunération actuelle n'est pas compatible avec le niveau d'activité observé. Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour maintenir votre rémunération cible.`;
+    const rawCapa=Math.round((caHT-dep)/12);
+    msgPrincipal=rawCapa<=0
+      ?`Votre activité actuelle ne permet pas de dégager une rémunération — vos dépenses dépassent vos encaissements. Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour couvrir vos charges et vous verser une rémunération.`
+      :`Votre rémunération actuelle n'est pas compatible avec le niveau d'activité observé. Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour maintenir votre rémunération cible.`;
     msgProjection=moisAvantNeg>0?`À activité constante, votre trésorerie deviendra négative dans <strong>${moisAvantNeg} mois</strong>. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--err)">${fmtE(tresoEstimee)}</strong>.`:`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--err)">${fmtE(tresoEstimee)}</strong>.`;
   }
 
