@@ -1954,6 +1954,58 @@ function getImpotsTaux() { return (DATA.params.impotsTaux||0)/100; }
 function isSASU() { return DATA.params.statut === 'sasu'; }
 function getTresorerieDepart() { return ((DATA.params.tresorerieParAnnee)||{})[DATA.currentYear]||0; }
 function getSasuCoutRemuMensuel() { const net=DATA.params.remunerationNette||0; const pct=DATA.params.coutRemunerationPct||80; return net*(1+pct/100); }
+function getSasuTresorerieActuelle() {
+  const curMk=getCurrentMk();
+  const anchor=DATA.params.soldeReel!=null?DATA.params.soldeReel:null;
+  const anchorMk=DATA.params.soldeReelDate||null;
+  const base=anchor!=null?anchor:getTresorerieDepart();
+  const fromMk=anchor!=null&&anchorMk?anchorMk:`${DATA.currentYear}-01`;
+  const months=getCurrentYearMonths().filter(mk=>mk>=fromMk&&mk<=curMk);
+  const ca=months.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
+  const inflows=months.reduce((s,mk)=>s+getPonctuelsTresorerie(mk),0);
+  const dep=months.reduce((s,mk)=>s+getDepensesMois(mk),0);
+  const remu=getSasuCoutRemuMensuel()*months.length;
+  return Math.round(base+ca+inflows-dep-remu);
+}
+function saveSasuSoldeReel(val) {
+  DATA.params.soldeReel=val;
+  DATA.params.soldeReelDate=getCurrentMk();
+  saveData();renderDashboard();
+}
+function deleteSasuSoldeReel() {
+  delete DATA.params.soldeReel;
+  delete DATA.params.soldeReelDate;
+  saveData();renderDashboard();
+}
+function wTresorerieKPI() {
+  const treso=getSasuTresorerieActuelle();
+  const depMoy=getDepensesMoyenneMensuelle()+getSasuCoutRemuMensuel();
+  const moisCouverture=depMoy>0?Math.floor(treso/depMoy):99;
+  const color=moisCouverture>=3?'var(--ok)':moisCouverture>=1?'var(--warn)':'var(--err)';
+  const badge=moisCouverture>=3?'▲ Solide':moisCouverture>=1?'◐ Attention':'▼ Critique';
+  const anchor=DATA.params.soldeReel!=null;
+  const anchorLabel=anchor?`Basé sur solde réel du ${(DATA.params.soldeReelDate||'').replace('-','/')}`:' Estimé depuis trésorerie de départ';
+  return `<div class="kpi neu" id="kpi-treso-sasu">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><div class="kpi-ico">🏦</div><div class="kpi-label">Trésorerie disponible</div></div>
+      <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;color:var(--tl);line-height:1" title="Mettre à jour le solde réel">✏️</button>
+    </div>
+    <div class="kpi-val" style="color:${color}">${fmtE(treso,0)}</div>
+    <div class="kpi-sub" style="color:${color}">${badge} — ${moisCouverture>=99?'∞':moisCouverture} mois de charges couverts</div>
+    <div style="font-size:10px;color:var(--tl);margin-top:6px">${anchorLabel}${anchor?` <button onclick="deleteSasuSoldeReel()" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--tl);padding:0;text-decoration:underline">Réinitialiser</button>`:''}</div>
+    <div id="treso-anchor-form" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
+      <div style="font-size:11px;color:var(--tl);margin-bottom:6px">Solde réel au ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})} :</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="treso-anchor-input" type="number" step="100" placeholder="Ex : 4 200" style="flex:1;padding:5px 8px;border:1px solid var(--brd);border-radius:6px;font-size:13px;background:var(--bg);color:var(--tx)">
+        <button onclick="confirmTresoAnchor()" style="padding:5px 12px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">OK</button>
+        <button onclick="closeTresoAnchorForm()" style="padding:5px 8px;background:none;border:1px solid var(--brd);border-radius:6px;cursor:pointer;font-size:12px">✕</button>
+      </div>
+    </div>
+  </div>`;
+}
+function openTresoAnchorForm(){const f=document.getElementById('treso-anchor-form');if(f){f.style.display='block';const inp=document.getElementById('treso-anchor-input');if(inp){inp.value=DATA.params.soldeReel!=null?DATA.params.soldeReel:'';inp.focus();}}}
+function closeTresoAnchorForm(){const f=document.getElementById('treso-anchor-form');if(f)f.style.display='none';}
+function confirmTresoAnchor(){const v=parseFloat(document.getElementById('treso-anchor-input').value);if(!isNaN(v)){saveSasuSoldeReel(v);}}
 function getSasuTresorerieEstimee() {
   const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
   // Entrées trésorerie hors CA (remboursements, indemnités…) : pas de charges mais cash réel
@@ -3115,7 +3167,7 @@ function wKPIs({caBrut,objNet,thR,hT,proj,caTreso}) {
       <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.5">${phraseAnnuel}<br><span style="opacity:.85">À ce rythme, la projection de votre CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.</span></div>
     </div>
     ${isSASU()
-      ?''
+      ?wTresorerieKPI()
       :`<div class="kpi ${pctObj>=100?'good':pctObj>=75?'warn':'bad'}">
           <div class="kpi-ico">🎯</div>
           <div class="kpi-label">Revenu net — ${moisLabel}</div>
