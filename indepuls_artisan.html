@@ -254,19 +254,7 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
   .topbar-title{font-size:16px;}
   .notice-hero{padding:20px;}
   .notice-hero h2{font-size:18px;}
-  /* Missions : masquer colonnes secondaires */
-  #page-missions table th:nth-child(1),#page-missions table td:nth-child(1),
-  #page-missions table th:nth-child(3),#page-missions table td:nth-child(3),
-  #page-missions table th:nth-child(6),#page-missions table td:nth-child(6),
-  #page-missions table th:nth-child(7),#page-missions table td:nth-child(7),
-  #page-missions table th:nth-child(8),#page-missions table td:nth-child(8),
-  #page-missions table th:nth-child(9),#page-missions table td:nth-child(9){display:none;}
   .mob-hide{display:none !important;}
-  /* Dashboard accordéon */
-  #page-dashboard .card-header{cursor:pointer;user-select:none;position:relative;padding-right:24px;}
-  #page-dashboard .card-header::after{content:'▾';font-size:13px;color:var(--tl);position:absolute;right:0;top:50%;transform:translateY(-50%);}
-  #page-dashboard .card.mob-collapsed .card-header::after{content:'▸';}
-  #page-dashboard .card.mob-collapsed>*:not(.card-header){display:none !important;}
 }
 
 /* 480px — g4 1col, padding minimal */
@@ -275,6 +263,97 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
   .page{padding:10px 12px;}
   .topbar{padding:8px 12px;}
   .card{padding:14px;}
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE 768px — grids & layout général
+══════════════════════════════════════════════ */
+@media(max-width:768px){
+  .g2,.g3,.g4,.g5,.g6{grid-template-columns:1fr !important;}
+  .card-header{flex-wrap:wrap;gap:8px;}
+  #page-missions .card-header .btn,
+  #page-depenses .card-header .btn,
+  #page-archives .card-header .btn{align-self:flex-start;}
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE 640px — tableaux → cartes
+══════════════════════════════════════════════ */
+@media(max-width:640px){
+  /* Missions & Dépenses : table → cartes */
+  #page-missions .tbl-wrap,
+  #page-depenses .tbl-wrap{overflow:visible;}
+  #page-missions .tbl-wrap table,
+  #page-depenses .tbl-wrap table{display:block;width:100%;}
+  #page-missions .tbl-wrap thead,
+  #page-depenses .tbl-wrap thead{display:none;}
+  #page-missions .tbl-wrap tbody,
+  #page-depenses .tbl-wrap tbody{display:block;}
+  #page-missions .tbl-wrap tfoot,
+  #page-depenses .tbl-wrap tfoot{display:block;}
+  #page-missions .tbl-wrap tfoot tr,
+  #page-depenses .tbl-wrap tfoot tr{
+    display:flex;flex-wrap:wrap;gap:4px 10px;
+    background:var(--bg);border:none;border-radius:0;
+    border-top:2px solid var(--brd);padding:8px 0;margin:0;
+  }
+  #page-missions .tbl-wrap tfoot td,
+  #page-depenses .tbl-wrap tfoot td{display:block;padding:0;border:none;font-size:12px;}
+
+  /* Chantiers : mise en carte */
+  #page-missions .tbl-wrap tr{
+    display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;
+    background:var(--card);border:1px solid var(--brd);
+    border-radius:10px;padding:12px;margin-bottom:8px;
+  }
+  #page-missions .tbl-wrap td{display:block;padding:0;border:none;}
+  #page-missions .tbl-wrap td:nth-child(1){order:1;flex-shrink:0;}
+  #page-missions .tbl-wrap td:nth-child(2){order:1;flex:1;min-width:0;}
+  #page-missions .tbl-wrap td:nth-child(3){display:none!important;}
+  #page-missions .tbl-wrap td:nth-child(4){order:2;width:100%;font-size:14px;font-weight:700;padding-top:4px;}
+  #page-missions .tbl-wrap td:nth-child(5){order:1;flex-shrink:0;margin-left:auto;}
+  #page-missions .tbl-wrap td:nth-child(6),
+  #page-missions .tbl-wrap td:nth-child(7),
+  #page-missions .tbl-wrap td:nth-child(8),
+  #page-missions .tbl-wrap td:nth-child(9){display:none!important;}
+  #page-missions .tbl-wrap td:nth-child(10){
+    order:3;width:100%;display:flex;gap:6px;flex-wrap:wrap;
+    padding-top:8px;border-top:1px solid var(--brd);margin-top:2px;
+  }
+  #page-missions .tbl-wrap td:nth-child(10) .btn{
+    flex:1;min-width:70px;justify-content:center;font-size:11px;
+  }
+
+  /* Dépenses : mise en carte */
+  #page-depenses .tbl-wrap tr{
+    display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;
+    background:var(--card);border:1px solid var(--brd);
+    border-radius:10px;padding:12px;margin-bottom:8px;
+  }
+  #page-depenses .tbl-wrap td{display:block;padding:0;border:none;}
+  #page-depenses .tbl-wrap td:nth-child(2){flex:1;min-width:0;font-weight:600;}
+  #page-depenses .tbl-wrap td:nth-child(4){flex-shrink:0;font-weight:700;}
+  #page-depenses .tbl-wrap td:last-child{
+    width:100%;display:flex;gap:6px;
+    padding-top:8px;border-top:1px solid var(--brd);margin-top:2px;
+  }
+  #page-depenses .tbl-wrap td:last-child .btn{flex:1;justify-content:center;}
+
+  /* Graphiques */
+  canvas{max-height:200px!important;}
+
+  /* Dashboard KPIs : 2 colonnes */
+  #page-dashboard .g3,
+  #page-dashboard .g4{grid-template-columns:1fr 1fr!important;}
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE 480px — ultra compact
+══════════════════════════════════════════════ */
+@media(max-width:480px){
+  #page-dashboard .g3,
+  #page-dashboard .g4{grid-template-columns:1fr!important;}
+  .card-header .btn-acc{width:100%;justify-content:center;}
 }
 </style>
 </head>
@@ -2512,14 +2591,6 @@ function renderDashboard() {
   }
 
   document.getElementById('dashboard-content').innerHTML=(isSASU()?renderSasuCard(d):'')+bilanCard+fixed+bottomRow;
-  initMobileAccordion();
-}
-
-function initMobileAccordion() {
-  if(window.innerWidth > 640) return;
-  document.querySelectorAll('#page-dashboard .card').forEach((c,i) => {
-    i === 0 ? c.classList.remove('mob-collapsed') : c.classList.add('mob-collapsed');
-  });
 }
 
 // ── WIDGET : PROVISIONS (côté droit du donut) ────────────────
@@ -5682,11 +5753,6 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSbTimer();
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
-  document.getElementById('page-dashboard').addEventListener('click', e => {
-    if(window.innerWidth > 640) return;
-    const hdr = e.target.closest('.card-header');
-    if(hdr) hdr.closest('.card')?.classList.toggle('mob-collapsed');
-  });
 });
 </script>
 
