@@ -291,6 +291,8 @@ html,body{overflow-x:hidden;}
   /* KPI cards : texte non tronqué */
   .kpi-label,.kpi-sub{overflow-wrap:anywhere;white-space:normal;}
   .card{overflow-wrap:anywhere;}
+  /* Score Santé : 210px 1fr → 1 col dès 768px */
+  #page-dashboard [style*="grid-template-columns:210px"]{grid-template-columns:1fr !important;}
 }
 
 /* ══════════════════════════════════════════════
@@ -373,10 +375,84 @@ html,body{overflow-x:hidden;}
   #page-dashboard .g3,
   #page-dashboard .g4{grid-template-columns:1fr 1fr!important;}
 
-  /* Score Santé : 210px 1fr → 1 col (Score + Priorité empilés) */
-  #page-dashboard [style*="grid-template-columns:210px"]{grid-template-columns:1fr !important;}
   /* Donut dépenses : min-width:160px légende → libérer */
   #dep-donut-panel [style*="min-width:160px"]{min-width:0 !important;width:100%;}
+
+  /* ── Revenus : tableau → cartes mensuelles ── */
+  #page-revenus .tbl-wrap{overflow:visible;}
+  #page-revenus .tbl-wrap table{display:block;width:100%;}
+  #page-revenus .tbl-wrap thead,
+  #page-revenus .tbl-wrap tfoot{display:none;}
+  #page-revenus .tbl-wrap tbody{display:block;}
+  #page-revenus .tbl-wrap tr{
+    display:block;background:var(--card);border:1px solid var(--brd);
+    border-radius:10px;padding:12px;margin-bottom:8px;
+  }
+  #page-revenus .tbl-wrap td{background:transparent !important;border:none;padding:0;}
+  #page-revenus .tbl-wrap td[data-label="Mois"]{
+    display:block;font-weight:700;font-size:15px;
+    padding-bottom:8px !important;margin-bottom:6px;border-bottom:1px solid var(--brd);
+  }
+  #page-revenus .tbl-wrap td[data-label]:not([data-label="Mois"]):not([data-label="Ponctuels"]){
+    display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:13px;
+  }
+  #page-revenus .tbl-wrap td[data-label]:not([data-label="Mois"]):not([data-label="Ponctuels"])::before{
+    content:attr(data-label);font-size:11px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;
+  }
+  #page-revenus .tbl-wrap td[data-label="Net"]{
+    padding-top:8px !important;margin-top:4px;
+    border-top:1px solid var(--brd) !important;font-weight:700;font-size:14px;
+  }
+  #page-revenus .tbl-wrap td[data-label="Ponctuels"]{display:block;padding:4px 0;}
+  #page-revenus .tbl-wrap td[data-label="Ponctuels"]::before{
+    content:"Ponctuels";display:block;font-size:11px;color:var(--tl);
+    text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;
+  }
+  #page-revenus .tbl-wrap td[data-label="Ponctuels"] .btn{width:100%;justify-content:center;}
+
+  /* ── Archives : tableau → cartes par année ── */
+  #archives-table-zone .tbl-wrap,
+  #archives-retro-zone .tbl-wrap{overflow:visible;}
+  #archives-table-zone .tbl-wrap table,
+  #archives-retro-zone .tbl-wrap table{display:block;width:100%;}
+  #archives-table-zone .tbl-wrap thead,
+  #archives-retro-zone .tbl-wrap thead{display:none;}
+  #archives-table-zone .tbl-wrap tbody,
+  #archives-retro-zone .tbl-wrap tbody{display:block;}
+  #archives-table-zone .tbl-wrap tr{
+    display:block;background:var(--card);border:1px solid var(--brd);
+    border-radius:10px;padding:12px;margin-bottom:8px;
+  }
+  #archives-table-zone .tbl-wrap td{border:none;padding:0;}
+  #archives-table-zone .tbl-wrap td[data-label="Année"]{
+    display:block;font-weight:700;font-size:15px;
+    padding-bottom:8px !important;margin-bottom:6px;border-bottom:1px solid var(--brd);
+  }
+  #archives-table-zone .tbl-wrap td[data-label]:not([data-label="Année"]){
+    display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:13px;
+  }
+  #archives-table-zone .tbl-wrap td[data-label]:not([data-label="Année"])::before{
+    content:attr(data-label);font-size:11px;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;
+  }
+  #archives-table-zone .tbl-wrap td:last-child:not([data-label]){
+    display:flex;gap:6px;padding-top:8px !important;border-top:1px solid var(--brd);margin-top:4px;
+  }
+  #archives-table-zone .tbl-wrap td:last-child:not([data-label]) .btn{flex:1;justify-content:center;}
+  /* Rétrospectives mensuelles */
+  #archives-retro-zone .tbl-wrap tr{
+    display:block;border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:8px;
+  }
+  #archives-retro-zone .tbl-wrap td{border:none;padding:0;}
+  #archives-retro-zone .tbl-wrap td[data-label="Mois"]{
+    display:block;font-weight:700;font-size:14px;
+    padding-bottom:6px !important;margin-bottom:6px;border-bottom:1px solid var(--brd);
+  }
+  #archives-retro-zone .tbl-wrap td[data-label="Note"]{
+    display:block;font-size:13px;line-height:1.6;padding:4px 0;
+  }
+  #archives-retro-zone .tbl-wrap td:last-child:not([data-label]){
+    display:flex;justify-content:flex-end;padding-top:8px !important;
+  }
 }
 
 /* ══════════════════════════════════════════════
@@ -4100,15 +4176,15 @@ function renderRevenus() {
     const poncList=(r.autresList||[]);
     const poncBtn=`<button class="btn btn-out btn-sm" onclick="openPonctuelsModal('${mk}')" style="font-size:11px;padding:3px 10px;white-space:nowrap">${poncList.length>0?fmtE(a)+(tresorerie>0?` +${fmtE(tresorerie)} hors CA`:''):'+ Ajouter'}</button>`;
     return `<tr ${brut===0&&tresorerie===0?'style="opacity:.5"':''}>
-      <td class="fb">${monthLabelFull(mk)}</td>
-      <td class="fb" style="background:${iB}">${fmtE(ca)}</td>
-      <td style="background:${iB}">${poncBtn}</td>
-      <td class="fb" style="background:${iB}">${fmtE(brut)}</td>
-      <td class="ts" style="background:${oB}">${fmtE(c)}</td>
-      ${tva?`<td class="ts" style="background:${oB}">${fmtE(tvaC)}</td>`:''}
-      ${showImp?`<td class="ts" style="background:${oB}">${imp>0?fmtE(imp):'—'}</td>`:''}
-      <td class="ts" style="background:${oB}">${fmtE(dep)}</td>
-      <td class="fb ${nc}">${fmtE(net)}</td></tr>`;
+      <td class="fb" data-label="Mois">${monthLabelFull(mk)}</td>
+      <td class="fb" style="background:${iB}" data-label="CA services">${fmtE(ca)}</td>
+      <td style="background:${iB}" data-label="Ponctuels">${poncBtn}</td>
+      <td class="fb" style="background:${iB}" data-label="Total brut">${fmtE(brut)}</td>
+      <td class="ts" style="background:${oB}" data-label="Charges">${fmtE(c)}</td>
+      ${tva?`<td class="ts" style="background:${oB}" data-label="TVA">${fmtE(tvaC)}</td>`:''}
+      ${showImp?`<td class="ts" style="background:${oB}" data-label="Impôt est.">${imp>0?fmtE(imp):'—'}</td>`:''}
+      <td class="ts" style="background:${oB}" data-label="Dépenses">${fmtE(dep)}</td>
+      <td class="fb ${nc}" data-label="Net">${fmtE(net)}</td></tr>`;
   }).join('');
 
   tfoot.innerHTML=`<tr style="border-top:2px solid var(--brd);font-weight:700">
@@ -4979,7 +5055,7 @@ function renderArchives() {
     const rowStyle=isCurrent?'style="font-weight:700"':isEmpty?'style="opacity:.45"':'';
     const yrCell=`${y}${isCurrent?' <span class="chip">En cours</span>':isEmpty?' <span class="ts">— à compléter</span>':d.manual?' <span class="ts">(manuel)</span>':''}`;
     const delCell=isCurrent?'<td></td>':isEmpty?'<td></td>':`<td style="display:flex;gap:4px"><button class="btn btn-out btn-xs" onclick="openEditArchiveModal(${y})">✏️</button><button class="btn btn-del btn-xs" onclick="deleteArchive(${y})">🗑</button></td>`;
-    return `<tr ${rowStyle}><td>${yrCell}</td><td>${isEmpty?'—':fmtE(d.caBrut||0)}</td><td>${isEmpty?'—':fmtE(d.caNet||0)}</td><td>${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td>${isEmpty?'—':d.missions||'—'}</td><td>${isEmpty?'—':th>0?fmtE(th,0)+'/h':'—'}</td>${delCell}</tr>`;
+    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="Missions">${isEmpty?'—':d.missions||'—'}</td><td data-label="TH réel">${isEmpty?'—':th>0?fmtE(th,0)+'/h':'—'}</td>${delCell}</tr>`;
   }).join('');
   document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>Missions</th><th>TH réel</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const thD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne()}:(DATA.archives[y]||{}); return d.heures>0?d.caNet/d.heures:0; });
@@ -4991,7 +5067,7 @@ function renderArchives() {
       const b=DATA.bilans[mk]||{};
       const label=new Date(mk+'-01T12:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
       const cap=b.text&&b.text.length>150?b.text.slice(0,150)+'…':b.text||'';
-      return `<tr><td style="white-space:nowrap;font-weight:600;width:130px">${label}</td><td style="color:var(--text);line-height:1.55;font-style:italic">"${cap}"</td><td style="width:40px;text-align:right"><button class="btn btn-del btn-xs" onclick="deleteBilanNote('${mk}')">🗑</button></td></tr>`;
+      return `<tr><td data-label="Mois" style="font-weight:600">${label}</td><td data-label="Note" style="color:var(--text);line-height:1.55;font-style:italic">"${cap}"</td><td><button class="btn btn-del btn-xs" onclick="deleteBilanNote('${mk}')">🗑</button></td></tr>`;
     }).join('');
     retroHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mois</th><th>Note</th><th></th></tr></thead><tbody>${bRows}</tbody></table></div>`;
   } else {
