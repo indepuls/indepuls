@@ -2009,11 +2009,16 @@ function wTresorerieKPI() {
   const depMoy=getDepensesMoyenneMensuelle()+getSasuCoutRemuMensuel();
   const color=proj>depMoy?'var(--ok)':proj>=0?'var(--warn)':'var(--err)';
   const badge=proj>depMoy?'▲ Solide':proj>=0?'◐ Fragile':'▼ Déficit projeté';
+  const phrase=proj>depMoy
+    ?`À ce rythme, votre société terminera l'année avec une trésorerie confortable.`
+    :proj>=0
+    ?`La trésorerie reste positive mais la marge est faible — surveillez vos entrées.`
+    :`À ce rythme, la trésorerie sera déficitaire fin ${DATA.currentYear}. Augmentez votre activité ou réduisez vos charges.`;
   const anchor=DATA.params.soldeReel!=null;
   const soldeActuel=anchor?DATA.params.soldeReel:getSasuSoldeActuelEstime();
   const anchorLabel=anchor
-    ?`Solde réel saisi le ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} · Solde actuel estimé : ${fmtE(soldeActuel,0)}`
-    :`Solde actuel estimé : ${fmtE(soldeActuel,0)} (depuis trésorerie de départ)`;
+    ?`Basé sur votre solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} (${fmtE(soldeActuel,0)})`
+    :`Solde actuel estimé : <strong>${fmtE(soldeActuel,0)}</strong> — depuis la trésorerie de départ`;
   const tooltipText=`Projection du solde de votre compte société au 31/12/${DATA.currentYear}. Calcul : solde actuel${anchor?' réel':'estimé'} + (CA moyen − dépenses moyennes − rémunération) × mois restants. Cliquez ✏️ pour saisir votre vrai solde bancaire aujourd'hui et affiner la projection.`;
   return `<div class="kpi neu">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px">
@@ -2022,7 +2027,8 @@ function wTresorerieKPI() {
     </div>
     <div class="kpi-val" style="color:${color}">${fmtE(proj,0)}</div>
     <div class="kpi-sub" style="color:${color}">${badge}</div>
-    <div style="font-size:10px;color:var(--tl);margin-top:6px">${anchorLabel}</div>
+    <div style="font-size:11px;color:var(--tl);margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.5">${anchorLabel}</div>
+    <div style="font-size:11px;color:var(--tx);margin-top:6px;line-height:1.5">${phrase}</div>
   </div>`;
 }
 function openTresoAnchorForm(){
