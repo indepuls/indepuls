@@ -1035,14 +1035,15 @@ html,body{overflow-x:hidden;}
 
       <!-- En-tête -->
       <div style="margin-bottom:28px;">
-        <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:22px;color:var(--pri);margin-bottom:10px;">
+        <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:22px;color:var(--pri);margin-bottom:6px;">
           Guide & glossaire — Indépuls 👋
         </h2>
-        <p style="font-size:13px;color:var(--tl);line-height:1.8;">
-          Comptez environ 10 minutes pour renseigner vos paramètres, dépenses et premières missions.<br>
-          Une fois ces informations saisies, le tableau de bord commencera à produire des indicateurs fiables automatiquement.<br>
+        <p style="font-size:13px;color:var(--tl);margin-bottom:12px;line-height:1.6">Quelques informations suffisent pour obtenir vos premiers indicateurs personnalisés.</p>
+        <p style="font-size:13px;color:var(--tl);line-height:1.8;margin-bottom:8px">
+          Le tableau de bord commencera à produire des indicateurs fiables dès vos premières saisies.<br>
           <strong>Important :</strong> configurez impérativement les onglets <strong>Mon profil</strong> et <strong>Objectifs</strong> dans Paramètres pour que les KPIs s'activent.
         </p>
+        <div style="font-size:12px;font-weight:600;color:var(--text);padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--brd);display:inline-block">⏱ Configuration estimée : moins de 10 minutes</div>
       </div>
 
       <!-- Checklist -->
@@ -1769,11 +1770,23 @@ function renderExampleBanner() {
           <li>de visualiser les différents tableaux et indicateurs ;</li>
           <li>et de vous projeter plus facilement dans votre propre utilisation.</li>
         </ul>
-        <p>Je vous conseille de commencer par lire les <span class="step-cta" onclick="navigate('notice')" style="font-size:13px">Premiers pas</span>, puis de passer quelques minutes à explorer les différentes fonctionnalités.</p>
+        <p>Je vous conseille de commencer par lire le <span class="step-cta" onclick="navigate('notice')" style="font-size:13px">Guide & glossaire</span>, puis de passer quelques minutes à explorer les différentes fonctionnalités.</p>
         <p><strong>Aucune action réalisée ici n'a d'impact réel</strong> : vous pouvez modifier, tester et explorer sans risque.</p>
         <p>Lorsque vous vous sentirez prêt(e) à commencer avec vos propres données, vous pourrez supprimer le mode exemple et passer en mode utilisateur à tout moment.</p>
       </div>
       <span class="welcome-example-tag">📋 Mode exemple</span>
+    </div>
+    <div style="margin-top:16px;padding:14px 16px;background:var(--bg);border-radius:10px;border-left:4px solid var(--acc)">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">💡 Ne vous laissez pas impressionner par cette démonstration</div>
+      <p style="font-size:12px;color:var(--tl);margin-bottom:10px;line-height:1.65">Cette version contient volontairement plusieurs années d'activité, de nombreuses missions, dépenses et indicateurs — pour vous montrer toutes les possibilités d'Indépuls.</p>
+      <p style="font-size:12px;color:var(--tl);margin-bottom:8px;font-weight:600">Dans la réalité, le fonctionnement est beaucoup plus simple :</p>
+      <ul style="font-size:12px;color:var(--tl);line-height:1.9;margin:0 0 12px;padding-left:0;list-style:none">
+        <li>✅ quelques minutes pour créer une mission</li>
+        <li>✅ quelques secondes pour enregistrer une dépense</li>
+        <li>✅ un coup d'œil au tableau de bord pour suivre votre activité</li>
+      </ul>
+      <div style="font-size:12px;color:var(--text);padding:8px 12px;background:var(--card);border-radius:7px;border:1px solid var(--brd);display:inline-block;margin-bottom:10px">⏱ Temps moyen estimé : <strong>10 à 15 minutes par semaine</strong></div>
+      <p style="font-size:12px;color:var(--tl);margin:0;line-height:1.6">L'objectif n'est pas de passer plus de temps sur votre gestion, mais de prendre de meilleures décisions grâce à des indicateurs clairs.</p>
     </div>
     <div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(187,158,129,.3)">
       <button class="btn btn-acc" onclick="openClearExampleModal()">Supprimer les exemples et commencer</button>
@@ -2517,7 +2530,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',missions:'Missions',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Premiers pas',simulateur:'Tester une offre'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',missions:'Missions',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Tester une offre'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
