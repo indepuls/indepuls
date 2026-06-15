@@ -1856,87 +1856,20 @@ function getDefaultData() {
 }
 
 function migrate(data) {
-  if (data.schemaVersion < 15) {
-    // Ajouter encaissements[] sur toutes les missions existantes
-    (data.missions||[]).forEach(m => { if (m.encaissements === undefined) m.encaissements = []; });
-    data.schemaVersion = 15;
-  }
-  if (data.schemaVersion < 16) {
-    // Rafraîchir les données d'exemple (nouvelles missions, dateOuverture, temps Groupe Horizon)
-    if (data.isExample) {
-      const fresh = getExampleData();
-      Object.keys(data).forEach(k => delete data[k]);
-      Object.assign(data, fresh);
-    }
-    data.schemaVersion = 16;
-  }
-  if (data.schemaVersion < 19) {
-    if (data.isExample) {
-      const fresh = getExampleData();
-      Object.keys(data).forEach(k => delete data[k]);
-      Object.assign(data, fresh);
-    }
-    data.schemaVersion = 19;
-  }
-  if (data.schemaVersion < 20) {
-    (data.missions||[]).forEach(m => {
-      if (m.typeMission === undefined) m.typeMission = 'individuelle';
-      if (m.nbParticipants === undefined) m.nbParticipants = 0;
-      if (m.prixParParticipant === undefined) m.prixParParticipant = 0;
-      if (m.tempsCreation === undefined) m.tempsCreation = 0;
-      if (m.tempsAnimation === undefined) m.tempsAnimation = 0;
-      if (m.tempsSupport === undefined) m.tempsSupport = 0;
-    });
-    data.schemaVersion = 20;
-  }
-  if (data.schemaVersion < 21) {
-    if (data.isExample) {
-      const fresh = getExampleData();
-      Object.keys(data).forEach(k => delete data[k]);
-      Object.assign(data, fresh);
-    }
-    data.schemaVersion = 21;
-  }
-  if (data.schemaVersion < 22) {
-    // Correction bug CFP micro-bic : était 0.1, doit être 0.3
-    if (data.params.statut === 'micro-bic') {
-      if (data.params.tauxCFP === 0.1)           data.params.tauxCFP = 0.3;
-      if (data.params.tauxCFPPrestation === 0.1)  data.params.tauxCFPPrestation = 0.3;
-    }
-    // Ajout du champ charges annuelles complémentaires
-    if (data.params.chargesAnnuellesCompl === undefined) data.params.chargesAnnuellesCompl = 0;
-    data.schemaVersion = 22;
-  }
-  if (data.schemaVersion < 23) {
-    // micro-achat : en activité mixte, la colonne prestation doit utiliser le taux BNC (25,6 % / 0,2 %)
-    // et non le taux vente (12,3 % / 0,1 %) qui était appliqué par erreur aux deux colonnes.
-    if (data.params.statut === 'micro-achat') {
-      data.params.tauxCotisationsPrestation = 25.6;
-      data.params.tauxCFPPrestation         = 0.2;
-    }
-    data.schemaVersion = 23;
-  }
-  if (data.schemaVersion < 24) {
-    delete data.params.dashboardWidgets;
-  }
-  if (data.schemaVersion < 25) {
-    if (data.params.chargesSalariales === undefined) data.params.chargesSalariales = 0;
-    data.schemaVersion = 25;
-  }
-  if (data.schemaVersion < 26) {
-    (data.depenses||[]).forEach(d => { if (!d.categorie) d.categorie = 'Autre'; });
-    data.schemaVersion = 26;
-  }
-  if (data.schemaVersion < 27) {
-    const map = {'Mutuelle & prévoyance':'Assurances & prévoyance','Prestataires':'Sous-traitance & prestataires'};
-    (data.depenses||[]).forEach(d => { if (map[d.categorie]) d.categorie = map[d.categorie]; });
-    data.schemaVersion = 27;
-  }
-  if (data.schemaVersion < 28) {
-    const themeMap = {'atlantique':'ocean','sepia':'latte','dark':'nuit'};
-    if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
-    data.schemaVersion = 28;
-  }
+  // Suppressions de champs obsolètes
+  delete data.params?.dashboardWidgets;
+
+  // Renommages de catégories de dépenses (anciens libellés → nouveaux)
+  const catMap = {'Mutuelle & prévoyance':'Assurances & prévoyance','Prestataires':'Sous-traitance & prestataires'};
+  (data.depenses||[]).forEach(d => {
+    if (!d.categorie) d.categorie = 'Autre';
+    if (catMap[d.categorie]) d.categorie = catMap[d.categorie];
+  });
+
+  // Renommages de thèmes (anciens identifiants → nouveaux)
+  const themeMap = {'atlantique':'ocean','sepia':'latte','dark':'nuit'};
+  if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
+
   if (data.isExample === undefined) data.isExample = false;
   data.schemaVersion = SCHEMA_VERSION;
   return data;
@@ -1953,6 +1886,17 @@ function applyDefaults(data) {
   if (!data.archives) data.archives = {};
   if (!data.bilans) data.bilans = {};
   if (!data.tempsInterne) data.tempsInterne = {};
+  (data.missions||[]).forEach(m => {
+    if (m.encaissements === undefined)    m.encaissements = [];
+    if (m.typeMission === undefined)      m.typeMission = 'individuelle';
+    if (m.nbParticipants === undefined)   m.nbParticipants = 0;
+    if (m.prixParParticipant === undefined) m.prixParParticipant = 0;
+    if (m.tempsCreation === undefined)    m.tempsCreation = 0;
+    if (m.tempsAnimation === undefined)   m.tempsAnimation = 0;
+    if (m.tempsSupport === undefined)     m.tempsSupport = 0;
+    if (m.montantVente == null)           m.montantVente = 0;
+    if (m.montantPrestation == null)      m.montantPrestation = 0;
+  });
   return data;
 }
 
@@ -1973,7 +1917,11 @@ function loadData() {
 }
 
 function saveData() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+  } catch(e) {
+    showToast('⚠️ Sauvegarde impossible — exportez vos données maintenant.', 'var(--err)');
+  }
 }
 
 // ── STORE — SETTERS EXPLICITES ───────────────────────────────
@@ -2040,6 +1988,8 @@ function handleImport(event) {
         throw new Error(`Ce fichier provient de ${nom} et ne peut pas être importé dans OBM Pilot. Utilisez une sauvegarde exportée depuis OBM Pilot.`);
       }
       localStorage.setItem(STORAGE_KEY + '_backup_' + Date.now(), JSON.stringify(DATA));
+      const _bks=Object.keys(localStorage).filter(k=>k.startsWith(STORAGE_KEY+'_backup_')).sort();
+      while(_bks.length>3) localStorage.removeItem(_bks.shift());
       DATA = applyDefaults(migrate(parsed));
       saveData();
       renderAll();
@@ -2626,9 +2576,9 @@ function renderAll() {
 
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function showToast(msg) {
+function showToast(msg, color) {
   const t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:70px;right:20px;background:var(--ok);color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;';
+  t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;`;
   t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
 }
 

@@ -1836,17 +1836,21 @@ function getDefaultData() {
 }
 
 function migrate(data) {
+  // Suppressions de champs obsolètes
   delete data.params?.dashboardWidgets;
+
+  // Renommages de catégories de dépenses (anciens libellés → nouveaux)
+  const catMap = {'Mutuelle & prévoyance':'Assurances & prévoyance','Prestataires':'Sous-traitance & prestataires','Véhicule & carburant':'Carburant','Fournitures':'Fournitures & matériaux'};
+  (data.depenses||[]).forEach(d => {
+    if (!d.categorie) d.categorie = 'Autre';
+    if (catMap[d.categorie]) d.categorie = catMap[d.categorie];
+  });
+
+  // Renommages de thèmes (anciens identifiants → nouveaux)
+  const themeMap = {'atlantique':'ocean','sepia':'latte','dark':'nuit'};
+  if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
+
   if (data.isExample === undefined) data.isExample = false;
-  (data.depenses||[]).forEach(d => { if (!d.categorie) d.categorie = 'Autre'; });
-  if ((data.schemaVersion||0) < 17) {
-    const map = {'Mutuelle & prévoyance':'Assurances & prévoyance','Prestataires':'Sous-traitance & prestataires','Véhicule & carburant':'Carburant','Fournitures':'Fournitures & matériaux'};
-    (data.depenses||[]).forEach(d => { if (map[d.categorie]) d.categorie = map[d.categorie]; });
-  }
-  if ((data.schemaVersion||0) < 18) {
-    const themeMap = {'atlantique':'ocean','sepia':'latte','dark':'nuit'};
-    if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
-  }
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -1862,6 +1866,11 @@ function applyDefaults(data) {
   if (!data.archives) data.archives = {};
   if (!data.bilans) data.bilans = {};
   if (!data.tempsInterne) data.tempsInterne = {};
+  (data.missions||[]).forEach(m => {
+    if (m.encaissements === undefined)    m.encaissements = [];
+    if (m.montantVente == null)           m.montantVente = 0;
+    if (m.montantPrestation == null)      m.montantPrestation = 0;
+  });
   return data;
 }
 
@@ -1880,7 +1889,11 @@ function loadData() {
 }
 
 function saveData() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+  } catch(e) {
+    showToast('⚠️ Sauvegarde impossible — exportez vos données maintenant.', 'var(--err)');
+  }
 }
 
 // ── EXPORT / IMPORT ──────────────────────────────────────────
@@ -1918,6 +1931,8 @@ function handleImport(event) {
         throw new Error(`Ce fichier provient de ${nom} et ne peut pas être importé dans Artisan Pilot. Utilisez une sauvegarde exportée depuis Artisan Pilot.`);
       }
       localStorage.setItem(STORAGE_KEY + '_backup_' + Date.now(), JSON.stringify(DATA));
+      const _bks=Object.keys(localStorage).filter(k=>k.startsWith(STORAGE_KEY+'_backup_')).sort();
+      while(_bks.length>3) localStorage.removeItem(_bks.shift());
       DATA = applyDefaults(migrate(parsed));
       saveData();
       renderAll();
@@ -2765,9 +2780,9 @@ function renderAll() {
 
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-function showToast(msg) {
+function showToast(msg, color) {
   const t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:70px;right:20px;background:var(--ok);color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;';
+  t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;`;
   t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
 }
 
@@ -5305,6 +5320,7 @@ function renderSasuCard(d) {
   const caHT=d.caBrut;
   const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
   const remuNet=DATA.params.remunerationNette||0;
+  if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en SASU mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
   const coutRemuMensuel=getSasuCoutRemuMensuel();
   const coutRemuAnnuel=coutRemuMensuel*12;
   const tvaCol=getTVACollecteeAnnuelle();
