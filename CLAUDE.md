@@ -12,6 +12,50 @@
 >
 > Ne pas attendre la fin de session — mettre à jour dès que le changement est stable et commité.
 
+## Vision produit
+
+Indépuls est un **copilote de rentabilité pour indépendants**.
+
+Ce n'est PAS : un logiciel de comptabilité, de facturation, un CRM complet, ni un ERP.
+
+L'objectif est d'aider un indépendant à comprendre rapidement :
+- ce qu'il gagne réellement
+- ce qu'il doit mettre de côté
+- s'il peut se rémunérer
+- s'il est rentable
+- combien de temps il peut tenir avec sa trésorerie
+
+**Chaque fonctionnalité doit respecter 3 critères : Utile · Simple · Compréhensible en moins de 5 secondes.**
+
+Si une fonctionnalité ajoute de la complexité sans apporter une forte valeur, ne pas la proposer.
+
+Toujours privilégier une phrase compréhensible, une recommandation claire, une aide à la décision — avant d'afficher des chiffres.
+
+## Décisions produit validées
+
+- Le Score Santé est le widget principal du logiciel
+- La simplicité est prioritaire sur l'exhaustivité
+- Les indicateurs doivent être orientés action
+- **Mobile first** — aucun scroll horizontal autorisé
+- Les conseils doivent être compréhensibles par quelqu'un qui ne connaît rien à la comptabilité
+- Les modes Freelance et Artisan doivent rester très proches techniquement
+- La SASU doit afficher des informations orientées rémunération et trésorerie plutôt que revenu net
+
+## Idées volontairement exclues
+
+Ne pas proposer spontanément :
+- Facturation complète
+- CRM complexe
+- Gestion bancaire automatique
+- Gestion des devis détaillés
+- Gestion RH / stock
+- Comptabilité complète
+- Fonctionnalités nécessitant une expertise comptable
+
+Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
+
+---
+
 ## Fichiers & rôles
 
 | Fichier | Rôle |
