@@ -198,6 +198,7 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 .theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 /* === ARCHIVES CHART GRID === */
 .arch-cg{display:grid;grid-template-columns:1fr 270px;gap:20px;align-items:start;}
+.arch-g3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;align-items:start;}
 .theme-opt{border-radius:8px;padding:10px 8px;border:2px solid var(--brd);cursor:pointer;text-align:center;transition:all .2s;}
 .theme-opt:hover{border-color:var(--acc);}.theme-opt.sel{border-color:var(--acc);}
 .theme-swatches{display:flex;gap:3px;margin-bottom:6px;justify-content:center;}
@@ -312,6 +313,7 @@ html,body{overflow-x:hidden;}
   /* Thème : 2 colonnes au lieu de 4 */
   .theme-grid{grid-template-columns:repeat(2,1fr);}
   .arch-cg{grid-template-columns:1fr !important;}
+  .arch-g3{grid-template-columns:1fr !important;}
 }
 
 /* ══════════════════════════════════════════════
@@ -677,7 +679,7 @@ html,body{overflow-x:hidden;}
         <div id="archives-compare-zone"></div>
       </div>
     </div>
-    <div class="g2 mt16">
+    <div class="arch-g3 mt16">
       <div class="card">
         <div class="card-header"><div class="card-title">Données par année</div></div>
         <div id="archives-table-zone"></div>
@@ -686,8 +688,8 @@ html,body{overflow-x:hidden;}
         <div class="card-header"><div class="card-title">Évolution taux horaire réel</div></div>
         <canvas id="chart-th-reel" height="200"></canvas>
       </div>
+      <div id="archives-progress-zone"></div>
     </div>
-    <div id="archives-progress-zone" class="mt16"></div>
     <div id="archives-retro-zone" class="mt16"></div>
   </div>
 
