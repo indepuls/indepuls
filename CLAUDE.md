@@ -186,6 +186,16 @@ renderDashboard()
 - Grille dashboard : `.g3` = 3 colonnes, `.g4` = 4 colonnes
 - Mobile ≤768px : `.g3` passe en 2 colonnes ; ≤640px : 1 colonne
 
+## Analytics produit
+
+- **Tables Supabase** : `profiles` (profil utilisateur enrichi) + `usage_events` (événements d'utilisation)
+- **SQL** : `supabase/analytics.sql` — à exécuter une fois dans le dashboard Supabase
+- **Tracking côté client** — fire-and-forget, jamais bloquant, silencieux en cas d'erreur
+- **Événements trackés** : `account_created`, `login`, `logout`, `theme_changed`, `legal_status_selected`, `activity_type_selected`, `dashboard_viewed`, `expense_added`, `mission_added`, `mission_completed`, `score_sante_viewed`, `provision_widget_viewed`
+- **Profil mis à jour automatiquement** à chaque login avec : email, theme, legal_status, activity_type
+- **Architecture** : `window.trackEvent(name, data)` disponible globalement dans chaque app, défini dans l'IIFE Supabase en bas de chaque fichier. Monkey-patching via `setTimeout(fn, 0)` pour intercepter les fonctions app sans les modifier.
+- **Pour ajouter un événement** : appeler `window.trackEvent('nom_evenement', {optionalData})` n'importe où dans le code app.
+
 ## Fonctionnalités implémentées (historique)
 
 - Score de santé : 4 piliers (rentabilité, remplissage, trésorerie, commercial), cards compactes + modal détail
