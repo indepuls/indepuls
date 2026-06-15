@@ -6073,7 +6073,7 @@ function renderArchProgress(){
   if(!zone) return;
   const cy=DATA.currentYear;
   const archivedY=Object.keys(DATA.archives).map(Number).sort();
-  if(archivedY.length<1){ zone.innerHTML=''; return; }
+  if(archivedY.length<2){ zone.innerHTML=''; return; }
   const oldestY=archivedY[0];
   const currData=getArchYearData(cy);
   const oldData=getArchYearData(oldestY);
@@ -6085,13 +6085,14 @@ function renderArchProgress(){
   if(netTrend!==null){ const sp=archSmartPct(currData.caNet,oldData.caNet); if(sp) bullets.push(`💶 Revenu net : <strong>${sp.text}</strong>`); }
   if(hTrend!==null&&oldData.heures>0){ const delta=Math.round(currData.heures-oldData.heures); if(Math.abs(delta)>5) bullets.push(`⏱ <strong>${delta>0?'+':''}${delta} heures</strong> facturées par an`); }
   if(currData.th>0&&oldData.th>0){ const sp=archSmartPct(currData.th,oldData.th); if(sp) bullets.push(`💰 Taux horaire : ${fmtE(oldData.th,0)}/h → <strong>${fmtE(currData.th,0)}/h</strong> (${sp.text})`); }
-  // Insights extensibles
   ARCH_INSIGHT_GENERATORS.forEach(g=>{ try{ const s=g.fn(currData,oldData,'chantier'); if(s) bullets.push(`📡 ${s}`); }catch(e){} });
   if(!bullets.length){ zone.innerHTML=''; return; }
   const interp=buildArchInterpretation(currData,oldData);
   const conclusionBlock=interp?`<div style="margin-top:14px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:13px;font-weight:600;color:var(--text);border-left:3px solid var(--acc)">${interp}</div>`:'';
   const bulletHTML=bullets.map(b=>`<li style="margin-bottom:8px;font-size:13px;color:var(--tl);line-height:1.5">${b}</li>`).join('');
-  zone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">📊 Vos progrès</div><div class="card-sub">Évolution depuis ${oldestY}</div></div></div><ul style="padding-left:0;list-style:none;margin:0 0 4px">${bulletHTML}</ul>${conclusionBlock}</div>`;
+  const infoBtn=`<button onclick="var n=document.getElementById('arch-progress-note');n.style.display=n.style.display==='none'?'block':'none'" style="cursor:pointer;font-size:10px;font-weight:800;color:var(--acc);background:transparent;border:1px solid var(--acc);border-radius:50%;width:15px;height:15px;padding:0;line-height:1;vertical-align:middle;margin-left:5px">?</button>`;
+  const infoNote=`<div id="arch-progress-note" style="display:none;margin-top:8px;padding:7px 9px;background:var(--bg);border-radius:6px;border:1px solid var(--brd);font-size:11px;color:var(--tl);line-height:1.6">Cette carte compare <strong>${cy}</strong> avec <strong>${oldestY}</strong> (votre première année enregistrée) pour donner une vision long terme. Le widget "Comparer avec" ci-dessus permet lui de choisir librement l'année de référence.</div>`;
+  zone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">📊 Vos progrès ${infoBtn}</div><div class="card-sub">Vision long terme : ${oldestY} → ${cy}</div></div></div>${infoNote}<ul style="padding-left:0;list-style:none;margin:0 0 4px">${bulletHTML}</ul>${conclusionBlock}</div>`;
 }
 function deleteArchive(y) { if(!confirm(`Supprimer ${y} ?`)) return; delete DATA.archives[y]; saveData(); renderArchives(); }
 function saveBilanNote(mk,dismissKey){
