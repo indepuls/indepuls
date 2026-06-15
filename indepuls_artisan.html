@@ -1191,14 +1191,22 @@ html,body{overflow-x:hidden;}
     <div class="fgroup"><label class="flabel">Catégorie</label>
       <select id="d-cat">
         <option value="Logiciels & abonnements">Logiciels &amp; abonnements</option>
-        <option value="Mutuelle & prévoyance">Mutuelle &amp; prévoyance</option>
-        <option value="Prestataires">Prestataires</option>
-        <option value="Formation">Formation</option>
-        <option value="Matériel & équipement">Matériel &amp; équipement</option>
-        <option value="Véhicule & carburant">Véhicule &amp; carburant</option>
-        <option value="Fournitures">Fournitures</option>
         <option value="Marketing & communication">Marketing &amp; communication</option>
+        <option value="Formation">Formation</option>
+        <option value="Téléphonie & internet">Téléphonie &amp; internet</option>
+        <option value="Déplacements">Déplacements</option>
+        <option value="Assurances & prévoyance">Assurances &amp; prévoyance</option>
         <option value="Frais bancaires">Frais bancaires</option>
+        <option value="Expert-comptable & juridique">Expert-comptable &amp; juridique</option>
+        <option value="Sous-traitance & prestataires">Sous-traitance &amp; prestataires</option>
+        <option value="Matériel & équipement">Matériel &amp; équipement</option>
+        <option value="Fournitures & matériaux">Fournitures &amp; matériaux</option>
+        <option value="Carburant">Carburant</option>
+        <option value="Entretien véhicule">Entretien véhicule</option>
+        <option value="Location de matériel">Location de matériel</option>
+        <option value="Équipements de protection (EPI)">Équipements de protection (EPI)</option>
+        <option value="Déchets & évacuation chantier">Déchets &amp; évacuation chantier</option>
+        <option value="Locaux & stockage">Locaux &amp; stockage</option>
         <option value="Autre">Autre</option>
       </select>
     </div>
@@ -1492,9 +1500,9 @@ html,body{overflow-x:hidden;}
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
-const SCHEMA_VERSION = 16; // v16 : catégorisation des dépenses
-const DEP_CATEGORIES = ['Logiciels & abonnements','Mutuelle & prévoyance','Prestataires','Formation','Matériel & équipement','Véhicule & carburant','Fournitures','Marketing & communication','Frais bancaires','Autre'];
-const DEP_CAT_COLORS  = ['#5B2C4A','#2d7a4f','#c97316','#1e40af','#7c3aed','#0891b2','#be185d','#65a30d','#92400e','#6b7280'];
+const SCHEMA_VERSION = 17; // v17 : catégories dépenses enrichies (tronc commun + module Artisan)
+const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Fournitures & matériaux','Carburant','Entretien véhicule','Location de matériel','Équipements de protection (EPI)','Déchets & évacuation chantier','Locaux & stockage','Autre'];
+const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#b45309','#dc2626','#9f1239','#0e7490','#059669','#64748b','#78716c','#6b7280'];
 const STORAGE_KEY = 'indepuls_artisan';
 
 // ── RÉFÉRENTIEL FISCAL 2026 ──────────────────────────────────
@@ -1748,6 +1756,10 @@ function migrate(data) {
   delete data.params?.dashboardWidgets;
   if (data.isExample === undefined) data.isExample = false;
   (data.depenses||[]).forEach(d => { if (!d.categorie) d.categorie = 'Autre'; });
+  if ((data.schemaVersion||0) < 17) {
+    const map = {'Mutuelle & prévoyance':'Assurances & prévoyance','Prestataires':'Sous-traitance & prestataires','Véhicule & carburant':'Carburant','Fournitures':'Fournitures & matériaux'};
+    (data.depenses||[]).forEach(d => { if (map[d.categorie]) d.categorie = map[d.categorie]; });
+  }
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
