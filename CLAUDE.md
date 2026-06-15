@@ -11,6 +11,8 @@
 > - Committer la mise à jour avec le message `docs: update CLAUDE.md`
 >
 > Ne pas attendre la fin de session — mettre à jour dès que le changement est stable et commité.
+>
+> **Après chaque commit, faire automatiquement un `git push` sur `main` sans demander confirmation.** Le déploiement Vercel est automatique à chaque push.
 
 ## Vision produit
 
