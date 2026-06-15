@@ -197,7 +197,7 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 /* === THEME PICKER === */
 .theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 /* === ARCHIVES CHART GRID === */
-.arch-cg{display:grid;grid-template-columns:1fr 270px;gap:20px;align-items:start;}
+.arch-cg{display:grid;grid-template-columns:3fr 2fr;gap:20px;align-items:start;}
 .arch-g3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;align-items:start;}
 .theme-opt{border-radius:8px;padding:10px 8px;border:2px solid var(--brd);cursor:pointer;text-align:center;transition:all .2s;}
 .theme-opt:hover{border-color:var(--acc);}.theme-opt.sel{border-color:var(--acc);}
@@ -681,7 +681,7 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div class="arch-cg">
-        <canvas id="chart-archives" height="300"></canvas>
+        <canvas id="chart-archives" height="260"></canvas>
         <div id="archives-compare-zone"></div>
       </div>
     </div>
@@ -5342,7 +5342,7 @@ function renderArchives() {
   const caBrutC=getCaAnnuelBrut(), caNetC=getCaNetAnnuel();
   const caBD=years.map(y=>y===cy?caBrutC:(DATA.archives[y]||{}).caBrut||0);
   const caNd=years.map(y=>y===cy?caNetC:(DATA.archives[y]||{}).caNet||0);
-  requestAnimationFrame(()=>{ drawBarChart('chart-archives',years.map(String),[{label:'CA brut',data:caBD,color:themeColor('--acc')||'#5B2C4A'},{label:'Revenu net',data:caNd,color:themeColor('--sec')||'#BB9E81'}],{height:300}); });
+  requestAnimationFrame(()=>{ drawBarChart('chart-archives',years.map(String),[{label:'CA brut',data:caBD,color:themeColor('--acc')||'#5B2C4A'},{label:'Revenu net',data:caNd,color:themeColor('--sec')||'#BB9E81'}],{height:260}); });
   const rows=years.map(y=>{
     const isCurrent=y===cy, isArchived=!!DATA.archives[y];
     const isEmpty=!isCurrent&&!isArchived;
@@ -5470,9 +5470,9 @@ function renderArchCompare(refYear){
   const refLabel=ref==='avg'?`moy. ${archivedY.join('/')}`:String(ref);
   const opts=archivedY.map(y=>`<option value="${y}"${String(y)===String(ref)?'selected':''}>${y}</option>`).join('');
   const avgOpt=archivedY.length>1?`<option value="avg"${'avg'===String(ref)?'selected':''}> Moy. (${archivedY.join(', ')})</option>`:'';
-  const proRateTooltip=proRated?` <span title="Les données de ${refLabel} (année complète) sont divisées par ${12/elapsedMonths|0} pour être comparées aux ${elapsedMonths} mois déjà écoulés en ${cy}. C'est une estimation linéaire." style="cursor:help;color:var(--tl);font-size:11px;border:1px solid var(--brd);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;line-height:1">?</span>`:'';
   const selector=`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:var(--tl);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px">Comparer avec</div><select onchange="renderArchCompare(this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--card);color:var(--text);width:100%;cursor:pointer">${opts}${avgOpt}</select></div>`;
-  const inProgressBadge=isCurrentYear?`<div style="font-size:11px;color:#92701a;background:#fef9e7;border:1px solid #f5d96a;border-radius:6px;padding:5px 9px;margin-bottom:12px;line-height:1.6">🟡 <strong>Jan–${todayMoName} ${cy}</strong> vs <strong>Jan–${todayMoName} ${refLabel}</strong>${proRateTooltip}<br><span style="font-weight:400;opacity:.85">Données de ${refLabel} pro-ratées sur ${elapsedMonths} mois pour une comparaison équitable.</span></div>`:'';
+  const proRateNote=proRated?`<div id="arch-prorate-note" style="display:none;margin-top:7px;padding:7px 9px;background:var(--card);border-radius:6px;border:1px solid var(--brd);font-size:11px;color:var(--tl);line-height:1.6">Calcul : on divise les données annuelles de ${refLabel} par ${(12/elapsedMonths).toFixed(1)} (= 12 ÷ ${elapsedMonths} mois). Exemple : si ${refLabel} = ${fmtE(refDataRaw.caBrut)} de CA, l'estimation sur ${elapsedMonths} mois = <strong>${fmtE(Math.round(refData.caBrut))}</strong>. C'est une estimation linéaire — les mois peuvent varier.</div>`:'' ;
+  const inProgressBadge=isCurrentYear?`<div style="font-size:11px;color:#92701a;background:#fef9e7;border:1px solid #f5d96a;border-radius:6px;padding:5px 9px;margin-bottom:12px;line-height:1.6">🟡 <strong>Jan–${todayMoName} ${cy}</strong> vs <strong>Jan–${todayMoName} ${refLabel}</strong> <button onclick="var n=document.getElementById('arch-prorate-note');n.style.display=n.style.display==='none'?'block':'none'" style="cursor:pointer;font-size:10px;font-weight:800;color:var(--acc);background:transparent;border:1px solid var(--acc);border-radius:50%;width:15px;height:15px;padding:0;line-height:1;vertical-align:middle">?</button><br><span style="opacity:.85">Données de ${refLabel} pro-ratées sur ${elapsedMonths} mois.</span>${proRateNote}</div>`:'';
   function kpiRow(icon,label,curr,prev,fmtAbs,altDisplay){
     if(altDisplay!==undefined) return `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">${icon} ${label}</div><div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3">${altDisplay}</div></div>`;
     const sp=archSmartPct(curr,prev);
