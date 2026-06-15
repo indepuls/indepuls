@@ -1,5 +1,17 @@
 # Indépuls — Référence projet
 
+## Instructions pour Claude Code
+
+> **À lire en priorité à chaque session.**
+>
+> Après chaque changement significatif (nouvelle fonctionnalité, refonte d'une fonction clé, modification de la structure de `DATA`, correction de bug important, nouveau mode ou widget), **mettre à jour ce fichier** :
+> - Ajouter la fonctionnalité dans la section "Fonctionnalités implémentées"
+> - Mettre à jour les fonctions clés si de nouvelles ont été créées
+> - Noter tout point d'attention nouveau (bug connu, convention, piège CSS…)
+> - Committer la mise à jour avec le message `docs: update CLAUDE.md`
+>
+> Ne pas attendre la fin de session — mettre à jour dès que le changement est stable et commité.
+
 ## Fichiers & rôles
 
 | Fichier | Rôle |
