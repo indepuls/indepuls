@@ -197,7 +197,7 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 /* === THEME PICKER === */
 .theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 /* === ARCHIVES CHART GRID === */
-.arch-cg{display:grid;grid-template-columns:1fr 210px;gap:20px;align-items:start;}
+.arch-cg{display:grid;grid-template-columns:1fr 270px;gap:20px;align-items:start;}
 .theme-opt{border-radius:8px;padding:10px 8px;border:2px solid var(--brd);cursor:pointer;text-align:center;transition:all .2s;}
 .theme-opt:hover{border-color:var(--acc);}.theme-opt.sel{border-color:var(--acc);}
 .theme-swatches{display:flex;gap:3px;margin-bottom:6px;justify-content:center;}
@@ -687,6 +687,7 @@ html,body{overflow-x:hidden;}
         <canvas id="chart-th-reel" height="200"></canvas>
       </div>
     </div>
+    <div id="archives-progress-zone" class="mt16"></div>
     <div id="archives-retro-zone" class="mt16"></div>
   </div>
 
@@ -5914,27 +5915,7 @@ function renderArchives() {
   document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>Chantiers</th><th>TH réel</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const thD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne()}:(DATA.archives[y]||{}); return d.heures>0?d.caNet/d.heures:0; });
   requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:'TH réel (€/h)',data:thD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
-  // Widget comparaison N vs N-1
-  const compareZone=document.getElementById('archives-compare-zone');
-  if(compareZone){
-    if(years.length>=2){
-      const prevY=years[years.length-2], prevIdx=years.length-2, currIdx=years.length-1;
-      const prevCaBrut=caBD[prevIdx], currCaBrut=caBD[currIdx];
-      const prevCaNet=caNd[prevIdx], currCaNet=caNd[currIdx];
-      const currH=getHeuresFact()+getHeuresInterne();
-      const prevH=(DATA.archives[prevY]||{}).heures||0;
-      const currTH=currH>0?currCaNet/currH:0, prevTH=prevH>0?prevCaNet/prevH:0;
-      const pct=(curr,prev)=>prev>0?Math.round((curr-prev)/prev*100):null;
-      const kpi=(val,label,suffix='%')=>{
-        if(val===null||val===undefined) return '';
-        const col=val>0?'var(--ok)':val<0?'var(--err)':'var(--tl)';
-        const sign=val>0?'+':'';
-        return `<div style="margin-bottom:16px"><div style="font-size:26px;font-weight:800;color:${col};line-height:1.1">${sign}${val}${suffix}</div><div style="font-size:11px;color:var(--tl);margin-top:4px">${label}</div></div>`;
-      };
-      const deltaH=prevH>0?Math.round(currH-prevH):null;
-      compareZone.innerHTML=`<div style="padding:8px 0 0 16px;border-left:2px solid var(--brd)"><div style="font-size:10px;font-weight:700;color:var(--tl);letter-spacing:.07em;text-transform:uppercase;margin-bottom:18px">vs ${prevY}</div>${kpi(pct(currCaBrut,prevCaBrut),'de chiffre d\'affaires')}${currTH>0&&prevTH>0?kpi(pct(currTH,prevTH),'de taux horaire'):''}${deltaH!==null?kpi(deltaH,'h facturées','h'):''}</div>`;
-    } else { compareZone.innerHTML=''; }
-  }
+  renderArchCompare(); renderArchProgress();
   const bilanKeys=Object.keys(DATA.bilans||{}).sort().reverse();
   let retroHTML='';
   if(bilanKeys.length>0){
@@ -5952,6 +5933,141 @@ function renderArchives() {
   const srcBlock=srcPhrase?`<div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--acc);font-size:12px;color:var(--tl);line-height:1.6"><strong style="color:var(--text)">📡 Sources d'acquisition</strong><br>${srcPhrase}</div>`:'';
   const retroZone=document.getElementById('archives-retro-zone');
   if(retroZone) retroZone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">Rétrospectives mensuelles</div><div class="card-sub">Vos bilans de fin de mois</div></div></div>${retroHTML}${srcBlock}</div>`;
+}
+// ── Archives : helpers comparaison annuelle ───────────────────
+function getArchYearData(y){
+  const cy=DATA.currentYear;
+  if(y===cy){
+    const h=getHeuresFact()+getHeuresInterne();
+    const caNet=getCaNetAnnuel(), caBrut=getCaAnnuelBrut();
+    return {caBrut,caNet,heures:h,missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length,th:h>0?caNet/h:0};
+  }
+  const d=DATA.archives[y]||{};
+  return {caBrut:d.caBrut||0,caNet:d.caNet||0,heures:d.heures||0,missions:d.missions||0,th:(d.heures||0)>0?(d.caNet||0)/(d.heures||1):0};
+}
+function archSmartPct(curr,prev){
+  if(prev===0&&curr===0) return null;
+  if(prev===0) return {text:'nouveau',col:'var(--ok)',pct:null};
+  const ratio=curr/prev, pct=Math.round((curr-prev)/prev*100);
+  const col=curr>prev?'var(--ok)':curr<prev?'var(--err)':'var(--tl)';
+  let text;
+  if(ratio>=10) text=`×${Math.round(ratio)}`;
+  else if(ratio>=5) text=`×${ratio.toFixed(1).replace(/\.0$/,'')} (très forte hausse)`;
+  else if(pct>150) text=`+${pct}% (forte hausse)`;
+  else if(pct<-80) text=`-${Math.abs(pct)}% (forte baisse)`;
+  else { const sign=pct>=0?'+':''; text=`${sign}${pct}%`; }
+  return {text,col,pct};
+}
+function buildArchInterpretation(curr,ref){
+  if(!ref||(!ref.caBrut&&!ref.caNet&&!ref.heures)) return '';
+  const thTrend=curr.th>0&&ref.th>0?(curr.th-ref.th)/ref.th:null;
+  const hTrend=ref.heures>0?(curr.heures-ref.heures)/ref.heures:null;
+  const caTrend=ref.caBrut>0?(curr.caBrut-ref.caBrut)/ref.caBrut:null;
+  const netTrend=ref.caNet>0?(curr.caNet-ref.caNet)/ref.caNet:null;
+  if(hTrend!==null&&hTrend<-0.1&&thTrend!==null&&thTrend>0.1)
+    return "Vous facturez moins d'heures mais à un meilleur taux — votre rentabilité progresse.";
+  if(hTrend!==null&&hTrend>0.1&&thTrend!==null&&thTrend<-0.1)
+    return "Vous facturez plus d'heures mais votre taux horaire baisse — attention à la rentabilité.";
+  if(caTrend!==null&&caTrend>0.05&&netTrend!==null&&netTrend>0.05)
+    return "Bonne dynamique : CA et rentabilité progressent ensemble.";
+  if(caTrend!==null&&caTrend>0.1&&netTrend!==null&&Math.abs(netTrend)<0.05)
+    return "Votre CA progresse mais votre revenu net reste stable — vos charges ont augmenté.";
+  if(caTrend!==null&&caTrend<-0.1&&netTrend!==null&&netTrend<-0.1)
+    return "Votre activité est en recul — vérifiez votre remplissage et vos sources d'acquisition.";
+  if(caTrend!==null&&caTrend<-0.1)
+    return "Votre CA est en baisse — vérifiez votre remplissage et vos tarifs.";
+  if(thTrend!==null&&thTrend>0.2)
+    return "Votre taux horaire réel est en forte hausse — vous valorisez mieux votre temps.";
+  if(netTrend!==null&&netTrend>0.1)
+    return "Votre revenu net progresse — bonne maîtrise des charges.";
+  if(caTrend!==null&&Math.abs(caTrend)<0.05&&netTrend!==null&&Math.abs(netTrend)<0.05)
+    return "Votre activité est stable d'une année sur l'autre.";
+  return '';
+}
+// Système extensible de phrases de rétrospective — ajouter de nouvelles analyses ici
+const ARCH_INSIGHT_GENERATORS=[
+  // Exemples de générateurs futurs :
+  // { key:'sources', fn:(curr,prev,noun)=>getSourceAcqPhrase(DATA.missions,noun) },
+  // { key:'best_month', fn:(curr,prev,noun)=>getBestMonthPhrase() },
+  // { key:'remplissage', fn:(curr,prev,noun)=>getRemplissagePhrase(curr,prev) },
+];
+function renderArchCompare(refYear){
+  const compareZone=document.getElementById('archives-compare-zone');
+  if(!compareZone) return;
+  const cy=DATA.currentYear;
+  const archivedY=Object.keys(DATA.archives).map(Number).sort();
+  if(!archivedY.length){
+    compareZone.innerHTML='<div style="color:var(--tl);font-size:12px;padding:8px 0">Archivez au moins une année pour voir les comparaisons.</div>';
+    return;
+  }
+  const stored=window._archCompareRef;
+  let ref=refYear!==undefined?refYear:stored;
+  const validRefs=[...archivedY.map(String),...(archivedY.length>1?['avg']:[])];
+  if(!ref||!validRefs.includes(String(ref))) ref=archivedY[archivedY.length-1];
+  window._archCompareRef=ref;
+  let refData,refLabel;
+  if(ref==='avg'){
+    const n=archivedY.length;
+    const tot=archivedY.reduce((a,y)=>{const d=getArchYearData(y);return{caBrut:a.caBrut+(d.caBrut||0),caNet:a.caNet+(d.caNet||0),heures:a.heures+(d.heures||0),missions:a.missions+(d.missions||0)};},{caBrut:0,caNet:0,heures:0,missions:0});
+    refData={caBrut:tot.caBrut/n,caNet:tot.caNet/n,heures:tot.heures/n,missions:tot.missions/n};
+    refData.th=refData.heures>0?refData.caNet/refData.heures:0;
+    refLabel=`moy. ${archivedY.join('/')}`;
+  } else {
+    refData=getArchYearData(Number(ref));
+    refLabel=String(ref);
+  }
+  const currData=getArchYearData(cy);
+  const now=new Date(), isCurrentYear=cy===now.getFullYear();
+  const moNames=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+  const todayMo=now.getMonth();
+  const opts=archivedY.map(y=>`<option value="${y}"${String(y)===String(ref)?'selected':''}>${y}</option>`).join('');
+  const avgOpt=archivedY.length>1?`<option value="avg"${'avg'===String(ref)?'selected':''}> Moy. (${archivedY.join(', ')})</option>`:'';
+  const selector=`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:var(--tl);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px">Comparer avec</div><select onchange="renderArchCompare(this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--card);color:var(--text);width:100%;cursor:pointer">${opts}${avgOpt}</select></div>`;
+  const inProgressBadge=isCurrentYear?`<div style="font-size:11px;color:#92701a;background:#fef9e7;border:1px solid #f5d96a;border-radius:6px;padding:4px 8px;margin-bottom:12px">🟡 Année en cours (jan–${moNames[todayMo]})</div>`:'';
+  function kpiRow(icon,label,curr,prev,fmtAbs,altDisplay){
+    if(altDisplay!==undefined) return `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">${icon} ${label}</div><div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3">${altDisplay}</div></div>`;
+    const sp=archSmartPct(curr,prev);
+    if(!sp) return '';
+    const delta=curr-prev;
+    const absPart=fmtAbs&&Math.abs(delta)>0?` <span style="font-size:12px;font-weight:500;opacity:.8">(${delta>0?'+':''}${fmtAbs(Math.abs(delta))})</span>`:'';
+    return `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">${icon} ${label}</div><div style="font-size:17px;font-weight:800;color:${sp.col};line-height:1.2">${sp.text}${absPart}</div></div>`;
+  }
+  const caBrutRow=kpiRow('📈',"Chiffre d'affaires",currData.caBrut,refData.caBrut,v=>fmtE(v));
+  const caNetRow=kpiRow('💶','Revenu net',currData.caNet,refData.caNet,v=>fmtE(v));
+  const hRow=kpiRow('⏱','Heures facturées',currData.heures,refData.heures,v=>fmt(v,0)+' h');
+  const thAlt=currData.th>0&&refData.th>0
+    ?`<span style="color:var(${currData.th>=refData.th?'--ok':'--err'})">${fmtE(currData.th,0)}/h</span> <span style="color:var(--tl);font-size:12px;font-weight:400">contre ${fmtE(refData.th,0)}/h</span>`
+    :currData.th>0?`${fmtE(currData.th,0)}/h`:'—';
+  const thRow=kpiRow('💰','Taux horaire réel',0,0,null,thAlt);
+  const interp=buildArchInterpretation(currData,refData);
+  const interpBlock=interp?`<div style="margin-top:12px;padding:9px 10px;background:var(--bg);border-radius:8px;font-size:12px;line-height:1.6;color:var(--tl);border-left:3px solid var(--acc)">${interp}</div>`:'';
+  const noteInProgress=isCurrentYear?`<div style="font-size:11px;color:var(--tl);margin-top:10px;font-style:italic">Données à date — comparaison partielle.</div>`:'';
+  compareZone.innerHTML=`<div style="padding:8px 0 0 16px;border-left:2px solid var(--brd)">${selector}${inProgressBadge}${caBrutRow}${caNetRow}${hRow}${thRow}${interpBlock}${noteInProgress}</div>`;
+}
+function renderArchProgress(){
+  const zone=document.getElementById('archives-progress-zone');
+  if(!zone) return;
+  const cy=DATA.currentYear;
+  const archivedY=Object.keys(DATA.archives).map(Number).sort();
+  if(archivedY.length<1){ zone.innerHTML=''; return; }
+  const oldestY=archivedY[0];
+  const currData=getArchYearData(cy);
+  const oldData=getArchYearData(oldestY);
+  const bullets=[];
+  const caTrend=oldData.caBrut>0?(currData.caBrut-oldData.caBrut)/oldData.caBrut:null;
+  const netTrend=oldData.caNet>0?(currData.caNet-oldData.caNet)/oldData.caNet:null;
+  const hTrend=oldData.heures>0?(currData.heures-oldData.heures)/oldData.heures:null;
+  if(caTrend!==null){ const sp=archSmartPct(currData.caBrut,oldData.caBrut); if(sp) bullets.push(`${caTrend>=0?'📈':'📉'} <strong>${sp.text}</strong> de chiffre d'affaires depuis ${oldestY}`); }
+  if(netTrend!==null){ const sp=archSmartPct(currData.caNet,oldData.caNet); if(sp) bullets.push(`💶 Revenu net : <strong>${sp.text}</strong>`); }
+  if(hTrend!==null&&oldData.heures>0){ const delta=Math.round(currData.heures-oldData.heures); if(Math.abs(delta)>5) bullets.push(`⏱ <strong>${delta>0?'+':''}${delta} heures</strong> facturées par an`); }
+  if(currData.th>0&&oldData.th>0){ const sp=archSmartPct(currData.th,oldData.th); if(sp) bullets.push(`💰 Taux horaire : ${fmtE(oldData.th,0)}/h → <strong>${fmtE(currData.th,0)}/h</strong> (${sp.text})`); }
+  // Insights extensibles
+  ARCH_INSIGHT_GENERATORS.forEach(g=>{ try{ const s=g.fn(currData,oldData,'chantier'); if(s) bullets.push(`📡 ${s}`); }catch(e){} });
+  if(!bullets.length){ zone.innerHTML=''; return; }
+  const interp=buildArchInterpretation(currData,oldData);
+  const conclusionBlock=interp?`<div style="margin-top:14px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:13px;font-weight:600;color:var(--text);border-left:3px solid var(--acc)">${interp}</div>`:'';
+  const bulletHTML=bullets.map(b=>`<li style="margin-bottom:8px;font-size:13px;color:var(--tl);line-height:1.5">${b}</li>`).join('');
+  zone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">📊 Vos progrès</div><div class="card-sub">Évolution depuis ${oldestY}</div></div></div><ul style="padding-left:0;list-style:none;margin:0 0 4px">${bulletHTML}</ul>${conclusionBlock}</div>`;
 }
 function deleteArchive(y) { if(!confirm(`Supprimer ${y} ?`)) return; delete DATA.archives[y]; saveData(); renderArchives(); }
 function saveBilanNote(mk,dismissKey){
