@@ -5443,25 +5443,36 @@ function renderArchCompare(refYear){
   const validRefs=[...archivedY.map(String),...(archivedY.length>1?['avg']:[])];
   if(!ref||!validRefs.includes(String(ref))) ref=archivedY[archivedY.length-1];
   window._archCompareRef=ref;
-  let refData,refLabel;
+  const now=new Date(), isCurrentYear=cy===now.getFullYear();
+  const elapsedMonths=now.getMonth()+1;
+  const moNames=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+  const todayMoName=moNames[now.getMonth()];
+  let refDataRaw;
   if(ref==='avg'){
     const n=archivedY.length;
     const tot=archivedY.reduce((a,y)=>{const d=getArchYearData(y);return{caBrut:a.caBrut+(d.caBrut||0),caNet:a.caNet+(d.caNet||0),heures:a.heures+(d.heures||0),missions:a.missions+(d.missions||0)};},{caBrut:0,caNet:0,heures:0,missions:0});
-    refData={caBrut:tot.caBrut/n,caNet:tot.caNet/n,heures:tot.heures/n,missions:tot.missions/n};
-    refData.th=refData.heures>0?refData.caNet/refData.heures:0;
-    refLabel=`moy. ${archivedY.join('/')}`;
+    refDataRaw={caBrut:tot.caBrut/n,caNet:tot.caNet/n,heures:tot.heures/n,missions:tot.missions/n};
+    refDataRaw.th=refDataRaw.heures>0?refDataRaw.caNet/refDataRaw.heures:0;
   } else {
-    refData=getArchYearData(Number(ref));
-    refLabel=String(ref);
+    refDataRaw=getArchYearData(Number(ref));
   }
+  // Pro-ration : si l'année est en cours, on ramène les données de référence au même nombre de mois
+  const proRated=isCurrentYear&&elapsedMonths<12;
+  const proRatio=elapsedMonths/12;
+  const refData=proRated?{
+    caBrut:refDataRaw.caBrut*proRatio,
+    caNet:refDataRaw.caNet*proRatio,
+    heures:refDataRaw.heures*proRatio,
+    missions:refDataRaw.missions,
+    th:refDataRaw.th // le TH ne se pro-rate pas
+  }:refDataRaw;
   const currData=getArchYearData(cy);
-  const now=new Date(), isCurrentYear=cy===now.getFullYear();
-  const moNames=['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-  const todayMo=now.getMonth();
+  const refLabel=ref==='avg'?`moy. ${archivedY.join('/')}`:String(ref);
   const opts=archivedY.map(y=>`<option value="${y}"${String(y)===String(ref)?'selected':''}>${y}</option>`).join('');
   const avgOpt=archivedY.length>1?`<option value="avg"${'avg'===String(ref)?'selected':''}> Moy. (${archivedY.join(', ')})</option>`:'';
+  const proRateTooltip=proRated?` <span title="Les données de ${refLabel} (année complète) sont divisées par ${12/elapsedMonths|0} pour être comparées aux ${elapsedMonths} mois déjà écoulés en ${cy}. C'est une estimation linéaire." style="cursor:help;color:var(--tl);font-size:11px;border:1px solid var(--brd);border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;line-height:1">?</span>`:'';
   const selector=`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:var(--tl);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px">Comparer avec</div><select onchange="renderArchCompare(this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--card);color:var(--text);width:100%;cursor:pointer">${opts}${avgOpt}</select></div>`;
-  const inProgressBadge=isCurrentYear?`<div style="font-size:11px;color:#92701a;background:#fef9e7;border:1px solid #f5d96a;border-radius:6px;padding:4px 8px;margin-bottom:12px">🟡 Année en cours — données jan–${moNames[todayMo]} seulement<br><span style="font-weight:400;opacity:.8">Comparez avec prudence : ${String(ref)==='avg'?'les années archivées sont complètes':ref+' est une année complète'}.</span></div>`:'';
+  const inProgressBadge=isCurrentYear?`<div style="font-size:11px;color:#92701a;background:#fef9e7;border:1px solid #f5d96a;border-radius:6px;padding:5px 9px;margin-bottom:12px;line-height:1.6">🟡 <strong>Jan–${todayMoName} ${cy}</strong> vs <strong>Jan–${todayMoName} ${refLabel}</strong>${proRateTooltip}<br><span style="font-weight:400;opacity:.85">Données de ${refLabel} pro-ratées sur ${elapsedMonths} mois pour une comparaison équitable.</span></div>`:'';
   function kpiRow(icon,label,curr,prev,fmtAbs,altDisplay){
     if(altDisplay!==undefined) return `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">${icon} ${label}</div><div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3">${altDisplay}</div></div>`;
     const sp=archSmartPct(curr,prev);
