@@ -1676,15 +1676,21 @@ function renderTVABarre(label, ca, franchise, tolerance) {
 // pas du statut principal. En activité mixte, la colonne prestation utilise toujours le taux
 // prestation approprié (BNC 25,6 % pour micro-achat par défaut), et la colonne vente utilise
 // toujours le taux vente BIC commerce (12,3 %). Voir onStatutChange() et getTauxChargesPresta().
-const PARAMS_2026 = {
-  'micro-bnc':   {urssafPresta:25.6, cfpPresta:0.2, urssafVente:12.3, cfpVente:0.1},
-  'micro-bic':   {urssafPresta:21.2, cfpPresta:0.3, urssafVente:12.3, cfpVente:0.1},
-  'micro-achat': {urssafPresta:12.3, cfpPresta:0.1, urssafVente:12.3, cfpVente:0.1},
-  // urssafPresta/cfpPresta de micro-achat = taux vente (taux principal déclaré).
-  // En activité mixte, la colonne prestations utilise le taux BNC (25,6 % / 0,2 %)
-  // défini dans onStatutChange() — indépendamment de urssafPresta ici.
+// ── TAUX DE COTISATIONS EN VIGUEUR ───────────────────────────
+// Source unique pour initialiser un nouveau compte et réinitialiser lors
+// d'un changement de statut. Mise à jour annuelle : modifier ce seul bloc.
+// Les calculs lisent toujours DATA.params (valeurs personnalisables par l'utilisateur).
+const TAUX_URSSAF = {
+  // Taux 2026 (source : URSSAF / DGFIP)
+  'micro-bnc':   { urssafPresta:25.6, cfpPresta:0.2, urssafVente:12.3, cfpVente:0.1 },
+  'micro-bic':   { urssafPresta:21.2, cfpPresta:0.3, urssafVente:12.3, cfpVente:0.1 },
+  'micro-achat': { urssafPresta:12.3, cfpPresta:0.1, urssafVente:12.3, cfpVente:0.1 },
+  // Note micro-achat : urssafPresta = taux vente (activité principale déclarée).
+  // En activité mixte, la colonne prestations utilise le taux BNC — voir onStatutChange().
 };
-const STATUT_PRESETS = Object.fromEntries(Object.entries(PARAMS_2026).map(([k,v])=>[k,{urssaf:v.urssafPresta,cfp:v.cfpPresta}]));
+// Retourne les taux du statut donné, avec fallback sur micro-bnc.
+// NE PAS utiliser pour la lookup dans onStatutChange() — 'sasu' doit rester undefined.
+function getTauxStatut(statut) { return TAUX_URSSAF[statut] || TAUX_URSSAF['micro-bnc']; }
 
 // ── DONNÉES D'EXEMPLE ────────────────────────────────────────
 function getExampleData() {
@@ -1697,14 +1703,15 @@ function getExampleData() {
     return `${yr}-${String(mo).padStart(2,'0')}`;
   };
   const mk0=mk(0), mk1=mk(-1), mk2=mk(-2), mk3=mk(-3), mk4=mk(-4);
+  const _t=getTauxStatut('micro-bnc');
   return {
     schemaVersion:SCHEMA_VERSION, theme:'obm', currentYear:y,
     lastSave:null, lastSaveReminder:null, isExample:true,
     params:{
       nom:'Marie Dubois', statut:'micro-bnc',
-      tauxURSSAF:25.6, tauxCFP:0.2,
-      tauxCotisationsPrestation:25.6, tauxCFPPrestation:0.2,
-      tauxCotisationsVente:12.3, tauxCFPVente:0.1,
+      tauxURSSAF:_t.urssafPresta, tauxCFP:_t.cfpPresta,
+      tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
+      tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       objectifNetMensuel:3500, heuresParJour:7,
       joursParSemaine:4, semainesParAn:44,
       tva:true, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
@@ -1816,11 +1823,12 @@ function clearExampleData() {
 // ── MODÈLE DE DONNÉES ────────────────────────────────────────
 function getDefaultData() {
   const y = new Date().getFullYear();
+  const _t = getTauxStatut('micro-bnc');
   return {
     schemaVersion:SCHEMA_VERSION, theme:'obm', currentYear:y,
     lastSave:null, lastSaveReminder:null, isExample:false,
     params:{
-      nom:'', statut:'micro-bnc', tauxURSSAF:25.6, tauxCFP:0.2, urssafRegime:'mensuel',
+      nom:'', statut:'micro-bnc', tauxURSSAF:_t.urssafPresta, tauxCFP:_t.cfpPresta, urssafRegime:'mensuel',
       objectifNetMensuel:4000, chargesAnnuellesCompl:0, chargesSalariales:0, heuresParJour:7, joursParSemaine:4,
       semainesParAn:44,
       tva:false, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
@@ -1829,8 +1837,8 @@ function getDefaultData() {
       impotsTaux:0,
       remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
       rentabClientSort:'ca', rentabCatSort:'ca',
-      tauxCotisationsPrestation:25.6, tauxCFPPrestation:0.2,
-      tauxCotisationsVente:12.3, tauxCFPVente:0.1,
+      tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
+      tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       dateOuverture:'', metier:''
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
@@ -2285,7 +2293,7 @@ function getTauxChargesPresta() {
   if(!isActiviteMixte()) return (DATA.params.tauxURSSAF+DATA.params.tauxCFP)/100;
   return ((DATA.params.tauxCotisationsPrestation||DATA.params.tauxURSSAF)+(DATA.params.tauxCFPPrestation||DATA.params.tauxCFP))/100;
 }
-function getTauxChargesVente()  { if(isSASU()) return 0; if(!isActiviteMixte()) return getTauxChargesPresta(); return ((DATA.params.tauxCotisationsVente||12.3)+(DATA.params.tauxCFPVente||0.1))/100; }
+function getTauxChargesVente()  { if(isSASU()) return 0; if(!isActiviteMixte()) return getTauxChargesPresta(); const _tv=getTauxStatut(DATA.params.statut); return ((DATA.params.tauxCotisationsVente||_tv.urssafVente)+(DATA.params.tauxCFPVente||_tv.cfpVente))/100; }
 function saveChargeParam(field, val) {
   DATA.params[field]=val;
   // Pour micro-achat, tauxURSSAF/tauxCFP représentent le taux vente (activité principale).
@@ -4895,7 +4903,7 @@ function updateMixteChargesInfo() {
   if(!el) return;
   const p=DATA.params;
   if(!p.activiteMixte || isSASU()) { el.style.display='none'; return; }
-  const pr=PARAMS_2026[p.statut]||PARAMS_2026['micro-bnc'];
+  const pr=getTauxStatut(p.statut);
   const urssafP=p.tauxCotisationsPrestation??pr.urssafPresta;
   const cfpP=p.tauxCFPPrestation??pr.cfpPresta;
   const urssafV=p.tauxCotisationsVente??pr.urssafVente;
@@ -4920,16 +4928,17 @@ function updateMixteChargesInfo() {
 }
 function onStatutChange(val) {
   DATA.params.statut=val;
-  const pr=PARAMS_2026[val];
+  const pr=TAUX_URSSAF[val]; // lookup directe — 'sasu' reste undefined, le bloc if est sauté
   if(pr){
     DATA.params.tauxURSSAF=pr.urssafPresta;
     DATA.params.tauxCFP=pr.cfpPresta;
     // micro-achat : le taux principal (tauxURSSAF/tauxCFP) est le taux vente (12,3 % / 0,1 %).
-    // En activité mixte, la colonne prestations doit utiliser le taux BNC par défaut (25,6 % / 0,2 %)
+    // En activité mixte, la colonne prestations doit utiliser le taux BNC par défaut
     // car les prestations (conseil, coaching, OBM…) relèvent du régime prestation, pas vente.
     if(val==='micro-achat'){
-      DATA.params.tauxCotisationsPrestation=25.6;
-      DATA.params.tauxCFPPrestation=0.2;
+      const _tBnc=getTauxStatut('micro-bnc');
+      DATA.params.tauxCotisationsPrestation=_tBnc.urssafPresta;
+      DATA.params.tauxCFPPrestation=_tBnc.cfpPresta;
     } else {
       DATA.params.tauxCotisationsPrestation=pr.urssafPresta;
       DATA.params.tauxCFPPrestation=pr.cfpPresta;
