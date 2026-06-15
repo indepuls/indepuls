@@ -5370,10 +5370,8 @@ function renderArchives() {
   } else {
     retroHTML=`<div style="color:var(--tl);font-size:13px;padding:16px 0;text-align:center">Aucune rétrospective pour l'instant — vos bilans de fin de mois apparaîtront ici.</div>`;
   }
-  const srcPhrase=getSourceAcqPhrase(DATA.missions,'mission');
-  const srcBlock=srcPhrase?`<div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--acc);font-size:12px;color:var(--tl);line-height:1.6"><strong style="color:var(--text)">📡 Sources d'acquisition</strong><br>${srcPhrase}</div>`:'';
   const retroZone=document.getElementById('archives-retro-zone');
-  if(retroZone) retroZone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">Rétrospectives mensuelles</div><div class="card-sub">Vos bilans de fin de mois</div></div></div>${retroHTML}${srcBlock}</div>`;
+  if(retroZone) retroZone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">Rétrospectives mensuelles</div><div class="card-sub">Vos bilans de fin de mois</div></div></div>${retroHTML}</div>`;
 }
 // ── Archives : helpers comparaison annuelle ───────────────────
 function getArchYearData(y){
@@ -5427,8 +5425,7 @@ function buildArchInterpretation(curr,ref){
 }
 // Système extensible de phrases de rétrospective — ajouter de nouvelles analyses ici
 const ARCH_INSIGHT_GENERATORS=[
-  // Exemples de générateurs futurs :
-  // { key:'sources', fn:(curr,prev,noun)=>getSourceAcqPhrase(DATA.missions,noun) },
+  { key:'sources', fn:(curr,prev,noun)=>getSourceAcqPhrase(DATA.missions,noun) },
   // { key:'best_month', fn:(curr,prev,noun)=>getBestMonthPhrase() },
   // { key:'remplissage', fn:(curr,prev,noun)=>getRemplissagePhrase(curr,prev) },
 ];
