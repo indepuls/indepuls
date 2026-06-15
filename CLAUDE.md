@@ -196,6 +196,17 @@ renderDashboard()
 - **Architecture** : `window.trackEvent(name, data)` disponible globalement dans chaque app, défini dans l'IIFE Supabase en bas de chaque fichier. Monkey-patching via `setTimeout(fn, 0)` pour intercepter les fonctions app sans les modifier.
 - **Pour ajouter un événement** : appeler `window.trackEvent('nom_evenement', {optionalData})` n'importe où dans le code app.
 
+## Fonctions clés — Archives (ajoutées)
+
+```js
+getArchYearData(y)            // données normalisées pour une année (courante ou archivée)
+archSmartPct(curr, prev)      // delta lisible : "+40%", "×11", "forte hausse" (jamais +1038%)
+buildArchInterpretation(c,r)  // phrase de synthèse métier selon les tendances détectées
+renderArchCompare(refYear)    // widget comparaison avec sélecteur d'année (ou moyenne)
+renderArchProgress()          // carte "Vos progrès" depuis la première année archivée
+ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sources, best month…)
+```
+
 ## Fonctionnalités implémentées (historique)
 
 - Score de santé : 4 piliers (rentabilité, remplissage, trésorerie, commercial), cards compactes + modal détail
@@ -206,6 +217,8 @@ renderDashboard()
 - Rémunération recommandée négative → clampée à 0 + message explicatif
 - Trésorerie projetée : ancrage sur solde réel via modale `modal-treso-anchor`
 - Mobile overflow fixes : `body { overflow-x: hidden }` sur artisan
+- Archives enrichies : sélecteur de comparaison (année ou moyenne), KPIs lisibles (×N au lieu de +1038%), phrase d'interprétation automatique, badge "Année en cours", carte "Vos progrès", système extensible `ARCH_INSIGHT_GENERATORS`
+- Source d'acquisition : champ optionnel sur chaque mission, donut chart dans les stats, phrase de rétrospective dans les archives
 
 ## Points d'attention
 
