@@ -1968,6 +1968,35 @@ function saveData() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) {}
 }
 
+// ── STORE — SETTERS EXPLICITES ───────────────────────────────
+// Toute mutation de DATA passe par ici ; saveData() reste à la charge de l'appelant.
+function addMission(obj) {
+  DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]});
+}
+function removeMission(id) { DATA.missions=DATA.missions.filter(x=>x.id!==id); }
+function addDepense(obj)  { DATA.depenses.push({id:uuid(),...obj}); }
+function removeDepense(id){ DATA.depenses=DATA.depenses.filter(x=>x.id!==id); }
+function addPonctuel(mk, entry) {
+  if(!DATA.revenus[mk]) DATA.revenus[mk]={};
+  if(!DATA.revenus[mk].autresList) DATA.revenus[mk].autresList=[];
+  DATA.revenus[mk].autresList.push(entry);
+}
+function removePonctuel(mk, id) {
+  if(DATA.revenus[mk]) DATA.revenus[mk].autresList=(DATA.revenus[mk].autresList||[]).filter(e=>e.id!==id);
+}
+function addTempsInterne(mk, ms) { if(!DATA.tempsInterne) DATA.tempsInterne={}; DATA.tempsInterne[mk]=(DATA.tempsInterne[mk]||0)+ms; }
+function setTempsInterne(mk, val){ if(!DATA.tempsInterne) DATA.tempsInterne={}; DATA.tempsInterne[mk]=val; }
+function setCategorie(i, val)    { DATA.categories[i]=val; }
+function addCategorie(val)       { DATA.categories.push(val); }
+function setArchive(y, val)      { DATA.archives[y]=val; }
+
+// ── XSS — ÉCHAPPEMENT HTML ───────────────────────────────────
+// À appliquer à toute donnée saisie par l'utilisateur insérée dans innerHTML.
+function escapeHtml(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+const esc=escapeHtml;
+
 // ── EXPORT / IMPORT ──────────────────────────────────────────
 function exportData() {
   DATA.missions.forEach(m => { if(m.timerRunning) commitTimer(m); });
@@ -2965,13 +2994,13 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     const pr=days>=60?0:days>=30?1:2;
     const cl=days>=60?'al-err':days>=30?'al-warn':'al-info';
     const icon=days>=60?'🔴':days>=30?'⚠️':'⏳';
-    alerts.push({pr,cl,txt:`${icon} <strong>${m.client}</strong>${m.description?` — ${m.description}`:''} · ${fmtE(reste)} à encaisser depuis <strong>${days} j</strong>.`});
+    alerts.push({pr,cl,txt:`${icon} <strong>${esc(m.client)}</strong>${m.description?` — ${esc(m.description)}`:''} · ${fmtE(reste)} à encaisser depuis <strong>${days} j</strong>.`});
   });
   if(hI>hF*.5&&hI>2)
     alerts.push({pr:2,cl:'al-info',txt:`🔄 Temps interne élevé (${fmt(hI,1)} h) vs facturable (${fmt(hF,1)} h) — à surveiller.`});
   DATA.missions.filter(m=>!m.isManagement&&m.statut!=='ref').forEach(m=>{
     const h=getMissionHeures(m),th=h>0&&m.montantDevis>0?m.montantDevis/h:null;
-    if(th!==null&&th<30&&h>2) alerts.push({pr:2,cl:'al-warn',txt:`📉 "${m.description||m.client}" — TH réel ${fmtE(th,0)}/h.`});
+    if(th!==null&&th<30&&h>2) alerts.push({pr:2,cl:'al-warn',txt:`📉 "${esc(m.description||m.client)}" — TH réel ${fmtE(th,0)}/h.`});
   });
   // Alerte relance individuelle pour devis en attente > 7 jours
   DATA.missions.filter(m=>m.statut==='att').forEach(m=>{
@@ -2981,7 +3010,7 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     if(daysWait>=7){
       const d7cl=daysWait>=14?'al-warn':'al-info';
       const d7pr=daysWait>=14?1:2;
-      alerts.push({pr:d7pr,cl:d7cl,txt:`📬 Devis <strong>${m.client||m.description||'sans nom'}</strong> sans réponse depuis <strong>${daysWait} j</strong>${m.montantDevis>0?` — ${fmtE(m.montantDevis)}`:''}. Relancer ?`});
+      alerts.push({pr:d7pr,cl:d7cl,txt:`📬 Devis <strong>${esc(m.client||m.description||'sans nom')}</strong> sans réponse depuis <strong>${daysWait} j</strong>${m.montantDevis>0?` — ${fmtE(m.montantDevis)}`:''}. Relancer ?`});
     }
   });
   const att=DATA.missions.filter(m=>m.statut==='att').length;
@@ -3298,7 +3327,7 @@ function wRentabCat() {
 function wMissionsActives() {
   const act=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'));
   if(!act.length) return `<div class="card"><div class="card-header"><div class="card-title">Missions en cours</div></div><div class="empty ts">Aucune mission active.</div></div>`;
-  const rows=act.map(m=>{ const h=getMissionHeures(m),th=m.montantDevis>0&&h>0?m.montantDevis/h:null,ms=getMissionTotalMs(m); return `<div class="flex gap10 mb8" style="padding:10px;background:var(--bg);border-radius:8px;align-items:center"><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button><div style="flex:1"><div class="fb">${m.client}</div><div class="ts">${m.description||''}</div></div><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div style="text-align:right;min-width:80px"><div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${th?fmtE(th,0)+'/h':'—'}</div></div><span class="badge b-${m.statut}">${m.statut==='cours'?'En cours':'En attente'}</span></div>`; }).join('');
+  const rows=act.map(m=>{ const h=getMissionHeures(m),th=m.montantDevis>0&&h>0?m.montantDevis/h:null,ms=getMissionTotalMs(m); return `<div class="flex gap10 mb8" style="padding:10px;background:var(--bg);border-radius:8px;align-items:center"><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button><div style="flex:1"><div class="fb">${esc(m.client)}</div><div class="ts">${esc(m.description||'')}</div></div><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div style="text-align:right;min-width:80px"><div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${th?fmtE(th,0)+'/h':'—'}</div></div><span class="badge b-${m.statut}">${m.statut==='cours'?'En cours':'En attente'}</span></div>`; }).join('');
   return `<div class="card"><div class="card-header"><div class="card-title">Missions en cours</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
 }
 
@@ -3334,7 +3363,7 @@ function wCapacite() {
       const pCap=cap>0?Math.min(Math.round(h/cap*100),100):0;
       return `<div style="margin-bottom:7px">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span class="ts">${m.client}${m.description?`<span style="color:var(--tl)"> — ${m.description}</span>`:''}</span>
+          <span class="ts">${esc(m.client)}${m.description?`<span style="color:var(--tl)"> — ${esc(m.description)}</span>`:''}</span>
           <span class="ts" style="font-weight:700;white-space:nowrap;margin-left:8px">${pC} %</span>
         </div>
         <div class="prog-bar" style="height:4px"><div style="height:100%;width:${pCap}%;background:var(--acc);border-radius:4px;transition:width .4s"></div></div>
@@ -3463,8 +3492,8 @@ function wScoreSante(d) {
   } else if(sTreso>=10){
     const ol=impayees[0];
     vTreso=fmtE(mtImpaye);subTreso=`${impayees.length} facture${impayees.length>1?'s':''} en retard`;
-    diagTreso=`🔴 ${fmtE(mtImpaye)} à encaisser — facture la plus ancienne : ${ol.days} j (${ol.m.client}).`;
-    advTreso=`Relancez ${ol.m.client} en priorité (${fmtE(ol.reste)} en attente).`;
+    diagTreso=`🔴 ${fmtE(mtImpaye)} à encaisser — facture la plus ancienne : ${ol.days} j (${esc(ol.m.client)}).`;
+    advTreso=`Relancez ${esc(ol.m.client)} en priorité (${fmtE(ol.reste)} en attente).`;
   } else {
     vTreso=fmtE(mtImpaye);subTreso='Risque de tension';
     diagTreso=`🔴 Trésorerie fragile — ${fmtE(mtImpaye)} en attente, dont ${fmtE(gravesArr.reduce((s,x)=>s+x.reste,0))} depuis plus de 60 j.`;
@@ -3510,14 +3539,14 @@ function wScoreSante(d) {
   let priorite='';
   if(gravesArr.length>0){
     const g=gravesArr[0];
-    priorite=`Relancer <strong>${g.m.client}</strong> — ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
+    priorite=`Relancer <strong>${esc(g.m.client)}</strong> — ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
   } else if(worst.n==='trésorerie'&&moyensArr.length>0){
     const m0=moyensArr[0];
-    priorite=`Relancer <strong>${m0.m.client}</strong> — ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
+    priorite=`Relancer <strong>${esc(m0.m.client)}</strong> — ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
   } else if(worst.n==='commercial'){
     if(attM.length>0){
       const oldest=[...attM].sort((a,b)=>(a.dateFact||'z')<(b.dateFact||'z')?-1:1)[0];
-      priorite=`Relancer le devis <strong>${oldest.client||'en attente'}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
+      priorite=`Relancer le devis <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
     } else {
       priorite='Créer et envoyer <strong>au moins un nouveau devis cette semaine</strong> pour alimenter votre pipeline.';
     }
@@ -3640,7 +3669,7 @@ function wScoreSante(d) {
 
   const _actives=DATA.missions.filter(m=>!m.isManagement&&m.statut==='cours');
   const _activeRows=_actives.map(m=>{
-    const lbl=[m.client,m.description].filter(Boolean).join(' — ')||'Mission sans nom';
+    const lbl=esc([m.client,m.description].filter(Boolean).join(' — ')||'Mission sans nom');
     const mt=m.isRecurring&&m.montantMensuel>0?` · ${fmtE(m.montantMensuel)}/mois`:m.montantDevis>0?` · ${fmtE(m.montantDevis)}`:'';
     return `<div onclick="goToMission('${m.id}')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;display:inline-block"></span><span style="font-size:13px;color:var(--text);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lbl}</span><span style="font-size:12px;color:var(--tl);white-space:nowrap">${mt}</span><span style="font-size:11px;color:var(--acc);font-weight:700;margin-left:4px;flex-shrink:0">→</span></div>`;
   }).join('');
@@ -3831,7 +3860,7 @@ function renderPonctuelsModal() {
   listEl.innerHTML=list.map(e=>`
     <div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd)">
       <span class="ts" style="color:${tColor[e.type]||'var(--tl)'};font-weight:600">${tLabel[e.type]||e.type}</span>
-      <span class="ts">${e.libelle||'—'}</span>
+      <span class="ts">${esc(e.libelle||'—')}</span>
       <span class="ts" style="font-weight:700;white-space:nowrap">${fmtE(e.montant||0)}</span>
       <button class="btn btn-sm" style="color:#e53935;border-color:#e53935;padding:2px 7px;font-size:11px" onclick="deletePonctuel('${e.id}')">✕</button>
     </div>`).join('');
@@ -3842,9 +3871,7 @@ function addPonctuel() {
   const libelle = document.getElementById('ponc-libelle').value.trim();
   const montant = parseFloat(document.getElementById('ponc-montant').value)||0;
   if(montant<=0){ showToast('⚠️ Montant requis.'); return; }
-  if(!DATA.revenus[_poncMk]) DATA.revenus[_poncMk]={};
-  if(!DATA.revenus[_poncMk].autresList) DATA.revenus[_poncMk].autresList=[];
-  DATA.revenus[_poncMk].autresList.push({ id:uuid(), libelle, montant, type,
+  addPonctuel(_poncMk, { id:uuid(), libelle, montant, type,
     montantPrestation: type==='prestation'?montant:0, montantVente: type==='vente'?montant:0 });
   saveData();
   document.getElementById('ponc-libelle').value='';
@@ -3853,7 +3880,7 @@ function addPonctuel() {
 }
 function deletePonctuel(id) {
   if(!_poncMk||!DATA.revenus[_poncMk]) return;
-  DATA.revenus[_poncMk].autresList=(DATA.revenus[_poncMk].autresList||[]).filter(e=>e.id!==id);
+  removePonctuel(_poncMk, id);
   saveData(); renderPonctuelsModal(); renderRevenus();
 }
 
@@ -4089,7 +4116,7 @@ function saveMission() {
     obj.montantPrestation=obj.montantDevis; obj.montantVente=0;
   }
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
-  else { DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
+  else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
   saveData(); closeModal('modal-mission'); renderMissions(); triggerSaveReminderIfNeeded();
 }
 
@@ -4097,7 +4124,7 @@ function deleteMission(id) {
   const m=DATA.missions.find(x=>x.id===id);
   if(m&&m.isManagement) return;
   if(!confirm('Supprimer cette mission ?')) return;
-  DATA.missions=DATA.missions.filter(x=>x.id!==id);
+  removeMission(id);
   saveData(); renderMissions();
 }
 
@@ -4127,7 +4154,7 @@ function commitTimer(x) {
   if(x.isManagement){
     if(!DATA.tempsInterne) DATA.tempsInterne={};
     const mk=getCurrentMk();
-    DATA.tempsInterne[mk]=(DATA.tempsInterne[mk]||0)+elapsed;
+    addTempsInterne(mk, elapsed);
     x.timerAccumulated=0;
   } else {
     x.timerAccumulated=(x.timerAccumulated||0)+elapsed;
@@ -4178,7 +4205,7 @@ function rentabClientsBody() {
   if(!Object.keys(byC).length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun client à afficher pour l\'instant.</div>';
   const cls=Object.entries(byC).sort((a,b)=>sort==='th'?(b[1].h>0?b[1].ca/b[1].h:0)-(a[1].h>0?a[1].ca/a[1].h:0):b[1].ca-a[1].ca);
   const maxCA=Math.max(...cls.map(c=>c[1].ca),1),maxTH=Math.max(...cls.map(c=>c[1].h>0?c[1].ca/c[1].h:0),1);
-  const renderRow=([cl,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=th>=60?'ok':th>=35?'wn':'bd';return `<div class="rentab-row"><div style="flex:1"><div class="fb">${cl}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;};
+  const renderRow=([cl,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=th>=60?'ok':th>=35?'wn':'bd';return `<div class="rentab-row"><div style="flex:1"><div class="fb">${esc(cl)}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;};
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('th')">Par TH</button></div>`;
   const top=cls.slice(0,5),rest=cls.slice(5);
   return sortBtns+top.map(renderRow).join('')+(rest.length?`<div class="ts mt8" style="cursor:pointer;color:var(--acc)" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${rest.length} autre${rest.length>1?'s':''} →</div><div style="display:none">${rest.map(renderRow).join('')}</div>`:'');
@@ -4194,7 +4221,7 @@ function rentabCatBody() {
   const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxTH=Math.max(...cats.map(([,v])=>v.h>0?v.ca/v.h:0),1);
   const thSub=thMoy>0?`<div class="ts mb10">TH moyen toutes offres : <strong>${fmtE(thMoy,0)}/h</strong></div>`:'';
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">Par TH</button></div>`;
-  return sortBtns+thSub+cats.map(([c,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,cl=th>=60?'ok':th>=35?'wn':'bd';return `<div class="rentab-row"><div style="flex:1"><span class="chip">${c}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;}).join('');
+  return sortBtns+thSub+cats.map(([c,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,cl=th>=60?'ok':th>=35?'wn':'bd';return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;}).join('');
 }
 function renderMissionsSummary(all) {
   const sumEl=document.getElementById('missions-summary');
@@ -4286,14 +4313,14 @@ function renderMissions() {
     const isCol=m.typeMission==='collectif';
     const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts">${m.nbMoisRec?`× ${m.nbMoisRec} mois = ${fmtE(m.montantDevis)}`:''}</div>`:tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis);
     tr.innerHTML=`<td><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button></td>
-      <td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${m.client||'—'}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}</div><div class="ts">${m.description||''}</div></td>
+      <td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>En attente</option><option value="cours" ${m.statut==='cours'?'selected':''}>En cours</option><option value="ref" ${m.statut==='ref'?'selected':''}>Refusé</option><option value="fact" ${m.statut==='fact'?'selected':''}>Facturé</option></select></td>
       <td class="ts">${m.dateFact||'—'}</td>
       <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div><div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
       <td class="ts">${th?fmtE(th,1)+'/h':'—'}</td>
-      <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.notes||''}">${m.notes||'—'}</td>
+      <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button>${!m.isRecurring?` <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button>`:''} <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
     tbody.appendChild(tr);
     // Sous-ligne encaissements (missions ponctuelles avec au moins un versement)
@@ -4555,13 +4582,13 @@ function saveDepense(force) {
     montantTVA:tvaDeductible?parseFloat(document.getElementById('d-tva-montant').value)||0:0
   };
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d) Object.assign(d,obj); }
-  else { DATA.depenses.push({id:uuid(),...obj}); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
+  else { addDepense(obj); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
   saveData(); closeModal('modal-dep'); renderDepenses();
 }
 function toggleDepTVA(checked) {
   document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
 }
-function deleteDepense(id) { if(!confirm('Supprimer cette dépense ?')) return; DATA.depenses=DATA.depenses.filter(x=>x.id!==id); saveData(); renderDepenses(); }
+function deleteDepense(id) { if(!confirm('Supprimer cette dépense ?')) return; removeDepense(id); saveData(); renderDepenses(); }
 
 let depSort={col:'date',dir:'desc'}, depFilter='all', depCatFilter='all', depDonutOpen=false, depDonutBase='annuel';
 function sortDep(col){
@@ -4734,7 +4761,7 @@ function renderDepenses() {
   const tvaTd=d=>tva?(d.tvaDeductible?`<td class="ts tok dep-tva" data-label="TVA récup.">${fmtE(d.montantTVA||0)}</td>`:`<td class="ts dep-tva" data-label="TVA récup." style="color:var(--tl)">—</td>`):'';
   tbody.innerHTML=filtered.map(d=>`<tr>
     <td class="dep-date" data-label="Date">${d.date}</td>
-    <td class="fb dep-lbl" data-label="Libellé">${d.libelle}</td>
+    <td class="fb dep-lbl" data-label="Libellé">${esc(d.libelle)}</td>
     <td class="dep-cat" data-label="Catégorie"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
     <td class="fb dep-amt" data-label="Montant">${fmtE(d.montant)}</td>
     ${tvaTd(d)}
@@ -4957,6 +4984,7 @@ function renderSasuCard(d) {
   const caHT=d.caBrut;
   const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
   const remuNet=DATA.params.remunerationNette||0;
+  if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en SASU mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
   const coutRemuMensuel=getSasuCoutRemuMensuel();
   const coutRemuAnnuel=coutRemuMensuel*12;
   const tvaCol=getTVACollecteeAnnuelle();
@@ -5070,8 +5098,7 @@ function saveCorrectTime() {
   const min=parseInt(document.getElementById('correct-time-min').value)||0;
   const newMs=(h*3600+min*60)*1000;
   if(mk) {
-    if(!DATA.tempsInterne) DATA.tempsInterne={};
-    DATA.tempsInterne[mk]=newMs;
+    setTempsInterne(mk, newMs);
     const mgmt=getMgmtMission();
     if(mgmt&&mgmt.timerRunning){ commitTimer(mgmt); }
     renderTempsInterneModal();
@@ -5123,9 +5150,7 @@ function saveAddTime() {
   const ms=(h*3600+min*60)*1000; if(ms<=0) return;
   const date=document.getElementById('add-time-date').value||today();
   if(m.isManagement){
-    if(!DATA.tempsInterne) DATA.tempsInterne={};
-    const mk=getCurrentMk();
-    DATA.tempsInterne[mk]=(DATA.tempsInterne[mk]||0)+ms;
+    addTempsInterne(getCurrentMk(), ms);
   } else {
     if(!m.tempsManuel) m.tempsManuel=[];
     m.tempsManuel.push({id:uuid(),date,ms});
@@ -5176,8 +5201,7 @@ function saveTiRow(mk) {
   const h=parseInt(document.getElementById('ti-edit-h-'+mk).value)||0;
   const min=parseInt(document.getElementById('ti-edit-m-'+mk).value)||0;
   const newMs=(h*3600+min*60)*1000;
-  if(!DATA.tempsInterne) DATA.tempsInterne={};
-  DATA.tempsInterne[mk]=newMs;
+  setTempsInterne(mk, newMs);
   const mgmt=getMgmtMission();
   if(mgmt&&mgmt.timerRunning){ commitTimer(mgmt); }
   saveData(); renderTempsInterneModal(); renderMissions(); updateSbTimer();
@@ -5190,8 +5214,7 @@ function saveTempsInterneManuel() {
   const min=parseInt(document.getElementById('ti-minutes').value)||0;
   const ms=(h*3600+min*60)*1000;
   if(ms<=0){ showToast('⚠️ Saisissez un temps valide.'); return; }
-  if(!DATA.tempsInterne) DATA.tempsInterne={};
-  DATA.tempsInterne[mk]=(DATA.tempsInterne[mk]||0)+ms;
+  addTempsInterne(mk, ms);
   document.getElementById('ti-heures').value='';
   document.getElementById('ti-minutes').value='';
   saveData(); renderTempsInterneModal();
@@ -5276,7 +5299,7 @@ function saveCatEdit(i) {
   const inp=document.getElementById('edit-cat-inp'); if(!inp) return;
   const val=inp.value.trim(); if(!val) return;
   const old=DATA.categories[i];
-  DATA.categories[i]=val;
+  setCategorie(i, val);
   // Répercuter le renommage sur toutes les missions
   DATA.missions.forEach(m=>{ if(m.categorie===old) m.categorie=val; });
   saveData(); _editCatIdx=-1; renderCategoriesList();
@@ -5284,7 +5307,7 @@ function saveCatEdit(i) {
 function addCatInline() {
   const inp=document.getElementById('new-cat-input'), val=inp.value.trim();
   if(!val||DATA.categories.includes(val)) return;
-  DATA.categories.push(val); saveData(); inp.value=''; renderCategoriesList();
+  addCategorie(val); saveData(); inp.value=''; renderCategoriesList();
 }
 function deleteCat(i) { DATA.categories.splice(i,1); saveData(); renderCategoriesList(); }
 
@@ -5313,13 +5336,13 @@ function openEditArchiveModal(y) {
 function saveArchiveManuelle() {
   const editY=document.getElementById('arch-edit-year').value;
   const y=editY||document.getElementById('arch-annee').value; if(!y) return;
-  DATA.archives[y]={caBrut:parseFloat(document.getElementById('arch-ca-brut').value)||0,caNet:parseFloat(document.getElementById('arch-ca-net').value)||0,heures:parseFloat(document.getElementById('arch-heures').value)||0,missions:parseInt(document.getElementById('arch-missions').value)||0,manual:true};
+  setArchive(y,{caBrut:parseFloat(document.getElementById('arch-ca-brut').value)||0,caNet:parseFloat(document.getElementById('arch-ca-net').value)||0,heures:parseFloat(document.getElementById('arch-heures').value)||0,missions:parseInt(document.getElementById('arch-missions').value)||0,manual:true});
   saveData(); closeModal('modal-archive'); renderArchives();
 }
 function archiveCurrentYear() {
   const y=DATA.currentYear;
   if(!confirm(`Archiver l'année ${y} et passer à ${y+1} ?`)) return;
-  DATA.archives[y]={caBrut:getCaAnnuelBrut(),caNet:getCaNetAnnuel(),heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length,manual:false};
+  setArchive(y,{caBrut:getCaAnnuelBrut(),caNet:getCaNetAnnuel(),heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length,manual:false});
   if(isSASU()){
     const tresoFinAnnee=getSasuTresorerieEstimee();
     if(!DATA.params.tresorerieParAnnee) DATA.params.tresorerieParAnnee={};
