@@ -6076,7 +6076,16 @@ function renderArchProgress(){
   if(archivedY.length<2){ zone.innerHTML=''; return; }
   const oldestY=archivedY[0];
   const currData=getArchYearData(cy);
-  const oldData=getArchYearData(oldestY);
+  const now=new Date(), isCurrentYear=cy===now.getFullYear();
+  const elapsedMonths=now.getMonth()+1;
+  const oldDataRaw=getArchYearData(oldestY);
+  const oldData=isCurrentYear&&elapsedMonths<12?{
+    caBrut:oldDataRaw.caBrut*elapsedMonths/12,
+    caNet:oldDataRaw.caNet*elapsedMonths/12,
+    heures:oldDataRaw.heures*elapsedMonths/12,
+    missions:oldDataRaw.missions,
+    th:oldDataRaw.th
+  }:oldDataRaw;
   const bullets=[];
   const caTrend=oldData.caBrut>0?(currData.caBrut-oldData.caBrut)/oldData.caBrut:null;
   const netTrend=oldData.caNet>0?(currData.caNet-oldData.caNet)/oldData.caNet:null;
