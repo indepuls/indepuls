@@ -4017,8 +4017,8 @@ function saveMission() {
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
     obj.montantPrestation=obj.montantDevis; obj.montantVente=0;
   }
-  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m) Object.assign(m,obj); }
-  else DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]});
+  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
+  else { DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
   saveData(); closeModal('modal-mission'); renderMissions(); triggerSaveReminderIfNeeded();
 }
 
@@ -4483,7 +4483,7 @@ function saveDepense(force) {
     montantTVA:tvaDeductible?parseFloat(document.getElementById('d-tva-montant').value)||0:0
   };
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d) Object.assign(d,obj); }
-  else DATA.depenses.push({id:uuid(),...obj});
+  else { DATA.depenses.push({id:uuid(),...obj}); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
   saveData(); closeModal('modal-dep'); renderDepenses();
 }
 function toggleDepTVA(checked) {
@@ -5660,6 +5660,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   var _cloudLoaded = false;
 
+  // ── ANALYTICS ───────────────────────────────────────────────
+  var _analyticsUserId = null;
+
+  window.trackEvent = function(name, data) {
+    try {
+      if (!_analyticsUserId) return;
+      sb.from('usage_events').insert({
+        user_id: _analyticsUserId, event_name: name,
+        event_data: data || null, created_at: new Date().toISOString()
+      }).then(function(){}).catch(function(){});
+    } catch(e) {}
+  };
+
+  function _upsertProfile(extra) {
+    try {
+      if (!_analyticsUserId) return;
+      var payload = Object.assign({ id: _analyticsUserId, last_login_at: new Date().toISOString() }, extra || {});
+      sb.from('profiles').upsert(payload, { onConflict: 'id' }).then(function(){}).catch(function(){});
+    } catch(e) {}
+  }
+  // ────────────────────────────────────────────────────────────
+
   function hideOverlay() {
     var overlay = document.getElementById('auth-overlay');
     if (!overlay) return;
@@ -5680,6 +5702,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.onmouseleave = function() { this.style.background='rgba(255,255,255,.08)'; this.style.color='rgba(255,255,255,.55)'; };
     btn.onclick = async function() {
       if (!confirm('Se déconnecter ?')) return;
+      window.trackEvent('logout');
       await sb.auth.signOut();
       window.parent.location.href = '/';
     };
@@ -5687,6 +5710,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadFromCloud(user) {
+    _analyticsUserId = user.id;
     try {
       var res = await sb.from('user_data').select('data').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
       if (res.data && res.data.data) {
@@ -5702,6 +5726,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
     _cloudLoaded = true;
+    // Mise à jour du profil avec les données actuelles
+    _upsertProfile({
+      email: user.email,
+      activity_type: (typeof DATA !== 'undefined' && DATA.params && DATA.params.metier) || APP_TYPE,
+      legal_status:  (typeof DATA !== 'undefined' && DATA.params && DATA.params.statut) || '',
+      theme:         (typeof DATA !== 'undefined' && DATA.theme) || 'obm'
+    });
   }
 
   async function syncToCloud() {
@@ -5723,6 +5754,54 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_origSaveData) _origSaveData();
     syncToCloud();
   };
+
+  // ── MONKEY-PATCHES ANALYTICS (après chargement des fonctions app) ──
+  setTimeout(function() {
+    // Changement de thème
+    var _origSetTheme = window.setTheme;
+    if (_origSetTheme) window.setTheme = function(t) {
+      _origSetTheme(t);
+      window.trackEvent('theme_changed', { theme: t });
+      _upsertProfile({ theme: t });
+    };
+
+    // Changement de statut juridique ou de métier
+    var _origSaveParam = window.saveParam;
+    if (_origSaveParam) window.saveParam = function(key, val) {
+      _origSaveParam.call(this, key, val);
+      if (key === 'statut') {
+        window.trackEvent('legal_status_selected', { legal_status: val });
+        _upsertProfile({ legal_status: val });
+      }
+      if (key === 'metier') {
+        window.trackEvent('activity_type_selected', { activity_type: val });
+        _upsertProfile({ activity_type: val });
+      }
+    };
+
+    // Dashboard — une seule fois par session
+    var _dashTracked = false;
+    var _origRenderDashboard = window.renderDashboard;
+    if (_origRenderDashboard) window.renderDashboard = function() {
+      _origRenderDashboard.apply(this, arguments);
+      if (!_dashTracked) { _dashTracked = true; window.trackEvent('dashboard_viewed'); }
+    };
+
+    // Score santé
+    var _origOpenPilier = window.openPilierDetail;
+    if (_origOpenPilier) window.openPilierDetail = function(key) {
+      _origOpenPilier.call(this, key);
+      window.trackEvent('score_sante_viewed', { pilier: key });
+    };
+
+    // Donut répartition dépenses
+    var _origToggleDonut = window.toggleDepDonut;
+    if (_origToggleDonut) window.toggleDepDonut = function() {
+      _origToggleDonut.apply(this, arguments);
+      if (window.depDonutOpen) window.trackEvent('provision_widget_viewed');
+    };
+  }, 0);
+  // ────────────────────────────────────────────────────────────
 
   sb.auth.onAuthStateChange(async function(event, session) {
     if (event === 'INITIAL_SESSION') {

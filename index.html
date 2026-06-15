@@ -302,6 +302,23 @@ function initSelector() {
   var _authMode = 'login';
   var _authTimeout = setTimeout(showAuthForm, 6000);
 
+  // ── ANALYTICS (fire-and-forget, jamais bloquant) ─────────
+  function _trackEvent(name, data, userId) {
+    try {
+      if (!userId) return;
+      _sb.from('usage_events').insert({
+        user_id: userId, event_name: name,
+        event_data: data || null, created_at: new Date().toISOString()
+      }).then(function(){}).catch(function(){});
+    } catch(e) {}
+  }
+  function _upsertProfile(userId, email, extra) {
+    try {
+      var payload = Object.assign({ id: userId, email: email, last_login_at: new Date().toISOString() }, extra || {});
+      _sb.from('profiles').upsert(payload, { onConflict: 'id' }).then(function(){}).catch(function(){});
+    } catch(e) {}
+  }
+
   window.setAuthMode = function(mode) {
     _authMode = mode;
     var isLogin = mode === 'login';
@@ -363,7 +380,13 @@ function initSelector() {
     } else {
       var r = await _sb.auth.signUp({ email: email, password: password });
       if (r.error) { setAuthMsg(r.error.message, false); }
-      else { setAuthMsg('Compte créé ! Vérifiez votre email pour confirmer.', true); }
+      else {
+        setAuthMsg('Compte créé ! Vérifiez votre email pour confirmer.', true);
+        if (r.data && r.data.user) {
+          _upsertProfile(r.data.user.id, email, { created_at: new Date().toISOString(), plan: 'free' });
+          _trackEvent('account_created', { email: email }, r.data.user.id);
+        }
+      }
       btn.disabled = false; btn.textContent = 'Créer mon compte';
     }
   };
@@ -380,6 +403,7 @@ function initSelector() {
     var frame = document.getElementById('app-frame');
     if (frame) { frame.src = ''; frame.classList.remove('on'); }
     document.getElementById('selector').classList.remove('hidden');
+    try { var s = await _sb.auth.getSession(); if (s.data&&s.data.session) _trackEvent('logout', null, s.data.session.user.id); } catch(e) {}
     await _sb.auth.signOut();
     showAuthOverlay();
     showAuthForm();
@@ -391,6 +415,10 @@ function initSelector() {
       else { showAuthForm(); }
     } else if (event === 'SIGNED_IN') {
       hideAuthOverlay();
+      if (session) {
+        _trackEvent('login', null, session.user.id);
+        _upsertProfile(session.user.id, session.user.email);
+      }
     }
   });
 })();
