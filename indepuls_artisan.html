@@ -6073,15 +6073,15 @@ function toggleResetBtn(checked) {
   const btn=document.getElementById('btn-confirm-reset');
   if(btn) btn.disabled=!checked;
 }
-function confirmReset() {
+async function confirmReset() {
   if(!document.getElementById('reset-confirm-check').checked) return;
-  // Effacer la clé principale
+  // Effacer localStorage
   localStorage.removeItem(STORAGE_KEY);
-  // Effacer les sauvegardes de backup automatiques
   Object.keys(localStorage)
     .filter(k=>k.startsWith(STORAGE_KEY+'_backup_')||k==='indepuls_artisan_notice_shown')
     .forEach(k=>localStorage.removeItem(k));
-  // Recharger proprement pour repartir de zéro
+  // Effacer la sauvegarde cloud (sinon loadFromCloud restaure tout au rechargement)
+  if (window._deleteCloudData) await window._deleteCloudData();
   window.location.reload();
 }
 
@@ -6243,6 +6243,16 @@ document.addEventListener('DOMContentLoaded', () => {
   window.saveData = function() {
     if (_origSaveData) _origSaveData();
     syncToCloud();
+  };
+
+  window._deleteCloudData = async function() {
+    try {
+      var res = await sb.auth.getSession();
+      if (!res.data || !res.data.session) return;
+      await sb.from('user_data').delete()
+        .eq('user_id', res.data.session.user.id)
+        .eq('app_type', APP_TYPE);
+    } catch(e) { console.warn('deleteCloudData failed:', e); }
   };
 
   // ── MONKEY-PATCHES ANALYTICS (après chargement des fonctions app) ──
