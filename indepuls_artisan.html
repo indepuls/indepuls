@@ -196,6 +196,8 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 
 /* === THEME PICKER === */
 .theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+/* === ARCHIVES CHART GRID === */
+.arch-cg{display:grid;grid-template-columns:1fr 210px;gap:20px;align-items:start;}
 .theme-opt{border-radius:8px;padding:10px 8px;border:2px solid var(--brd);cursor:pointer;text-align:center;transition:all .2s;}
 .theme-opt:hover{border-color:var(--acc);}.theme-opt.sel{border-color:var(--acc);}
 .theme-swatches{display:flex;gap:3px;margin-bottom:6px;justify-content:center;}
@@ -309,6 +311,7 @@ html,body{overflow-x:hidden;}
   .alert{display:block;}
   /* Thème : 2 colonnes au lieu de 4 */
   .theme-grid{grid-template-columns:repeat(2,1fr);}
+  .arch-cg{grid-template-columns:1fr !important;}
 }
 
 /* ══════════════════════════════════════════════
@@ -669,7 +672,10 @@ html,body{overflow-x:hidden;}
           <button class="btn btn-acc btn-sm" onclick="archiveCurrentYear()">📦 Archiver <span id="archive-year-label"></span> → <span id="next-year-label"></span></button>
         </div>
       </div>
-      <canvas id="chart-archives" height="220"></canvas>
+      <div class="arch-cg">
+        <canvas id="chart-archives" height="220"></canvas>
+        <div id="archives-compare-zone"></div>
+      </div>
     </div>
     <div class="g2 mt16">
       <div class="card">
@@ -5888,6 +5894,27 @@ function renderArchives() {
   document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>Chantiers</th><th>TH réel</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const thD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne()}:(DATA.archives[y]||{}); return d.heures>0?d.caNet/d.heures:0; });
   requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:'TH réel (€/h)',data:thD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
+  // Widget comparaison N vs N-1
+  const compareZone=document.getElementById('archives-compare-zone');
+  if(compareZone){
+    if(years.length>=2){
+      const prevY=years[years.length-2], prevIdx=years.length-2, currIdx=years.length-1;
+      const prevCaBrut=caBD[prevIdx], currCaBrut=caBD[currIdx];
+      const prevCaNet=caNd[prevIdx], currCaNet=caNd[currIdx];
+      const currH=getHeuresFact()+getHeuresInterne();
+      const prevH=(DATA.archives[prevY]||{}).heures||0;
+      const currTH=currH>0?currCaNet/currH:0, prevTH=prevH>0?prevCaNet/prevH:0;
+      const pct=(curr,prev)=>prev>0?Math.round((curr-prev)/prev*100):null;
+      const kpi=(val,label,suffix='%')=>{
+        if(val===null||val===undefined) return '';
+        const col=val>0?'var(--ok)':val<0?'var(--err)':'var(--tl)';
+        const sign=val>0?'+':'';
+        return `<div style="margin-bottom:16px"><div style="font-size:26px;font-weight:800;color:${col};line-height:1.1">${sign}${val}${suffix}</div><div style="font-size:11px;color:var(--tl);margin-top:4px">${label}</div></div>`;
+      };
+      const deltaH=prevH>0?Math.round(currH-prevH):null;
+      compareZone.innerHTML=`<div style="padding:8px 0 0 16px;border-left:2px solid var(--brd)"><div style="font-size:10px;font-weight:700;color:var(--tl);letter-spacing:.07em;text-transform:uppercase;margin-bottom:18px">vs ${prevY}</div>${kpi(pct(currCaBrut,prevCaBrut),'de chiffre d\'affaires')}${currTH>0&&prevTH>0?kpi(pct(currTH,prevTH),'de taux horaire'):''}${deltaH!==null?kpi(deltaH,'h facturées','h'):''}</div>`;
+    } else { compareZone.innerHTML=''; }
+  }
   const bilanKeys=Object.keys(DATA.bilans||{}).sort().reverse();
   let retroHTML='';
   if(bilanKeys.length>0){
