@@ -715,7 +715,28 @@ html,body{overflow-x:hidden;}
             <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
-          <div class="fgroup"></div>
+          <div class="fgroup">
+            <label class="flabel">Métier exercé</label>
+            <select id="p-metier" onchange="saveParam('metier',this.value)">
+              <option value="">— Sélectionner —</option>
+              <option value="OBM">OBM</option>
+              <option value="UGC">UGC</option>
+              <option value="Coach">Coach</option>
+              <option value="Graphiste">Graphiste</option>
+              <option value="Architecte">Architecte</option>
+              <option value="Thérapeute">Thérapeute</option>
+              <option value="Photographe">Photographe</option>
+              <option value="Webdesigner">Webdesigner</option>
+              <option value="Consultant·e">Consultant·e</option>
+              <option value="Conciergerie">Conciergerie</option>
+              <option value="Formateur·trice">Formateur·trice</option>
+              <option value="Développeur·se">Développeur·se</option>
+              <option value="Community manager">Community manager</option>
+              <option value="Assistante virtuelle">Assistante virtuelle</option>
+              <option value="Autre">Autre</option>
+            </select>
+            <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
+          </div>
         </div>
         <div class="divider"></div>
         <div class="sw-wrap">
@@ -1746,7 +1767,7 @@ function getDefaultData() {
       rentabClientSort:'ca', rentabCatSort:'ca',
       tauxCotisationsPrestation:25.6, tauxCFPPrestation:0.2,
       tauxCotisationsVente:12.3, tauxCFPVente:0.1,
-      dateOuverture:''
+      dateOuverture:'', metier:''
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     missions:[{
@@ -4687,6 +4708,7 @@ function renderParams() {
   document.getElementById('p-nom').value=p.nom||'';
   document.getElementById('p-statut').value=p.statut||'micro-bnc';
   document.getElementById('p-date-ouverture').value=p.dateOuverture||'';
+  document.getElementById('p-metier').value=p.metier||'';
   document.getElementById('p-activite-mixte').checked=!!p.activiteMixte;
   const warnEl=document.getElementById('micro-achat-mixte-warn');
   if(warnEl) warnEl.style.display=(p.statut==='micro-achat')?'':'none';

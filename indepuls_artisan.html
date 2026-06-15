@@ -709,7 +709,26 @@ html,body{overflow-x:hidden;}
             <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
-          <div class="fgroup"></div>
+          <div class="fgroup">
+            <label class="flabel">Métier exercé</label>
+            <select id="p-metier" onchange="saveParam('metier',this.value)">
+              <option value="">— Sélectionner —</option>
+              <option value="Maçon">Maçon</option>
+              <option value="Peintre">Peintre</option>
+              <option value="Couvreur">Couvreur</option>
+              <option value="Plombier">Plombier</option>
+              <option value="Menuisier">Menuisier</option>
+              <option value="Carreleur">Carreleur</option>
+              <option value="Serrurier">Serrurier</option>
+              <option value="Plaquiste">Plaquiste</option>
+              <option value="Électricien">Électricien</option>
+              <option value="Paysagiste">Paysagiste</option>
+              <option value="Chauffagiste">Chauffagiste</option>
+              <option value="Multi-corps d'état">Multi-corps d'état</option>
+              <option value="Autre">Autre</option>
+            </select>
+            <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
+          </div>
         </div>
         <div id="micro-charges-block">
           <div class="divider"></div>
@@ -1737,7 +1756,7 @@ function getDefaultData() {
       tva:false, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
       impotsTaux:0,
       remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
-      dateOuverture:'',
+      dateOuverture:'', metier:'',
       rentabClientSort:'ca', rentabCatSort:'ca'
     },
     categories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur-mesure','Conseil / Devis','Formation / Atelier','Autre'],
@@ -5033,6 +5052,7 @@ function renderParams() {
   const sasu=isSASU();
   document.getElementById('p-nom').value=p.nom||'';
   document.getElementById('p-date-ouverture').value=p.dateOuverture?p.dateOuverture.slice(0,7):'';
+  document.getElementById('p-metier').value=p.metier||'';
   document.getElementById('p-statut').value=p.statut||'micro-bic';
   document.getElementById('p-urssaf').value=p.tauxURSSAF;
   document.getElementById('p-cfp').value=p.tauxCFP;
