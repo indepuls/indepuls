@@ -1227,6 +1227,22 @@ html,body{overflow-x:hidden;}
       <label class="flabel">Date de facturation</label>
       <input type="date" id="m-date-fact">
     </div>
+    <div class="fgroup">
+      <label class="flabel">Comment ce client vous a trouvé ? <span class="ts" style="font-weight:400">(optionnel)</span></label>
+      <select id="m-source-acq">
+        <option value="">— Non renseigné —</option>
+        <option value="recommandation">Recommandation / bouche-à-oreille</option>
+        <option value="client_existant">Client existant</option>
+        <option value="reseau">Réseau professionnel</option>
+        <option value="social">Instagram / réseaux sociaux</option>
+        <option value="web">Site internet / Google</option>
+        <option value="publicite">Publicité payante</option>
+        <option value="prospection">Prospection directe</option>
+        <option value="plateforme">Plateforme / annuaire</option>
+        <option value="autre">Autre</option>
+      </select>
+      <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
+    </div>
     <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
@@ -1597,6 +1613,8 @@ html,body{overflow-x:hidden;}
 const SCHEMA_VERSION = 28; // v28 : 8 thèmes (ocean, nuit, rose, latte, havane, alpine, eucalyptus)
 const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Coworking & bureau','Outils IA','Hébergement & nom de domaine','Livres & ressources professionnelles','Autre'];
 const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#0e7490','#6d28d9','#4338ca','#b45309','#6b7280'];
+const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
+const SRC_COLORS={'recommandation':'#4CAF50','client_existant':'#2196F3','reseau':'#9C27B0','social':'#E91E63','web':'#FF9800','publicite':'#F44336','prospection':'#00BCD4','plateforme':'#8BC34A','autre':'#9E9E9E'};
 const STORAGE_KEY = 'indepuls_freelance';
 
 // Seuils TVA 2026 — source unique de vérité
@@ -3998,6 +4016,7 @@ function openMissionModal(id) {
     document.getElementById('m-temps-support').value = m.tempsSupport||'';
   }
   toggleMissionType(typeMission);
+  document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
   openModal('modal-mission');
 }
 
@@ -4047,6 +4066,7 @@ function saveMission() {
     tempsCreation:parseFloat(document.getElementById('m-temps-creation').value)||0,
     tempsAnimation:parseFloat(document.getElementById('m-temps-animation').value)||0,
     tempsSupport:parseFloat(document.getElementById('m-temps-support').value)||0,
+    sourceAcquisition:document.getElementById('m-source-acq').value||'',
   };
   if(obj.typeMission==='collectif'&&obj.nbParticipants>0&&obj.prixParParticipant>0){
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
@@ -4220,6 +4240,7 @@ function renderMissionsSummary(all) {
         <div><div class="card-title" style="font-size:13px;margin-bottom:10px">🤝 Top clients</div>${rentabClientsBody()}</div>
         <div><div class="card-title" style="font-size:13px;margin-bottom:10px">🏷 Top offres</div>${rentabCatBody()}</div>
       </div>
+      ${wSourceAcq(actives,'mission')}
     </div>
   </div>`;
 }
@@ -5353,8 +5374,10 @@ function renderArchives() {
   } else {
     retroHTML=`<div style="color:var(--tl);font-size:13px;padding:16px 0;text-align:center">Aucune rétrospective pour l'instant — vos bilans de fin de mois apparaîtront ici.</div>`;
   }
+  const srcPhrase=getSourceAcqPhrase(DATA.missions,'mission');
+  const srcBlock=srcPhrase?`<div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;border-left:3px solid var(--acc);font-size:12px;color:var(--tl);line-height:1.6"><strong style="color:var(--text)">📡 Sources d'acquisition</strong><br>${srcPhrase}</div>`:'';
   const retroZone=document.getElementById('archives-retro-zone');
-  if(retroZone) retroZone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">Rétrospectives mensuelles</div><div class="card-sub">Vos bilans de fin de mois</div></div></div>${retroHTML}</div>`;
+  if(retroZone) retroZone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">Rétrospectives mensuelles</div><div class="card-sub">Vos bilans de fin de mois</div></div></div>${retroHTML}${srcBlock}</div>`;
 }
 function deleteArchive(y) { if(!confirm(`Supprimer ${y} ?`)) return; delete DATA.archives[y]; saveData(); renderArchives(); }
 function saveBilanNote(mk,dismissKey){
@@ -5432,6 +5455,58 @@ function renderChartTemps(hF,hI,hRef=0) {
     ctx.fillStyle=err; ctx.textAlign='center'; ctx.font='10px Lato,sans-serif';
     ctx.fillText(`⚠ Pertes sèches : ${fmt(hRef,1)} h sur devis refusés`,W/2,bY+bH+14);
   }
+}
+
+// ── SOURCES D'ACQUISITION ────────────────────────────────────
+function wSourceAcq(actives, noun) {
+  const byS={};
+  actives.forEach(m=>{
+    const s=m.sourceAcquisition;
+    if(!s) return;
+    if(!byS[s]) byS[s]={n:0,ca:0};
+    byS[s].n++;
+    if(m.statut==='fact') byS[s].ca+=(m.montantDevis||0);
+  });
+  const entries=Object.entries(byS).sort((a,b)=>b[1].n-a[1].n);
+  if(!entries.length) return '';
+  const total=entries.reduce((s,[,v])=>s+v.n,0);
+  const cx=70,cy=70,R=50; let angle=-90;
+  const slices=entries.map(([src,val])=>{
+    const span=(val.n/total)*360;
+    const [x1,y1]=polarToCartesian(cx,cy,R,angle); angle+=span;
+    const [x2,y2]=polarToCartesian(cx,cy,R,angle);
+    const large=span>180?1:0, color=SRC_COLORS[src]||'#9E9E9E';
+    return `<path d="M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${color}" stroke="var(--card)" stroke-width="2"/>`;
+  }).join('');
+  const svg=`<svg width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0">${slices}<circle cx="${cx}" cy="${cy}" r="28" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:13px;font-weight:700;fill:var(--text)">${total}</text></svg>`;
+  const legend=entries.map(([src,val])=>{
+    const color=SRC_COLORS[src]||'#9E9E9E', lbl=SRC_LABELS[src]||src;
+    const pct=Math.round(val.n/total*100);
+    const caStr=val.ca>0?` · ${fmtE(val.ca)}`:'';
+    return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><span style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0;margin-top:3px"></span><span style="flex:1;font-size:11px;line-height:1.4;color:var(--text)">${lbl}</span><span style="font-size:11px;font-weight:700;white-space:nowrap;color:var(--pri)">${val.n} · ${pct}%${caStr}</span></div>`;
+  }).join('');
+  const top=entries[0], topLbl=(SRC_LABELS[top[0]]||top[0]).toLowerCase(), topPct=Math.round(top[1].n/total*100);
+  let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de vos nouveau${noun==='mission'?'x':'x'} ${noun}s.`:`Votre principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
+  return `<div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">
+    <div class="card-title" style="font-size:13px;margin-bottom:12px">📡 Sources d'acquisition</div>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:160px;padding-top:8px">${legend}</div></div>
+    <div style="margin-top:10px;font-size:12px;color:var(--tl);line-height:1.6;background:var(--bg);padding:10px 12px;border-radius:8px">${phrase}</div>
+  </div>`;
+}
+function getSourceAcqPhrase(missions, noun) {
+  const byS={};
+  missions.filter(m=>!m.isManagement).forEach(m=>{
+    const s=m.sourceAcquisition; if(!s) return;
+    byS[s]=(byS[s]||0)+1;
+  });
+  const entries=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length) return '';
+  const total=entries.reduce((s,[,v])=>s+v,0);
+  const top=entries[0], topLbl=(SRC_LABELS[top[0]]||top[0]).toLowerCase(), topPct=Math.round(top[1]/total*100);
+  if(topPct>=60) return `La ${topLbl} représente ${topPct} % de vos ${noun}s cette année.`;
+  if(entries.length===1) return `Votre principale source de clients a été la ${topLbl} (${top[1]} ${noun}${top[1]>1?'s':''}).`;
+  const secondLbl=(SRC_LABELS[entries[1][0]]||entries[1][0]).toLowerCase();
+  return `Vos clients sont venus principalement via la ${topLbl} et la ${secondLbl} cette année.`;
 }
 
 // ── SIDEBAR TIMER WIDGET ─────────────────────────────────────
