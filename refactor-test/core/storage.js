@@ -48,6 +48,13 @@ export function applyDefaults(data, defaultData) {
     if (m.tempsSupport === undefined)        m.tempsSupport = 0;
     if (m.montantVente == null)              m.montantVente = 0;
     if (m.montantPrestation == null)         m.montantPrestation = 0;
+    // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié).
+    // Anciennes missions Artisan saisies sans ventilation explicite : on préserve
+    // le comportement déjà affiché à l'écran (100% prestation, sauf part vente connue),
+    // au lieu de laisser presta+vente diverger silencieusement du devis.
+    if (!m.isRecurring && (m.montantPrestation + m.montantVente) !== (m.montantDevis || 0)) {
+      m.montantPrestation = (m.montantDevis || 0) - m.montantVente;
+    }
   });
   return data;
 }

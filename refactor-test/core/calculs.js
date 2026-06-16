@@ -239,6 +239,8 @@ export function getCaVenteMissions(DATA, mk) {
   return t;
 }
 
+// Suppose l'invariant montantDevis = montantPrestation + montantVente, garanti par
+// la migration de cohérence dans core/storage.js (applyDefaults).
 export function getMissionVenteRatio(DATA, m) {
   if (!isActiviteMixte(DATA)) return 0;
   const tot = (m.montantPrestation || 0) + (m.montantVente || 0);
