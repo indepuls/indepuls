@@ -1156,17 +1156,18 @@ html,body{overflow-x:hidden;}
       <input type="number" id="m-montant" step="10" min="0" placeholder="0">
     </div>
     <div id="m-montant-split-zone" style="display:none">
+      <div class="ts mb8" style="color:var(--tl)">En activité mixte, distinguez la part prestation et la part vente pour suivre vos seuils TVA correctement.</div>
       <div class="frow">
         <div class="fgroup">
-          <label class="flabel">↳ dont Main-d'œuvre / Prestation (€ HT)</label>
-          <input type="number" id="m-montant-prestation" step="10" min="0" placeholder="0">
+          <label class="flabel">Main-d'œuvre / Prestation (€ HT)</label>
+          <input type="number" id="m-montant-prestation" step="10" min="0" placeholder="0" oninput="updateMontantSplitTotal()">
         </div>
         <div class="fgroup">
-          <label class="flabel">↳ dont Vente de produit / Matériaux (€ HT)</label>
-          <input type="number" id="m-montant-vente" step="10" min="0" placeholder="0">
+          <label class="flabel">Vente de produit / Matériaux (€ HT)</label>
+          <input type="number" id="m-montant-vente" step="10" min="0" placeholder="0" oninput="updateMontantSplitTotal()">
         </div>
       </div>
-      <div class="ts mt2" style="color:var(--tl)">Répartition utilisée pour le suivi des seuils TVA — les deux valeurs peuvent ne pas sommer au total (estimation suffisante).</div>
+      <div class="ts" id="m-split-total" style="font-weight:700;color:var(--pri)"></div>
     </div>
     <div class="fgroup" id="m-date-fact-zone" style="display:none">
       <label class="flabel">Date de facturation</label>
@@ -3934,14 +3935,19 @@ function openMissionModal(id) {
   document.getElementById('m-montant').value=m?m.montantDevis:'';
   toggleFactDate(st.value);
   document.getElementById('m-date-fact').value=m&&m.dateFact?m.dateFact:today();
-  // Activité mixte : afficher / peupler les champs de répartition
+  // Activité mixte : le devis total est calculé depuis prestation + vente
+  // (montantDevis = montantPrestation + montantVente, modèle unifié) — on
+  // masque le champ "montant du devis" indépendant pour empêcher toute
+  // saisie incohérente.
   const splitZone=document.getElementById('m-montant-split-zone');
+  const mixte=DATA.params.activiteMixte;
+  document.getElementById('m-montant-zone').style.display=mixte?'none':'';
   if(splitZone){
-    const mixte=DATA.params.activiteMixte;
     splitZone.style.display=mixte?'':'none';
     if(mixte){
-      document.getElementById('m-montant-prestation').value=m?(m.montantPrestation!=null?m.montantPrestation:''):'';
-      document.getElementById('m-montant-vente').value=m?(m.montantVente!=null?m.montantVente:''):'';
+      document.getElementById('m-montant-prestation').value=m?(m.montantPrestation||''):'';
+      document.getElementById('m-montant-vente').value=m?(m.montantVente||''):'';
+      updateMontantSplitTotal();
     }
   }
   // Planification — sessions
@@ -3955,17 +3961,27 @@ function openMissionModal(id) {
 function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.display=v==='fact'?'':'none'; }
 document.addEventListener('change', e=>{ if(e.target.id==='m-statut') toggleFactDate(e.target.value); });
 
+function updateMontantSplitTotal() {
+  const p=parseFloat(document.getElementById('m-montant-prestation').value)||0;
+  const v=parseFloat(document.getElementById('m-montant-vente').value)||0;
+  const el=document.getElementById('m-split-total');
+  if(el) el.textContent=(p+v)>0?`Total devis : ${fmtE(p+v)}`:'';
+}
+
 function saveMission() {
   const editId=document.getElementById('mission-edit-id').value;
   const statut=document.getElementById('m-statut').value;
-  const montantDevis=parseFloat(document.getElementById('m-montant').value)||0;
-  // Répartition activité mixte
-  let montantPrestation=null, montantVente=null;
+  // Répartition activité mixte : le devis total est dérivé de prestation + vente
+  // (montantDevis = montantPrestation + montantVente, modèle unifié) pour
+  // empêcher toute incohérence dès la saisie.
+  let montantDevis, montantPrestation=0, montantVente=0;
   if(DATA.params.activiteMixte){
-    const vp=parseFloat(document.getElementById('m-montant-prestation').value);
-    const vv=parseFloat(document.getElementById('m-montant-vente').value);
-    montantPrestation=isNaN(vp)?null:vp;
-    montantVente=isNaN(vv)?null:vv;
+    montantPrestation=parseFloat(document.getElementById('m-montant-prestation').value)||0;
+    montantVente=parseFloat(document.getElementById('m-montant-vente').value)||0;
+    montantDevis=montantPrestation+montantVente;
+  } else {
+    montantDevis=parseFloat(document.getElementById('m-montant').value)||0;
+    montantPrestation=montantDevis; montantVente=0;
   }
   const sessions=editingSessions.map(s=>({debut:s.debut,fin:s.fin||s.debut}));
   const obj={ client:document.getElementById('m-client').value, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:statut==='fact'?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:false, montantPrestation, montantVente, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
@@ -3993,9 +4009,10 @@ function openEncaissementsModal(missionId) {
   document.getElementById('enc-form-zone').style.display='none';
   document.getElementById('enc-edit-id').value='';
   const alertEl=document.getElementById('enc-alert-msg');
-  if(alertEl) alertEl.textContent=tvaOn
+  if(alertEl) alertEl.textContent=(tvaOn
     ?'Saisissez le montant TTC reçu sur votre compte. L\'application calcule automatiquement le CA HT et la TVA collectée — les cotisations URSSAF sont appliquées sur le CA HT.'
-    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.';
+    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.')
+    +' Sans encaissement saisi ici, le montant total du devis est automatiquement compté comme encaissé à la date où vous passez le chantier en « Facturé ».';
   renderEncList();
   openModal('modal-encaissements');
 }
@@ -4048,7 +4065,8 @@ function renderEncList() {
           <div class="kpi-val" style="font-size:20px">${fmtE(resteHT)}</div>
           ${tvaOn&&resteTTC>0?`<div class="ts">soit ${fmtE(resteTTC)} TTC à recevoir</div>`:''}
         </div>
-      </div>`;
+      </div>`
+      +(totalHT>(m.montantDevis||0)?`<div class="ts" style="color:var(--warn);margin-top:6px">⚠️ Le total encaissé (${fmtE(totalHT)}) dépasse le montant du devis (${fmtE(m.montantDevis||0)}) — vérifiez qu'il ne s'agit pas d'une erreur de saisie.</div>`:'');
   } else {
     document.getElementById('enc-summary').innerHTML='';
   }
