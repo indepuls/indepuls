@@ -135,6 +135,41 @@ async function main() {
     test('montantVente inchangé', 200, fixed.missions[0].montantVente);
   }
 
+  section('Artisan — mission récurrente (mensuelle), prestation pure');
+  {
+    // Symétrique au cas Freelance : une mission récurrente Artisan doit contribuer
+    // montantMensuel à chaque mois actif, indépendamment de montantDevis/encaissements.
+    const D = baseData({ params: { ...baseData().params, activiteMixte: true } });
+    D.missions = [{
+      id: 'rec-art1', isManagement: false, isRecurring: true,
+      statut: 'cours', dateDebutRec: '2026-01', nbMoisRec: 6, montantMensuel: 200,
+      montantDevis: 1200, montantPrestation: 1200, montantVente: 0,
+      encaissements: [],
+    }];
+    const bk1 = C.getCaBreakdownMois(D, '2026-03');
+    test('mois actif (mars, dans la fenêtre) : presta = montantMensuel', 200, bk1.presta);
+    test('mois actif : vente = 0 (toujours 100% prestation)', 0, bk1.vente);
+
+    const bk2 = C.getCaBreakdownMois(D, '2026-08');
+    test('mois hors fenêtre (août, après dateDebutRec+nbMoisRec) : presta = 0', 0, bk2.presta);
+
+    const totalCa = C.getCaFromMissions(D, '2026-03');
+    test('getCaFromMissions retrouve aussi montantMensuel pour le mois actif', 200, totalCa);
+  }
+
+  section('Artisan — mission récurrente exclue si statut att/ref');
+  {
+    const D = baseData({ params: { ...baseData().params, activiteMixte: true } });
+    D.missions = [{
+      id: 'rec-art2', isManagement: false, isRecurring: true,
+      statut: 'att', dateDebutRec: '2026-01', nbMoisRec: 6, montantMensuel: 200,
+      montantDevis: 1200, montantPrestation: 1200, montantVente: 0,
+      encaissements: [],
+    }];
+    const bk = C.getCaBreakdownMois(D, '2026-03');
+    test('statut att : presta = 0 (mission non confirmée, exclue du CA)', 0, bk.presta);
+  }
+
   section('Migration de cohérence — mission récurrente non touchée');
   {
     const D = baseData({ params: { ...baseData().params, activiteMixte: true } });

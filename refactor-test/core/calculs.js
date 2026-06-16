@@ -97,16 +97,30 @@ export function getMoisDepuisOuverture(DATA) {
 
 // ── DÉPENSES ─────────────────────────────────────────────────
 
+// Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
+// Ancre de départ : dateDebut si renseigné ('always' = aucune borne basse —
+// au-delà du garde-fou isMonthBeforeOpening déjà appliqué par l'appelant —
+// ou une date YYYY-MM-DD précise, valeur du champ <input type="date">) ;
+// sinon repli sur la date de saisie (comportement historique, conservé pour
+// les dépenses créées avant l'ajout du champ "Date de début").
+function depenseMensuelleActive(d, y, mo) {
+  if (d.dateDebut === 'always') return true;
+  const dm = new Date((d.dateDebut || d.date) + 'T00:00:00');
+  return dm.getFullYear() < y || (dm.getFullYear() === y && dm.getMonth() + 1 <= mo);
+}
+
 export function getDepensesMois(DATA, mk) {
   if (isMonthBeforeOpening(DATA, mk)) return 0;
   const [y, mo] = mk.split('-').map(Number);
   let t = 0;
   DATA.depenses.forEach(d => {
     if (!d.date) return;
-    const dm = new Date(d.date + 'T00:00:00'), dy = dm.getFullYear(), dmo = dm.getMonth() + 1;
-    if (d.recurrence === 'mensuelle')      { if (dy < y || (dy === y && dmo <= mo)) t += d.montant; }
-    else if (d.recurrence === 'annuelle')  { if (dmo === mo) t += d.montant; }
-    else                                   { if (dy === y && dmo === mo) t += d.montant; }
+    if (d.recurrence === 'mensuelle') { if (depenseMensuelleActive(d, y, mo)) t += d.montant; }
+    else {
+      const dm = new Date(d.date + 'T00:00:00'), dy = dm.getFullYear(), dmo = dm.getMonth() + 1;
+      if (d.recurrence === 'annuelle') { if (dmo === mo) t += d.montant; }
+      else { if (dy === y && dmo === mo) t += d.montant; }
+    }
   });
   return t;
 }
@@ -170,8 +184,8 @@ export function getCaBreakdownMois(DATA, mk) {
 //   - isRecurring=false : si la mission a des encaissements, le CA du mois = somme des
 //     encaissements datés dans ce mois (logique acompte/solde). Sinon, fallback sur dateFact
 //     (CA reconnu en une fois au moment de la facturation), uniquement si statut='fact'.
-// Le mode Artisan n'a pas de missions récurrentes : isRecurring y est toujours falsy,
-// donc cette même fonction reste valide pour les deux modes.
+// isRecurring est désormais supporté par les deux modes (Freelance et Artisan),
+// donc cette même fonction reste valide pour les deux.
 export function getCaFromMissions(DATA, mk) {
   let total = 0;
   DATA.missions.filter(m => !m.isManagement).forEach(m => {
@@ -308,10 +322,18 @@ export function getTVACollecteeMois(DATA, mk) {
 
 export function getTVADeductibleMois(DATA, mk) {
   if (!DATA.params.tva) return 0;
-  const y = mk.substring(0, 4), mo = mk.substring(5, 7);
-  return DATA.depenses
-    .filter(d => d.tvaDeductible && d.date.startsWith(y + '-' + mo))
-    .reduce((s, d) => s + (d.montantTVA || 0), 0);
+  const [y, mo] = mk.split('-').map(Number);
+  let t = 0;
+  DATA.depenses.forEach(d => {
+    if (!d.tvaDeductible || !d.date) return;
+    if (d.recurrence === 'mensuelle') { if (depenseMensuelleActive(d, y, mo)) t += (d.montantTVA || 0); }
+    else {
+      const dm = new Date(d.date + 'T00:00:00'), dy = dm.getFullYear(), dmo = dm.getMonth() + 1;
+      if (d.recurrence === 'annuelle') { if (dmo === mo) t += (d.montantTVA || 0); }
+      else { if (dy === y && dmo === mo) t += (d.montantTVA || 0); }
+    }
+  });
+  return t;
 }
 
 export function getTVACollecteeAnnuelle(DATA) {
@@ -319,9 +341,7 @@ export function getTVACollecteeAnnuelle(DATA) {
 }
 
 export function getTVADeductibleAnnuelle(DATA) {
-  return DATA.depenses
-    .filter(d => d.tvaDeductible && d.date.startsWith(String(DATA.currentYear)))
-    .reduce((s, d) => s + (d.montantTVA || 0), 0);
+  return getCurrentYearMonths(DATA).reduce((s, mk) => s + getTVADeductibleMois(DATA, mk), 0);
 }
 
 export function getTvaRegime(DATA) {

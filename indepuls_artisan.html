@@ -159,6 +159,8 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 .tva-regime-opt:hover{border-color:var(--pri);}
 .tva-regime-opt input[type="radio"]{margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:14px;height:14px;}
 .tva-regime-opt.selected{border-color:var(--acc);background:rgba(91,44,74,.04);}
+.tva-regime-opt.locked{cursor:not-allowed;opacity:.45;}
+.tva-regime-opt.locked:hover{border-color:var(--brd);}
 .mt1{margin-top:3px;}
 .tab-pane{display:none;}.tab-pane.active{display:block;}
 .info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--brd);color:var(--tl);font-size:10px;font-weight:700;cursor:help;vertical-align:middle;margin-left:3px;}
@@ -2044,16 +2046,29 @@ function toggleDepChantier(checked) {
 }
 function getHeuresFact() { return DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='fact')).reduce((s,m)=>s+getMissionHeures(m),0); }
 function getHeuresInterne() { const m=DATA.missions.find(m=>m.isManagement); return m?getMissionHeures(m):0; }
+// Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
+// Ancre de départ : dateDebut si renseigné ('always' = aucune borne basse —
+// au-delà du garde-fou isMonthBeforeOpening déjà appliqué par l'appelant —
+// ou une date YYYY-MM-DD précise, valeur du champ <input type="date">) ;
+// sinon repli sur la date de saisie (comportement historique, conservé pour
+// les dépenses créées avant l'ajout du champ "Date de début").
+function _depenseMensuelleActive(d, y, mo) {
+  if (d.dateDebut==='always') return true;
+  const dm=new Date((d.dateDebut||d.date)+'T00:00:00');
+  return dm.getFullYear()<y||(dm.getFullYear()===y&&dm.getMonth()+1<=mo);
+}
 function getDepensesMois(mk) {
   if(isMonthBeforeOpening(mk)) return 0;
   const [y,mo]=mk.split('-').map(Number);
   let t=0;
   DATA.depenses.forEach(d => {
     if (!d.date) return;
-    const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
-    if (d.recurrence==='mensuelle') { if(dy<y||(dy===y&&dmo<=mo)) t+=d.montant; }
-    else if (d.recurrence==='annuelle') { if(dmo===mo) t+=d.montant; }
-    else { if(dy===y&&dmo===mo) t+=d.montant; }
+    if (d.recurrence==='mensuelle') { if(_depenseMensuelleActive(d,y,mo)) t+=d.montant; }
+    else {
+      const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
+      if (d.recurrence==='annuelle') { if(dmo===mo) t+=d.montant; }
+      else { if(dy===y&&dmo===mo) t+=d.montant; }
+    }
   });
   return t;
 }
@@ -2376,14 +2391,24 @@ function getTVACollecteeMois(mk) {
 }
 function getTVADeductibleMois(mk) {
   if(!DATA.params.tva) return 0;
-  const y=mk.substring(0,4), mo=mk.substring(5,7);
-  return DATA.depenses.filter(d=>d.tvaDeductible&&d.date.startsWith(y+'-'+mo)).reduce((s,d)=>s+(d.montantTVA||0),0);
+  const [y,mo]=mk.split('-').map(Number);
+  let t=0;
+  DATA.depenses.forEach(d=>{
+    if(!d.tvaDeductible||!d.date) return;
+    if(d.recurrence==='mensuelle'){ if(_depenseMensuelleActive(d,y,mo)) t+=(d.montantTVA||0); }
+    else {
+      const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
+      if(d.recurrence==='annuelle'){ if(dmo===mo) t+=(d.montantTVA||0); }
+      else { if(dy===y&&dmo===mo) t+=(d.montantTVA||0); }
+    }
+  });
+  return t;
 }
 function getTVACollecteeAnnuelle() {
   return getCurrentYearMonths().reduce((s,mk)=>s+getTVACollecteeMois(mk),0);
 }
 function getTVADeductibleAnnuelle() {
-  return DATA.depenses.filter(d=>d.tvaDeductible&&d.date.startsWith(String(DATA.currentYear))).reduce((s,d)=>s+(d.montantTVA||0),0);
+  return getCurrentYearMonths().reduce((s,mk)=>s+getTVADeductibleMois(mk),0);
 }
 
 // ── TVA RÉGIME — HELPERS ─────────────────────────────────────
@@ -2418,7 +2443,7 @@ function getNextTVAEcheance() {
   const daysLeft=d=>Math.ceil((d-now)/86400000);
   if(regime==='mensuel') {
     const prevMk=m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;
-    const montant=Math.max(0,Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk)));
+    const montant=Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk));
     const due=new Date(y,m-1,25);
     const moisLabel=new Date(y,m-2,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Prochaine échéance TVA'};
@@ -2430,12 +2455,12 @@ function getNextTVAEcheance() {
     let montant=0;
     for(let mo=(q-1)*3+1;mo<=m;mo++){
       const mk=`${y}-${String(mo).padStart(2,'0')}`;
-      montant+=Math.max(0,getTVACollecteeMois(mk)-getTVADeductibleMois(mk));
+      montant+=getTVACollecteeMois(mk)-getTVADeductibleMois(mk);
     }
     return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`TVA T${q} ${y} (cumul)`};
   }
   if(regime==='simplifie') {
-    const ann=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
+    const ann=getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle();
     if(m<7){
       const due=new Date(y,6,31);
       return {montant:Math.round(ann*0.55),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte juillet (55 % TVA estimée)'};
@@ -2969,15 +2994,29 @@ function wProvisionsSide(d) {
   const echs=[echURSSAF,echTVA].filter(e=>e&&e.montant>0).sort((a,b)=>a.daysLeft-b.daysLeft);
   const urgBorder=echs.length&&echs[0].daysLeft<=7?'var(--err)':echs.length&&echs[0].daysLeft<=21?'var(--warn)':'var(--acc)';
 
+  // Ligne TVA — 3 cas : à reverser (montant>0), à l'équilibre (=0, collectée
+  // = déductible), ou crédit de TVA (déductible > collectée, remboursable ou
+  // reportable). Sans ça, la ligne disparaissait silencieusement dès que le
+  // solde n'était pas strictement positif.
+  const tvaRow=(()=>{
+    if(!echTVA) return null;
+    if(echTVA.montant>0){
+      const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
+      return {lbl:echTVA.label,val:echTVA.montant,days:echTVA.daysLeft,sub:tvaTot>echTVA.montant?`Sur ${fmtE(tvaTot)} estimés annuellement`:null};
+    }
+    if(echTVA.montant===0) return {lbl:echTVA.label,val:0,days:null,sub:'Vous êtes à l\'équilibre — TVA collectée = TVA déductible',positive:true};
+    return {lbl:'Crédit de TVA',val:Math.abs(echTVA.montant),days:null,sub:'TVA déductible supérieure à la TVA collectée — remboursable ou reportable',positive:true};
+  })();
+
   // Répartition — labels issus des échéances (adaptés au régime automatiquement)
   const repartRows=[
     urssafAmt>0?{lbl:echURSSAF.label,val:urssafAmt,days:echURSSAF.daysLeft,sub:null}:null,
-    tvaAmt>0   ?{lbl:echTVA.label,   val:tvaAmt,   days:echTVA.daysLeft,   sub:(()=>{const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());return tvaTot>tvaAmt?`Sur ${fmtE(tvaTot)} estimés annuellement`:null;})()}:null,
+    tvaRow,
     provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive'}:null,
   ].filter(Boolean);
 
   const rowHtml=repartRows.map(r=>{
-    const uc=r.days!=null?(r.days<=7?'var(--err)':r.days<=21?'var(--warn)':'var(--text)'):'var(--tl)';
+    const uc=r.positive?'var(--ok)':(r.days!=null?(r.days<=7?'var(--err)':r.days<=21?'var(--warn)':'var(--text)'):'var(--tl)');
     return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--brd);gap:6px">'
       +'<div><div style="font-size:12px;color:var(--tl)">'+r.lbl+'</div>'
       +(r.sub?'<div style="font-size:10px;color:var(--tl);opacity:.7;margin-top:1px">'+r.sub+'</div>':'')
@@ -4152,7 +4191,7 @@ function saveMission() {
   const obj={ client:document.getElementById('m-client').value, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:statut==='fact'?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:false, montantPrestation, montantVente, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
-  saveData(); closeModal('modal-mission'); renderMissions(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 
 // ── ENCAISSEMENTS — MODAL ────────────────────────────────────
@@ -5198,7 +5237,11 @@ function renderTvaParams() {
     const inp=lbl?lbl.querySelector('input[type="radio"]'):null;
     if(lbl) lbl.classList.toggle('selected',r===regime);
     if(inp) inp.checked=(r===regime);
-    if(inp&&sasu) inp.disabled=(r==='franchise'); // SASU ne peut pas être en franchise
+    // En SASU, le régime réel mensuel est légalement obligatoire — les 3
+    // autres options sont verrouillées (pas seulement "franchise") pour que
+    // le clic ne soit plus silencieusement ignoré.
+    if(inp) inp.disabled=sasu&&(r!=='mensuel');
+    if(lbl) lbl.classList.toggle('locked',!!(inp&&inp.disabled));
   });
   // Texte de statut avec ? contextuel
   const statusLabels={franchise:'Franchise en base — aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié — 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel — déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel — déclaration CA3 chaque trimestre.'};

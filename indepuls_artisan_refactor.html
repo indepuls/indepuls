@@ -159,6 +159,8 @@ th.sortable:hover{background:rgba(0,0,0,.05);}
 .tva-regime-opt:hover{border-color:var(--pri);}
 .tva-regime-opt input[type="radio"]{margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:14px;height:14px;}
 .tva-regime-opt.selected{border-color:var(--acc);background:rgba(91,44,74,.04);}
+.tva-regime-opt.locked{cursor:not-allowed;opacity:.45;}
+.tva-regime-opt.locked:hover{border-color:var(--brd);}
 .mt1{margin-top:3px;}
 .tab-pane{display:none;}.tab-pane.active{display:block;}
 .info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--brd);color:var(--tl);font-size:10px;font-weight:700;cursor:help;vertical-align:middle;margin-left:3px;}
@@ -1136,8 +1138,9 @@ html,body{overflow-x:hidden;}
     <div class="frow">
       <div class="fgroup">
         <label class="flabel">Type de facturation</label>
-        <select id="m-type-fact">
+        <select id="m-type-fact" onchange="toggleRecurrenceFields(this.value)">
           <option value="ponctuelle">Ponctuelle</option>
+          <option value="mensuelle">Mensuelle ↻</option>
         </select>
       </div>
       <div class="fgroup"><label class="flabel">Statut</label>
@@ -1154,17 +1157,26 @@ html,body{overflow-x:hidden;}
       <input type="number" id="m-montant" step="10" min="0" placeholder="0">
     </div>
     <div id="m-montant-split-zone" style="display:none">
+      <div class="ts mb8" style="color:var(--tl)">En activité mixte, distinguez la part prestation et la part vente pour suivre vos seuils TVA correctement.</div>
       <div class="frow">
         <div class="fgroup">
-          <label class="flabel">↳ dont Main-d'œuvre / Prestation (€ HT)</label>
-          <input type="number" id="m-montant-prestation" step="10" min="0" placeholder="0">
+          <label class="flabel">Main-d'œuvre / Prestation (€ HT)</label>
+          <input type="number" id="m-montant-prestation" step="10" min="0" placeholder="0" oninput="updateMontantSplitTotal()">
         </div>
         <div class="fgroup">
-          <label class="flabel">↳ dont Vente de produit / Matériaux (€ HT)</label>
-          <input type="number" id="m-montant-vente" step="10" min="0" placeholder="0">
+          <label class="flabel">Vente de produit / Matériaux (€ HT)</label>
+          <input type="number" id="m-montant-vente" step="10" min="0" placeholder="0" oninput="updateMontantSplitTotal()">
         </div>
       </div>
-      <div class="ts mt2" style="color:var(--tl)">Répartition utilisée pour le suivi des seuils TVA — les deux valeurs peuvent ne pas sommer au total (estimation suffisante).</div>
+      <div class="ts" id="m-split-total" style="font-weight:700;color:var(--pri)"></div>
+    </div>
+    <div id="m-rec-zone" style="display:none">
+      <div class="frow">
+        <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500"></div>
+        <div class="fgroup"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
+      </div>
+      <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec"></div>
+      <div class="alert al-info" style="margin-bottom:0;font-size:12px">↻ Le CA mensuel sera automatiquement comptabilisé chaque mois pendant la durée indiquée, dès que le statut passe en "En cours".</div>
     </div>
     <div class="fgroup" id="m-date-fact-zone" style="display:none">
       <label class="flabel">Date de facturation</label>
@@ -1870,6 +1882,12 @@ function applyDefaults(data) {
     if (m.encaissements === undefined)    m.encaissements = [];
     if (m.montantVente == null)           m.montantVente = 0;
     if (m.montantPrestation == null)      m.montantPrestation = 0;
+    // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié,
+    // voir core/storage.js#applyDefaults). Rattrape les anciennes missions saisies
+    // avant l'uniformisation, sans perte : on déduit la part prestation manquante.
+    if (!m.isRecurring && (m.montantPrestation + m.montantVente) !== (m.montantDevis || 0)) {
+      m.montantPrestation = (m.montantDevis || 0) - m.montantVente;
+    }
   });
   return data;
 }
@@ -2044,16 +2062,29 @@ function toggleDepChantier(checked) {
 }
 function getHeuresFact() { return DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='fact')).reduce((s,m)=>s+getMissionHeures(m),0); }
 function getHeuresInterne() { const m=DATA.missions.find(m=>m.isManagement); return m?getMissionHeures(m):0; }
+// Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
+// Ancre de départ : dateDebut si renseigné ('always' = aucune borne basse —
+// au-delà du garde-fou isMonthBeforeOpening déjà appliqué par l'appelant —
+// ou une date YYYY-MM-DD précise, valeur du champ <input type="date">) ;
+// sinon repli sur la date de saisie (comportement historique, conservé pour
+// les dépenses créées avant l'ajout du champ "Date de début").
+function _depenseMensuelleActive(d, y, mo) {
+  if (d.dateDebut==='always') return true;
+  const dm=new Date((d.dateDebut||d.date)+'T00:00:00');
+  return dm.getFullYear()<y||(dm.getFullYear()===y&&dm.getMonth()+1<=mo);
+}
 function getDepensesMois(mk) {
   if(isMonthBeforeOpening(mk)) return 0;
   const [y,mo]=mk.split('-').map(Number);
   let t=0;
   DATA.depenses.forEach(d => {
     if (!d.date) return;
-    const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
-    if (d.recurrence==='mensuelle') { if(dy<y||(dy===y&&dmo<=mo)) t+=d.montant; }
-    else if (d.recurrence==='annuelle') { if(dmo===mo) t+=d.montant; }
-    else { if(dy===y&&dmo===mo) t+=d.montant; }
+    if (d.recurrence==='mensuelle') { if(_depenseMensuelleActive(d,y,mo)) t+=d.montant; }
+    else {
+      const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
+      if (d.recurrence==='annuelle') { if(dmo===mo) t+=d.montant; }
+      else { if(dy===y&&dmo===mo) t+=d.montant; }
+    }
   });
   return t;
 }
@@ -2203,6 +2234,15 @@ function getCAMixte() {
     (r.autresList||[]).forEach(e=>{
       caMixtePresta+=(e.montantPrestation||0);
       caMixteVentes+=(e.montantVente||0);
+    });
+    // Missions récurrentes (mensuelles) : toujours 100% prestation, actives ce mois-là
+    // (même logique que core/calculs.js#getCaPrestaMois côté Freelance).
+    DATA.missions.filter(m=>!m.isManagement&&m.isRecurring).forEach(m=>{
+      if(!m.dateDebutRec||m.statut==='ref'||m.statut==='att') return;
+      const [sy,sm]=m.dateDebutRec.split('-').map(Number);
+      const [ty,tm]=mk.split('-').map(Number);
+      const diff=(ty-sy)*12+(tm-sm), nb=m.nbMoisRec||9999;
+      if(diff>=0&&diff<nb) caMixtePresta+=m.montantMensuel||0;
     });
     // Missions non-récurrentes AVEC encaissements : ventilation proportionnelle au ratio devis
     DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&(m.encaissements||[]).length>0)
@@ -2376,14 +2416,24 @@ function getTVACollecteeMois(mk) {
 }
 function getTVADeductibleMois(mk) {
   if(!DATA.params.tva) return 0;
-  const y=mk.substring(0,4), mo=mk.substring(5,7);
-  return DATA.depenses.filter(d=>d.tvaDeductible&&d.date.startsWith(y+'-'+mo)).reduce((s,d)=>s+(d.montantTVA||0),0);
+  const [y,mo]=mk.split('-').map(Number);
+  let t=0;
+  DATA.depenses.forEach(d=>{
+    if(!d.tvaDeductible||!d.date) return;
+    if(d.recurrence==='mensuelle'){ if(_depenseMensuelleActive(d,y,mo)) t+=(d.montantTVA||0); }
+    else {
+      const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
+      if(d.recurrence==='annuelle'){ if(dmo===mo) t+=(d.montantTVA||0); }
+      else { if(dy===y&&dmo===mo) t+=(d.montantTVA||0); }
+    }
+  });
+  return t;
 }
 function getTVACollecteeAnnuelle() {
   return getCurrentYearMonths().reduce((s,mk)=>s+getTVACollecteeMois(mk),0);
 }
 function getTVADeductibleAnnuelle() {
-  return DATA.depenses.filter(d=>d.tvaDeductible&&d.date.startsWith(String(DATA.currentYear))).reduce((s,d)=>s+(d.montantTVA||0),0);
+  return getCurrentYearMonths().reduce((s,mk)=>s+getTVADeductibleMois(mk),0);
 }
 
 // ── TVA RÉGIME — HELPERS ─────────────────────────────────────
@@ -2418,7 +2468,7 @@ function getNextTVAEcheance() {
   const daysLeft=d=>Math.ceil((d-now)/86400000);
   if(regime==='mensuel') {
     const prevMk=m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;
-    const montant=Math.max(0,Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk)));
+    const montant=Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk));
     const due=new Date(y,m-1,25);
     const moisLabel=new Date(y,m-2,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Prochaine échéance TVA'};
@@ -2430,12 +2480,12 @@ function getNextTVAEcheance() {
     let montant=0;
     for(let mo=(q-1)*3+1;mo<=m;mo++){
       const mk=`${y}-${String(mo).padStart(2,'0')}`;
-      montant+=Math.max(0,getTVACollecteeMois(mk)-getTVADeductibleMois(mk));
+      montant+=getTVACollecteeMois(mk)-getTVADeductibleMois(mk);
     }
     return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`TVA T${q} ${y} (cumul)`};
   }
   if(regime==='simplifie') {
-    const ann=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
+    const ann=getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle();
     if(m<7){
       const due=new Date(y,6,31);
       return {montant:Math.round(ann*0.55),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte juillet (55 % TVA estimée)'};
@@ -2969,15 +3019,29 @@ function wProvisionsSide(d) {
   const echs=[echURSSAF,echTVA].filter(e=>e&&e.montant>0).sort((a,b)=>a.daysLeft-b.daysLeft);
   const urgBorder=echs.length&&echs[0].daysLeft<=7?'var(--err)':echs.length&&echs[0].daysLeft<=21?'var(--warn)':'var(--acc)';
 
+  // Ligne TVA — 3 cas : à reverser (montant>0), à l'équilibre (=0, collectée
+  // = déductible), ou crédit de TVA (déductible > collectée, remboursable ou
+  // reportable). Sans ça, la ligne disparaissait silencieusement dès que le
+  // solde n'était pas strictement positif.
+  const tvaRow=(()=>{
+    if(!echTVA) return null;
+    if(echTVA.montant>0){
+      const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
+      return {lbl:echTVA.label,val:echTVA.montant,days:echTVA.daysLeft,sub:tvaTot>echTVA.montant?`Sur ${fmtE(tvaTot)} estimés annuellement`:null};
+    }
+    if(echTVA.montant===0) return {lbl:echTVA.label,val:0,days:null,sub:'Vous êtes à l\'équilibre — TVA collectée = TVA déductible',positive:true};
+    return {lbl:'Crédit de TVA',val:Math.abs(echTVA.montant),days:null,sub:'TVA déductible supérieure à la TVA collectée — remboursable ou reportable',positive:true};
+  })();
+
   // Répartition — labels issus des échéances (adaptés au régime automatiquement)
   const repartRows=[
     urssafAmt>0?{lbl:echURSSAF.label,val:urssafAmt,days:echURSSAF.daysLeft,sub:null}:null,
-    tvaAmt>0   ?{lbl:echTVA.label,   val:tvaAmt,   days:echTVA.daysLeft,   sub:(()=>{const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());return tvaTot>tvaAmt?`Sur ${fmtE(tvaTot)} estimés annuellement`:null;})()}:null,
+    tvaRow,
     provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive'}:null,
   ].filter(Boolean);
 
   const rowHtml=repartRows.map(r=>{
-    const uc=r.days!=null?(r.days<=7?'var(--err)':r.days<=21?'var(--warn)':'var(--text)'):'var(--tl)';
+    const uc=r.positive?'var(--ok)':(r.days!=null?(r.days<=7?'var(--err)':r.days<=21?'var(--warn)':'var(--text)'):'var(--tl)');
     return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--brd);gap:6px">'
       +'<div><div style="font-size:12px;color:var(--tl)">'+r.lbl+'</div>'
       +(r.sub?'<div style="font-size:10px;color:var(--tl);opacity:.7;margin-top:1px">'+r.sub+'</div>':'')
@@ -3377,7 +3441,7 @@ function wTVAZone({caBrut,caTreso,caMixtePresta,caMixteVentes}) {
         const impArr=getMissionsImpayees();
         const impHT=impArr.reduce((s,x)=>s+x.reste,0);
         const impTTC=Math.round(impHT*(1+tvaRate)*100)/100;
-        const encArr=DATA.missions.filter(m=>!m.isManagement&&m.statut==='cours');
+        const encArr=DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='cours');
         const encHT=encArr.reduce((s,m)=>s+getResteAEncaisser(m),0);
         const encTTC=Math.round(encHT*(1+tvaRate)*100)/100;
         const provU=Math.round(caBrut*getTauxChargesPresta());
@@ -3591,7 +3655,8 @@ function wRentabClients() {
     if(!m.client) return;
     if(!byC[m.client]) byC[m.client]={h:0,ca:0,n:0};
     byC[m.client].h+=getMissionHeures(m);
-    if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
+    if(m.isRecurring) byC[m.client].ca+=m.montantDevis||0;
+    else if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
     byC[m.client].n++;
   });
   const cls=Object.entries(byC).sort((a,b)=>{
@@ -3847,8 +3912,9 @@ function wScoreSante(d) {
   const clientCA={};
   DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
     const cl=m.client||'Sans nom';
-    const enc=(m.encaissements||[]).reduce((s,e)=>s+(e.montant||0),0);
-    const ca=enc>0?enc:(m.statut==='fact'&&m.montantDevis>0?m.montantDevis:0);
+    let ca=0;
+    if(m.isRecurring&&m.statut==='cours') ca=(m.montantMensuel||0)*Math.min(m.nbMoisRec||12,12);
+    else{const enc=(m.encaissements||[]).reduce((s,e)=>s+(e.montant||0),0);ca=enc>0?enc:(m.statut==='fact'&&m.montantDevis>0?m.montantDevis:0);}
     if(ca>0) clientCA[cl]=(clientCA[cl]||0)+ca;
   });
   const totalCaCli=Object.values(clientCA).reduce((s,v)=>s+v,0);
@@ -4112,47 +4178,90 @@ function openMissionModal(id) {
   sel.innerHTML='<option value="">— Choisir —</option>';
   DATA.categories.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(m&&m.categorie===c) o.selected=true; sel.appendChild(o); });
   const st=document.getElementById('m-statut'); st.value=m?m.statut:'att';
-  document.getElementById('m-montant').value=m?m.montantDevis:'';
-  toggleFactDate(st.value);
-  document.getElementById('m-date-fact').value=m&&m.dateFact?m.dateFact:today();
-  // Activité mixte : afficher / peupler les champs de répartition
-  const splitZone=document.getElementById('m-montant-split-zone');
-  if(splitZone){
+  const isRec=m?!!(m.isRecurring):false;
+  document.getElementById('m-type-fact').value=isRec?'mensuelle':'ponctuelle';
+  toggleRecurrenceFields(isRec?'mensuelle':'ponctuelle');
+  if(isRec){
+    document.getElementById('m-montant-mens').value=m.montantMensuel||'';
+    document.getElementById('m-nb-mois-rec').value=m.nbMoisRec||'';
+    document.getElementById('m-debut-rec').value=m.dateDebutRec||'';
+  } else {
+    document.getElementById('m-montant').value=m?m.montantDevis:'';
+    toggleFactDate(st.value);
+    document.getElementById('m-date-fact').value=m&&m.dateFact?m.dateFact:today();
+    // Activité mixte : le devis total est calculé depuis prestation + vente
+    // (montantDevis = montantPrestation + montantVente, modèle unifié) — on
+    // masque le champ "montant du devis" indépendant pour empêcher toute
+    // saisie incohérente, comme en Freelance.
+    const splitZone=document.getElementById('m-montant-split-zone');
     const mixte=DATA.params.activiteMixte;
-    splitZone.style.display=mixte?'':'none';
-    if(mixte){
-      document.getElementById('m-montant-prestation').value=m?(m.montantPrestation!=null?m.montantPrestation:''):'';
-      document.getElementById('m-montant-vente').value=m?(m.montantVente!=null?m.montantVente:''):'';
+    document.getElementById('m-montant-zone').style.display=mixte?'none':'';
+    if(splitZone){
+      splitZone.style.display=mixte?'':'none';
+      if(mixte){
+        document.getElementById('m-montant-prestation').value=m?(m.montantPrestation||''):'';
+        document.getElementById('m-montant-vente').value=m?(m.montantVente||''):'';
+        updateMontantSplitTotal();
+      }
     }
   }
-  // Planification — sessions
+  // Planification — sessions (pas de notion de sessions pour une mission récurrente,
+  // comme en Freelance, qui n'a pas non plus de planning de sessions sur ces missions)
   const planZone=document.getElementById('m-planning-zone');
-  if(planZone) planZone.style.display=m&&m.isManagement?'none':'';
+  if(planZone) planZone.style.display=(m&&m.isManagement)||isRec?'none':'';
   initEditingSessions(m);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
   openModal('modal-mission');
 }
 
 function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.display=v==='fact'?'':'none'; }
-document.addEventListener('change', e=>{ if(e.target.id==='m-statut') toggleFactDate(e.target.value); });
+document.addEventListener('change', e=>{ if(e.target.id==='m-statut'){ const isRec=document.getElementById('m-type-fact').value==='mensuelle'; if(!isRec) toggleFactDate(e.target.value); } });
+
+function toggleRecurrenceFields(val) {
+  const isRec=val==='mensuelle';
+  const mixte=DATA.params.activiteMixte;
+  document.getElementById('m-montant-zone').style.display=(isRec||mixte)?'none':'';
+  document.getElementById('m-montant-split-zone').style.display=(!isRec&&mixte)?'':'none';
+  document.getElementById('m-rec-zone').style.display=isRec?'':'none';
+  if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
+  const planZone=document.getElementById('m-planning-zone');
+  if(planZone) planZone.style.display=isRec?'none':'';
+}
+
+function updateMontantSplitTotal() {
+  const p=parseFloat(document.getElementById('m-montant-prestation').value)||0;
+  const v=parseFloat(document.getElementById('m-montant-vente').value)||0;
+  const el=document.getElementById('m-split-total');
+  if(el) el.textContent=(p+v)>0?`Total devis : ${fmtE(p+v)}`:'';
+}
 
 function saveMission() {
   const editId=document.getElementById('mission-edit-id').value;
   const statut=document.getElementById('m-statut').value;
-  const montantDevis=parseFloat(document.getElementById('m-montant').value)||0;
-  // Répartition activité mixte
-  let montantPrestation=null, montantVente=null;
-  if(DATA.params.activiteMixte){
-    const vp=parseFloat(document.getElementById('m-montant-prestation').value);
-    const vv=parseFloat(document.getElementById('m-montant-vente').value);
-    montantPrestation=isNaN(vp)?null:vp;
-    montantVente=isNaN(vv)?null:vv;
+  const isRec=document.getElementById('m-type-fact').value==='mensuelle';
+  // Répartition activité mixte : le devis total est dérivé de prestation + vente
+  // (montantDevis = montantPrestation + montantVente, modèle unifié) pour
+  // empêcher toute incohérence dès la saisie, comme en Freelance.
+  let montantDevis, montantPrestation=0, montantVente=0, montantMensuel=0, dateDebutRec='', nbMoisRec=null;
+  if(isRec){
+    montantMensuel=parseFloat(document.getElementById('m-montant-mens').value)||0;
+    nbMoisRec=parseInt(document.getElementById('m-nb-mois-rec').value)||null;
+    dateDebutRec=document.getElementById('m-debut-rec').value;
+    montantDevis=montantMensuel*(nbMoisRec||0);
+    montantPrestation=montantDevis; montantVente=0;
+  } else if(DATA.params.activiteMixte){
+    montantPrestation=parseFloat(document.getElementById('m-montant-prestation').value)||0;
+    montantVente=parseFloat(document.getElementById('m-montant-vente').value)||0;
+    montantDevis=montantPrestation+montantVente;
+  } else {
+    montantDevis=parseFloat(document.getElementById('m-montant').value)||0;
+    montantPrestation=montantDevis; montantVente=0;
   }
-  const sessions=editingSessions.map(s=>({debut:s.debut,fin:s.fin||s.debut}));
-  const obj={ client:document.getElementById('m-client').value, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:statut==='fact'?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:false, montantPrestation, montantVente, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
+  const sessions=isRec?[]:editingSessions.map(s=>({debut:s.debut,fin:s.fin||s.debut}));
+  const obj={ client:document.getElementById('m-client').value, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantPrestation, montantVente, montantMensuel, dateDebutRec, nbMoisRec, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
-  saveData(); closeModal('modal-mission'); renderMissions(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 
 // ── ENCAISSEMENTS — MODAL ────────────────────────────────────
@@ -4373,7 +4482,8 @@ function rentabClientsBody() {
     if(!m.client) return;
     if(!byC[m.client]) byC[m.client]={h:0,ca:0,n:0};
     byC[m.client].h+=getMissionHeures(m);
-    if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
+    if(m.isRecurring) byC[m.client].ca+=m.montantDevis||0;
+    else if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
     byC[m.client].n++;
   });
   if(!Object.keys(byC).length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun client à afficher pour l\'instant.</div>';
@@ -4416,11 +4526,11 @@ function renderMissionsSummary(all) {
   const caEnCours=enCours.reduce((s,m)=>s+(m.montantDevis||0),0);
   const caEnAtt=enAtt.reduce((s,m)=>s+(m.montantDevis||0),0);
   const caFacture=facturees.reduce((s,m)=>s+(m.montantDevis||0),0);
-  const aEncaisser=facturees.filter(m=>getResteAEncaisser(m)>0);
+  const aEncaisser=facturees.filter(m=>!m.isRecurring&&getResteAEncaisser(m)>0);
   const totalReste=aEncaisser.reduce((s,m)=>s+getResteAEncaisser(m),0);
   const enRetard=getMissionsImpayees().length;
-  const totM=actives.length;
-  const okM=actives.filter(m=>m.statut==='cours'||m.statut==='fact').length;
+  const totM=actives.filter(m=>!m.isRecurring).length;
+  const okM=actives.filter(m=>!m.isRecurring&&(m.statut==='cours'||m.statut==='fact')).length;
   const txT=totM?Math.round(okM/totM*100):0;
   const pS=actives.filter(m=>m.statut==='ref').reduce((s,m)=>s+getMissionHeures(m),0);
   const _hF=getHeuresFact(),_hI=getHeuresInterne();
@@ -4491,9 +4601,9 @@ function renderMissions() {
     if(!m.isManagement){ totD+=m.montantDevis||0; if(m.statut==='fact') totF+=m.montantDevis||0; }
     totH+=h;
     const tr=document.createElement('tr'); if(m.isManagement) tr.className='row-pinned'; tr.id='mrow-'+m.id;
-    const montantCell=m.isManagement?'<span class="ts">—</span>':tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis);
+    const montantCell=m.isManagement?'<span class="ts">—</span>':m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts">${m.nbMoisRec?`× ${m.nbMoisRec} mois = ${fmtE(m.montantDevis)}`:''}</div>`:tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis);
     tr.innerHTML=`<td><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button></td>
-      <td><div class="fb">${m.isManagement?'🏠 ':''}${m.client||'—'}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}</div><div class="ts">${m.description||''}</div></td>
+      <td><div class="fb">${m.isManagement?'🏠 ':''}${m.client||'—'}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}</div><div class="ts">${m.description||''}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>En attente</option><option value="cours" ${m.statut==='cours'?'selected':''}>En cours</option><option value="ref" ${m.statut==='ref'?'selected':''}>Devis refusé</option><option value="fact" ${m.statut==='fact'?'selected':''}>Facturé</option></select></td>
@@ -4501,7 +4611,7 @@ function renderMissions() {
       <td><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div><div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div></td>
       <td class="ts">${th?fmtE(th,1)+'/h':'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.notes||''}">${m.notes||'—'}</td>
-      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements / acomptes">💰</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
+      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button>${!m.isRecurring?` <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements / acomptes">💰</button>`:''} <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
     tbody.appendChild(tr);
     // Sous-lignes de détail (dépenses + encaissements)
     if(!m.isManagement){
@@ -5198,7 +5308,11 @@ function renderTvaParams() {
     const inp=lbl?lbl.querySelector('input[type="radio"]'):null;
     if(lbl) lbl.classList.toggle('selected',r===regime);
     if(inp) inp.checked=(r===regime);
-    if(inp&&sasu) inp.disabled=(r==='franchise'); // SASU ne peut pas être en franchise
+    // En SASU, le régime réel mensuel est légalement obligatoire — les 3
+    // autres options sont verrouillées (pas seulement "franchise") pour que
+    // le clic ne soit plus silencieusement ignoré.
+    if(inp) inp.disabled=sasu&&(r!=='mensuel');
+    if(lbl) lbl.classList.toggle('locked',!!(inp&&inp.disabled));
   });
   // Texte de statut avec ? contextuel
   const statusLabels={franchise:'Franchise en base — aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié — 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel — déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel — déclaration CA3 chaque trimestre.'};
@@ -6607,8 +6721,51 @@ document.addEventListener('DOMContentLoaded', () => {
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
   window.getTVACollecteeMois    = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
   window.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
+  window.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+  window.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
+  window.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
+  window.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };
+  window.isMonthBeforeOpening   = (mk) => { sync(); return Mode.isMonthBeforeOpening(mk); };
+  window.getActiveMonthsInYear  = ()   => { sync(); return Mode.getActiveMonthsInYear(); };
+  window.getMoisDepuisOuverture = ()   => { sync(); return Mode.getMoisDepuisOuverture(); };
+  window.getCaAnnuelBrut        = ()   => { sync(); return Mode.getCaAnnuelBrut(); };
+  window.getPonctuelsCA         = (mk) => { sync(); return Mode.getPonctuelsCA(mk); };
+  window.getPonctuelsPresta     = (mk) => { sync(); return Mode.getPonctuelsPresta(mk); };
+  window.getPonctuelsVente      = (mk) => { sync(); return Mode.getPonctuelsVente(mk); };
+  window.getPonctuelsTresorerie = (mk) => { sync(); return Mode.getPonctuelsTresorerie(mk); };
+  window.getMissionVenteRatio   = (m)  => { sync(); return Mode.getMissionVenteRatio(m); };
+  window.getTauxChargesVente    = ()   => { sync(); return Mode.getTauxChargesVente(); };
+  window.getCaNetAnnuel         = ()   => { sync(); return Mode.getCaNetAnnuel(); };
+  window.getHeuresFact          = ()   => { sync(); return Mode.getHeuresFact(); };
+  window.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
+  window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
+  window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
+  window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
+  window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
+  window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
+  window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+  window.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
+  window.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };
+  window.getTVADeductibleAnnuelle  = () => { sync(); return Mode.getTVADeductibleAnnuelle(); };
+  window.getTVADeductibleMois      = (mk) => { sync(); return Mode.getTVADeductibleMois(mk); };
+  window.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
+  window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
+  window.getTVAZone                = Mode.getTVAZone;
+  window.tvaZoneFill               = Mode.tvaZoneFill;
+  window.tvaZoneKpi                = Mode.tvaZoneKpi;
+  window.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };
+  window.getTresorerieDepart       = () => { sync(); return Mode.getTresorerieDepart(); };
+  window.getTvaRegime              = () => { sync(); return Mode.getTvaRegime(); };
+  window.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };
+  window.getUrssafProvisionMensuelle = () => { sync(); return Mode.getUrssafProvisionMensuelle(); };
+  window.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
+  // getDepensesMoyenneMensuelle volontairement NON branchée : Artisan exclut les
+  // dépenses liées à un chantier (chantierId) de la moyenne, une règle propre à
+  // ce mode que le core (modélisé sur Freelance) ne reproduit pas encore.
+  // getTauxChargesPresta volontairement NON branchée : différence || vs ?? sur
+  // un taux à 0% explicite, à clarifier côté métier avant de trancher.
 
-  console.info('[refactor-test] 6 fonctions branchées sur core/calculs.js via modes/artisan.js');
+  console.info('[refactor-test] 44 fonctions branchées sur core/calculs.js via modes/artisan.js');
 
   // Confort de test local : masque l'overlay d'auth cloud pour visualiser
   // le dashboard sans compte Supabase. Spécifique à cette copie de test.

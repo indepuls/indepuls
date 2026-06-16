@@ -21,11 +21,13 @@ export const getImpotsTaux            = () => C.getImpotsTaux(DATA);
 export const getTauxCharges           = () => C.getTauxCharges(DATA);
 export const getTauxChargesPresta     = () => C.getTauxChargesPresta(DATA);
 export const getTauxChargesVente      = () => C.getTauxChargesVente(DATA);
+export const getMissionVenteRatio     = (m) => C.getMissionVenteRatio(DATA, m);
 
 export const getCurrentYearMonths     = () => C.getCurrentYearMonths(DATA);
 export const isMonthBeforeOpening     = (mk) => C.isMonthBeforeOpening(DATA, mk);
 export const getActiveMonthsInYear    = () => C.getActiveMonthsInYear(DATA);
 export const getMoisDepuisOuverture   = () => C.getMoisDepuisOuverture(DATA);
+export const getMoisActifsAnnee       = () => C.getMoisActifsAnnee(DATA);
 
 export const getDepensesMois          = (mk) => C.getDepensesMois(DATA, mk);
 export const getDepensesMoyenneMensuelle = () => C.getDepensesMoyenneMensuelle(DATA);
