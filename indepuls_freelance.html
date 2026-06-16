@@ -3948,7 +3948,6 @@ function deleteEncaissementModal(encId) {
 function toggleMissionType(val) {
   const isCol = val==='collectif';
   document.getElementById('m-collectif-zone').style.display = isCol?'':'none';
-  document.getElementById('m-factrow').style.display = isCol?'none':'';
   document.getElementById('m-montant-zone').style.display = isCol?'none':(isActiviteMixte()?'none':'');
   document.getElementById('m-montant-mixte-zone').style.display = isCol?'none':(isActiviteMixte()?'':'none');
   document.getElementById('m-rec-zone').style.display = 'none';
