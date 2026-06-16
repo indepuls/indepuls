@@ -1864,6 +1864,12 @@ function applyDefaults(data) {
     if (m.encaissements === undefined)    m.encaissements = [];
     if (m.montantVente == null)           m.montantVente = 0;
     if (m.montantPrestation == null)      m.montantPrestation = 0;
+    // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié,
+    // voir core/storage.js#applyDefaults). Rattrape les anciennes missions saisies
+    // avant l'uniformisation, sans perte : on déduit la part prestation manquante.
+    if (!m.isRecurring && (m.montantPrestation + m.montantVente) !== (m.montantDevis || 0)) {
+      m.montantPrestation = (m.montantDevis || 0) - m.montantVente;
+    }
   });
   return data;
 }

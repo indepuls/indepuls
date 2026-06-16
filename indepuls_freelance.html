@@ -1889,6 +1889,12 @@ function applyDefaults(data) {
     if (m.tempsSupport === undefined)     m.tempsSupport = 0;
     if (m.montantVente == null)           m.montantVente = 0;
     if (m.montantPrestation == null)      m.montantPrestation = 0;
+    // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié,
+    // voir core/storage.js#applyDefaults). Déjà garanti par construction côté
+    // Freelance, mais on rattrape par défense en profondeur (import, anciennes versions).
+    if (!m.isRecurring && (m.montantPrestation + m.montantVente) !== (m.montantDevis || 0)) {
+      m.montantPrestation = (m.montantDevis || 0) - m.montantVente;
+    }
   });
   return data;
 }
