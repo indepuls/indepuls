@@ -4283,9 +4283,10 @@ function openEncaissementsModal(missionId) {
   document.getElementById('enc-form-zone').style.display='none';
   document.getElementById('enc-edit-id').value='';
   const alertEl=document.getElementById('enc-alert-msg');
-  if(alertEl) alertEl.textContent=tvaOn
+  if(alertEl) alertEl.textContent=(tvaOn
     ?'Saisissez le montant TTC reçu sur votre compte. L\'application calcule automatiquement le CA HT et la TVA collectée — les cotisations URSSAF sont appliquées sur le CA HT.'
-    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.';
+    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.')
+    +' Sans encaissement saisi ici, le montant total du devis est automatiquement compté comme encaissé à la date où vous passez le chantier en « Facturé ».';
   renderEncList();
   openModal('modal-encaissements');
 }
@@ -4338,7 +4339,8 @@ function renderEncList() {
           <div class="kpi-val" style="font-size:20px">${fmtE(resteHT)}</div>
           ${tvaOn&&resteTTC>0?`<div class="ts">soit ${fmtE(resteTTC)} TTC à recevoir</div>`:''}
         </div>
-      </div>`;
+      </div>`
+      +(totalHT>(m.montantDevis||0)?`<div class="ts" style="color:var(--warn);margin-top:6px">⚠️ Le total encaissé (${fmtE(totalHT)}) dépasse le montant du devis (${fmtE(m.montantDevis||0)}) — vérifiez qu'il ne s'agit pas d'une erreur de saisie.</div>`:'');
   } else {
     document.getElementById('enc-summary').innerHTML='';
   }

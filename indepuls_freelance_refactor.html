@@ -3912,9 +3912,10 @@ function openEncaissementsModal(missionId) {
   const lbl=document.getElementById('enc-m-montant-label');
   if(lbl) lbl.textContent=tvaOn?'Montant reçu TTC':'Montant reçu';
   const alertEl=document.getElementById('enc-m-alert-msg');
-  if(alertEl) alertEl.textContent=tvaOn
+  if(alertEl) alertEl.textContent=(tvaOn
     ?'Saisissez le montant TTC reçu sur votre compte. L\'application calcule automatiquement le CA HT et la TVA collectée — les cotisations URSSAF sont appliquées sur le CA HT.'
-    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.';
+    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.')
+    +' Sans encaissement saisi ici, le montant total du devis est automatiquement compté comme encaissé à la date où vous passez la mission en « Facturé ».';
   const calcInfo=document.getElementById('enc-m-calc-info');
   if(calcInfo) calcInfo.style.display='none';
   renderEncaissementsModal();
@@ -3930,9 +3931,10 @@ function renderEncaissementsModal() {
   const sumEl=document.getElementById('enc-m-summary');
   if(sumEl){
     if((m.montantDevis||0)>0&&totalHT>0){
-      sumEl.innerHTML=tvaOn
+      sumEl.innerHTML=(tvaOn
         ?`<span>${fmtE(totalTTC)} TTC reçu</span> <span style="color:var(--tl);font-weight:400">· CA HT ${fmtE(totalHT)}</span>${resteHT>0?` · <span style="color:var(--warn)">reste ${fmtE(resteTTC)} TTC (${fmtE(resteHT)} HT)</span>`:' · <span style="color:var(--ok)">soldé</span>'}`
-        :`${fmtE(totalHT)} encaissé${resteHT>0?` · reste ${fmtE(resteHT)}`:''}`;
+        :`${fmtE(totalHT)} encaissé${resteHT>0?` · reste ${fmtE(resteHT)}`:''}`)
+        +(totalHT>(m.montantDevis||0)?` · <span style="color:var(--warn)">⚠️ dépasse le devis (${fmtE(m.montantDevis||0)})</span>`:'');
     } else if((m.montantDevis||0)>0){
       sumEl.innerHTML=tvaOn
         ?`${fmtE(m.montantDevis)} HT à encaisser · soit ${fmtE(m.montantDevis*(1+tvaRate))} TTC`
