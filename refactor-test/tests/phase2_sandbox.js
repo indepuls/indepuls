@@ -160,6 +160,57 @@ async function loadHtmlContext(htmlFile) {
     ctx.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
   }
 
+  // Même chose pour indepuls_artisan.html (44 fonctions — getTauxChargesPresta
+  // et isActiviteMixte restent volontairement NON branchées côté Artisan).
+  if (htmlFile === 'indepuls_artisan.html') {
+    const Mode = await import(pathToFileURL(path.join(ROOT, 'refactor-test', 'modes', 'artisan.js')).href);
+    const sync = () => Mode.setData(ctx.DATA);
+    ctx.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
+    ctx.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
+    ctx.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
+    ctx.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
+    ctx.getTVACollecteeMois    = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
+    ctx.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
+    ctx.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+    ctx.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
+    ctx.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
+    ctx.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };
+    ctx.isMonthBeforeOpening   = (mk) => { sync(); return Mode.isMonthBeforeOpening(mk); };
+    ctx.getActiveMonthsInYear  = ()   => { sync(); return Mode.getActiveMonthsInYear(); };
+    ctx.getMoisDepuisOuverture = ()   => { sync(); return Mode.getMoisDepuisOuverture(); };
+    ctx.getCaAnnuelBrut        = ()   => { sync(); return Mode.getCaAnnuelBrut(); };
+    ctx.getPonctuelsCA         = (mk) => { sync(); return Mode.getPonctuelsCA(mk); };
+    ctx.getPonctuelsPresta     = (mk) => { sync(); return Mode.getPonctuelsPresta(mk); };
+    ctx.getPonctuelsVente      = (mk) => { sync(); return Mode.getPonctuelsVente(mk); };
+    ctx.getPonctuelsTresorerie = (mk) => { sync(); return Mode.getPonctuelsTresorerie(mk); };
+    ctx.getMissionVenteRatio   = (m)  => { sync(); return Mode.getMissionVenteRatio(m); };
+    ctx.getTauxChargesVente    = ()   => { sync(); return Mode.getTauxChargesVente(); };
+    ctx.getCaNetAnnuel         = ()   => { sync(); return Mode.getCaNetAnnuel(); };
+    ctx.getHeuresFact          = ()   => { sync(); return Mode.getHeuresFact(); };
+    ctx.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
+    ctx.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
+    ctx.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
+    ctx.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
+    ctx.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
+    ctx.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
+    ctx.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+    ctx.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
+    ctx.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };
+    ctx.getTVADeductibleAnnuelle  = () => { sync(); return Mode.getTVADeductibleAnnuelle(); };
+    ctx.getTVADeductibleMois      = (mk) => { sync(); return Mode.getTVADeductibleMois(mk); };
+    ctx.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
+    ctx.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
+    ctx.getTVAZone                = Mode.getTVAZone;
+    ctx.tvaZoneFill                = Mode.tvaZoneFill;
+    ctx.tvaZoneKpi                 = Mode.tvaZoneKpi;
+    ctx.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };
+    ctx.getTresorerieDepart       = () => { sync(); return Mode.getTresorerieDepart(); };
+    ctx.getTvaRegime              = () => { sync(); return Mode.getTvaRegime(); };
+    ctx.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };
+    ctx.getUrssafProvisionMensuelle = () => { sync(); return Mode.getUrssafProvisionMensuelle(); };
+    ctx.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
+  }
+
   return ctx;
 }
 
@@ -563,11 +614,16 @@ async function run() {
   }
 
   // ── ARTISAN ────────────────────────────────────────────────
+  // indepuls_artisan.html est maintenant lui aussi en production sur le core
+  // partagé (même étape que Freelance, "on saute le pas progressivement") :
+  // on compare viaFichier (le vrai pont de production) à viaCoreDirect
+  // (core appelé directement), pas un "avant/après substitution".
   const ctxAr = await loadHtmlContext('indepuls_artisan.html');
   setData(ctxAr, D_ARTISAN);
 
   for (const mk of ['2026-05', '2026-06', '2026-07']) {
-    const avant = {
+    const m0 = ctxAr.DATA.missions[0] || null;
+    const viaFichier = {
       ca: ctxAr.getCaFromMissions(mk),
       depenses: ctxAr.getDepensesMois(mk),
       revenuNet: ctxAr.getRevenuNetMois(mk),
@@ -584,14 +640,14 @@ async function run() {
       ponctuelsPresta: ctxAr.getPonctuelsPresta(mk),
       ponctuelsVente: ctxAr.getPonctuelsVente(mk),
       ponctuelsTreso: ctxAr.getPonctuelsTresorerie(mk),
-      venteRatio: (ctxAr.DATA.missions[0] ? ctxAr.getMissionVenteRatio(ctxAr.DATA.missions[0]) : null),
+      venteRatio: (m0 ? ctxAr.getMissionVenteRatio(m0) : null),
       tauxChargesVente: ctxAr.getTauxChargesVente(),
       heuresFact: ctxAr.getHeuresFact(),
       heuresInterne: ctxAr.getHeuresInterne(),
-      missionTotalMs: (ctxAr.DATA.missions[0] ? ctxAr.getMissionTotalMs(ctxAr.DATA.missions[0]) : null),
-      missionHeures: (ctxAr.DATA.missions[0] ? ctxAr.getMissionHeures(ctxAr.DATA.missions[0]) : null),
-      resteAEncaisser: (ctxAr.DATA.missions[0] ? ctxAr.getResteAEncaisser(ctxAr.DATA.missions[0]) : null),
-      totalEncaisse: (ctxAr.DATA.missions[0] ? ctxAr.getTotalEncaisse(ctxAr.DATA.missions[0]) : null),
+      missionTotalMs: (m0 ? ctxAr.getMissionTotalMs(m0) : null),
+      missionHeures: (m0 ? ctxAr.getMissionHeures(m0) : null),
+      resteAEncaisser: (m0 ? ctxAr.getResteAEncaisser(m0) : null),
+      totalEncaisse: (m0 ? ctxAr.getTotalEncaisse(m0) : null),
       moisActifsAnnee: ctxAr.getMoisActifsAnnee(),
       sasuCoutRemu: ctxAr.getSasuCoutRemuMensuel(),
       sasuProjection: ctxAr.getSasuProjectionFinAnnee(),
@@ -608,130 +664,90 @@ async function run() {
       urssafRegime: ctxAr.getUrssafRegime(),
     };
 
-    ctxAr.getCaFromMissions    = (m) => Core.getCaFromMissions(ctxAr.DATA, m);
-    ctxAr.getDepensesMois      = (m) => Core.getDepensesMois(ctxAr.DATA, m);
-    ctxAr.getRevenuNetMois     = (m) => Core.getRevenuNetMois(ctxAr.DATA, m);
-    ctxAr.getTVACollecteeMois  = (m) => Core.getTVACollecteeMois(ctxAr.DATA, m);
-    ctxAr.isSASU               = ()  => Core.isSASU(ctxAr.DATA);
-    ctxAr.getImpotsTaux        = ()  => Core.getImpotsTaux(ctxAr.DATA);
-    ctxAr.getTauxCharges       = ()  => Core.getTauxCharges(ctxAr.DATA);
-    ctxAr.getCurrentYearMonths = ()  => Core.getCurrentYearMonths(ctxAr.DATA);
-    ctxAr.isMonthBeforeOpening = (m) => Core.isMonthBeforeOpening(ctxAr.DATA, m);
-    ctxAr.getActiveMonthsInYear  = ()  => Core.getActiveMonthsInYear(ctxAr.DATA);
-    ctxAr.getMoisDepuisOuverture = ()  => Core.getMoisDepuisOuverture(ctxAr.DATA);
-    ctxAr.getCaAnnuelBrut        = ()  => Core.getCaAnnuelBrut(ctxAr.DATA);
-    ctxAr.getPonctuelsCA         = (m) => Core.getPonctuelsCA(ctxAr.DATA, m);
-    ctxAr.getPonctuelsPresta     = (m) => Core.getPonctuelsPresta(ctxAr.DATA, m);
-    ctxAr.getPonctuelsVente      = (m) => Core.getPonctuelsVente(ctxAr.DATA, m);
-    ctxAr.getPonctuelsTresorerie = (m) => Core.getPonctuelsTresorerie(ctxAr.DATA, m);
-    ctxAr.getMissionVenteRatio   = (mi) => Core.getMissionVenteRatio(ctxAr.DATA, mi);
-    ctxAr.getTauxChargesVente    = ()  => Core.getTauxChargesVente(ctxAr.DATA);
-    ctxAr.getHeuresFact          = ()  => Core.getHeuresFact(ctxAr.DATA);
-    ctxAr.getHeuresInterne       = ()  => Core.getHeuresInterne(ctxAr.DATA);
-    ctxAr.getMissionTotalMs      = (m) => Core.getMissionTotalMs(ctxAr.DATA, m);
-    ctxAr.getMissionHeures       = (m) => Core.getMissionHeures(ctxAr.DATA, m);
-    ctxAr.getResteAEncaisser     = (m) => Core.getResteAEncaisser(m);
-    ctxAr.getTotalEncaisse       = (m) => Core.getTotalEncaisse(m);
-    ctxAr.getMoisActifsAnnee     = ()  => Core.getMoisActifsAnnee(ctxAr.DATA);
-    ctxAr.getSasuCoutRemuMensuel = ()  => Core.getSasuCoutRemuMensuel(ctxAr.DATA);
-    ctxAr.getSasuProjectionFinAnnee = () => Core.getSasuProjectionFinAnnee(ctxAr.DATA);
-    ctxAr.getSasuSoldeActuelEstime  = () => Core.getSasuSoldeActuelEstime(ctxAr.DATA);
-    ctxAr.getTresorerieDepart    = ()  => Core.getTresorerieDepart(ctxAr.DATA);
-    ctxAr.getTVACollecteeAnnuelle  = () => Core.getTVACollecteeAnnuelle(ctxAr.DATA);
-    ctxAr.getTVADeductibleAnnuelle = () => Core.getTVADeductibleAnnuelle(ctxAr.DATA);
-    ctxAr.getTVADeductibleMois   = (m) => Core.getTVADeductibleMois(ctxAr.DATA, m);
-    ctxAr.getTVAProvisionMensuelle = () => Core.getTVAProvisionMensuelle(ctxAr.DATA);
-    ctxAr.getTVASeuilsStatut     = ()  => Core.getTVASeuilsStatut(ctxAr.DATA);
-    ctxAr.getTvaRegime           = ()  => Core.getTvaRegime(ctxAr.DATA);
-    ctxAr.getUrssafAnnuelBrut    = ()  => Core.getUrssafAnnuelBrut(ctxAr.DATA);
-    ctxAr.getUrssafProvisionMensuelle = () => Core.getUrssafProvisionMensuelle(ctxAr.DATA);
-    ctxAr.getUrssafRegime        = ()  => Core.getUrssafRegime(ctxAr.DATA);
-
-    const apres = {
-      ca: ctxAr.getCaFromMissions(mk),
-      depenses: ctxAr.getDepensesMois(mk),
-      revenuNet: ctxAr.getRevenuNetMois(mk),
-      tva: ctxAr.getTVACollecteeMois(mk),
-      sasu: ctxAr.isSASU(),
-      impotsTaux: ctxAr.getImpotsTaux(),
-      tauxCharges: ctxAr.getTauxCharges(),
-      anneeMonths: ctxAr.getCurrentYearMonths(),
-      avantOuverture: ctxAr.isMonthBeforeOpening(mk),
-      activeMonths: ctxAr.getActiveMonthsInYear(),
-      moisOuverture: ctxAr.getMoisDepuisOuverture(),
-      caAnnuelBrut: ctxAr.getCaAnnuelBrut(),
-      ponctuelsCA: ctxAr.getPonctuelsCA(mk),
-      ponctuelsPresta: ctxAr.getPonctuelsPresta(mk),
-      ponctuelsVente: ctxAr.getPonctuelsVente(mk),
-      ponctuelsTreso: ctxAr.getPonctuelsTresorerie(mk),
-      venteRatio: (ctxAr.DATA.missions[0] ? ctxAr.getMissionVenteRatio(ctxAr.DATA.missions[0]) : null),
-      tauxChargesVente: ctxAr.getTauxChargesVente(),
-      heuresFact: ctxAr.getHeuresFact(),
-      heuresInterne: ctxAr.getHeuresInterne(),
-      missionTotalMs: (ctxAr.DATA.missions[0] ? ctxAr.getMissionTotalMs(ctxAr.DATA.missions[0]) : null),
-      missionHeures: (ctxAr.DATA.missions[0] ? ctxAr.getMissionHeures(ctxAr.DATA.missions[0]) : null),
-      resteAEncaisser: (ctxAr.DATA.missions[0] ? ctxAr.getResteAEncaisser(ctxAr.DATA.missions[0]) : null),
-      totalEncaisse: (ctxAr.DATA.missions[0] ? ctxAr.getTotalEncaisse(ctxAr.DATA.missions[0]) : null),
-      moisActifsAnnee: ctxAr.getMoisActifsAnnee(),
-      sasuCoutRemu: ctxAr.getSasuCoutRemuMensuel(),
-      sasuProjection: ctxAr.getSasuProjectionFinAnnee(),
-      sasuSolde: ctxAr.getSasuSoldeActuelEstime(),
-      tresorerieDepart: ctxAr.getTresorerieDepart(),
-      tvaCollecteeAnnuelle: ctxAr.getTVACollecteeAnnuelle(),
-      tvaDeductibleAnnuelle: ctxAr.getTVADeductibleAnnuelle(),
-      tvaDeductibleMois: ctxAr.getTVADeductibleMois(mk),
-      tvaProvisionMensuelle: ctxAr.getTVAProvisionMensuelle(),
-      tvaSeuilsStatut: ctxAr.getTVASeuilsStatut(),
-      tvaRegime: ctxAr.getTvaRegime(),
-      urssafAnnuelBrut: ctxAr.getUrssafAnnuelBrut(),
-      urssafProvisionMensuelle: ctxAr.getUrssafProvisionMensuelle(),
-      urssafRegime: ctxAr.getUrssafRegime(),
+    const D = ctxAr.DATA;
+    const viaCoreDirect = {
+      ca: Core.getCaFromMissions(D, mk),
+      depenses: Core.getDepensesMois(D, mk),
+      revenuNet: Core.getRevenuNetMois(D, mk),
+      tva: Core.getTVACollecteeMois(D, mk),
+      sasu: Core.isSASU(D),
+      impotsTaux: Core.getImpotsTaux(D),
+      tauxCharges: Core.getTauxCharges(D),
+      anneeMonths: Core.getCurrentYearMonths(D),
+      avantOuverture: Core.isMonthBeforeOpening(D, mk),
+      activeMonths: Core.getActiveMonthsInYear(D),
+      moisOuverture: Core.getMoisDepuisOuverture(D),
+      caAnnuelBrut: Core.getCaAnnuelBrut(D),
+      ponctuelsCA: Core.getPonctuelsCA(D, mk),
+      ponctuelsPresta: Core.getPonctuelsPresta(D, mk),
+      ponctuelsVente: Core.getPonctuelsVente(D, mk),
+      ponctuelsTreso: Core.getPonctuelsTresorerie(D, mk),
+      venteRatio: (m0 ? Core.getMissionVenteRatio(D, m0) : null),
+      tauxChargesVente: Core.getTauxChargesVente(D),
+      heuresFact: Core.getHeuresFact(D),
+      heuresInterne: Core.getHeuresInterne(D),
+      missionTotalMs: (m0 ? Core.getMissionTotalMs(D, m0) : null),
+      missionHeures: (m0 ? Core.getMissionHeures(D, m0) : null),
+      resteAEncaisser: (m0 ? Core.getResteAEncaisser(m0) : null),
+      totalEncaisse: (m0 ? Core.getTotalEncaisse(m0) : null),
+      moisActifsAnnee: Core.getMoisActifsAnnee(D),
+      sasuCoutRemu: Core.getSasuCoutRemuMensuel(D),
+      sasuProjection: Core.getSasuProjectionFinAnnee(D),
+      sasuSolde: Core.getSasuSoldeActuelEstime(D),
+      tresorerieDepart: Core.getTresorerieDepart(D),
+      tvaCollecteeAnnuelle: Core.getTVACollecteeAnnuelle(D),
+      tvaDeductibleAnnuelle: Core.getTVADeductibleAnnuelle(D),
+      tvaDeductibleMois: Core.getTVADeductibleMois(D, mk),
+      tvaProvisionMensuelle: Core.getTVAProvisionMensuelle(D),
+      tvaSeuilsStatut: Core.getTVASeuilsStatut(D),
+      tvaRegime: Core.getTvaRegime(D),
+      urssafAnnuelBrut: Core.getUrssafAnnuelBrut(D),
+      urssafProvisionMensuelle: Core.getUrssafProvisionMensuelle(D),
+      urssafRegime: Core.getUrssafRegime(D),
     };
 
-    compare('artisan', 'D_ARTISAN', mk, 'getCaFromMissions', avant.ca, apres.ca);
-    compare('artisan', 'D_ARTISAN', mk, 'getDepensesMois', avant.depenses, apres.depenses);
-    compare('artisan', 'D_ARTISAN', mk, 'getRevenuNetMois (dashboard)', avant.revenuNet, apres.revenuNet);
-    compare('artisan', 'D_ARTISAN', mk, 'getTVACollecteeMois', avant.tva, apres.tva);
-    compare('artisan', 'D_ARTISAN', mk, 'isSASU', avant.sasu, apres.sasu);
-    compare('artisan', 'D_ARTISAN', mk, 'getImpotsTaux', avant.impotsTaux, apres.impotsTaux);
-    compare('artisan', 'D_ARTISAN', mk, 'getTauxCharges', avant.tauxCharges, apres.tauxCharges);
-    compare('artisan', 'D_ARTISAN', mk, 'getCurrentYearMonths', avant.anneeMonths, apres.anneeMonths);
-    compare('artisan', 'D_ARTISAN', mk, 'isMonthBeforeOpening', avant.avantOuverture, apres.avantOuverture);
-    compare('artisan', 'D_ARTISAN', mk, 'getActiveMonthsInYear', avant.activeMonths, apres.activeMonths);
-    compare('artisan', 'D_ARTISAN', mk, 'getMoisDepuisOuverture', avant.moisOuverture, apres.moisOuverture);
-    compare('artisan', 'D_ARTISAN', mk, 'getCaAnnuelBrut', avant.caAnnuelBrut, apres.caAnnuelBrut);
-    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsCA', avant.ponctuelsCA, apres.ponctuelsCA);
-    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsPresta', avant.ponctuelsPresta, apres.ponctuelsPresta);
-    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsVente', avant.ponctuelsVente, apres.ponctuelsVente);
-    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsTresorerie', avant.ponctuelsTreso, apres.ponctuelsTreso);
-    compare('artisan', 'D_ARTISAN', mk, 'getMissionVenteRatio', avant.venteRatio, apres.venteRatio);
-    compare('artisan', 'D_ARTISAN', mk, 'getTauxChargesVente', avant.tauxChargesVente, apres.tauxChargesVente);
-    compare('artisan', 'D_ARTISAN', mk, 'getHeuresFact', avant.heuresFact, apres.heuresFact);
-    compare('artisan', 'D_ARTISAN', mk, 'getHeuresInterne', avant.heuresInterne, apres.heuresInterne);
-    compare('artisan', 'D_ARTISAN', mk, 'getMissionTotalMs', avant.missionTotalMs, apres.missionTotalMs);
-    compare('artisan', 'D_ARTISAN', mk, 'getMissionHeures', avant.missionHeures, apres.missionHeures);
-    compare('artisan', 'D_ARTISAN', mk, 'getResteAEncaisser', avant.resteAEncaisser, apres.resteAEncaisser);
-    compare('artisan', 'D_ARTISAN', mk, 'getTotalEncaisse', avant.totalEncaisse, apres.totalEncaisse);
-    compare('artisan', 'D_ARTISAN', mk, 'getMoisActifsAnnee', avant.moisActifsAnnee, apres.moisActifsAnnee);
-    compare('artisan', 'D_ARTISAN', mk, 'getSasuCoutRemuMensuel', avant.sasuCoutRemu, apres.sasuCoutRemu);
-    compare('artisan', 'D_ARTISAN', mk, 'getSasuProjectionFinAnnee', avant.sasuProjection, apres.sasuProjection);
-    compare('artisan', 'D_ARTISAN', mk, 'getSasuSoldeActuelEstime', avant.sasuSolde, apres.sasuSolde);
-    compare('artisan', 'D_ARTISAN', mk, 'getTresorerieDepart', avant.tresorerieDepart, apres.tresorerieDepart);
-    compare('artisan', 'D_ARTISAN', mk, 'getTVACollecteeAnnuelle', avant.tvaCollecteeAnnuelle, apres.tvaCollecteeAnnuelle);
-    compare('artisan', 'D_ARTISAN', mk, 'getTVADeductibleAnnuelle', avant.tvaDeductibleAnnuelle, apres.tvaDeductibleAnnuelle);
-    compare('artisan', 'D_ARTISAN', mk, 'getTVADeductibleMois', avant.tvaDeductibleMois, apres.tvaDeductibleMois);
-    compare('artisan', 'D_ARTISAN', mk, 'getTVAProvisionMensuelle', avant.tvaProvisionMensuelle, apres.tvaProvisionMensuelle);
-    compare('artisan', 'D_ARTISAN', mk, 'getTVASeuilsStatut', avant.tvaSeuilsStatut, apres.tvaSeuilsStatut);
-    compare('artisan', 'D_ARTISAN', mk, 'getTvaRegime', avant.tvaRegime, apres.tvaRegime);
-    compare('artisan', 'D_ARTISAN', mk, 'getUrssafAnnuelBrut', avant.urssafAnnuelBrut, apres.urssafAnnuelBrut);
-    compare('artisan', 'D_ARTISAN', mk, 'getUrssafProvisionMensuelle', avant.urssafProvisionMensuelle, apres.urssafProvisionMensuelle);
-    compare('artisan', 'D_ARTISAN', mk, 'getUrssafRegime', avant.urssafRegime, apres.urssafRegime);
+    compare('artisan', 'D_ARTISAN', mk, 'getCaFromMissions', viaFichier.ca, viaCoreDirect.ca);
+    compare('artisan', 'D_ARTISAN', mk, 'getDepensesMois', viaFichier.depenses, viaCoreDirect.depenses);
+    compare('artisan', 'D_ARTISAN', mk, 'getRevenuNetMois (dashboard)', viaFichier.revenuNet, viaCoreDirect.revenuNet);
+    compare('artisan', 'D_ARTISAN', mk, 'getTVACollecteeMois', viaFichier.tva, viaCoreDirect.tva);
+    compare('artisan', 'D_ARTISAN', mk, 'isSASU', viaFichier.sasu, viaCoreDirect.sasu);
+    compare('artisan', 'D_ARTISAN', mk, 'getImpotsTaux', viaFichier.impotsTaux, viaCoreDirect.impotsTaux);
+    compare('artisan', 'D_ARTISAN', mk, 'getTauxCharges', viaFichier.tauxCharges, viaCoreDirect.tauxCharges);
+    compare('artisan', 'D_ARTISAN', mk, 'getCurrentYearMonths', viaFichier.anneeMonths, viaCoreDirect.anneeMonths);
+    compare('artisan', 'D_ARTISAN', mk, 'isMonthBeforeOpening', viaFichier.avantOuverture, viaCoreDirect.avantOuverture);
+    compare('artisan', 'D_ARTISAN', mk, 'getActiveMonthsInYear', viaFichier.activeMonths, viaCoreDirect.activeMonths);
+    compare('artisan', 'D_ARTISAN', mk, 'getMoisDepuisOuverture', viaFichier.moisOuverture, viaCoreDirect.moisOuverture);
+    compare('artisan', 'D_ARTISAN', mk, 'getCaAnnuelBrut', viaFichier.caAnnuelBrut, viaCoreDirect.caAnnuelBrut);
+    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsCA', viaFichier.ponctuelsCA, viaCoreDirect.ponctuelsCA);
+    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsPresta', viaFichier.ponctuelsPresta, viaCoreDirect.ponctuelsPresta);
+    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsVente', viaFichier.ponctuelsVente, viaCoreDirect.ponctuelsVente);
+    compare('artisan', 'D_ARTISAN', mk, 'getPonctuelsTresorerie', viaFichier.ponctuelsTreso, viaCoreDirect.ponctuelsTreso);
+    compare('artisan', 'D_ARTISAN', mk, 'getMissionVenteRatio', viaFichier.venteRatio, viaCoreDirect.venteRatio);
+    compare('artisan', 'D_ARTISAN', mk, 'getTauxChargesVente', viaFichier.tauxChargesVente, viaCoreDirect.tauxChargesVente);
+    compare('artisan', 'D_ARTISAN', mk, 'getHeuresFact', viaFichier.heuresFact, viaCoreDirect.heuresFact);
+    compare('artisan', 'D_ARTISAN', mk, 'getHeuresInterne', viaFichier.heuresInterne, viaCoreDirect.heuresInterne);
+    compare('artisan', 'D_ARTISAN', mk, 'getMissionTotalMs', viaFichier.missionTotalMs, viaCoreDirect.missionTotalMs);
+    compare('artisan', 'D_ARTISAN', mk, 'getMissionHeures', viaFichier.missionHeures, viaCoreDirect.missionHeures);
+    compare('artisan', 'D_ARTISAN', mk, 'getResteAEncaisser', viaFichier.resteAEncaisser, viaCoreDirect.resteAEncaisser);
+    compare('artisan', 'D_ARTISAN', mk, 'getTotalEncaisse', viaFichier.totalEncaisse, viaCoreDirect.totalEncaisse);
+    compare('artisan', 'D_ARTISAN', mk, 'getMoisActifsAnnee', viaFichier.moisActifsAnnee, viaCoreDirect.moisActifsAnnee);
+    compare('artisan', 'D_ARTISAN', mk, 'getSasuCoutRemuMensuel', viaFichier.sasuCoutRemu, viaCoreDirect.sasuCoutRemu);
+    compare('artisan', 'D_ARTISAN', mk, 'getSasuProjectionFinAnnee', viaFichier.sasuProjection, viaCoreDirect.sasuProjection);
+    compare('artisan', 'D_ARTISAN', mk, 'getSasuSoldeActuelEstime', viaFichier.sasuSolde, viaCoreDirect.sasuSolde);
+    compare('artisan', 'D_ARTISAN', mk, 'getTresorerieDepart', viaFichier.tresorerieDepart, viaCoreDirect.tresorerieDepart);
+    compare('artisan', 'D_ARTISAN', mk, 'getTVACollecteeAnnuelle', viaFichier.tvaCollecteeAnnuelle, viaCoreDirect.tvaCollecteeAnnuelle);
+    compare('artisan', 'D_ARTISAN', mk, 'getTVADeductibleAnnuelle', viaFichier.tvaDeductibleAnnuelle, viaCoreDirect.tvaDeductibleAnnuelle);
+    compare('artisan', 'D_ARTISAN', mk, 'getTVADeductibleMois', viaFichier.tvaDeductibleMois, viaCoreDirect.tvaDeductibleMois);
+    compare('artisan', 'D_ARTISAN', mk, 'getTVAProvisionMensuelle', viaFichier.tvaProvisionMensuelle, viaCoreDirect.tvaProvisionMensuelle);
+    compare('artisan', 'D_ARTISAN', mk, 'getTVASeuilsStatut', viaFichier.tvaSeuilsStatut, viaCoreDirect.tvaSeuilsStatut);
+    compare('artisan', 'D_ARTISAN', mk, 'getTvaRegime', viaFichier.tvaRegime, viaCoreDirect.tvaRegime);
+    compare('artisan', 'D_ARTISAN', mk, 'getUrssafAnnuelBrut', viaFichier.urssafAnnuelBrut, viaCoreDirect.urssafAnnuelBrut);
+    compare('artisan', 'D_ARTISAN', mk, 'getUrssafProvisionMensuelle', viaFichier.urssafProvisionMensuelle, viaCoreDirect.urssafProvisionMensuelle);
+    compare('artisan', 'D_ARTISAN', mk, 'getUrssafRegime', viaFichier.urssafRegime, viaCoreDirect.urssafRegime);
   }
 
-  // getCaNetAnnuel : proxy historique annuel, même logique que côté Freelance
-  const ctxArOrig = await loadHtmlContext('indepuls_artisan.html');
-  setData(ctxArOrig, D_ARTISAN);
-  compare('artisan', 'D_ARTISAN', 'année', 'getCaNetAnnuel (historique)', ctxArOrig.getCaNetAnnuel(), ctxAr.getCaNetAnnuel());
+  // getCaNetAnnuel : proxy historique annuel, viaFichier vs viaCoreDirect.
+  compare('artisan', 'D_ARTISAN', 'année', 'getCaNetAnnuel (historique)', ctxAr.getCaNetAnnuel(), Core.getCaNetAnnuel(ctxAr.DATA));
 
   // ── RAPPORT ────────────────────────────────────────────────
   console.log('\n' + '═'.repeat(70));

@@ -1633,21 +1633,12 @@ const TVA_SEUILS = {
   achat:      { franchise: PARAMS_2026.vente_bic.seuilTVABase,                  tolerance: PARAMS_2026.vente_bic.seuilTVAMajore }
 };
 // Retourne la zone TVA : 'normal' | 'tolerance' | 'depasse'
-function getTVAZone(ca, franchise, tolerance) {
-  if(ca >= tolerance) return 'depasse';
-  if(ca >= franchise) return 'tolerance';
-  return 'normal';
-}
+// getTVAZone -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Renvoie le CSS prog-fill (ok / wn / bd) et kpi class selon la zone
-function tvaZoneFill(zone) { return zone==='depasse'?'bd':zone==='tolerance'?'wn':'ok'; }
-function tvaZoneKpi(zone)  { return zone==='depasse'?'bad':zone==='tolerance'?'warn':'neu'; }
+// tvaZoneFill -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// tvaZoneKpi -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Renvoie les seuils TVA selon le statut courant (depuis params stockés, ou fallback TVA_SEUILS)
-function getTVASeuilsStatut() {
-  const p=DATA.params;
-  if(p.statut==='micro-achat')
-    return { franchise: p.seuilTVAVenteBase||TVA_SEUILS.achat.franchise, tolerance: p.seuilTVAVenteMajore||TVA_SEUILS.achat.tolerance };
-  return { franchise: p.seuilTVAPrestationBase||TVA_SEUILS.prestation.franchise, tolerance: p.seuilTVAPrestationMajore||TVA_SEUILS.prestation.tolerance };
-}
+// getTVASeuilsStatut -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Construit une barre de progression TVA 3 zones
 function renderTVABarre(label, ca, franchise, tolerance) {
   const zone=getTVAZone(ca, franchise, tolerance);
@@ -1970,9 +1961,9 @@ function today() { return new Date().toISOString().slice(0,10); }
 
 // ── ENCAISSEMENTS — HELPERS ──────────────────────────────────
 // Somme de tous les encaissements enregistrés sur un chantier
-function getTotalEncaisse(m) { return (m.encaissements||[]).reduce((s,e)=>s+(e.montant||0),0); }
+// getTotalEncaisse -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Reste à percevoir = devis - total encaissé (jamais négatif)
-function getResteAEncaisser(m) { return Math.max(0,(m.montantDevis||0)-getTotalEncaisse(m)); }
+// getResteAEncaisser -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Chantiers facturés avec un reste à encaisser depuis ≥ 14 j, triés par ancienneté
 function getMissionsImpayees() {
   const now=Date.now();
@@ -1991,25 +1982,15 @@ function ageBadgeEncaissement(dateFact,reste){
   return ` &nbsp;·&nbsp; <span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${bg};color:${color}">${icon} ${days} j</span>`;
 }
 // Ratio vente/total du devis initial (pour ventilation proportionnelle en activité mixte)
-function getMissionVenteRatio(m) {
-  const d=m.montantDevis||0; if(d===0) return 0;
-  return m.montantVente!=null ? m.montantVente/d : 0;
-}
+// getMissionVenteRatio -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function getCurrentMk() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function getMonthKey(s) { return s ? s.slice(0,7) : null; }
 function monthLabel(k) { const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}); }
 function monthLabelFull(k) { const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); }
-function getCurrentYearMonths() { const y=DATA.currentYear; return Array.from({length:12},(_,i)=>`${y}-${String(i+1).padStart(2,'0')}`); }
+// getCurrentYearMonths -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function heuresMs(ms) { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`; }
-function getMissionTotalMs(m) {
-  if(m.isManagement){
-    const base=(DATA.tempsInterne&&DATA.tempsInterne[getCurrentMk()])||0;
-    const live=m.timerRunning&&m.timerStart?Date.now()-m.timerStart:0;
-    return base+live;
-  }
-  let t=m.timerAccumulated||0; if(m.timerRunning&&m.timerStart) t+=Date.now()-m.timerStart; t+=(m.tempsManuel||[]).reduce((s,e)=>s+e.ms,0); return t;
-}
-function getMissionHeures(m) { return getMissionTotalMs(m)/3600000+(m.heuresSaisies||0); }
+// getMissionTotalMs -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getMissionHeures -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function saveParam(key,val) { DATA.params[key]=val; saveData(); }
 // Sauvegarde un taux de charges et synchronise le champ prestation correspondant.
 // Pour micro-achat, tauxURSSAF/tauxCFP = taux vente principal (12,3 %/0,1 %).
@@ -2026,26 +2007,15 @@ function saveChargeParam(key,val) {
 function themeColor(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
 
 // ── CALCULS ──────────────────────────────────────────────────
-function getCaFromMissions(mk) {
-  let total=0;
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
-    const enc=m.encaissements||[];
-    if(enc.length>0) {
-      total+=enc.filter(e=>e.date&&getMonthKey(e.date)===mk).reduce((s,e)=>s+(e.montant||0),0);
-    } else {
-      if(m.statut==='fact'&&m.dateFact&&getMonthKey(m.dateFact)===mk) total+=m.montantDevis||0;
-    }
-  });
-  return total;
-}
+// getCaFromMissions -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function getDepensesChantier(missionId) {
   return DATA.depenses.filter(d=>d.chantierId===missionId).reduce((s,d)=>s+(d.montant||0),0);
 }
 function toggleDepChantier(checked) {
   document.getElementById('dep-chantier-zone').style.display=checked?'':'none';
 }
-function getHeuresFact() { return DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='fact')).reduce((s,m)=>s+getMissionHeures(m),0); }
-function getHeuresInterne() { const m=DATA.missions.find(m=>m.isManagement); return m?getMissionHeures(m):0; }
+// getHeuresFact -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getHeuresInterne -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
 // Ancre de départ : dateDebut si renseigné ('always' = aucune borne basse —
 // au-delà du garde-fou isMonthBeforeOpening déjà appliqué par l'appelant —
@@ -2057,22 +2027,8 @@ function _depenseMensuelleActive(d, y, mo) {
   const dm=new Date((d.dateDebut||d.date)+'T00:00:00');
   return dm.getFullYear()<y||(dm.getFullYear()===y&&dm.getMonth()+1<=mo);
 }
-function getDepensesMois(mk) {
-  if(isMonthBeforeOpening(mk)) return 0;
-  const [y,mo]=mk.split('-').map(Number);
-  let t=0;
-  DATA.depenses.forEach(d => {
-    if (!d.date) return;
-    if (d.recurrence==='mensuelle') { if(_depenseMensuelleActive(d,y,mo)) t+=d.montant; }
-    else {
-      const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
-      if (d.recurrence==='annuelle') { if(dmo===mo) t+=d.montant; }
-      else { if(dy===y&&dmo===mo) t+=d.montant; }
-    }
-  });
-  return t;
-}
-function getTauxCharges() { if(isSASU()) return 0; return (DATA.params.tauxURSSAF+DATA.params.tauxCFP)/100; }
+// getDepensesMois -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getTauxCharges -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Taux charges URSSAF+CFP pour la part prestation.
 // Hors activité mixte : taux principal du statut (tauxURSSAF+tauxCFP).
 // En activité mixte : taux par nature de CA (tauxCotisationsPrestation+tauxCFPPrestation),
@@ -2084,11 +2040,7 @@ function getTauxChargesPresta() {
   return ((p.tauxCotisationsPrestation??p.tauxURSSAF??0)+(p.tauxCFPPrestation??p.tauxCFP??0))/100;
 }
 // Taux charges URSSAF+CFP pour la part vente (activité mixte uniquement)
-function getTauxChargesVente() {
-  if(isSASU()) return 0;
-  const p=DATA.params;
-  return ((p.tauxCotisationsVente??PARAMS_2026.vente_bic.tauxCotisations)+(p.tauxCFPVente??PARAMS_2026.vente_bic.tauxCFP))/100;
-}
+// getTauxChargesVente -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Seuils TVA pour la part prestation (depuis params ou fallback TVA_SEUILS)
 function getTVASeuilsPresta() {
   const p=DATA.params;
@@ -2099,30 +2051,12 @@ function getTVASeuilsVente() {
   const p=DATA.params;
   return { franchise: p.seuilTVAVenteBase||TVA_SEUILS.achat.franchise, tolerance: p.seuilTVAVenteMajore||TVA_SEUILS.achat.tolerance };
 }
-function getImpotsTaux() { return (DATA.params.impotsTaux||0)/100; }
-function isSASU() { return DATA.params.statut === 'sasu'; }
-function getTresorerieDepart() { return ((DATA.params.tresorerieParAnnee)||{})[DATA.currentYear]||0; }
-function getSasuCoutRemuMensuel() { const net=DATA.params.remunerationNette||0; const pct=DATA.params.coutRemunerationPct||80; return net*(1+pct/100); }
-function getSasuSoldeActuelEstime() {
-  const curMk=getCurrentMk();
-  const allMonths=getCurrentYearMonths().filter(mk=>mk<=curMk);
-  const ca=allMonths.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
-  const inflows=allMonths.reduce((s,mk)=>s+getPonctuelsTresorerie(mk),0);
-  const dep=allMonths.reduce((s,mk)=>s+getDepensesMois(mk),0);
-  const remu=getSasuCoutRemuMensuel()*allMonths.length;
-  return Math.round(getTresorerieDepart()+ca+inflows-dep-remu);
-}
-function getSasuProjectionFinAnnee() {
-  const curMk=getCurrentMk();
-  const cm=parseInt(curMk.split('-')[1],10);
-  const moisRestants=12-cm;
-  const base=DATA.params.soldeReel!=null?DATA.params.soldeReel:getSasuSoldeActuelEstime();
-  const pastMonths=getCurrentYearMonths().filter(mk=>mk<curMk);
-  const n=Math.max(pastMonths.length,1);
-  const caAvg=pastMonths.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0)/n;
-  const depAvg=pastMonths.reduce((s,mk)=>s+getDepensesMois(mk),0)/n;
-  return Math.round(base+(caAvg-depAvg-getSasuCoutRemuMensuel())*moisRestants);
-}
+// getImpotsTaux -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// isSASU -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getTresorerieDepart -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getSasuCoutRemuMensuel -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getSasuSoldeActuelEstime -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getSasuProjectionFinAnnee -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function saveSasuSoldeReel(val) {
   DATA.params.soldeReel=val;
   DATA.params.soldeReelDate=getCurrentMk();
@@ -2190,23 +2124,8 @@ function getDepensesMoyenneMensuelle() {
     .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId)
     .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montant||0)/actMois : (d.montant||0)), 0);
 }
-function getTauxHoraireMinCible() {
-  const p=DATA.params;
-  const hAn=(p.heuresParJour||7)*(p.joursParSemaine||4)*(p.semainesParAn||44);
-  if(hAn<=0) return 0;
-  const dep=getDepensesMoyenneMensuelle()+(p.chargesAnnuellesCompl||0)/12+(p.chargesSalariales||0);
-  if(isSASU()) return (getSasuCoutRemuMensuel()+dep)*12/hAn;
-  const r=1-getTauxChargesPresta()-getImpotsTaux();
-  return r>0?((p.objectifNetMensuel||0)+dep)/r*12/hAn:0;
-}
-function getCaAnnuelBrut() {
-  let t=0;
-  getCurrentYearMonths().forEach(mk=>{
-    const r=DATA.revenus[mk]||{};
-    t+=getCaFromMissions(mk)+getPonctuelsCA(mk);
-  });
-  return t;
-}
+// getTauxHoraireMinCible -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getCaAnnuelBrut -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Calcule la répartition CA mixte (prestations vs ventes) pour l'année courante.
 // Utilise montantPrestation/montantVente de chaque item : hors_ca → 0 dans les deux champs → non compté.
 function getCAMixte() {
@@ -2241,113 +2160,29 @@ function getCAMixte() {
 // ── REVENUS PONCTUELS — HELPERS PAR TYPE ────────────────────
 // type 'hors_ca' → trésorerie seulement (pas de CA, pas d'URSSAF, pas de TVA)
 // type 'prestation'|'vente' → CA taxable avec montantPrestation/montantVente séparés (v9+)
-function getPonctuelsCA(mk){
-  // Total CA taxable = somme des parts prestation + vente (hors_ca → 0 dans les deux champs)
-  const list=((DATA.revenus[mk]||{}).autresList||[]);
-  return list.reduce((s,e)=>s+(e.montantPrestation||0)+(e.montantVente||0),0);
-}
-function getPonctuelsPresta(mk){
-  return ((DATA.revenus[mk]||{}).autresList||[]).reduce((s,e)=>s+(e.montantPrestation||0),0);
-}
-function getPonctuelsVente(mk){
-  return ((DATA.revenus[mk]||{}).autresList||[]).reduce((s,e)=>s+(e.montantVente||0),0);
-}
-function getPonctuelsTresorerie(mk){
-  return ((DATA.revenus[mk]||{}).autresList||[]).filter(e=>e.type==='hors_ca').reduce((s,e)=>s+(e.montant||0),0);
-}
+// getPonctuelsCA -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getPonctuelsPresta -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getPonctuelsVente -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getPonctuelsTresorerie -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 
 // Ventile le CA d'un mois entre part prestation et part vente.
 // En activité simple, tout le CA est classé côté prestation.
-function getCaBreakdownMois(mk) {
-  if(!DATA.params.activiteMixte) {
-    const total=getCaFromMissions(mk)+getPonctuelsCA(mk);
-    return {prestation:total, vente:0, total};
-  }
-  let mP=0, mV=0;
-  // Missions non-récurrentes AVEC encaissements : ventilation proportionnelle au ratio devis
-  DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&(m.encaissements||[]).length>0)
-    .forEach(m=>{
-      const montant=(m.encaissements||[]).filter(e=>e.date&&getMonthKey(e.date)===mk)
-        .reduce((s,e)=>s+(e.montant||0),0);
-      if(!montant) return;
-      const vr=getMissionVenteRatio(m);
-      mV+=montant*vr; mP+=montant*(1-vr);
-    });
-  // Missions non-récurrentes SANS encaissements (fallback legacy)
-  DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&(m.encaissements||[]).length===0&&m.statut==='fact'&&m.dateFact&&getMonthKey(m.dateFact)===mk)
-    .forEach(m=>{
-      const tot=m.montantDevis||0, v=m.montantVente!=null?m.montantVente:0;
-      mV+=v; mP+=(tot-v);
-    });
-  const prestation=mP+getPonctuelsPresta(mk);
-  const vente=mV+getPonctuelsVente(mk);
-  return {prestation, vente, total:prestation+vente};
-}
+// getCaBreakdownMois -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 
-function getCaNetAnnuel() { let t=0; getCurrentYearMonths().forEach(mk=>t+=getRevenuNetMois(mk)); return t; }
-function getRevenuNetMois(mk) {
-  if(isMonthBeforeOpening(mk)) return 0;
-  const tresorerie=getPonctuelsTresorerie(mk); // Non taxable, mais cash réel
-  if(DATA.params.activiteMixte) {
-    // Activité mixte : taux de charges distincts par nature
-    const {prestation:caP, vente:caV}=getCaBreakdownMois(mk);
-    const charges=caP*getTauxChargesPresta()+caV*getTauxChargesVente();
-    const caBase=caP+caV;
-    const impots=caBase*getImpotsTaux();
-    return caBase+tresorerie-charges-impots-getDepensesMois(mk)-(DATA.params.chargesSalariales||0);
-  }
-  const r=DATA.revenus[mk]||{};
-  const caBase=getCaFromMissions(mk)+getPonctuelsCA(mk);
-  const charges=caBase*getTauxCharges();
-  const impots=caBase*getImpotsTaux();
-  return caBase+tresorerie-charges-impots-getDepensesMois(mk)-(DATA.params.chargesSalariales||0);
-}
+// getCaNetAnnuel -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getRevenuNetMois -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Nombre total de mois écoulés depuis l'ouverture (toutes années confondues).
 // Retourne null si aucune date renseignée.
 // Utilisé pour les alertes : on ne signale pas un CA faible si l'activité < 3 mois.
-function getMoisDepuisOuverture() {
-  const dO = DATA.params.dateOuverture;
-  if (!dO) return null;
-  const yr = parseInt(dO.slice(0,4)), mo = parseInt(dO.slice(5,7));
-  const now = new Date();
-  return (now.getFullYear() - yr) * 12 + (now.getMonth() + 1 - mo);
-}
+// getMoisDepuisOuverture -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 
 // Tableau des mois "actifs" dans l'année affichée :
 // – élimine les mois futurs (pour l'année courante)
 // – élimine les mois AVANT l'ouverture si celle-ci tombe dans cette même année
-function getMoisActifsAnnee() {
-  const mks = getCurrentYearMonths();
-  const isCurrentYear = DATA.currentYear === new Date().getFullYear();
-  const curMk = getCurrentMk();
-  const dO = DATA.params.dateOuverture;
-  let fromMk = `${DATA.currentYear}-01`;
-  if (dO) {
-    const ouvYear = parseInt(dO.slice(0,4));
-    if (ouvYear > DATA.currentYear) return [];          // ouverture dans le futur
-    if (ouvYear === DATA.currentYear) fromMk = dO.slice(0,7); // prend le mois d'ouverture
-    // ouverture avant cette année → tous les mois de l'année comptent
-  }
-  const toMk = isCurrentYear ? curMk : `${DATA.currentYear}-12`;
-  return mks.filter(mk => mk >= fromMk && mk <= toMk);
-}
+// getMoisActifsAnnee -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 
-function isMonthBeforeOpening(mk) {
-  const dO=DATA.params.dateOuverture;
-  if(!dO) return false;
-  const ouvYear=parseInt(dO.slice(0,4));
-  if(ouvYear>DATA.currentYear) return true;
-  if(ouvYear<DATA.currentYear) return false;
-  return mk<dO.slice(0,7);
-}
-function getActiveMonthsInYear() {
-  const dO=DATA.params.dateOuverture;
-  if(!dO) return 12;
-  const ouvYear=parseInt(dO.slice(0,4));
-  if(ouvYear<DATA.currentYear) return 12;
-  if(ouvYear>DATA.currentYear) return 0;
-  return Math.max(1,13-parseInt(dO.slice(5,7)));
-}
+// isMonthBeforeOpening -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getActiveMonthsInYear -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function getMoisRealises() {
   return getMoisActifsAnnee().filter(mk=>{
     const r=DATA.revenus[mk]||{};
@@ -2384,40 +2219,13 @@ function getTauxRemplissageAnnee() {
 }
 
 // ── TVA HELPERS ──────────────────────────────────────────────
-function getTVACollecteeMois(mk) {
-  if(!DATA.params.tva) return 0;
-  const base=getCaFromMissions(mk)+getPonctuelsCA(mk);
-  return base*(DATA.params.tauxTVA/100);
-}
-function getTVADeductibleMois(mk) {
-  if(!DATA.params.tva) return 0;
-  const [y,mo]=mk.split('-').map(Number);
-  let t=0;
-  DATA.depenses.forEach(d=>{
-    if(!d.tvaDeductible||!d.date) return;
-    if(d.recurrence==='mensuelle'){ if(_depenseMensuelleActive(d,y,mo)) t+=(d.montantTVA||0); }
-    else {
-      const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
-      if(d.recurrence==='annuelle'){ if(dmo===mo) t+=(d.montantTVA||0); }
-      else { if(dy===y&&dmo===mo) t+=(d.montantTVA||0); }
-    }
-  });
-  return t;
-}
-function getTVACollecteeAnnuelle() {
-  return getCurrentYearMonths().reduce((s,mk)=>s+getTVACollecteeMois(mk),0);
-}
-function getTVADeductibleAnnuelle() {
-  return getCurrentYearMonths().reduce((s,mk)=>s+getTVADeductibleMois(mk),0);
-}
+// getTVACollecteeMois -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getTVADeductibleMois -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getTVACollecteeAnnuelle -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getTVADeductibleAnnuelle -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 
 // ── TVA RÉGIME — HELPERS ─────────────────────────────────────
-function getTvaRegime() {
-  if(isSASU()) return 'mensuel';
-  const p=DATA.params;
-  if(!p.tva) return 'franchise';
-  return p.tvaRegime||'mensuel';
-}
+// getTvaRegime -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function saveTvaRegime(regime) {
   DATA.params.tvaRegime=regime;
   DATA.params.tva=(regime!=='franchise');
@@ -2425,15 +2233,7 @@ function saveTvaRegime(regime) {
 }
 // Provision mensuelle à mettre de côté selon régime
 // (ne pas confondre avec la dette fiscale réelle ni avec l'échéance)
-function getTVAProvisionMensuelle() {
-  const regime=getTvaRegime();
-  if(regime==='franchise') return 0;
-  const mk=getCurrentMk();
-  if(regime==='mensuel') return Math.max(0,Math.round(getTVACollecteeMois(mk)-getTVADeductibleMois(mk)));
-  // Simplifié et trimestriel : lissage TVA annuelle / mois actifs
-  const ann=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
-  return Math.round(ann/Math.max(getMoisActifsAnnee().length,1));
-}
+// getTVAProvisionMensuelle -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Prochaine échéance fiscale TVA : {montant, dateStr, label, daysLeft, regime}
 function getNextTVAEcheance() {
   const regime=getTvaRegime();
@@ -2473,33 +2273,13 @@ function getNextTVAEcheance() {
 }
 
 // ── URSSAF RÉGIME — HELPERS ──────────────────────────────────
-function getUrssafRegime() {
-  if(isSASU()) return 'mensuel';
-  return DATA.params.urssafRegime||'mensuel';
-}
+// getUrssafRegime -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function saveUrssafRegime(regime) {
   DATA.params.urssafRegime=regime;
   saveData(); renderAll();
 }
-function getUrssafAnnuelBrut() {
-  return getCurrentYearMonths().reduce((s,mk)=>{
-    const {prestation:presta,vente}=getCaBreakdownMois(mk);
-    const u=presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100;
-    const uV=DATA.params.activiteMixte?vente*getTauxChargesVente():0;
-    return s+u+uV;
-  },0);
-}
-function getUrssafProvisionMensuelle() {
-  const regime=getUrssafRegime();
-  const mk=getCurrentMk();
-  const {prestation:presta,vente}=getCaBreakdownMois(mk);
-  if(regime==='mensuel') {
-    const u=Math.round(presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100);
-    const uV=DATA.params.activiteMixte?Math.round(vente*getTauxChargesVente()):0;
-    return u+uV;
-  }
-  return Math.round(getUrssafAnnuelBrut()/Math.max(getMoisActifsAnnee().length,1));
-}
+// getUrssafAnnuelBrut -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
+// getUrssafProvisionMensuelle -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 function getNextUrssafEcheance() {
   const regime=getUrssafRegime();
   const now=new Date(), y=now.getFullYear(), m=now.getMonth()+1;
@@ -6407,6 +6187,70 @@ document.addEventListener('DOMContentLoaded', () => {
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
 });
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CORE PARTAGÉ — fonctions communes Freelance/Artisan branchées sur
+     core/calculs.js via refactor-test/modes/artisan.js. Validées par
+     56/56 (tests.js Freelance), 73/73 (validation.js), 4063/4063
+     (phase2_sandbox.js), 19/19 (unified_model.test.js), 139/139
+     (bridge_smoke.js). getDepensesMoyenneMensuelle et getTauxChargesPresta
+     restent volontairement NON branchées côté Artisan (divergences métier
+     réelles confirmées — voir docstring de phase2_sandbox.js).
+     Le <script type="module"> ci-dessous s'exécute après le parsing complet
+     du document mais AVANT l'événement DOMContentLoaded (donc avant
+     loadData()/renderAll() ci-dessus) : les fonctions sont déjà disponibles
+     au premier rendu, pas seulement aux rendus suivants.
+     ════════════════════════════════════════════════════════════════ -->
+<script type="module">
+  import * as Mode from './refactor-test/modes/artisan.js';
+
+  function sync() { Mode.setData(DATA); }
+
+  window.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
+  window.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
+  window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
+  window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
+  window.getTVACollecteeMois    = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
+  window.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
+  window.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+  window.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
+  window.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
+  window.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };
+  window.isMonthBeforeOpening   = (mk) => { sync(); return Mode.isMonthBeforeOpening(mk); };
+  window.getActiveMonthsInYear  = ()   => { sync(); return Mode.getActiveMonthsInYear(); };
+  window.getMoisDepuisOuverture = ()   => { sync(); return Mode.getMoisDepuisOuverture(); };
+  window.getCaAnnuelBrut        = ()   => { sync(); return Mode.getCaAnnuelBrut(); };
+  window.getPonctuelsCA         = (mk) => { sync(); return Mode.getPonctuelsCA(mk); };
+  window.getPonctuelsPresta     = (mk) => { sync(); return Mode.getPonctuelsPresta(mk); };
+  window.getPonctuelsVente      = (mk) => { sync(); return Mode.getPonctuelsVente(mk); };
+  window.getPonctuelsTresorerie = (mk) => { sync(); return Mode.getPonctuelsTresorerie(mk); };
+  window.getMissionVenteRatio   = (m)  => { sync(); return Mode.getMissionVenteRatio(m); };
+  window.getTauxChargesVente    = ()   => { sync(); return Mode.getTauxChargesVente(); };
+  window.getCaNetAnnuel         = ()   => { sync(); return Mode.getCaNetAnnuel(); };
+  window.getHeuresFact          = ()   => { sync(); return Mode.getHeuresFact(); };
+  window.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
+  window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
+  window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
+  window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
+  window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
+  window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
+  window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+  window.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
+  window.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };
+  window.getTVADeductibleAnnuelle  = () => { sync(); return Mode.getTVADeductibleAnnuelle(); };
+  window.getTVADeductibleMois      = (mk) => { sync(); return Mode.getTVADeductibleMois(mk); };
+  window.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
+  window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
+  window.getTVAZone                = Mode.getTVAZone;
+  window.tvaZoneFill               = Mode.tvaZoneFill;
+  window.tvaZoneKpi                = Mode.tvaZoneKpi;
+  window.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };
+  window.getTresorerieDepart       = () => { sync(); return Mode.getTresorerieDepart(); };
+  window.getTvaRegime              = () => { sync(); return Mode.getTvaRegime(); };
+  window.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };
+  window.getUrssafProvisionMensuelle = () => { sync(); return Mode.getUrssafProvisionMensuelle(); };
+  window.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
 </script>
 
 <!-- BOUTON CHANGER DE SESSION -->
