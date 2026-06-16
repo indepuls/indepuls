@@ -1932,7 +1932,7 @@ function addMission(obj) {
 function removeMission(id) { DATA.missions=DATA.missions.filter(x=>x.id!==id); }
 function addDepense(obj)  { DATA.depenses.push({id:uuid(),...obj}); }
 function removeDepense(id){ DATA.depenses=DATA.depenses.filter(x=>x.id!==id); }
-function addPonctuel(mk, entry) {
+function _addPonctuelEntry(mk, entry) {
   if(!DATA.revenus[mk]) DATA.revenus[mk]={};
   if(!DATA.revenus[mk].autresList) DATA.revenus[mk].autresList=[];
   DATA.revenus[mk].autresList.push(entry);
@@ -3829,7 +3829,7 @@ function addPonctuel() {
   const libelle = document.getElementById('ponc-libelle').value.trim();
   const montant = parseFloat(document.getElementById('ponc-montant').value)||0;
   if(montant<=0){ showToast('⚠️ Montant requis.'); return; }
-  addPonctuel(_poncMk, { id:uuid(), libelle, montant, type,
+  _addPonctuelEntry(_poncMk, { id:uuid(), libelle, montant, type,
     montantPrestation: type==='prestation'?montant:0, montantVente: type==='vente'?montant:0 });
   saveData();
   document.getElementById('ponc-libelle').value='';
