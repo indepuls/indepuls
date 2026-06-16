@@ -144,6 +144,15 @@ export function getPonctuelsTresorerie(DATA, mk) {
 
 // ── CA PAR MOIS ──────────────────────────────────────────────
 
+// ATTENTION DIVERGENCE NON RÉSOLUE (voir rapport de validation) :
+// cette fonction retourne {presta, vente} — la forme utilisée par indepuls_freelance.html.
+// indepuls_artisan.html a sa propre getCaBreakdownMois qui retourne {prestation, vente, total}
+// (clé "prestation" et pas "presta", + une clé "total" en plus) et qui ventile aussi les
+// missions sans encaissement avec m.montantVente / (montantDevis - montantVente) au lieu de
+// passer par getMissionCaVente/getMissionCaPresta. Les DEUX implémentations donnent le même
+// résultat numérique pour les cas testés, mais les clés diffèrent : NE PAS utiliser cette
+// fonction telle quelle pour le mode Artisan sans adapter modes/artisan.js (wrapper de
+// renommage des clés), sous peine de undefined silencieux côté artisan.
 export function getCaBreakdownMois(DATA, mk) {
   if (!isActiviteMixte(DATA)) {
     return { presta: getCaFromMissions(DATA, mk) + getPonctuelsCA(DATA, mk), vente: 0 };
@@ -154,28 +163,87 @@ export function getCaBreakdownMois(DATA, mk) {
   };
 }
 
+// IMPORTANT : cette fonction gère deux familles de missions très différentes —
+// voir refactor-test/tests/validation.js pour la preuve de non-régression :
+//   - isRecurring=true  : contribue mois par mois entre dateDebutRec et dateDebutRec+nbMoisRec,
+//     pour le montant montantMensuel. Statuts 'ref'/'att' ou absence de dateDebutRec → exclue.
+//   - isRecurring=false : si la mission a des encaissements, le CA du mois = somme des
+//     encaissements datés dans ce mois (logique acompte/solde). Sinon, fallback sur dateFact
+//     (CA reconnu en une fois au moment de la facturation), uniquement si statut='fact'.
+// Le mode Artisan n'a pas de missions récurrentes : isRecurring y est toujours falsy,
+// donc cette même fonction reste valide pour les deux modes.
 export function getCaFromMissions(DATA, mk) {
-  return DATA.missions
-    .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact') && getMonthKey(m) === mk)
-    .reduce((s, m) => s + getMissionCaPresta(DATA, m) + getMissionCaVente(DATA, m), 0);
+  let total = 0;
+  DATA.missions.filter(m => !m.isManagement).forEach(m => {
+    if (m.isRecurring) {
+      if (!m.dateDebutRec || m.statut === 'ref' || m.statut === 'att') return;
+      const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+      const [ty, tm] = mk.split('-').map(Number);
+      const diff = (ty - sy) * 12 + (tm - sm);
+      const nb = m.nbMoisRec || 9999;
+      if (diff >= 0 && diff < nb) total += m.montantMensuel || 0;
+    } else {
+      const encs = m.encaissements || [];
+      if (encs.length > 0) {
+        encs.forEach(e => { if (e.date && monthKeyOf(e.date) === mk) total += e.montant || 0; });
+      } else {
+        if (m.statut === 'fact' && m.dateFact && monthKeyOf(m.dateFact) === mk) total += m.montantDevis || 0;
+      }
+    }
+  });
+  return total;
 }
 
-function getMonthKey(m) {
-  return m.dateFact ? m.dateFact.slice(0, 7) : null;
+function monthKeyOf(dateStr) {
+  return dateStr ? dateStr.slice(0, 7) : null;
 }
 
+// Ventile le CA prestation d'un mois, missions récurrentes incluses (toujours 100% presta)
+// et missions ponctuelles ventilées via getMissionVenteRatio en cas d'activité mixte.
 export function getCaPrestaMois(DATA, mk) {
-  if (!isActiviteMixte(DATA)) return getCaFromMissions(DATA, mk);
-  return DATA.missions
-    .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact') && getMonthKey(m) === mk)
-    .reduce((s, m) => s + getMissionCaPresta(DATA, m), 0);
+  let t = 0;
+  DATA.missions.filter(m => !m.isManagement).forEach(m => {
+    if (m.isRecurring) {
+      if (!m.dateDebutRec || m.statut === 'ref' || m.statut === 'att') return;
+      const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+      const [ty, tm] = mk.split('-').map(Number);
+      const diff = (ty - sy) * 12 + (tm - sm);
+      if (diff >= 0 && diff < (m.nbMoisRec || 9999)) t += m.montantMensuel || 0;
+    } else {
+      const encs = m.encaissements || [];
+      if (encs.length > 0) {
+        const vr = getMissionVenteRatio(DATA, m);
+        encs.forEach(e => { if (e.date && monthKeyOf(e.date) === mk) t += (e.montant || 0) * (1 - vr); });
+      } else {
+        if (m.statut === 'fact' && m.dateFact && monthKeyOf(m.dateFact) === mk) t += getMissionCaPresta(DATA, m);
+      }
+    }
+  });
+  return t;
 }
 
+// CA missions vente pour un mois (uniquement si activité mixte ; les récurrentes
+// sont toujours 100% prestation et ne contribuent jamais ici)
 export function getCaVenteMissions(DATA, mk) {
   if (!isActiviteMixte(DATA)) return 0;
-  return DATA.missions
-    .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact') && getMonthKey(m) === mk)
-    .reduce((s, m) => s + getMissionCaVente(DATA, m), 0);
+  let t = 0;
+  DATA.missions.filter(m => !m.isManagement && !m.isRecurring).forEach(m => {
+    const encs = m.encaissements || [];
+    if (encs.length > 0) {
+      const vr = getMissionVenteRatio(DATA, m);
+      encs.forEach(e => { if (e.date && monthKeyOf(e.date) === mk) t += (e.montant || 0) * vr; });
+    } else {
+      if (m.statut === 'fact' && m.dateFact && monthKeyOf(m.dateFact) === mk) t += getMissionCaVente(DATA, m);
+    }
+  });
+  return t;
+}
+
+export function getMissionVenteRatio(DATA, m) {
+  if (!isActiviteMixte(DATA)) return 0;
+  const tot = (m.montantPrestation || 0) + (m.montantVente || 0);
+  if (!tot) return 0;
+  return (m.montantVente || 0) / tot;
 }
 
 export function getMissionCaPresta(DATA, m) {
