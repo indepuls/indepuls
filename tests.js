@@ -6,6 +6,7 @@
 const fs   = require('fs');
 const path = require('path');
 const vm   = require('vm');
+const { pathToFileURL } = require('url');
 
 // ── Extraction du bloc JS principal ──────────────────────────
 const html = fs.readFileSync(path.join(__dirname, 'indepuls_freelance.html'), 'utf8');
@@ -57,6 +58,61 @@ const ctx = vm.createContext({
 });
 
 vm.runInContext(src, ctx);
+
+(async () => {
+// ── Pont core : indepuls_freelance.html délègue désormais ces
+// fonctions à core/calculs.js via modes/freelance.js (même mécanisme que
+// le <script type="module"> ajouté en fin de fichier HTML). On reproduit
+// ici ce branchement pour le contexte vm, puisque vm.runInContext ne sait
+// pas exécuter de <script type="module">.
+const Mode = await import(pathToFileURL(path.join(__dirname, 'refactor-test', 'modes', 'freelance.js')).href);
+function sync() { Mode.setData(ctx.DATA); }
+ctx.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
+ctx.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
+ctx.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
+ctx.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
+ctx.getTVACollecteeMois    = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
+ctx.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
+ctx.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+ctx.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
+ctx.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
+ctx.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };
+ctx.isMonthBeforeOpening   = (mk) => { sync(); return Mode.isMonthBeforeOpening(mk); };
+ctx.getActiveMonthsInYear  = ()   => { sync(); return Mode.getActiveMonthsInYear(); };
+ctx.getMoisDepuisOuverture = ()   => { sync(); return Mode.getMoisDepuisOuverture(); };
+ctx.getCaAnnuelBrut        = ()   => { sync(); return Mode.getCaAnnuelBrut(); };
+ctx.getPonctuelsCA         = (mk) => { sync(); return Mode.getPonctuelsCA(mk); };
+ctx.getPonctuelsPresta     = (mk) => { sync(); return Mode.getPonctuelsPresta(mk); };
+ctx.getPonctuelsVente      = (mk) => { sync(); return Mode.getPonctuelsVente(mk); };
+ctx.getPonctuelsTresorerie = (mk) => { sync(); return Mode.getPonctuelsTresorerie(mk); };
+ctx.getMissionVenteRatio   = (m)  => { sync(); return Mode.getMissionVenteRatio(m); };
+ctx.getTauxChargesVente    = ()   => { sync(); return Mode.getTauxChargesVente(); };
+ctx.getTauxChargesPresta   = ()   => { sync(); return Mode.getTauxChargesPresta(); };
+ctx.isActiviteMixte        = ()   => { sync(); return Mode.isActiviteMixte(); };
+ctx.getCaNetAnnuel         = ()   => { sync(); return Mode.getCaNetAnnuel(); };
+ctx.getHeuresFact          = ()   => { sync(); return Mode.getHeuresFact(); };
+ctx.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
+ctx.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
+ctx.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
+ctx.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
+ctx.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
+ctx.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
+ctx.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+ctx.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
+ctx.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };
+ctx.getTVADeductibleAnnuelle  = () => { sync(); return Mode.getTVADeductibleAnnuelle(); };
+ctx.getTVADeductibleMois      = (mk) => { sync(); return Mode.getTVADeductibleMois(mk); };
+ctx.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
+ctx.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
+ctx.getTVAZone                = Mode.getTVAZone;
+ctx.tvaZoneFill                = Mode.tvaZoneFill;
+ctx.tvaZoneKpi                 = Mode.tvaZoneKpi;
+ctx.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };
+ctx.getTresorerieDepart       = () => { sync(); return Mode.getTresorerieDepart(); };
+ctx.getTvaRegime              = () => { sync(); return Mode.getTvaRegime(); };
+ctx.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };
+ctx.getUrssafProvisionMensuelle = () => { sync(); return Mode.getUrssafProvisionMensuelle(); };
+ctx.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
 
 // ── Pont : expose les fonctions métier dans le scope test ─────
 const {
@@ -448,3 +504,4 @@ console.log(`\n${'═'.repeat(50)}`);
 console.log(`  ${passed}/${total} tests passés${failed > 0 ? ` — ${failed} ÉCHEC(S)` : ' ✓'}`);
 console.log(`${'═'.repeat(50)}\n`);
 process.exit(failed > 0 ? 1 : 0);
+})().catch(err => { console.error('ERREUR TESTS :', err); process.exit(1); });

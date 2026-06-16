@@ -101,8 +101,9 @@ async function checkMode(modeFile, htmlFile, label) {
 }
 
 async function run() {
-  await checkMode('artisan.js', 'indepuls_artisan_refactor.html', 'artisan');
-  await checkMode('freelance.js', 'indepuls_freelance_refactor.html', 'freelance');
+  await checkMode('artisan.js', 'indepuls_artisan_refactor.html', 'artisan (refactor)');
+  await checkMode('freelance.js', 'indepuls_freelance_refactor.html', 'freelance (refactor)');
+  await checkMode('freelance.js', 'indepuls_freelance.html', 'freelance (production)');
 
   console.log('\n' + '═'.repeat(70));
   console.log('  SMOKE TEST — bridge modes/*.js (appelé tel que le HTML l\'utilise)');
