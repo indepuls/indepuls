@@ -35,7 +35,15 @@ export const getPonctuelsPresta       = (mk) => C.getPonctuelsPresta(DATA, mk);
 export const getPonctuelsVente        = (mk) => C.getPonctuelsVente(DATA, mk);
 export const getPonctuelsTresorerie   = (mk) => C.getPonctuelsTresorerie(DATA, mk);
 
-export const getCaBreakdownMois       = (mk) => C.getCaBreakdownMois(DATA, mk);
+// Le core retourne {presta, vente} (forme Freelance). L'Artisan attend
+// {prestation, vente, total} — voir la note dans core/calculs.js sur la
+// divergence de shape confirmée par refactor-test/tests/validation.js
+// (mêmes valeurs numériques, clés différentes). Ce wrapper traduit la forme
+// sans dupliquer la logique de calcul.
+export function getCaBreakdownMois(mk) {
+  const { presta, vente } = C.getCaBreakdownMois(DATA, mk);
+  return { prestation: presta, vente, total: presta + vente };
+}
 export const getCaFromMissions        = (mk) => C.getCaFromMissions(DATA, mk);
 export const getCaAnnuelBrut          = () => C.getCaAnnuelBrut(DATA);
 export const getCaNetAnnuel           = () => C.getCaNetAnnuel(DATA);
