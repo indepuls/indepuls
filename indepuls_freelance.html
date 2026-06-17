@@ -109,6 +109,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);}
 .tva-regime-opt:hover{border-color:var(--pri);}
 .tva-regime-opt input[type="radio"]{margin-top:3px;flex-shrink:0;accent-color:var(--acc);width:14px;height:14px;}
 .tva-regime-opt.selected{border-color:var(--acc);background:rgba(91,44,74,.04);}
+.tva-regime-opt.locked{cursor:not-allowed;opacity:.45;}
+.tva-regime-opt.locked:hover{border-color:var(--brd);}
 .mt1{margin-top:3px;}
 th.sortable{cursor:pointer;user-select:none;}th.sortable:hover{color:var(--pri);}
 .b-att{background:#fef3c7;color:#92400e;}.b-cours{background:#dbeafe;color:#1e40af;}
@@ -1626,20 +1628,11 @@ const TVA_SEUILS = {
   prestation: { franchise: 37500, tolerance: 41250 },
   achat:      { franchise: 85000, tolerance: 93500 }
 };
-function getTVAZone(ca, franchise, tolerance) {
-  if(ca >= tolerance) return 'depasse';
-  if(ca >= franchise) return 'tolerance';
-  return 'normal';
-}
-function tvaZoneFill(zone) { return zone==='depasse'?'bd':zone==='tolerance'?'wn':'ok'; }
-function tvaZoneKpi(zone)  { return zone==='depasse'?'bad':zone==='tolerance'?'warn':'neu'; }
+// getTVAZone → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// tvaZoneFill → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// tvaZoneKpi → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Renvoie les seuils selon le statut fiscal (micro-achat → seuil vente, sinon seuil prestation)
-function getTVASeuilsStatut() {
-  const p=DATA.params;
-  if(p.statut==='micro-achat')
-    return { franchise: p.seuilTVAVenteBase||TVA_SEUILS.achat.franchise, tolerance: p.seuilTVAVenteMajore||TVA_SEUILS.achat.tolerance };
-  return { franchise: p.seuilTVAPrestationBase||TVA_SEUILS.prestation.franchise, tolerance: p.seuilTVAPrestationMajore||TVA_SEUILS.prestation.tolerance };
-}
+// getTVASeuilsStatut → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Barre de progression TVA 3 zones avec marqueur de tolérance
 function renderTVABarre(label, ca, franchise, tolerance) {
   const zone=getTVAZone(ca, franchise, tolerance);
@@ -1896,6 +1889,12 @@ function applyDefaults(data) {
     if (m.tempsSupport === undefined)     m.tempsSupport = 0;
     if (m.montantVente == null)           m.montantVente = 0;
     if (m.montantPrestation == null)      m.montantPrestation = 0;
+    // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié,
+    // voir core/storage.js#applyDefaults). Déjà garanti par construction côté
+    // Freelance, mais on rattrape par défense en profondeur (import, anciennes versions).
+    if (!m.isRecurring && (m.montantPrestation + m.montantVente) !== (m.montantDevis || 0)) {
+      m.montantPrestation = (m.montantDevis || 0) - m.montantVente;
+    }
   });
   return data;
 }
@@ -2026,78 +2025,23 @@ function getCurrentMk() { const d=new Date(); return `${d.getFullYear()}-${Strin
 function getMonthKey(s) { return s ? s.slice(0,7) : null; }
 function monthLabel(k) { const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}); }
 function monthLabelFull(k) { const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); }
-function getCurrentYearMonths() { const y=DATA.currentYear; return Array.from({length:12},(_,i)=>`${y}-${String(i+1).padStart(2,'0')}`); }
-function getMoisDepuisOuverture() {
-  const dO=DATA.params.dateOuverture; if(!dO) return null;
-  const [yr,mo]=dO.split('-').map(Number);
-  const now=new Date();
-  return (now.getFullYear()-yr)*12+(now.getMonth()+1-mo);
-}
-function getMoisActifsAnnee() {
-  // Retourne le tableau des clés-mois actifs dans l'année affichée :
-  // — exclut les mois futurs (pour l'année en cours)
-  // — exclut les mois antérieurs à la date d'ouverture si elle tombe dans l'année affichée
-  const mks=getCurrentYearMonths();
-  const isCurrentYear=DATA.currentYear===new Date().getFullYear();
-  const curMk=getCurrentMk();
-  const dO=DATA.params.dateOuverture;
-  let fromMk=`${DATA.currentYear}-01`;
-  if(dO){
-    const ouvYear=parseInt(dO.slice(0,4));
-    if(ouvYear>DATA.currentYear) return [];           // ouverture dans le futur
-    if(ouvYear===DATA.currentYear) fromMk=dO.slice(0,7);
-    // ouverture avant cette année → tous les mois de l'année comptent
-  }
-  const toMk=isCurrentYear?curMk:`${DATA.currentYear}-12`;
-  return mks.filter(mk=>mk>=fromMk&&mk<=toMk);
-}
+// getCurrentYearMonths → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getMoisDepuisOuverture → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getMoisActifsAnnee → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Retourne true si le mois-clé est antérieur au mois de démarrage d'activité
-function isMonthBeforeOpening(mk) {
-  const dO=DATA.params.dateOuverture;
-  if(!dO) return false;
-  const ouvYear=parseInt(dO.slice(0,4));
-  if(ouvYear>DATA.currentYear) return true;
-  if(ouvYear<DATA.currentYear) return false;
-  return mk<dO.slice(0,7);
-}
+// isMonthBeforeOpening → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Nombre de mois actifs dans l'année affichée (pour lisser les charges annuelles)
-function getActiveMonthsInYear() {
-  const dO=DATA.params.dateOuverture;
-  if(!dO) return 12;
-  const ouvYear=parseInt(dO.slice(0,4));
-  if(ouvYear<DATA.currentYear) return 12;
-  if(ouvYear>DATA.currentYear) return 0;
-  return Math.max(1,13-parseInt(dO.slice(5,7))); // mars(3) → 10, jan(1) → 12
-}
+// getActiveMonthsInYear → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function heuresMs(ms) { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`; }
-function getMissionTotalMs(m) {
-  if(m.isManagement){
-    const base=(DATA.tempsInterne&&DATA.tempsInterne[getCurrentMk()])||0;
-    const live=m.timerRunning&&m.timerStart?Date.now()-m.timerStart:0;
-    return base+live;
-  }
-  let t=m.timerAccumulated||0; if(m.timerRunning&&m.timerStart) t+=Date.now()-m.timerStart; t+=(m.tempsManuel||[]).reduce((s,e)=>s+e.ms,0); return t;
-}
-function getMissionHeures(m) {
-  const chrono = getMissionTotalMs(m)/3600000+(m.heuresSaisies||0);
-  if(m.typeMission==='collectif') return (m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)+chrono;
-  return chrono;
-}
-function getTauxHoraireMinCible() {
-  const p=DATA.params;
-  const hAn=(p.heuresParJour||7)*(p.joursParSemaine||4)*(p.semainesParAn||44);
-  if(hAn<=0) return 0;
-  const dep=getDepensesMoyenneMensuelle()+(p.chargesAnnuellesCompl||0)/12+(p.chargesSalariales||0);
-  if(isSASU()) return (getSasuCoutRemuMensuel()+dep)*12/hAn;
-  const r=1-getTauxChargesPresta()-getImpotsTaux();
-  return r>0?((p.objectifNetMensuel||0)+dep)/r*12/hAn:0;
-}
+// getMissionTotalMs → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getMissionHeures → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTauxHoraireMinCible → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function saveParam(key,val) { DATA.params[key]=val; saveData(); }
 function themeColor(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
 
 // ── ENCAISSEMENTS ─────────────────────────────────────────────
-function getTotalEncaisse(m) { return (m.encaissements||[]).reduce((s,e)=>s+(e.montant||0),0); }
-function getResteAEncaisser(m) { return Math.max(0,(m.montantDevis||0)-getTotalEncaisse(m)); }
+// getTotalEncaisse → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getResteAEncaisser → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Missions facturées avec un reste à encaisser depuis ≥ 14 j, triées par ancienneté
 function getMissionsImpayees() {
   const now=Date.now();
@@ -2116,40 +2060,14 @@ function ageBadgeEncaissement(dateFact,reste){
   return ` &nbsp;·&nbsp; <span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${bg};color:${color}">${icon} ${days} j</span>`;
 }
 // Ratio vente vs total devis (pour ventilation proportionnelle en mode mixte)
-function getMissionVenteRatio(m) {
-  if(!isActiviteMixte()) return 0;
-  const tot=(m.montantPrestation||0)+(m.montantVente||0);
-  if(!tot) return 0;
-  return (m.montantVente||0)/tot;
-}
+// getMissionVenteRatio → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 
 // ── CALCULS ──────────────────────────────────────────────────
-function getCaFromMissions(mk) {
-  let total=0;
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
-    if(m.isRecurring){
-      // Récurrente : contribue si statut actif et dans la période
-      if(!m.dateDebutRec||m.statut==='ref'||m.statut==='att') return;
-      const [sy,sm]=m.dateDebutRec.split('-').map(Number);
-      const [ty,tm]=mk.split('-').map(Number);
-      const diff=(ty-sy)*12+(tm-sm);
-      const nb=m.nbMoisRec||9999;
-      if(diff>=0&&diff<nb) total+=m.montantMensuel||0;
-    } else {
-      const encs=m.encaissements||[];
-      if(encs.length>0){
-        encs.forEach(e=>{ if(e.date&&getMonthKey(e.date)===mk) total+=e.montant||0; });
-      } else {
-        if(m.statut==='fact'&&m.dateFact&&getMonthKey(m.dateFact)===mk) total+=m.montantDevis||0;
-      }
-    }
-  });
-  return total;
-}
-function getHeuresFact() { return DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='fact')).reduce((s,m)=>s+getMissionHeures(m),0); }
+// getCaFromMissions → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getHeuresFact → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 
 // ── ACTIVITÉ MIXTE ────────────────────────────────────────────
-function isActiviteMixte() { return !!DATA.params.activiteMixte; }
+// isActiviteMixte → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function getMissionCaPresta(m) { return isActiviteMixte() ? (m.montantPrestation||0) : (m.montantDevis||0); }
 function getMissionCaVente(m)  { return isActiviteMixte() ? (m.montantVente||0) : 0; }
 
@@ -2203,7 +2121,7 @@ function getCaVenteSeuilAnnuel() {
     return s+getCaVenteMissions(mk)+getPonctuelsVente(mk);
   },0);
 }
-function getHeuresInterne() { const m=DATA.missions.find(m=>m.isManagement); return m?getMissionHeures(m):0; }
+// getHeuresInterne → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 
 // ── CAPACITÉ DE TRAVAIL ───────────────────────────────────────
 function toHeuresSem(v, u) {
@@ -2221,29 +2139,21 @@ function getChargeEstimeeTotal() {
     .filter(m=>!m.isManagement&&m.statut==='cours'&&m.chargeEstimee>0)
     .reduce((s,m)=>s+getMissionChargeHSem(m),0);
 }
-function getDepensesMois(mk) {
-  if(isMonthBeforeOpening(mk)) return 0;
-  const [y,mo]=mk.split('-').map(Number);
-  let t=0;
-  DATA.depenses.forEach(d => {
-    if (!d.date) return;
-    const dm=new Date(d.date+'T00:00:00'), dy=dm.getFullYear(), dmo=dm.getMonth()+1;
-    if (d.recurrence==='mensuelle') { if(dy<y||(dy===y&&dmo<=mo)) t+=d.montant; }
-    else if (d.recurrence==='annuelle') { if(dmo===mo) t+=d.montant; }
-    else { if(dy===y&&dmo===mo) t+=d.montant; }
-  });
-  return t;
+// Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
+// Ancre de départ : dateDebut si renseigné ('always' = aucune borne basse —
+// au-delà du garde-fou isMonthBeforeOpening déjà appliqué par l'appelant —
+// ou une date YYYY-MM-DD précise, valeur du champ <input type="date">) ;
+// sinon repli sur la date de saisie (comportement historique, conservé pour
+// les dépenses créées avant l'ajout du champ "Date de début").
+function _depenseMensuelleActive(d, y, mo) {
+  if (d.dateDebut==='always') return true;
+  const dm=new Date((d.dateDebut||d.date)+'T00:00:00');
+  return dm.getFullYear()<y||(dm.getFullYear()===y&&dm.getMonth()+1<=mo);
 }
-function getTauxCharges() { if(isSASU()) return 0; return (DATA.params.tauxURSSAF+DATA.params.tauxCFP)/100; }
-function getTauxChargesPresta() {
-  if(isSASU()) return 0;
-  // Hors activité mixte : taux du statut principal (tauxURSSAF+tauxCFP).
-  // En activité mixte : taux prestation par nature de CA (tauxCotisationsPrestation+tauxCFPPrestation),
-  // indépendant du statut principal — permet à micro-achat d'utiliser le taux BNC pour ses prestations.
-  if(!isActiviteMixte()) return (DATA.params.tauxURSSAF+DATA.params.tauxCFP)/100;
-  return ((DATA.params.tauxCotisationsPrestation||DATA.params.tauxURSSAF)+(DATA.params.tauxCFPPrestation||DATA.params.tauxCFP))/100;
-}
-function getTauxChargesVente()  { if(isSASU()) return 0; if(!isActiviteMixte()) return getTauxChargesPresta(); const _tv=getTauxStatut(DATA.params.statut); return ((DATA.params.tauxCotisationsVente||_tv.urssafVente)+(DATA.params.tauxCFPVente||_tv.cfpVente))/100; }
+// getDepensesMois → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTauxCharges → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTauxChargesPresta → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTauxChargesVente → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function saveChargeParam(field, val) {
   DATA.params[field]=val;
   // Pour micro-achat, tauxURSSAF/tauxCFP représentent le taux vente (activité principale).
@@ -2256,34 +2166,12 @@ function saveChargeParam(field, val) {
   saveData(); recalcObjectifs();
   if(currentPage==='dashboard') renderDashboard();
 }
-function getImpotsTaux() { return (DATA.params.impotsTaux||0)/100; }
-function isSASU() { return DATA.params.statut === 'sasu'; }
-function getTresorerieDepart() { return ((DATA.params.tresorerieParAnnee)||{})[DATA.currentYear]||0; }
-function getSasuCoutRemuMensuel() { const net=DATA.params.remunerationNette||0; const pct=DATA.params.coutRemunerationPct||80; return net*(1+pct/100); }
-function getSasuSoldeActuelEstime() {
-  // Solde estimé à ce jour (base pour la projection)
-  const curMk=getCurrentMk();
-  const allMonths=getCurrentYearMonths().filter(mk=>mk<=curMk);
-  const ca=allMonths.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
-  const inflows=allMonths.reduce((s,mk)=>s+getPonctuelsTresorerie(mk),0);
-  const dep=allMonths.reduce((s,mk)=>s+getDepensesMois(mk),0);
-  const remu=getSasuCoutRemuMensuel()*allMonths.length;
-  return Math.round(getTresorerieDepart()+ca+inflows-dep-remu);
-}
-function getSasuProjectionFinAnnee() {
-  const curMk=getCurrentMk();
-  const cm=parseInt(curMk.split('-')[1],10);
-  const moisRestants=12-cm; // mois strictement futurs (après le mois en cours)
-  // Base : solde réel saisi ou estimation automatique
-  const base=DATA.params.soldeReel!=null?DATA.params.soldeReel:getSasuSoldeActuelEstime();
-  // Rythme mensuel moyen sur les mois écoulés (hors mois en cours pour éviter le partiel)
-  const pastMonths=getCurrentYearMonths().filter(mk=>mk<curMk);
-  const n=Math.max(pastMonths.length,1);
-  const caAvg=pastMonths.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0)/n;
-  const depAvg=pastMonths.reduce((s,mk)=>s+getDepensesMois(mk),0)/n;
-  // Projection = base + (CA projeté − dépenses projetées − rémunérations) sur les mois restants
-  return Math.round(base+(caAvg-depAvg-getSasuCoutRemuMensuel())*moisRestants);
-}
+// getImpotsTaux → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// isSASU → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTresorerieDepart → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getSasuCoutRemuMensuel → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getSasuSoldeActuelEstime → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getSasuProjectionFinAnnee → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function saveSasuSoldeReel(val) {
   DATA.params.soldeReel=val;
   DATA.params.soldeReelDate=getCurrentMk();
@@ -2353,31 +2241,17 @@ function getDepensesMoyenneMensuelle() {
 }
 // ── REVENUS PONCTUELS (autresList) ───────────────────────────
 // CA taxable du mois = prestation + vente (hors_ca exclu car montantPrestation=montantVente=0)
-function getPonctuelsCA(mk) { return ((DATA.revenus[mk]||{}).autresList||[]).reduce((s,e)=>s+(e.montantPrestation||0)+(e.montantVente||0),0); }
-function getPonctuelsPresta(mk) { return ((DATA.revenus[mk]||{}).autresList||[]).reduce((s,e)=>s+(e.montantPrestation||0),0); }
-function getPonctuelsVente(mk)  { return ((DATA.revenus[mk]||{}).autresList||[]).reduce((s,e)=>s+(e.montantVente||0),0); }
+// getPonctuelsCA → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getPonctuelsPresta → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getPonctuelsVente → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Cash non-taxable (hors_ca) : entre dans le revenu net disponible mais pas dans les cotisations
-function getPonctuelsTresorerie(mk) { return ((DATA.revenus[mk]||{}).autresList||[]).filter(e=>e.type==='hors_ca').reduce((s,e)=>s+(e.montant||0),0); }
+// getPonctuelsTresorerie → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 
-function getCaAnnuelBrut() { let t=0; getCurrentYearMonths().forEach(mk=>{ t+=getCaFromMissions(mk)+getPonctuelsCA(mk); }); return t; }
-function getCaNetAnnuel() { let t=0; getCurrentYearMonths().forEach(mk=>t+=getRevenuNetMois(mk)); return t; }
+// getCaAnnuelBrut → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getCaNetAnnuel → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // Ventile le CA d'un mois entre part prestation et part vente
-function getCaBreakdownMois(mk) {
-  if(!isActiviteMixte()) return {presta:getCaFromMissions(mk)+getPonctuelsCA(mk), vente:0};
-  return {
-    presta: getCaPrestaMois(mk)+getPonctuelsPresta(mk),
-    vente:  getCaVenteMissions(mk)+getPonctuelsVente(mk)
-  };
-}
-function getRevenuNetMois(mk) {
-  if(isMonthBeforeOpening(mk)) return 0;
-  const {presta,vente}=getCaBreakdownMois(mk);
-  const brut=presta+vente;
-  const charges=presta*getTauxChargesPresta()+vente*getTauxChargesVente();
-  const impots=brut*getImpotsTaux();
-  const tresorerie=getPonctuelsTresorerie(mk);
-  return brut+tresorerie-charges-impots-getDepensesMois(mk)-(DATA.params.chargesSalariales||0);
-}
+// getCaBreakdownMois → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getRevenuNetMois → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function getMoisRealises() {
   // Base = mois actifs (hors futur et hors pré-ouverture) — filtre ensuite sur l'activité réelle
   return getMoisActifsAnnee().filter(mk=>{
@@ -2387,44 +2261,19 @@ function getMoisRealises() {
 }
 
 // ── TVA HELPERS ──────────────────────────────────────────────
-function getTVACollecteeMois(mk) {
-  if(!DATA.params.tva) return 0;
-  const r=DATA.revenus[mk]||{};
-  const base=getCaFromMissions(mk)+getPonctuelsCA(mk);
-  return base*(DATA.params.tauxTVA/100);
-}
-function getTVADeductibleMois(mk) {
-  if(!DATA.params.tva) return 0;
-  const y=mk.substring(0,4), mo=mk.substring(5,7);
-  return DATA.depenses.filter(d=>d.tvaDeductible&&d.date.startsWith(y+'-'+mo)).reduce((s,d)=>s+(d.montantTVA||0),0);
-}
-function getTVACollecteeAnnuelle() {
-  return getCurrentYearMonths().reduce((s,mk)=>s+getTVACollecteeMois(mk),0);
-}
-function getTVADeductibleAnnuelle() {
-  return DATA.depenses.filter(d=>d.tvaDeductible&&d.date.startsWith(String(DATA.currentYear))).reduce((s,d)=>s+(d.montantTVA||0),0);
-}
+// getTVACollecteeMois → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTVADeductibleMois → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTVACollecteeAnnuelle → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getTVADeductibleAnnuelle → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 
 // ── TVA RÉGIME — HELPERS ─────────────────────────────────────
-function getTvaRegime() {
-  if(isSASU()) return 'mensuel';
-  const p=DATA.params;
-  if(!p.tva) return 'franchise';
-  return p.tvaRegime||'mensuel';
-}
+// getTvaRegime → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function saveTvaRegime(regime) {
   DATA.params.tvaRegime=regime;
   DATA.params.tva=(regime!=='franchise');
   saveData(); renderAll();
 }
-function getTVAProvisionMensuelle() {
-  const regime=getTvaRegime();
-  if(regime==='franchise') return 0;
-  const mk=getCurrentMk();
-  if(regime==='mensuel') return Math.max(0,Math.round(getTVACollecteeMois(mk)-getTVADeductibleMois(mk)));
-  const ann=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
-  return Math.round(ann/Math.max(getMoisActifsAnnee().length,1));
-}
+// getTVAProvisionMensuelle → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function getNextTVAEcheance() {
   const regime=getTvaRegime();
   if(regime==='franchise') return null;
@@ -2433,7 +2282,7 @@ function getNextTVAEcheance() {
   const daysLeft=d=>Math.ceil((d-now)/86400000);
   if(regime==='mensuel') {
     const prevMk=m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;
-    const montant=Math.max(0,Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk)));
+    const montant=Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk));
     const due=new Date(y,m-1,25);
     const moisLabel=new Date(y,m-2,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Prochaine échéance TVA'};
@@ -2445,12 +2294,12 @@ function getNextTVAEcheance() {
     let montant=0;
     for(let mo=(q-1)*3+1;mo<=m;mo++){
       const mk=`${y}-${String(mo).padStart(2,'0')}`;
-      montant+=Math.max(0,getTVACollecteeMois(mk)-getTVADeductibleMois(mk));
+      montant+=getTVACollecteeMois(mk)-getTVADeductibleMois(mk);
     }
     return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`TVA T${q} ${y} (cumul)`};
   }
   if(regime==='simplifie') {
-    const ann=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
+    const ann=getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle();
     if(m<7){
       const due=new Date(y,6,31);
       return {montant:Math.round(ann*0.55),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte juillet (55 % TVA estimée)'};
@@ -2463,34 +2312,13 @@ function getNextTVAEcheance() {
 }
 
 // ── URSSAF RÉGIME — HELPERS ──────────────────────────────────
-function getUrssafRegime() {
-  if(isSASU()) return 'mensuel';
-  return DATA.params.urssafRegime||'mensuel';
-}
+// getUrssafRegime → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function saveUrssafRegime(regime) {
   DATA.params.urssafRegime=regime;
   saveData(); renderAll();
 }
-function getUrssafAnnuelBrut() {
-  return getCurrentYearMonths().reduce((s,mk)=>{
-    const {presta,vente}=getCaBreakdownMois(mk);
-    const u=presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100;
-    const uV=isActiviteMixte()?vente*getTauxChargesVente():0;
-    return s+u+uV;
-  },0);
-}
-function getUrssafProvisionMensuelle() {
-  const regime=getUrssafRegime();
-  const mk=getCurrentMk();
-  const {presta,vente}=getCaBreakdownMois(mk);
-  if(regime==='mensuel') {
-    const u=Math.round(presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100);
-    const uV=isActiviteMixte()?Math.round(vente*getTauxChargesVente()):0;
-    return u+uV;
-  }
-  // trimestriel — lissé sur les mois actifs de l'année
-  return Math.round(getUrssafAnnuelBrut()/Math.max(getMoisActifsAnnee().length,1));
-}
+// getUrssafAnnuelBrut → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
+// getUrssafProvisionMensuelle → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function getNextUrssafEcheance() {
   const regime=getUrssafRegime();
   const now=new Date(), y=now.getFullYear(), m=now.getMonth()+1;
@@ -2730,10 +2558,26 @@ function wProvisionsSide(d) {
     if(tvaOn) echTVA=getNextTVAEcheance();
   }catch(e){}
 
-  // Impôts : provision mensuelle progressive (pas d'échéance régulière)
+  // Impôts : provision mensuelle — abattement forfaitaire micro si applicable
   const impotsTaux=getImpotsTaux();
   const caMoyMensuel=d.caBrut>0?Math.round(d.caBrut/mc):0;
-  const provImpots=Math.round(caMoyMensuel*impotsTaux);
+  const _microS=['micro-bnc','micro-bic','micro-achat'];
+  const _isMicro=!isSASU()&&_microS.includes(DATA.params.statut);
+  let provImpots,_impotSubW;
+  if(_isMicro&&caMoyMensuel>0&&impotsTaux>0){
+    let _mP=caMoyMensuel,_mV=0;
+    if(isActiviteMixte()){
+      const _mks=getMoisActifsAnnee();
+      if(_mks.length){const _t=_mks.reduce((s,mk)=>{const b=getCaBreakdownMois(mk);return{p:s.p+(b.presta||0),v:s.v+(b.vente||0)};},{p:0,v:0});_mP=_t.p/_mks.length;_mV=_t.v/_mks.length;}
+    }
+    provImpots=getImpotEstimeMicro(_mP,_mV);
+    const _ri=getRevenuImposableMicro(_mP,_mV);
+    const _pA=caMoyMensuel>0?Math.round((1-_ri/caMoyMensuel)*100):0;
+    _impotSubW=`${Math.round(impotsTaux*100)} % sur revenu après abattement ${_pA} % · indicatif`;
+  }else{
+    provImpots=Math.round(caMoyMensuel*impotsTaux);
+    _impotSubW=Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive';
+  }
 
   // Totaux
   const urssafAmt=(echURSSAF&&echURSSAF.montant>0)?echURSSAF.montant:0;
@@ -2745,15 +2589,29 @@ function wProvisionsSide(d) {
   const echs=[echURSSAF,echTVA].filter(e=>e&&e.montant>0).sort((a,b)=>a.daysLeft-b.daysLeft);
   const urgBorder=echs.length&&echs[0].daysLeft<=7?'var(--err)':echs.length&&echs[0].daysLeft<=21?'var(--warn)':'var(--acc)';
 
+  // Ligne TVA — 3 cas : à reverser (montant>0), à l'équilibre (=0, collectée
+  // = déductible), ou crédit de TVA (déductible > collectée, remboursable ou
+  // reportable). Sans ça, la ligne disparaissait silencieusement dès que le
+  // solde n'était pas strictement positif.
+  const tvaRow=(()=>{
+    if(!echTVA) return null;
+    if(echTVA.montant>0){
+      const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
+      return {lbl:echTVA.label,val:echTVA.montant,days:echTVA.daysLeft,sub:tvaTot>echTVA.montant?`Sur ${fmtE(tvaTot)} estimés annuellement`:null};
+    }
+    if(echTVA.montant===0) return {lbl:echTVA.label,val:0,days:null,sub:'Vous êtes à l\'équilibre — TVA collectée = TVA déductible',positive:true};
+    return {lbl:'Crédit de TVA',val:Math.abs(echTVA.montant),days:null,sub:'TVA déductible supérieure à la TVA collectée — remboursable ou reportable',positive:true};
+  })();
+
   // Répartition — labels issus des échéances (adaptés au régime automatiquement)
   const repartRows=[
     urssafAmt>0?{lbl:echURSSAF.label,val:urssafAmt,days:echURSSAF.daysLeft,sub:null}:null,
-    tvaAmt>0   ?{lbl:echTVA.label,   val:tvaAmt,   days:echTVA.daysLeft,   sub:(()=>{const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());return tvaTot>tvaAmt?`Sur ${fmtE(tvaTot)} estimés annuellement`:null;})()}:null,
-    provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive'}:null,
+    tvaRow,
+    provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:_impotSubW}:null,
   ].filter(Boolean);
 
   const rowHtml=repartRows.map(r=>{
-    const uc=r.days!=null?(r.days<=7?'var(--err)':r.days<=21?'var(--warn)':'var(--text)'):'var(--tl)';
+    const uc=r.positive?'var(--ok)':(r.days!=null?(r.days<=7?'var(--err)':r.days<=21?'var(--warn)':'var(--text)'):'var(--tl)');
     return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--brd);gap:6px">'
       +'<div><div style="font-size:12px;color:var(--tl)">'+r.lbl+'</div>'
       +(r.sub?'<div style="font-size:10px;color:var(--tl);opacity:.7;margin-top:1px">'+r.sub+'</div>':'')
@@ -2781,7 +2639,29 @@ function wProvisionsSide(d) {
       return '<div style="font-size:12px;color:var(--err);margin-bottom:10px;display:flex;gap:6px"><span>🔴</span><span><strong>Vigilance</strong> — vos prochaines échéances risquent de peser sur votre trésorerie.</span></div>';
     })()
     +(repartRows.length?'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">Répartition</div>'+rowHtml:'')
-
+    +(()=>{
+      // Note impôt micro : taux non renseigné
+      if(_isMicro&&!impotsTaux)
+        return '<div style="font-size:11px;color:var(--tl);margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid var(--brd)">Aucun taux d\'impôt renseigné — aucune provision d\'impôt n\'est calculée. <span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="navigate(\'params\')">Renseigner dans Paramètres › Impôt</span></div>';
+      if(_isMicro&&impotsTaux)
+        return '<div style="font-size:10px;color:var(--tl);margin-top:8px;opacity:.8">Impôt estimé après abattement micro — prévision indicative basée sur votre taux saisi. À ajuster selon votre situation personnelle.</div>';
+      return '';
+    })()
+    +(()=>{
+      // Suivi plafond régime micro
+      try{
+        const _mpi=getMicroPlafondInfo();
+        if(!_mpi||_mpi.pct<40) return '';
+        const _col=_mpi.pct>=100?'var(--err)':_mpi.pct>=80?'var(--warn)':'var(--tl)';
+        const _ico=_mpi.pct>=100?'🚨':_mpi.pct>=80?'⚠️':'📊';
+        let _msg=`${_ico} Plafond régime micro : ${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)} — ${_mpi.pct} % atteint.`;
+        if(_mpi.hasProrata) _msg+=' (prorata ouverture en cours d\'année)';
+        let _sP='';
+        if(_mpi.pctPresta!==null&&_mpi.pctPresta>=40)
+          _sP=`<br>Prestations : ${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)} (${_mpi.pctPresta} % du sous-plafond).`;
+        return `<div style="font-size:11px;color:${_col};margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid ${_col}">${_msg}${_sP}<br><span style="opacity:.75">Distinct du seuil de franchise TVA · indicatif, non substitut à un conseil comptable.</span></div>`;
+      }catch(e){return '';}
+    })()
     +'</div>';
 }
 
@@ -2974,6 +2854,17 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   const att=DATA.missions.filter(m=>m.statut==='att').length;
   if(att>0) alerts.push({pr:3,cl:'al-info',txt:`📩 ${att} devis en attente de réponse.`});
   if(p.tva){const tvaRev=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());if(tvaRev>0) alerts.push({pr:3,cl:'al-info',txt:`🧾 TVA à reverser : ${fmtE(tvaRev)} — pensez à provisionner.`});}
+  // Alerte plafond régime micro (distinct du seuil TVA)
+  try{
+    const _mpi=getMicroPlafondInfo();
+    if(_mpi&&_mpi.pct>=60){
+      if(_mpi.pct>=100) alerts.push({pr:0,cl:'al-err',txt:`🚨 Plafond micro dépassé — CA ${fmtE(_mpi.caAnnuel)} sur un plafond de ${fmtE(_mpi.plafond)}${_mpi.hasProrata?' (prorata ouverture)':''}.`});
+      else if(_mpi.pct>=80) alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)})${_mpi.hasProrata?' — prorata année de création':''}.`});
+      else alerts.push({pr:3,cl:'al-info',txt:`📊 Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)}). Distinct du seuil TVA.`});
+    }
+    if(_mpi&&_mpi.pctPresta!==null&&_mpi.pctPresta>=80)
+      alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Sous-plafond prestations micro (activité mixte) : ${_mpi.pctPresta} % atteint (${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)}).`});
+  }catch(e){}
   // Alertes contextuelles : pipeline et facturation
   const moisAgeCtx=getMoisDepuisOuverture();
   if(moisAgeCtx===null||moisAgeCtx>=2){
@@ -3757,21 +3648,29 @@ function wJalonFiscal() {
   const tva=getTVAProvisionMensuelle();
   const tvaNote={franchise:'',mensuel:'TVA nette du mois en cours',trimestriel:'TVA annuelle ÷ mois actifs (lissée)',simplifie:'TVA annuelle ÷ mois actifs (lissée)'}[regime]||'';
   const tvaLabel={franchise:'TVA',mensuel:'TVA à mettre de côté <span class="info-tip" title="Provision mensuelle = TVA nette collectée ce mois. À ne pas confondre avec la dette TVA réelle (cumulée) ni avec la prochaine échéance (date et montant du prochain versement à l\'État).">?</span>',simplifie:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Logique de mise de côté mensuelle pour faire face aux 2 acomptes (juillet et décembre).">?</span>',trimestriel:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Pour faire face au versement trimestriel — le montant réel sera la TVA nette des 3 mois du trimestre.">?</span>'}[regime]||'TVA';
-  const impot=Math.round(brut*getImpotsTaux());
+  const _isMicroJ=!isSASU()&&['micro-bnc','micro-bic','micro-achat'].includes(DATA.params.statut);
+  const impot=_isMicroJ?getImpotEstimeMicro(presta,vente):Math.round(brut*getImpotsTaux());
+  const _impotNote=_isMicroJ&&DATA.params.impotsTaux
+    ?(()=>{const ri=getRevenuImposableMicro(presta,vente);const pA=brut>0?Math.round((1-ri/brut)*100):0;return DATA.params.impotsTaux+'% sur revenu après abattement '+pA+'% · indicatif';})()
+    :(DATA.params.impotsTaux?DATA.params.impotsTaux+'% du CA':'');
   const total=totalUrssaf+tva+impot;
   const row=(label,val,note)=>val>0?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><div><span class="ts">${label}</span>${note?`<span style="margin-left:6px;opacity:.6;font-size:11px;color:var(--tl)">${note}</span>`:''}</div><span style="font-weight:700;color:var(--warn)">${fmtE(val)}</span></div>`:'';
+  const _impotLigne=DATA.params.impotsTaux
+    ?row('Impôt estimé',impot,_impotNote)
+    :(_isMicroJ?`<div style="padding:6px 0;border-bottom:1px solid var(--brd);font-size:11px;color:var(--tl)">Aucun taux d'impôt renseigné — aucune provision calculée.</div>`:'');
   return `<div class="card" style="border-left:4px solid var(--acc)">
     <div class="card-header"><div><div class="card-title">🧾 Provisions — ${moisLabel} <span class="info-tip" title="Montants à mettre de côté chaque mois — pas des dettes exigibles immédiatement. Voyez le widget Trésorerie disponible pour la dette réelle et la prochaine échéance.">?</span></div><div class="card-sub">Montants à mettre de côté ce mois-ci</div></div></div>
     ${brut>0?`<div style="font-size:12px;margin-bottom:8px">
       ${row('URSSAF + CFP',totalUrssaf,urssafNote||DATA.params.tauxURSSAF+'% + '+DATA.params.tauxCFP+'%')}
       ${regime!=='franchise'?row(tvaLabel,tva,tvaNote):`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span class="ts">TVA</span><span class="ts" style="color:var(--ok)">Franchise ✓</span></div>`}
-      ${DATA.params.impotsTaux?row('Impôt estimé',impot,DATA.params.impotsTaux+'% du CA'):''}
+      ${_impotLigne}
     </div>
     <div style="display:flex;justify-content:space-between;padding:8px 0 2px">
       <span style="font-weight:700">Total à provisionner</span>
       <span style="font-size:18px;font-weight:700;color:${total>0?'var(--err)':'var(--tl)'}">${fmtE(total)}</span>
     </div>
     <div class="ts mt4" style="color:var(--tl)">Basé sur ${fmtE(brut)} de CA HT — ${moisLabel}</div>
+    ${_isMicroJ?`<div class="ts mt4" style="color:var(--tl);font-style:italic">Impôt estimé — prévision indicative basée sur votre taux saisi et le revenu imposable estimé après abattement micro. À ajuster selon votre situation personnelle.</div>`:''}
     `:`<div class="ts" style="color:var(--tl)">Aucun CA enregistré ce mois — les provisions s'afficheront automatiquement.</div>`}
   </div>`;
 }
@@ -3867,9 +3766,10 @@ function openEncaissementsModal(missionId) {
   const lbl=document.getElementById('enc-m-montant-label');
   if(lbl) lbl.textContent=tvaOn?'Montant reçu TTC':'Montant reçu';
   const alertEl=document.getElementById('enc-m-alert-msg');
-  if(alertEl) alertEl.textContent=tvaOn
+  if(alertEl) alertEl.textContent=(tvaOn
     ?'Saisissez le montant TTC reçu sur votre compte. L\'application calcule automatiquement le CA HT et la TVA collectée — les cotisations URSSAF sont appliquées sur le CA HT.'
-    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.';
+    :'Chaque versement est affecté au mois où il est perçu. Les cotisations URSSAF sont calculées sur ces montants réels — pas sur le total du devis en une seule fois.')
+    +' Sans encaissement saisi ici, le montant total du devis est automatiquement compté comme encaissé à la date où vous passez la mission en « Facturé ».';
   const calcInfo=document.getElementById('enc-m-calc-info');
   if(calcInfo) calcInfo.style.display='none';
   renderEncaissementsModal();
@@ -3885,9 +3785,10 @@ function renderEncaissementsModal() {
   const sumEl=document.getElementById('enc-m-summary');
   if(sumEl){
     if((m.montantDevis||0)>0&&totalHT>0){
-      sumEl.innerHTML=tvaOn
+      sumEl.innerHTML=(tvaOn
         ?`<span>${fmtE(totalTTC)} TTC reçu</span> <span style="color:var(--tl);font-weight:400">· CA HT ${fmtE(totalHT)}</span>${resteHT>0?` · <span style="color:var(--warn)">reste ${fmtE(resteTTC)} TTC (${fmtE(resteHT)} HT)</span>`:' · <span style="color:var(--ok)">soldé</span>'}`
-        :`${fmtE(totalHT)} encaissé${resteHT>0?` · reste ${fmtE(resteHT)}`:''}`;
+        :`${fmtE(totalHT)} encaissé${resteHT>0?` · reste ${fmtE(resteHT)}`:''}`)
+        +(totalHT>(m.montantDevis||0)?` · <span style="color:var(--warn)">⚠️ dépasse le devis (${fmtE(m.montantDevis||0)})</span>`:'');
     } else if((m.montantDevis||0)>0){
       sumEl.innerHTML=tvaOn
         ?`${fmtE(m.montantDevis)} HT à encaisser · soit ${fmtE(m.montantDevis*(1+tvaRate))} TTC`
@@ -3947,10 +3848,11 @@ function deleteEncaissementModal(encId) {
 
 function toggleMissionType(val) {
   const isCol = val==='collectif';
+  const isRec = document.getElementById('m-type-fact').value==='mensuelle';
   document.getElementById('m-collectif-zone').style.display = isCol?'':'none';
-  document.getElementById('m-montant-zone').style.display = isCol?'none':(isActiviteMixte()?'none':'');
-  document.getElementById('m-montant-mixte-zone').style.display = isCol?'none':(isActiviteMixte()?'':'none');
-  document.getElementById('m-rec-zone').style.display = 'none';
+  document.getElementById('m-montant-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'none':'');
+  document.getElementById('m-montant-mixte-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'':'none');
+  document.getElementById('m-rec-zone').style.display = isRec?'':'none';
   document.getElementById('m-charge-zone').style.display = isCol?'none':'';
   if(isCol) { updateCollectifCA(); updateCollectifTemps(); }
 }
@@ -4823,7 +4725,11 @@ function renderTvaParams() {
     const inp=lbl?lbl.querySelector('input[type="radio"]'):null;
     if(lbl) lbl.classList.toggle('selected',r===regime);
     if(inp) inp.checked=(r===regime);
-    if(inp&&sasu) inp.disabled=(r==='franchise');
+    // En SASU, le régime réel mensuel est légalement obligatoire — les 3
+    // autres options sont verrouillées (pas seulement "franchise") pour que
+    // le clic ne soit plus silencieusement ignoré.
+    if(inp) inp.disabled=sasu&&(r!=='mensuel');
+    if(lbl) lbl.classList.toggle('locked',!!(inp&&inp.disabled));
   });
   const statusLabels={franchise:'Franchise en base — aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié — 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel — déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel — déclaration CA3 chaque trimestre.'};
   document.getElementById('tva-status-text').textContent=sasu?'TVA toujours active en SASU (régime réel mensuel obligatoire).':statusLabels[regime]||'';
@@ -5871,6 +5777,73 @@ document.addEventListener('DOMContentLoaded', () => {
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
 });
+</script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CORE PARTAGÉ — fonctions communes Freelance/Artisan branchées sur
+     core/calculs.js via shared/modes/freelance.js. Validées par
+     56/56 (tests.js), 73/73 (validation.js), 4063/4063 (phase2_sandbox.js),
+     19/19 (unified_model.test.js), 92/92 (bridge_smoke.js).
+     Le <script type="module"> ci-dessous s'exécute après le parsing complet
+     du document mais AVANT l'événement DOMContentLoaded (donc avant
+     loadData()/renderAll() ci-dessus) : les fonctions sont déjà disponibles
+     au premier rendu, pas seulement aux rendus suivants.
+     ════════════════════════════════════════════════════════════════ -->
+<script type="module">
+  import * as Mode from './shared/modes/freelance.js';
+
+  function sync() { Mode.setData(DATA); }
+
+  window.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
+  window.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
+  window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
+  window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
+  window.getTVACollecteeMois    = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
+  window.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
+  window.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+  window.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
+  window.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
+  window.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };
+  window.isMonthBeforeOpening   = (mk) => { sync(); return Mode.isMonthBeforeOpening(mk); };
+  window.getActiveMonthsInYear  = ()   => { sync(); return Mode.getActiveMonthsInYear(); };
+  window.getMoisDepuisOuverture = ()   => { sync(); return Mode.getMoisDepuisOuverture(); };
+  window.getCaAnnuelBrut        = ()   => { sync(); return Mode.getCaAnnuelBrut(); };
+  window.getPonctuelsCA         = (mk) => { sync(); return Mode.getPonctuelsCA(mk); };
+  window.getPonctuelsPresta     = (mk) => { sync(); return Mode.getPonctuelsPresta(mk); };
+  window.getPonctuelsVente      = (mk) => { sync(); return Mode.getPonctuelsVente(mk); };
+  window.getPonctuelsTresorerie = (mk) => { sync(); return Mode.getPonctuelsTresorerie(mk); };
+  window.getMissionVenteRatio   = (m)  => { sync(); return Mode.getMissionVenteRatio(m); };
+  window.getTauxChargesVente    = ()   => { sync(); return Mode.getTauxChargesVente(); };
+  window.getTauxChargesPresta   = ()   => { sync(); return Mode.getTauxChargesPresta(); };
+  window.isActiviteMixte        = ()   => { sync(); return Mode.isActiviteMixte(); };
+  window.getCaNetAnnuel         = ()   => { sync(); return Mode.getCaNetAnnuel(); };
+  window.getHeuresFact          = ()   => { sync(); return Mode.getHeuresFact(); };
+  window.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
+  window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
+  window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
+  window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
+  window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
+  window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
+  window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+  window.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
+  window.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };
+  window.getTVADeductibleAnnuelle  = () => { sync(); return Mode.getTVADeductibleAnnuelle(); };
+  window.getTVADeductibleMois      = (mk) => { sync(); return Mode.getTVADeductibleMois(mk); };
+  window.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
+  window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
+  window.getTVAZone                = Mode.getTVAZone;
+  window.tvaZoneFill               = Mode.tvaZoneFill;
+  window.tvaZoneKpi                = Mode.tvaZoneKpi;
+  window.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };
+  window.getTresorerieDepart       = () => { sync(); return Mode.getTresorerieDepart(); };
+  window.getTvaRegime              = () => { sync(); return Mode.getTvaRegime(); };
+  window.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };
+  window.getUrssafProvisionMensuelle = () => { sync(); return Mode.getUrssafProvisionMensuelle(); };
+  window.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
+  window.getAbattementMicro        = (caP, caV) => { sync(); return Mode.getAbattementMicro(caP, caV); };
+  window.getRevenuImposableMicro   = (caP, caV) => { sync(); return Mode.getRevenuImposableMicro(caP, caV); };
+  window.getImpotEstimeMicro       = (caP, caV) => { sync(); return Mode.getImpotEstimeMicro(caP, caV); };
+  window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
 </script>
 
 <!-- BOUTON CHANGER DE SESSION -->
