@@ -2558,10 +2558,26 @@ function wProvisionsSide(d) {
     if(tvaOn) echTVA=getNextTVAEcheance();
   }catch(e){}
 
-  // Impôts : provision mensuelle progressive (pas d'échéance régulière)
+  // Impôts : provision mensuelle — abattement forfaitaire micro si applicable
   const impotsTaux=getImpotsTaux();
   const caMoyMensuel=d.caBrut>0?Math.round(d.caBrut/mc):0;
-  const provImpots=Math.round(caMoyMensuel*impotsTaux);
+  const _microS=['micro-bnc','micro-bic','micro-achat'];
+  const _isMicro=!isSASU()&&_microS.includes(DATA.params.statut);
+  let provImpots,_impotSubW;
+  if(_isMicro&&caMoyMensuel>0&&impotsTaux>0){
+    let _mP=caMoyMensuel,_mV=0;
+    if(isActiviteMixte()){
+      const _mks=getMoisActifsAnnee();
+      if(_mks.length){const _t=_mks.reduce((s,mk)=>{const b=getCaBreakdownMois(mk);return{p:s.p+(b.presta||0),v:s.v+(b.vente||0)};},{p:0,v:0});_mP=_t.p/_mks.length;_mV=_t.v/_mks.length;}
+    }
+    provImpots=getImpotEstimeMicro(_mP,_mV);
+    const _ri=getRevenuImposableMicro(_mP,_mV);
+    const _pA=caMoyMensuel>0?Math.round((1-_ri/caMoyMensuel)*100):0;
+    _impotSubW=`${Math.round(impotsTaux*100)} % sur revenu après abattement ${_pA} % · indicatif`;
+  }else{
+    provImpots=Math.round(caMoyMensuel*impotsTaux);
+    _impotSubW=Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive';
+  }
 
   // Totaux
   const urssafAmt=(echURSSAF&&echURSSAF.montant>0)?echURSSAF.montant:0;
@@ -2591,7 +2607,7 @@ function wProvisionsSide(d) {
   const repartRows=[
     urssafAmt>0?{lbl:echURSSAF.label,val:urssafAmt,days:echURSSAF.daysLeft,sub:null}:null,
     tvaRow,
-    provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive'}:null,
+    provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:_impotSubW}:null,
   ].filter(Boolean);
 
   const rowHtml=repartRows.map(r=>{
@@ -2623,7 +2639,29 @@ function wProvisionsSide(d) {
       return '<div style="font-size:12px;color:var(--err);margin-bottom:10px;display:flex;gap:6px"><span>🔴</span><span><strong>Vigilance</strong> — vos prochaines échéances risquent de peser sur votre trésorerie.</span></div>';
     })()
     +(repartRows.length?'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">Répartition</div>'+rowHtml:'')
-
+    +(()=>{
+      // Note impôt micro : taux non renseigné
+      if(_isMicro&&!impotsTaux)
+        return '<div style="font-size:11px;color:var(--tl);margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid var(--brd)">Aucun taux d\'impôt renseigné — aucune provision d\'impôt n\'est calculée. <span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="navigate(\'params\')">Renseigner dans Paramètres › Impôt</span></div>';
+      if(_isMicro&&impotsTaux)
+        return '<div style="font-size:10px;color:var(--tl);margin-top:8px;opacity:.8">Impôt estimé après abattement micro — prévision indicative basée sur votre taux saisi. À ajuster selon votre situation personnelle.</div>';
+      return '';
+    })()
+    +(()=>{
+      // Suivi plafond régime micro
+      try{
+        const _mpi=getMicroPlafondInfo();
+        if(!_mpi||_mpi.pct<40) return '';
+        const _col=_mpi.pct>=100?'var(--err)':_mpi.pct>=80?'var(--warn)':'var(--tl)';
+        const _ico=_mpi.pct>=100?'🚨':_mpi.pct>=80?'⚠️':'📊';
+        let _msg=`${_ico} Plafond régime micro : ${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)} — ${_mpi.pct} % atteint.`;
+        if(_mpi.hasProrata) _msg+=' (prorata ouverture en cours d\'année)';
+        let _sP='';
+        if(_mpi.pctPresta!==null&&_mpi.pctPresta>=40)
+          _sP=`<br>Prestations : ${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)} (${_mpi.pctPresta} % du sous-plafond).`;
+        return `<div style="font-size:11px;color:${_col};margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid ${_col}">${_msg}${_sP}<br><span style="opacity:.75">Distinct du seuil de franchise TVA · indicatif, non substitut à un conseil comptable.</span></div>`;
+      }catch(e){return '';}
+    })()
     +'</div>';
 }
 
@@ -2816,6 +2854,17 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   const att=DATA.missions.filter(m=>m.statut==='att').length;
   if(att>0) alerts.push({pr:3,cl:'al-info',txt:`📩 ${att} devis en attente de réponse.`});
   if(p.tva){const tvaRev=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());if(tvaRev>0) alerts.push({pr:3,cl:'al-info',txt:`🧾 TVA à reverser : ${fmtE(tvaRev)} — pensez à provisionner.`});}
+  // Alerte plafond régime micro (distinct du seuil TVA)
+  try{
+    const _mpi=getMicroPlafondInfo();
+    if(_mpi&&_mpi.pct>=60){
+      if(_mpi.pct>=100) alerts.push({pr:0,cl:'al-err',txt:`🚨 Plafond micro dépassé — CA ${fmtE(_mpi.caAnnuel)} sur un plafond de ${fmtE(_mpi.plafond)}${_mpi.hasProrata?' (prorata ouverture)':''}.`});
+      else if(_mpi.pct>=80) alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)})${_mpi.hasProrata?' — prorata année de création':''}.`});
+      else alerts.push({pr:3,cl:'al-info',txt:`📊 Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)}). Distinct du seuil TVA.`});
+    }
+    if(_mpi&&_mpi.pctPresta!==null&&_mpi.pctPresta>=80)
+      alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Sous-plafond prestations micro (activité mixte) : ${_mpi.pctPresta} % atteint (${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)}).`});
+  }catch(e){}
   // Alertes contextuelles : pipeline et facturation
   const moisAgeCtx=getMoisDepuisOuverture();
   if(moisAgeCtx===null||moisAgeCtx>=2){
@@ -3599,21 +3648,29 @@ function wJalonFiscal() {
   const tva=getTVAProvisionMensuelle();
   const tvaNote={franchise:'',mensuel:'TVA nette du mois en cours',trimestriel:'TVA annuelle ÷ mois actifs (lissée)',simplifie:'TVA annuelle ÷ mois actifs (lissée)'}[regime]||'';
   const tvaLabel={franchise:'TVA',mensuel:'TVA à mettre de côté <span class="info-tip" title="Provision mensuelle = TVA nette collectée ce mois. À ne pas confondre avec la dette TVA réelle (cumulée) ni avec la prochaine échéance (date et montant du prochain versement à l\'État).">?</span>',simplifie:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Logique de mise de côté mensuelle pour faire face aux 2 acomptes (juillet et décembre).">?</span>',trimestriel:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Pour faire face au versement trimestriel — le montant réel sera la TVA nette des 3 mois du trimestre.">?</span>'}[regime]||'TVA';
-  const impot=Math.round(brut*getImpotsTaux());
+  const _isMicroJ=!isSASU()&&['micro-bnc','micro-bic','micro-achat'].includes(DATA.params.statut);
+  const impot=_isMicroJ?getImpotEstimeMicro(presta,vente):Math.round(brut*getImpotsTaux());
+  const _impotNote=_isMicroJ&&DATA.params.impotsTaux
+    ?(()=>{const ri=getRevenuImposableMicro(presta,vente);const pA=brut>0?Math.round((1-ri/brut)*100):0;return DATA.params.impotsTaux+'% sur revenu après abattement '+pA+'% · indicatif';})()
+    :(DATA.params.impotsTaux?DATA.params.impotsTaux+'% du CA':'');
   const total=totalUrssaf+tva+impot;
   const row=(label,val,note)=>val>0?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><div><span class="ts">${label}</span>${note?`<span style="margin-left:6px;opacity:.6;font-size:11px;color:var(--tl)">${note}</span>`:''}</div><span style="font-weight:700;color:var(--warn)">${fmtE(val)}</span></div>`:'';
+  const _impotLigne=DATA.params.impotsTaux
+    ?row('Impôt estimé',impot,_impotNote)
+    :(_isMicroJ?`<div style="padding:6px 0;border-bottom:1px solid var(--brd);font-size:11px;color:var(--tl)">Aucun taux d'impôt renseigné — aucune provision calculée.</div>`:'');
   return `<div class="card" style="border-left:4px solid var(--acc)">
     <div class="card-header"><div><div class="card-title">🧾 Provisions — ${moisLabel} <span class="info-tip" title="Montants à mettre de côté chaque mois — pas des dettes exigibles immédiatement. Voyez le widget Trésorerie disponible pour la dette réelle et la prochaine échéance.">?</span></div><div class="card-sub">Montants à mettre de côté ce mois-ci</div></div></div>
     ${brut>0?`<div style="font-size:12px;margin-bottom:8px">
       ${row('URSSAF + CFP',totalUrssaf,urssafNote||DATA.params.tauxURSSAF+'% + '+DATA.params.tauxCFP+'%')}
       ${regime!=='franchise'?row(tvaLabel,tva,tvaNote):`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span class="ts">TVA</span><span class="ts" style="color:var(--ok)">Franchise ✓</span></div>`}
-      ${DATA.params.impotsTaux?row('Impôt estimé',impot,DATA.params.impotsTaux+'% du CA'):''}
+      ${_impotLigne}
     </div>
     <div style="display:flex;justify-content:space-between;padding:8px 0 2px">
       <span style="font-weight:700">Total à provisionner</span>
       <span style="font-size:18px;font-weight:700;color:${total>0?'var(--err)':'var(--tl)'}">${fmtE(total)}</span>
     </div>
     <div class="ts mt4" style="color:var(--tl)">Basé sur ${fmtE(brut)} de CA HT — ${moisLabel}</div>
+    ${_isMicroJ?`<div class="ts mt4" style="color:var(--tl);font-style:italic">Impôt estimé — prévision indicative basée sur votre taux saisi et le revenu imposable estimé après abattement micro. À ajuster selon votre situation personnelle.</div>`:''}
     `:`<div class="ts" style="color:var(--tl)">Aucun CA enregistré ce mois — les provisions s'afficheront automatiquement.</div>`}
   </div>`;
 }
@@ -5724,7 +5781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ════════════════════════════════════════════════════════════════
      CORE PARTAGÉ — fonctions communes Freelance/Artisan branchées sur
-     core/calculs.js via refactor-test/modes/freelance.js. Validées par
+     core/calculs.js via shared/modes/freelance.js. Validées par
      56/56 (tests.js), 73/73 (validation.js), 4063/4063 (phase2_sandbox.js),
      19/19 (unified_model.test.js), 92/92 (bridge_smoke.js).
      Le <script type="module"> ci-dessous s'exécute après le parsing complet
@@ -5733,7 +5790,7 @@ document.addEventListener('DOMContentLoaded', () => {
      au premier rendu, pas seulement aux rendus suivants.
      ════════════════════════════════════════════════════════════════ -->
 <script type="module">
-  import * as Mode from './refactor-test/modes/freelance.js';
+  import * as Mode from './shared/modes/freelance.js';
 
   function sync() { Mode.setData(DATA); }
 
@@ -5783,6 +5840,10 @@ document.addEventListener('DOMContentLoaded', () => {
   window.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };
   window.getUrssafProvisionMensuelle = () => { sync(); return Mode.getUrssafProvisionMensuelle(); };
   window.getUrssafRegime           = () => { sync(); return Mode.getUrssafRegime(); };
+  window.getAbattementMicro        = (caP, caV) => { sync(); return Mode.getAbattementMicro(caP, caV); };
+  window.getRevenuImposableMicro   = (caP, caV) => { sync(); return Mode.getRevenuImposableMicro(caP, caV); };
+  window.getImpotEstimeMicro       = (caP, caV) => { sync(); return Mode.getImpotEstimeMicro(caP, caV); };
+  window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
 </script>
 
 <!-- BOUTON CHANGER DE SESSION -->

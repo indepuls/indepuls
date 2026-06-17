@@ -65,7 +65,7 @@ vm.runInContext(src, ctx);
 // le <script type="module"> ajouté en fin de fichier HTML). On reproduit
 // ici ce branchement pour le contexte vm, puisque vm.runInContext ne sait
 // pas exécuter de <script type="module">.
-const Mode = await import(pathToFileURL(path.join(__dirname, 'refactor-test', 'modes', 'freelance.js')).href);
+const Mode = await import(pathToFileURL(path.join(__dirname, 'shared', 'modes', 'freelance.js')).href);
 function sync() { Mode.setData(ctx.DATA); }
 ctx.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
 ctx.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };

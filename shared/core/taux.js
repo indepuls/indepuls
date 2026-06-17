@@ -24,6 +24,31 @@ export function getTauxStatut(statut) {
   return TAUX_URSSAF[statut] || TAUX_URSSAF['micro-bnc'];
 }
 
+// Abattements forfaitaires micro 2026 (source : DGFIP)
+// Appliqués au CA pour obtenir le revenu imposable estimé.
+// Ne s'appliquent PAS aux cotisations URSSAF ni à la TVA.
+// Pour activité mixte : presta et vente sont calculés séparément puis additionnés.
+export const ABATTEMENTS_MICRO = {
+  'micro-bnc':   { presta: 0.34, vente: 0.34 }, // Libéral / BNC : 34 % sur tout le CA
+  'micro-bic':   { presta: 0.50, vente: 0.71 }, // Services BIC : 50 % presta, 71 % vente
+  'micro-achat': { presta: 0.50, vente: 0.71 }, // Commerce : 71 % (non mixte) ou 50+71 % (mixte)
+};
+export const ABATTEMENT_MINIMUM = 305; // € — plancher légal d'abattement
+
+// Plafonds du régime micro 2026 (source : DGFIP)
+// Distincts des seuils de franchise TVA — ne pas confondre.
+//   TVA franchise prestation : 37 500 €  (dans TVA_SEUILS)
+//   TVA franchise vente      : 85 000 €  (dans TVA_SEUILS)
+//   Plafond régime micro BNC : 83 600 €  (ci-dessous)
+//   Plafond régime micro BIC : 83 600 €  (ci-dessous)
+//   Plafond régime micro achat/commerce : 203 100 €  (ci-dessous)
+// En activité mixte : plafond global 203 100 € + sous-plafond prestations 83 600 €.
+export const MICRO_LIMITS = {
+  'micro-bnc':   { global:  83600, sousPlafondPresta: null },
+  'micro-bic':   { global:  83600, sousPlafondPresta: null },
+  'micro-achat': { global: 203100, sousPlafondPresta: 83600 }, // sousPlafondPresta s'active en mixte
+};
+
 // Catégories de dépenses et couleurs associées
 export const DEP_CATEGORIES = [
   'Logiciels & abonnements','Marketing & communication','Formation',

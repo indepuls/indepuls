@@ -8,7 +8,7 @@
 // avec le reste du code existant (ex: getRevenuNetMois(mk) au lieu de
 // calculs.getRevenuNetMois(DATA, mk)).
 
-import { getTauxStatut, TVA_SEUILS } from './taux.js';
+import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS } from './taux.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -476,4 +476,105 @@ export function getHeuresFact(DATA) {
 export function getHeuresInterne(DATA) {
   const m = DATA.missions.find(m => m.isManagement);
   return m ? getMissionHeures(DATA, m) : 0;
+}
+
+// ── ABATTEMENT FORFAITAIRE MICRO ─────────────────────────────
+// Ces fonctions calculent l'estimation fiscale du régime micro.
+// Elles ne touchent pas aux cotisations URSSAF ni à la TVA.
+// Ne s'appliquent pas à la SASU.
+
+// Calcule l'abattement forfaitaire en euros sur une base CA presta/vente.
+// caPrestaBreakdown et caVenteBreakdown sont la ventilation du CA (même logique
+// que getCaBreakdownMois). Pour micro-achat non mixte, tout le CA est passé en
+// caPrestaBreakdown mais l'abattement appliqué est 71 % (commerce), pas 50 %.
+export function getAbattementMicro(DATA, caPrestaBreakdown, caVenteBreakdown) {
+  if (isSASU(DATA)) return 0;
+  const statut = DATA.params.statut;
+  const mixte  = isActiviteMixte(DATA);
+  const caTotal = caPrestaBreakdown + caVenteBreakdown;
+  if (caTotal <= 0) return 0;
+  const t = ABATTEMENTS_MICRO[statut];
+  if (!t) return 0;
+
+  let abatt;
+  if (statut === 'micro-bnc') {
+    abatt = caTotal * 0.34;
+  } else if (statut === 'micro-bic') {
+    abatt = mixte
+      ? caPrestaBreakdown * 0.50 + caVenteBreakdown * 0.71
+      : caTotal * 0.50;
+  } else if (statut === 'micro-achat') {
+    abatt = mixte
+      ? caPrestaBreakdown * 0.50 + caVenteBreakdown * 0.71
+      : caTotal * 0.71; // Non mixte : tout le CA est commerce → 71 %
+  } else {
+    return 0;
+  }
+
+  // Abattement minimum légal de 305 € (plafonné au CA total pour éviter un revenu négatif)
+  return Math.min(caTotal, Math.max(abatt, ABATTEMENT_MINIMUM));
+}
+
+// Revenu imposable estimé après abattement forfaitaire (plancher 0 €).
+export function getRevenuImposableMicro(DATA, caPrestaBreakdown, caVenteBreakdown) {
+  if (isSASU(DATA)) return 0;
+  const caTotal = caPrestaBreakdown + caVenteBreakdown;
+  if (caTotal <= 0) return 0;
+  return Math.max(0, caTotal - getAbattementMicro(DATA, caPrestaBreakdown, caVenteBreakdown));
+}
+
+// Impôt estimé = revenu imposable × taux saisi par l'utilisateur.
+// Retourne 0 si SASU, si statut non micro, ou si impotsTaux = 0.
+export function getImpotEstimeMicro(DATA, caPrestaBreakdown, caVenteBreakdown) {
+  if (isSASU(DATA)) return 0;
+  const tauxPct = DATA.params.impotsTaux || 0;
+  if (!tauxPct) return 0;
+  if (!ABATTEMENTS_MICRO[DATA.params.statut]) return 0; // Statut non micro
+  return Math.round(getRevenuImposableMicro(DATA, caPrestaBreakdown, caVenteBreakdown) * tauxPct / 100);
+}
+
+// ── PLAFOND DU RÉGIME MICRO ───────────────────────────────────
+// Retourne les informations de suivi du plafond micro pour l'année en cours.
+// Distinct du seuil de franchise TVA (voir TVA_SEUILS dans taux.js).
+// Retourne null si SASU ou statut non micro.
+export function getMicroPlafondInfo(DATA) {
+  if (isSASU(DATA)) return null;
+  const statut = DATA.params.statut;
+  const limits = MICRO_LIMITS[statut];
+  if (!limits) return null;
+
+  const mixte         = isActiviteMixte(DATA);
+  const activeMonths  = getActiveMonthsInYear(DATA);
+  const hasProrata    = activeMonths < 12;
+
+  // Plafond annuel effectif (proraté à l'ouverture si création en cours d'année)
+  const plafond         = hasProrata ? Math.round(limits.global * activeMonths / 12) : limits.global;
+  const spBase          = mixte ? limits.sousPlafondPresta : null;
+  const sousPlafond     = (spBase && hasProrata) ? Math.round(spBase * activeMonths / 12) : spBase;
+
+  // CA annuel (encaissé à ce jour dans l'année)
+  const caAnnuel = getCaAnnuelBrut(DATA);
+  const caPrestaAnnuel = mixte
+    ? getCurrentYearMonths(DATA).reduce((s, mk) =>
+        s + getCaPrestaMois(DATA, mk) + getPonctuelsPresta(DATA, mk), 0)
+    : null;
+
+  const pct       = plafond > 0 ? Math.round(caAnnuel / plafond * 100) : 0;
+  const pctPresta = (sousPlafond && sousPlafond > 0 && caPrestaAnnuel !== null)
+    ? Math.round(caPrestaAnnuel / sousPlafond * 100) : null;
+
+  return {
+    plafond,          // plafond effectif (proraté ou annuel)
+    plafondBase: limits.global, // plafond annuel de référence
+    sousPlafond,      // sous-plafond prestation effectif (mixte uniquement, sinon null)
+    sousPlafondBase: spBase,
+    caAnnuel,
+    caPrestaAnnuel,   // CA presta annuel (mixte uniquement, sinon null)
+    pct,              // % du plafond global atteint
+    pctPresta,        // % du sous-plafond prestation atteint (mixte uniquement)
+    hasProrata,
+    activeMonths,
+    mixte,
+    statut,
+  };
 }

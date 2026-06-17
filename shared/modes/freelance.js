@@ -1,19 +1,29 @@
-// ── MODE ARTISAN — PONT VERS LE CORE ─────────────────────────
-// Identique à modes/freelance.js dans la phase 1.
-// Les différences Artisan (devis, chantiers, planning) seront ajoutées
-// dans les phases suivantes comme fonctions SUPPLÉMENTAIRES ici,
-// sans toucher au core partagé.
+// ── MODE FREELANCE — PONT VERS LE CORE ───────────────────────
+// Ce fichier est le point d'entrée du mode Freelance/OBM.
+// Il injecte DATA dans toutes les fonctions core et expose
+// l'API globale attendue par indepuls_freelance.html.
+//
+// Stratégie de migration progressive :
+//   Phase 1 (actuelle) — ce fichier existe mais n'est pas encore chargé
+//     par indepuls_freelance.html. Les fonctions sont copiées dans le HTML.
+//   Phase 2 — on remplace les fonctions dupliquées du HTML par des
+//     imports de ce module (une par une, avec test après chaque).
+//   Phase 3 — le HTML ne contient plus que le UI, toute la logique vient d'ici.
 
 import * as C from '../core/calculs.js';
 import * as S from '../core/storage.js';
 import { getTauxStatut } from '../core/taux.js';
 
-export const STORAGE_KEY    = 'indepuls_artisan';
-export const SCHEMA_VERSION = 28; // à synchroniser avec le fichier artisan
+// Clé de stockage propre au mode freelance
+export const STORAGE_KEY     = 'indepuls_freelance';
+export const SCHEMA_VERSION  = 28;
 
+// DATA est la référence globale partagée avec le HTML.
+// En phase 2, on l'expose ici et le HTML la lit via window.DATA.
 let DATA = null;
 
-// ── WRAPPERS CORE (identiques à freelance.js) ────────────────
+// ── WRAPPERS — injectent DATA implicitement ───────────────────
+// Permettent d'appeler isSASU() au lieu de C.isSASU(DATA) dans le HTML.
 
 export const isSASU                   = () => C.isSASU(DATA);
 export const isActiviteMixte          = () => C.isActiviteMixte(DATA);
@@ -37,21 +47,13 @@ export const getPonctuelsPresta       = (mk) => C.getPonctuelsPresta(DATA, mk);
 export const getPonctuelsVente        = (mk) => C.getPonctuelsVente(DATA, mk);
 export const getPonctuelsTresorerie   = (mk) => C.getPonctuelsTresorerie(DATA, mk);
 
-// Le core retourne {presta, vente} (forme Freelance). L'Artisan attend
-// {prestation, vente, total} — voir la note dans core/calculs.js sur la
-// divergence de shape confirmée par refactor-test/tests/validation.js
-// (mêmes valeurs numériques, clés différentes). Ce wrapper traduit la forme
-// sans dupliquer la logique de calcul.
-export function getCaBreakdownMois(mk) {
-  const { presta, vente } = C.getCaBreakdownMois(DATA, mk);
-  return { prestation: presta, vente, total: presta + vente };
-}
+export const getCaBreakdownMois       = (mk) => C.getCaBreakdownMois(DATA, mk);
 export const getCaFromMissions        = (mk) => C.getCaFromMissions(DATA, mk);
 export const getCaAnnuelBrut          = () => C.getCaAnnuelBrut(DATA);
 export const getCaNetAnnuel           = () => C.getCaNetAnnuel(DATA);
 export const getRevenuNetMois         = (mk) => C.getRevenuNetMois(DATA, mk);
 
-export const getTVAZone               = C.getTVAZone;
+export const getTVAZone               = C.getTVAZone;   // pure, pas de DATA
 export const tvaZoneFill              = C.tvaZoneFill;
 export const tvaZoneKpi               = C.tvaZoneKpi;
 export const getTVASeuilsStatut       = () => C.getTVASeuilsStatut(DATA);
@@ -73,27 +75,18 @@ export const getTresorerieDepart      = () => C.getTresorerieDepart(DATA);
 export const getSasuSoldeActuelEstime = () => C.getSasuSoldeActuelEstime(DATA);
 export const getSasuProjectionFinAnnee = () => C.getSasuProjectionFinAnnee(DATA);
 
-export const getTotalEncaisse         = C.getTotalEncaisse;
-export const getResteAEncaisser       = C.getResteAEncaisser;
+export const getTotalEncaisse         = C.getTotalEncaisse;   // pure
+export const getResteAEncaisser       = C.getResteAEncaisser; // pure
 
 export const getMissionTotalMs        = (m) => C.getMissionTotalMs(DATA, m);
 export const getMissionHeures         = (m) => C.getMissionHeures(DATA, m);
 export const getHeuresFact            = () => C.getHeuresFact(DATA);
 export const getHeuresInterne         = () => C.getHeuresInterne(DATA);
 
-// ── FONCTIONS SPÉCIFIQUES ARTISAN ────────────────────────────
-// Ces fonctions n'ont pas d'équivalent Freelance.
-// Elles restent ici — elles n'iront jamais dans le core partagé.
-
-export function getCaEncaisseAnnuel(DATA_local) {
-  // En Artisan, le CA encaissé = somme des encaissements réels
-  const d = DATA_local || DATA;
-  return (d.missions || []).reduce((s, m) => {
-    return s + (m.encaissements || [])
-      .filter(e => e.date && e.date.startsWith(String(d.currentYear)))
-      .reduce((ss, e) => ss + (e.montant || 0), 0);
-  }, 0);
-}
+export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA, caP, caV);
+export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
+export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
+export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
 
 // ── STORAGE ──────────────────────────────────────────────────
 

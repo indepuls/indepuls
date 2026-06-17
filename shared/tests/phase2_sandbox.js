@@ -110,7 +110,7 @@ async function loadHtmlContext(htmlFile) {
   // sait pas exécuter. On reproduit ici le même branchement, à l'identique
   // de ce que fait réellement ce fichier dans un navigateur.
   if (htmlFile === 'indepuls_freelance.html') {
-    const Mode = await import(pathToFileURL(path.join(ROOT, 'refactor-test', 'modes', 'freelance.js')).href);
+    const Mode = await import(pathToFileURL(path.join(ROOT, 'shared', 'modes', 'freelance.js')).href);
     const sync = () => Mode.setData(ctx.DATA);
     ctx.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
     ctx.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
@@ -163,7 +163,7 @@ async function loadHtmlContext(htmlFile) {
   // Même chose pour indepuls_artisan.html (44 fonctions — getTauxChargesPresta
   // et isActiviteMixte restent volontairement NON branchées côté Artisan).
   if (htmlFile === 'indepuls_artisan.html') {
-    const Mode = await import(pathToFileURL(path.join(ROOT, 'refactor-test', 'modes', 'artisan.js')).href);
+    const Mode = await import(pathToFileURL(path.join(ROOT, 'shared', 'modes', 'artisan.js')).href);
     const sync = () => Mode.setData(ctx.DATA);
     ctx.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
     ctx.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
@@ -446,7 +446,7 @@ function compare(ctxLabel, dataLabel, mk, fnLabel, avant, apres) {
 }
 
 async function run() {
-  const Core = await import(pathToFileURL(path.join(ROOT, 'refactor-test', 'core', 'calculs.js')).href);
+  const Core = await import(pathToFileURL(path.join(ROOT, 'shared', 'core', 'calculs.js')).href);
 
   // ── FREELANCE ──────────────────────────────────────────────
   // indepuls_freelance.html n'est PLUS un fichier "original non bridé" :
