@@ -2774,7 +2774,7 @@ function wProvisionsSide(d) {
   let provImpots,_impotSubW;
   if(_isMicro&&caMoyMensuel>0&&impotsTaux>0){
     let _mP=caMoyMensuel,_mV=0;
-    if(isActiviteMixte()){
+    if(DATA.params.activiteMixte){
       const _mks=getMoisActifsAnnee();
       if(_mks.length){const _t=_mks.reduce((s,mk)=>{const b=getCaBreakdownMois(mk);return{p:s.p+(b.prestation||0),v:s.v+(b.vente||0)};},{p:0,v:0});_mP=_t.p/_mks.length;_mV=_t.v/_mks.length;}
     }
