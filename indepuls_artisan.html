@@ -519,6 +519,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-section">Outils</div>
   <div class="nav-item" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
   <div class="nav-item" onclick="navigate('devis')"><span class="nav-icon">🧮</span> Tester un devis</div>
+  <div class="nav-item" id="nav-recettes" onclick="navigate('recettes')" style="display:none"><span class="nav-icon">📒</span> Livre des recettes</div>
   <div class="nav-section">Réglages</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
   <div class="nav-item" onclick="navigate('notice')"><span class="nav-icon">📖</span> Guide & glossaire</div>
@@ -797,6 +798,16 @@ html,body{overflow-x:hidden;}
           <div class="ts mt6" style="color:var(--tl);line-height:1.6">
             Cochez cette option si vous facturez à la fois des prestations / main-d'œuvre et des ventes de produits ou matériaux. Deux seuils de franchise TVA distincts s'appliqueront alors : <strong>37 500 €</strong> pour les prestations et <strong>85 000 €</strong> pour les ventes.
           </div>
+        </div>
+        <div class="divider"></div>
+        <div class="card-sub mb10" style="font-weight:700">Livre des recettes</div>
+        <div class="sw-wrap">
+          <label class="sw"><input type="checkbox" id="p-livre-recettes" onchange="saveParam('livreRecettesActif',this.checked);updateNavRecettes();renderAll()"><span class="sw-sl"></span></label>
+          <span>Activer le livre des recettes</span>
+          <span class="info-tip" title="Le livre des recettes liste tous vos encaissements dans l'ordre chronologique. Obligatoire pour les micro-entreprises. Les données sont conservées même si vous désactivez l'option.">?</span>
+        </div>
+        <div class="ts mt6" style="color:var(--tl);line-height:1.6">
+          Recommandé pour les micro-entreprises. Une fois activé, chaque encaissement peut être complété avec le mode de règlement et la référence de facture. Désactivez si vous ne souhaitez pas utiliser cette fonctionnalité.
         </div>
       </div>
       <div class="card mt16">
@@ -1119,6 +1130,48 @@ html,body{overflow-x:hidden;}
           <div style="font-size:14px;color:var(--tl);line-height:1.8">Renseignez les champs à gauche<br>pour voir l'analyse de rentabilité.</div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- LIVRE DES RECETTES -->
+  <div class="page" id="page-recettes">
+    <div style="max-width:960px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div>
+          <h2 style="margin:0;font-size:20px;color:var(--pri)">📒 Livre des recettes</h2>
+          <div id="lr-completude" style="font-size:13px;color:var(--tl);margin-top:4px"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-out btn-sm" onclick="exportRecettesCSV()">⬇ Export CSV</button>
+          <button class="btn btn-acc btn-sm" onclick="ouvrirRecetteManuelle()">+ Recette manuelle</button>
+        </div>
+      </div>
+      <div class="card mb16" style="padding:12px 16px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div class="fgroup" style="margin:0;min-width:130px">
+            <label class="flabel" style="font-size:11px">Période</label>
+            <select id="lr-filtre-periode" onchange="renderRecettes()" style="font-size:13px;padding:5px 8px">
+              <option value="annee">Cette année</option>
+              <option value="t1">T1 (janv–mars)</option>
+              <option value="t2">T2 (avr–juin)</option>
+              <option value="t3">T3 (juil–sept)</option>
+              <option value="t4">T4 (oct–déc)</option>
+              <option value="tout">Tout l'historique</option>
+            </select>
+          </div>
+          <div class="fgroup" style="margin:0;min-width:150px">
+            <label class="flabel" style="font-size:11px">Afficher</label>
+            <select id="lr-filtre-statut" onchange="renderRecettes()" style="font-size:13px;padding:5px 8px">
+              <option value="valides">Toutes les valides</option>
+              <option value="completes">Complètes uniquement</option>
+              <option value="incompletes">Incomplètes uniquement</option>
+              <option value="annulees">Annulées</option>
+              <option value="tout">Tout (y compris annulées)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div id="lr-content"></div>
     </div>
   </div>
 
@@ -1462,6 +1515,69 @@ html,body{overflow-x:hidden;}
     <div class="modal-foot" style="gap:12px">
       <button class="btn btn-out" style="flex:1;justify-content:center" onclick="closeModal('modal-clear-example')">Continuer à explorer</button>
       <button class="btn btn-acc" style="flex:1;justify-content:center" onclick="clearExampleData()">Oui, démarrer avec mes données</button>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP LIVRE DES RECETTES — COMPLÉTER -->
+<div class="modal-ov hidden" id="modal-lr-completer">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Compléter le livre des recettes</div>
+    <div class="ts mb16" style="color:var(--tl)">Ces informations sont facultatives et peuvent être ignorées.</div>
+    <input type="hidden" id="lr-c-enc-id">
+    <input type="hidden" id="lr-c-mission-id">
+    <div class="fgroup">
+      <label class="flabel">Mode de règlement</label>
+      <select id="lr-c-mode">
+        <option value="">— Choisir —</option>
+        <option value="virement">Virement bancaire</option>
+        <option value="cheque">Chèque</option>
+        <option value="especes">Espèces</option>
+        <option value="carte">Carte bancaire</option>
+        <option value="prelevement">Prélèvement</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="fgroup mt12">
+      <label class="flabel">Référence justificative <span class="info-tip" title="Numéro de facture, numéro de reçu, ou toute référence permettant de retrouver le document.">?</span></label>
+      <input type="text" id="lr-c-ref" placeholder="Ex : FAC-2026-042">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="fermerPopupCompletion()">Passer cette étape</button>
+      <button class="btn btn-acc" onclick="enregistrerCompletion()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECETTE MANUELLE -->
+<div class="modal-ov hidden" id="modal-lr-manuelle">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" id="lr-m-title">Nouvelle recette</div>
+    <input type="hidden" id="lr-m-id">
+    <div class="frow">
+      <div class="fgroup"><label class="flabel">Date d'encaissement *</label><input type="date" id="lr-m-date"></div>
+      <div class="fgroup">
+        <label class="flabel">Mode de règlement</label>
+        <select id="lr-m-mode">
+          <option value="">— Choisir —</option>
+          <option value="virement">Virement bancaire</option>
+          <option value="cheque">Chèque</option>
+          <option value="especes">Espèces</option>
+          <option value="carte">Carte bancaire</option>
+          <option value="prelevement">Prélèvement</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label class="flabel">Client *</label><input type="text" id="lr-m-client" placeholder="Nom du client"></div>
+      <div class="fgroup"><label class="flabel">Montant HT (€) *</label><input type="number" id="lr-m-montant" step="0.01" min="0" placeholder="Ex : 500"></div>
+    </div>
+    <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="lr-m-libelle" placeholder="Description de la prestation"></div>
+    <div class="fgroup mt4"><label class="flabel">Référence justificative</label><input type="text" id="lr-m-ref" placeholder="Ex : FAC-2026-042"></div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-lr-manuelle')">Annuler</button>
+      <button class="btn btn-acc" onclick="saveRecetteManuelle()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1815,7 +1931,8 @@ function getDefaultData() {
       impotsTaux:0,
       remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
       dateOuverture:'', metier:'',
-      rentabClientSort:'ca', rentabCatSort:'ca'
+      rentabClientSort:'ca', rentabCatSort:'ca',
+      livreRecettesActif:false
     },
     categories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur-mesure','Conseil / Devis','Formation / Atelier','Autre'],
     missions:[{
@@ -1825,7 +1942,7 @@ function getDefaultData() {
       timerAccumulated:0, timerRunning:false, timerStart:null,
       notes:'', tempsManuel:[], isManagement:true, encaissements:[], sessions:[]
     }],
-    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}
+    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[]
   };
 }
 
@@ -1860,6 +1977,7 @@ function applyDefaults(data) {
   if (!data.archives) data.archives = {};
   if (!data.bilans) data.bilans = {};
   if (!data.tempsInterne) data.tempsInterne = {};
+  if (!data.recettesManuel) data.recettesManuel = [];
   (data.missions||[]).forEach(m => {
     if (m.encaissements === undefined)    m.encaissements = [];
     if (m.montantVente == null)           m.montantVente = 0;
@@ -1965,6 +2083,281 @@ function fmt(n, d=0) { return Number(n||0).toLocaleString('fr-FR',{minimumFracti
 function fmtE(n, d) { const v=Number(n||0); const dec=d!==undefined?d:(v%1!==0?2:0); return fmt(v,dec)+' €'; }
 function uuid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function today() { return new Date().toISOString().slice(0,10); }
+
+// ══ LIVRE DES RECETTES ════════════════════════════════════════
+
+const LR_MODES = {virement:'Virement',cheque:'Chèque',especes:'Espèces',carte:'Carte',prelevement:'Prélèvement',autre:'Autre'};
+
+function getRecettesData() {
+  const recettes = [];
+  (DATA.missions||[]).forEach(m => {
+    if (m.isManagement) return;
+    (m.encaissements||[]).forEach(enc => {
+      recettes.push({
+        id:enc.id, missionId:m.id,
+        date:enc.date,
+        client:m.client||'',
+        libelle:m.description||'',
+        montant:enc.montant||0,
+        modeReglement:enc.modeReglement||'',
+        refJustificative:enc.refJustificative||'',
+        origine:'auto',
+        statut:enc.statutLivre||'valide',
+        dateCreation:enc.dateCreation||enc.date,
+        dateModif:enc.dateModif||null,
+      });
+    });
+  });
+  (DATA.recettesManuel||[]).forEach(r => recettes.push({...r,origine:'manuel'}));
+  recettes.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  return recettes;
+}
+
+function recetteComplete(r) {
+  return !!(r.date && r.client && r.montant && r.modeReglement && r.refJustificative);
+}
+
+function filtrerRecettes(recettes, periode, statut) {
+  const y = DATA.currentYear||new Date().getFullYear();
+  let r = [...recettes];
+  if (periode==='annee') r=r.filter(x=>x.date&&x.date.startsWith(String(y)));
+  else if(['t1','t2','t3','t4'].includes(periode)){
+    const qIdx=parseInt(periode[1])-1;
+    const months=[[1,2,3],[4,5,6],[7,8,9],[10,11,12]][qIdx].map(m=>`${y}-${String(m).padStart(2,'0')}`);
+    r=r.filter(x=>months.some(mk=>x.date&&x.date.startsWith(mk)));
+  }
+  if(statut==='valides')      r=r.filter(x=>x.statut!=='annulee');
+  else if(statut==='completes')   r=r.filter(x=>x.statut!=='annulee'&&recetteComplete(x));
+  else if(statut==='incompletes') r=r.filter(x=>x.statut!=='annulee'&&!recetteComplete(x));
+  else if(statut==='annulees')    r=r.filter(x=>x.statut==='annulee');
+  return r;
+}
+
+function renderRecettes() {
+  const toutes = getRecettesData();
+  const periode = (document.getElementById('lr-filtre-periode')||{}).value||'annee';
+  const statut  = (document.getElementById('lr-filtre-statut')||{}).value||'valides';
+  const recettes = filtrerRecettes(toutes, periode, statut);
+
+  // Indicateur de complétude (sur la période en cours, valides uniquement)
+  const validesPeriode = filtrerRecettes(toutes, periode, 'valides');
+  const completes  = validesPeriode.filter(recetteComplete);
+  const incomplets = validesPeriode.filter(r=>!recetteComplete(r));
+  const elCpt = document.getElementById('lr-completude');
+  if(elCpt) {
+    elCpt.innerHTML = validesPeriode.length===0 ? '' :
+      `<span style="color:var(--ok)">✔ ${completes.length} complète${completes.length>1?'s':''}</span>`+
+      (incomplets.length>0?` · <span style="color:var(--warn)">⚠ ${incomplets.length} incomplète${incomplets.length>1?'s':''}</span>`:'');
+  }
+
+  const cont = document.getElementById('lr-content');
+  if(!cont) return;
+
+  if(recettes.length===0){
+    cont.innerHTML=`<div class="card" style="text-align:center;padding:40px 24px;border:2px dashed var(--brd)">
+      <div style="font-size:40px;margin-bottom:12px">📒</div>
+      <div style="color:var(--tl);font-size:14px;line-height:1.8">Aucune recette pour ce filtre.<br>Les encaissements enregistrés sur vos chantiers<br>apparaissent ici automatiquement.</div>
+    </div>`;
+    return;
+  }
+
+  const y = DATA.currentYear||new Date().getFullYear();
+  const groupByTrim = (periode==='annee'||periode==='tout');
+  const trimestres = [
+    {label:`T1 — Janvier / Mars`,    months:[`${y}-01`,`${y}-02`,`${y}-03`]},
+    {label:`T2 — Avril / Juin`,      months:[`${y}-04`,`${y}-05`,`${y}-06`]},
+    {label:`T3 — Juillet / Septembre`,months:[`${y}-07`,`${y}-08`,`${y}-09`]},
+    {label:`T4 — Octobre / Décembre`, months:[`${y}-10`,`${y}-11`,`${y}-12`]},
+  ];
+  const groupes = groupByTrim
+    ? trimestres.map(t=>({label:t.label,items:recettes.filter(r=>t.months.some(mk=>r.date&&r.date.startsWith(mk)))})).filter(g=>g.items.length)
+    : [{label:null,items:recettes}];
+
+  let html='', totalGlobal=0, totalAnnulees=0;
+
+  groupes.forEach(g=>{
+    const valid=g.items.filter(r=>r.statut!=='annulee');
+    const totalG=valid.reduce((s,r)=>s+r.montant,0);
+    const annG=g.items.filter(r=>r.statut==='annulee').reduce((s,r)=>s+r.montant,0);
+    totalGlobal+=totalG; totalAnnulees+=annG;
+
+    if(g.label){
+      html+=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 8px">
+        <div style="font-size:12px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.8px">${g.label}</div>
+        <div style="font-size:15px;font-weight:700;color:var(--pri)">${fmtE(totalG)}</div>
+      </div>`;
+    }
+
+    html+=`<div class="tbl-wrap" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:680px">
+      <thead><tr style="color:var(--tl);font-size:11px;text-transform:uppercase;letter-spacing:.5px">
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--brd)">Date</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--brd)">Client</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--brd)">Libellé</th>
+        <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">Montant</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--brd)">Règlement</th>
+        <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--brd)">Référence</th>
+        <th style="text-align:center;padding:6px 8px;border-bottom:1px solid var(--brd)">Statut</th>
+        <th style="padding:6px 8px;border-bottom:1px solid var(--brd)"></th>
+      </tr></thead><tbody>`;
+
+    g.items.forEach(r=>{
+      const ann=r.statut==='annulee';
+      const cpl=recetteComplete(r);
+      const modifBadge=r.dateModif?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--tl)">Modifiée</span>`:'';
+      const statutBadge=ann
+        ?`<span style="font-size:11px;color:var(--tl)">Annulée</span>`
+        :cpl
+          ?`<span style="font-size:11px;color:var(--ok)">✔ Complète</span>`
+          :`<span style="font-size:11px;color:var(--warn)">⚠ Incomplète</span>`;
+      const btnEditer=r.origine==='manuel'
+        ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Éditer</button>`
+        :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPopupCompletion('${r.missionId}','${r.id}')">Compléter</button>`;
+      const btnAnn=!ann
+        ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px;color:var(--err)" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Annuler</button>`
+        :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Rétablir</button>`;
+      const rowStyle=ann?'opacity:.45':'';
+      html+=`<tr style="${rowStyle}">
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);white-space:nowrap">${r.date||'—'}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);font-weight:600">${r.client||'—'}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);color:var(--tl)">${r.libelle||'—'}${modifBadge}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);text-align:right;font-weight:700">${fmtE(r.montant)}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd)">${LR_MODES[r.modeReglement]||r.modeReglement||'—'}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);font-size:12px;color:var(--tl)">${r.refJustificative||'—'}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);text-align:center">${statutBadge}</td>
+        <td style="padding:7px 8px;border-bottom:1px solid var(--brd);white-space:nowrap">
+          <div style="display:flex;gap:4px">${!ann?btnEditer:''}${btnAnn}</div>
+        </td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  });
+
+  const validesTotal=recettes.filter(r=>r.statut!=='annulee');
+  const nbAnn=recettes.filter(r=>r.statut==='annulee').length;
+  html+=`<div class="card mt16" style="padding:14px 18px">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;align-items:baseline">
+      <div style="font-size:13px;color:var(--tl)">${validesTotal.length} recette${validesTotal.length>1?'s':''}${nbAnn>0?` · ${nbAnn} annulée${nbAnn>1?'s':''}`:''}${incomplets.length>0?` · <span style="color:var(--warn)">${incomplets.length} incomplète${incomplets.length>1?'s':''}</span>`:''}</div>
+      <div style="font-size:17px;font-weight:700;color:var(--pri)">Total encaissé : ${fmtE(totalGlobal)}</div>
+    </div>
+    ${totalAnnulees>0?`<div style="font-size:12px;color:var(--tl);margin-top:4px">Dont ${fmtE(totalAnnulees)} annulé — non comptabilisé.</div>`:''}
+  </div>`;
+
+  cont.innerHTML=html;
+}
+
+// ── Popup complétion après encaissement ──────────────────────
+function ouvrirPopupCompletion(missionId, encId) {
+  const m=DATA.missions.find(x=>x.id===missionId);
+  const enc=m&&(m.encaissements||[]).find(x=>x.id===encId);
+  document.getElementById('lr-c-mission-id').value=missionId;
+  document.getElementById('lr-c-enc-id').value=encId;
+  document.getElementById('lr-c-mode').value=(enc&&enc.modeReglement)||'';
+  document.getElementById('lr-c-ref').value=(enc&&enc.refJustificative)||'';
+  openModal('modal-lr-completer');
+}
+
+function fermerPopupCompletion() { closeModal('modal-lr-completer'); }
+
+function enregistrerCompletion() {
+  const missionId=document.getElementById('lr-c-mission-id').value;
+  const encId=document.getElementById('lr-c-enc-id').value;
+  const mode=document.getElementById('lr-c-mode').value;
+  const ref=document.getElementById('lr-c-ref').value.trim();
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  const enc=(m.encaissements||[]).find(x=>x.id===encId); if(!enc) return;
+  const now=new Date().toISOString().slice(0,10);
+  if(!enc.dateCreation) enc.dateCreation=enc.date;
+  enc.modeReglement=mode;
+  enc.refJustificative=ref;
+  enc.dateModif=now;
+  saveData();
+  closeModal('modal-lr-completer');
+  if(currentPage==='recettes') renderRecettes();
+}
+
+// ── Recette manuelle ─────────────────────────────────────────
+function ouvrirRecetteManuelle(id) {
+  const r=id?(DATA.recettesManuel||[]).find(x=>x.id===id):null;
+  document.getElementById('lr-m-title').textContent=r?'Modifier la recette':'Nouvelle recette';
+  document.getElementById('lr-m-id').value=r?r.id:'';
+  document.getElementById('lr-m-date').value=r?r.date:new Date().toISOString().slice(0,10);
+  document.getElementById('lr-m-client').value=r?(r.client||''):'';
+  document.getElementById('lr-m-libelle').value=r?(r.libelle||''):'';
+  document.getElementById('lr-m-montant').value=r?r.montant:'';
+  document.getElementById('lr-m-mode').value=r?(r.modeReglement||''):'';
+  document.getElementById('lr-m-ref').value=r?(r.refJustificative||''):'';
+  openModal('modal-lr-manuelle');
+}
+
+function saveRecetteManuelle() {
+  const id=document.getElementById('lr-m-id').value;
+  const date=document.getElementById('lr-m-date').value;
+  const client=document.getElementById('lr-m-client').value.trim();
+  const montant=parseFloat(document.getElementById('lr-m-montant').value)||0;
+  if(!date||!client||!montant){ alert('Date, client et montant sont obligatoires.'); return; }
+  const libelle=document.getElementById('lr-m-libelle').value.trim();
+  const modeReglement=document.getElementById('lr-m-mode').value;
+  const refJustificative=document.getElementById('lr-m-ref').value.trim();
+  const now=new Date().toISOString().slice(0,10);
+  if(!DATA.recettesManuel) DATA.recettesManuel=[];
+  if(id){
+    const r=DATA.recettesManuel.find(x=>x.id===id);
+    if(r) Object.assign(r,{date,client,libelle,montant,modeReglement,refJustificative,dateModif:now});
+  } else {
+    DATA.recettesManuel.push({id:uuid(),date,client,libelle,montant,modeReglement,refJustificative,origine:'manuel',statut:'valide',dateCreation:now,dateModif:null});
+  }
+  saveData();
+  closeModal('modal-lr-manuelle');
+  if(currentPage==='recettes') renderRecettes();
+}
+
+// ── Annulation (jamais de suppression) ───────────────────────
+function toggleAnnulationRecette(origine, id, missionId) {
+  const now=new Date().toISOString().slice(0,10);
+  if(origine==='manuel'){
+    const r=(DATA.recettesManuel||[]).find(x=>x.id===id); if(!r) return;
+    r.statut=r.statut==='annulee'?'valide':'annulee';
+    r.dateModif=now;
+  } else {
+    const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+    const enc=(m.encaissements||[]).find(x=>x.id===id); if(!enc) return;
+    enc.statutLivre=enc.statutLivre==='annulee'?'valide':'annulee';
+    enc.dateModif=now;
+  }
+  saveData();
+  if(currentPage==='recettes') renderRecettes();
+}
+
+// ── Export CSV ───────────────────────────────────────────────
+function exportRecettesCSV() {
+  const periode=(document.getElementById('lr-filtre-periode')||{}).value||'annee';
+  const recettes=filtrerRecettes(getRecettesData(),periode,'valides');
+  const lines=[['Date','Client','Libellé','Montant HT (€)','Mode de règlement','Référence','Statut','Origine'].join(';')];
+  recettes.forEach(r=>{
+    lines.push([
+      r.date||'',
+      `"${(r.client||'').replace(/"/g,'""')}"`,
+      `"${(r.libelle||'').replace(/"/g,'""')}"`,
+      String(r.montant).replace('.',','),
+      LR_MODES[r.modeReglement]||r.modeReglement||'',
+      `"${(r.refJustificative||'').replace(/"/g,'""')}"`,
+      r.statut||'valide',
+      r.origine||'auto',
+    ].join(';'));
+  });
+  const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`livre-recettes-${DATA.currentYear||new Date().getFullYear()}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ── Visibilité menu ──────────────────────────────────────────
+function updateNavRecettes() {
+  const el=document.getElementById('nav-recettes');
+  if(el) el.style.display=DATA.params.livreRecettesActif?'':'none';
+}
+
+// ══ FIN LIVRE DES RECETTES ════════════════════════════════════
 
 // ── ENCAISSEMENTS — HELPERS ──────────────────────────────────
 // Somme de tous les encaissements enregistrés sur un chantier
@@ -2314,7 +2707,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',missions:'Chantiers',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',devis:'Tester un devis'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',missions:'Chantiers',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',devis:'Tester un devis',recettes:'Livre des recettes'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -2356,6 +2749,7 @@ function renderPage(page) {
     case 'archives': renderArchives(); break;
     case 'params': renderParams(); break;
     case 'devis': renderDevis(); break;
+    case 'recettes': renderRecettes(); break;
   }
 }
 
@@ -2588,6 +2982,7 @@ function renderAll() {
   document.getElementById('next-year-label').textContent = DATA.currentYear+1;
   document.getElementById('topbar-title').textContent = getPageTitle(currentPage);
   updateSbTimer();
+  updateNavRecettes();
 }
 
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -4168,6 +4563,7 @@ function saveEncaissement() {
   // Si TVA active : saisie = TTC → convertir en HT pour les calculs, conserver TTC pour l'affichage
   const tvaOn=DATA.params.tva, tvaRate=(DATA.params.tauxTVA||20)/100;
   const montant=tvaOn?Math.round(saisie/(1+tvaRate)*100)/100:saisie;
+  let newEncId=null;
   if(editId) {
     const e=m.encaissements.find(x=>x.id===editId);
     if(e){ Object.assign(e,{date,type,montant,note}); if(tvaOn) e.montantTTC=saisie; else delete e.montantTTC; }
@@ -4175,12 +4571,17 @@ function saveEncaissement() {
     const enc={id:uuid(),date,type,montant,note};
     if(tvaOn) enc.montantTTC=saisie;
     m.encaissements.push(enc);
+    newEncId=enc.id;
   }
   m.encaissements.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   saveData(); cancelEncForm(); renderEncList();
   renderMissions();
   if(currentPage==='dashboard') renderDashboard();
   if(currentPage==='revenus') renderRevenus();
+  // Popup livre des recettes (création uniquement, si fonctionnalité activée)
+  if(newEncId && DATA.params.livreRecettesActif) {
+    setTimeout(()=>ouvrirPopupCompletion(encMissionId, newEncId), 250);
+  }
 }
 
 function deleteEncaissement(encId) {
@@ -5073,6 +5474,9 @@ function renderParams() {
   // Activité mixte — dans Mon profil (masquée et désactivée en SASU)
   const cbMixte=document.getElementById('p-activite-mixte');
   if(cbMixte) cbMixte.checked=sasu?false:!!(p.activiteMixte);
+  // Livre des recettes
+  const cbLivre=document.getElementById('p-livre-recettes');
+  if(cbLivre) cbLivre.checked=!!(p.livreRecettesActif);
   if(currentParamTab==='objectifs') renderObjectifsResult();
   if(currentParamTab==='categories') renderCategoriesList();
   if(currentParamTab==='profil'||currentParamTab==='avance') renderTvaParams();
