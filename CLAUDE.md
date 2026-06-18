@@ -60,12 +60,25 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 
 ## Fichiers & rôles
 
-| Fichier | Rôle |
+| Fichier / Dossier | Rôle |
 |---|---|
 | `index.html` | Page d'accueil + sélection du mode (freelance / artisan) |
-| `indepuls_freelance.html` | App complète mode freelance (OBM) |
-| `indepuls_artisan.html` | App complète mode artisan |
+| `indepuls_freelance.html` | App complète mode freelance (~6 100 lignes, SCHEMA_VERSION 28) |
+| `indepuls_artisan.html` | App complète mode artisan (~6 600 lignes, SCHEMA_VERSION 28) |
 | `vercel.json` | Config déploiement Vercel |
+| `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
+| `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
+| `shared/core/calculs.js` | ~580 lignes, 54 fonctions exportées — tout le calcul métier |
+| `shared/core/taux.js` | Référentiel fiscal 2026 (TVA, URSSAF, abattements, plafonds micro) |
+| `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` |
+| `shared/modes/freelance.js` | Pont ESM Freelance → window.* |
+| `shared/modes/artisan.js` | Pont ESM Artisan → window.* (shape `getCaBreakdownMois` différente) |
+| `shared/tests/abattement_micro.test.js` | 44 tests ESM — abattements, plafonds micro, prorata |
+| `shared/tests/bridge_smoke.js` | 100 tests — vérifie que chaque window.* appelé par le HTML existe |
+| `shared/tests/validation.js` | 73 tests — compare fonctions HTML locales vs core |
+| `shared/tests/unified_model.test.js` | 19 tests — modèle `montantDevis = prestation + vente` |
+| `shared/tests/phase2_sandbox.js` | 4 063 comparaisons Freelance bridge vs core direct |
+| `.gitignore` | Exclut `.claude/` (fichiers de dev local) |
 
 ## Déploiement
 
@@ -73,12 +86,35 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 - Déploiement auto sur Vercel à chaque `git push` sur `main`
 - URL prod : `indepuls.vercel.app`
 - Commande de travail : `cd "C:\Users\alexb\OneDrive\Bureau\Indépuls\indepuls-repo"`
+- Node.js requis pour les tests : `C:\Program Files\nodejs\node.exe` (pas dans le PATH Bash — utiliser PowerShell)
 
 ## Stack technique
 
 - HTML/CSS/JS **vanilla** — zéro framework, zéro dépendance
-- Persistance : `localStorage` via objet global `DATA`
+- Persistance : `localStorage` via objet global `DATA` (+ Supabase pour analytics)
 - Pas de build step — les fichiers sont servis directement
+- Module system : `shared/core/*.js` et `shared/modes/*.js` sont des modules ESM (import/export)
+
+## Architecture du pont HTML ↔ modules ESM (bridge pattern)
+
+Chaque fichier HTML contient, en bas du `<body>`, un bloc `<script type="module">` qui :
+1. Importe le module ESM du mode (`shared/modes/freelance.js` ou `artisan.js`)
+2. Appelle `Mode.setData(DATA)` pour synchroniser les données du module avec `DATA` global
+3. Expose les fonctions du module sur `window.*` pour que le script principal (non-module) puisse les appeler
+
+```js
+// Exemple — bloc bridge en bas de indepuls_freelance.html
+import * as Mode from './shared/modes/freelance.js';
+
+function sync() { Mode.setData(DATA); } // à appeler avant tout usage du mode
+
+window.getCaBreakdownMois  = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
+window.getRevenuNetMois    = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
+window.getMicroPlafondInfo = ()   => { sync(); return Mode.getMicroPlafondInfo(); };
+// ... etc.
+```
+
+**Règle critique** : `sync()` doit être appelé avant chaque appel au module, car `DATA` peut être muté par le script principal entre deux appels.
 
 ## Structure de DATA (localStorage)
 
@@ -135,6 +171,12 @@ getPonctuelsCA(mk)          // CA ponctuels du mois
 getRevenuNetMois(mk)        // revenu net (CA - charges - impôts - dépenses)
 getCaAnnuelBrut()           // total CA année en cours
 
+// Abattement forfaitaire & imposition micro (dans shared/core/calculs.js)
+getAbattementMicro(DATA, caP, caV)           // abattement calculé (avec minimum légal 305€)
+getRevenuImposableMicro(DATA, caP, caV)      // CA - abattement
+getImpotEstimeMicro(DATA, caP, caV)          // revenu imposable × taux impôts
+getMicroPlafondInfo(DATA)                    // {plafond, sousPlafond, pct, prorata, ...} ou null (SASU)
+
 // Dépenses
 getDepensesMois(mk)         // total dépenses du mois
 getDepensesMoyenneMensuelle() // moyenne mensuelle des dépenses
@@ -153,6 +195,42 @@ getCurrentYearMonths()      // ['2026-01', ..., '2026-12']
 fmtE(val, dec)              // formatage €
 saveData()                  // persist DATA en localStorage
 ```
+
+## Divergences Artisan / Freelance
+
+Ces différences doivent être maintenues à jour — elles ont causé des bugs en prod.
+
+| Point | Freelance | Artisan |
+|---|---|---|
+| Shape de `getCaBreakdownMois` | `{presta, vente}` | `{prestation, vente, total}` — traduit dans `shared/modes/artisan.js` |
+| `window.isActiviteMixte` | Disponible dans le bridge | **Absent du bridge artisan** — utiliser `DATA.params.activiteMixte` directement dans le HTML |
+| CA mensuel | Calculé depuis les missions | Calculé depuis les encaissements réels (`getCaEncaisseAnnuel`) |
+| Bilan mensuel | Non | Oui (`DATA.bilanDismissed`) |
+
+**Bug historique** (juin 2026) : `isActiviteMixte()` appelé dans `wProvisionsSide` du HTML artisan → dashboard blanc. Corrigé en remplaçant l'appel par `DATA.params.activiteMixte`.
+
+## SCHEMA_VERSION
+
+- Les deux HTML sont à `SCHEMA_VERSION = 28` (alignés en juin 2026)
+- `shared/modes/artisan.js` et `shared/modes/freelance.js` portent aussi cette version
+- `migrate()` dans `storage.js` est **idempotent** (pas de blocs conditionnels par version) — incrémenter la constante ne cause pas de migration risquée, mais reste nécessaire pour marquer un changement de structure `DATA`
+- À incrémenter dans les 4 endroits : les 2 HTML + les 2 fichiers modes
+
+## Suites de tests (Node.js)
+
+```bash
+# Depuis C:\Users\alexb\OneDrive\Bureau\Indépuls\indepuls-repo
+$node = "C:\Program Files\nodejs\node.exe"
+
+& $node tests.js                                          # 56 tests Freelance (VM HTML)
+& $node --experimental-vm-modules shared/tests/abattement_micro.test.js  # 44 tests abattements
+& $node shared/tests/bridge_smoke.js                      # 100 tests bridge smoke
+& $node shared/tests/validation.js                        # 73 tests comparaison HTML/core
+& $node shared/tests/unified_model.test.js                # 19 tests modèle unifié
+& $node shared/tests/phase2_sandbox.js                    # 4 063 comparaisons sandbox
+```
+
+Total : environ **4 355 assertions** couvrant calculs, bridge, migrations, et règles fiscales 2026.
 
 ## Architecture du dashboard (freelance & artisan)
 
@@ -219,10 +297,23 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - Mobile overflow fixes : `body { overflow-x: hidden }` sur artisan
 - Archives enrichies : sélecteur de comparaison (année ou moyenne), KPIs lisibles (×N au lieu de +1038%), phrase d'interprétation automatique, badge "Année en cours", carte "Vos progrès", système extensible `ARCH_INSIGHT_GENERATORS`
 - Source d'acquisition : champ optionnel sur chaque mission, donut chart dans les stats, phrase de rétrospective dans les archives
+- **Abattement forfaitaire micro 2026** : calcul de l'impôt estimé selon le statut (BNC 34%, BIC prestation 50%, BIC/achat vente 71%, minimum légal 305€) — widget `wJalonFiscal`, alertes plafond micro dans `buildAlerts` (60%/80%/100%), prorata pour les créateurs d'entreprise en cours d'année
+- **Refactoring shared/** : logique métier extraite dans `shared/core/` (ESM), bridge pattern pour exposer sur `window.*`, suites de tests complètes (4 355 assertions)
 
 ## Points d'attention
 
 - Les deux fichiers (freelance + artisan) partagent la même logique — toute modification doit être appliquée aux deux
-- `SCHEMA_VERSION` dans chaque fichier — à incrémenter si la structure de `DATA` change
+- **`SCHEMA_VERSION`** : à incrémenter dans les 4 endroits (2 HTML + 2 modes) si la structure de `DATA` change
 - Les fonctions `wKPIs()` et `renderSasuCard()` sont les plus complexes du dashboard
 - Ne pas utiliser `kpi-ico` (emoji absolu) dans les cards avec des boutons en haut à droite
+- **Bridge artisan** : `window.isActiviteMixte` n'est pas exposé — utiliser `DATA.params.activiteMixte` dans le HTML artisan
+- **`sync()` obligatoire** : toujours appeler `sync()` (alias `Mode.setData(DATA)`) avant tout appel à une fonction bridgée — `DATA` peut avoir été muté entre-temps
+- **Tests avant push** : relancer au moins `tests.js` et `bridge_smoke.js` avant chaque push sur `main`
+
+## Prochains chantiers identifiés
+
+- **Déclaration URSSAF** : afficher les périodes de cotisation et les montants à déclarer (trimestriel / mensuel) — forte valeur pour les micro-entrepreneurs
+- **Mode Artisan enrichi** : planning chantiers, gestion devis/acomptes spécifique BTP
+- **Export PDF / bilan mensuel** : génération d'un récapitulatif mensuel téléchargeable
+- **Synchronisation bancaire** : intégration optionnelle pour réconciliation automatique des encaissements
+- **Tests Artisan dans `tests.js`** : la suite principale ne couvre que le Freelance — écrire l'équivalent pour Artisan (VM HTML artisan)
