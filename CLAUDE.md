@@ -302,18 +302,59 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 
 ## Points d'attention
 
-- Les deux fichiers (freelance + artisan) partagent la même logique — toute modification doit être appliquée aux deux
-- **`SCHEMA_VERSION`** : à incrémenter dans les 4 endroits (2 HTML + 2 modes) si la structure de `DATA` change
-- Les fonctions `wKPIs()` et `renderSasuCard()` sont les plus complexes du dashboard
-- Ne pas utiliser `kpi-ico` (emoji absolu) dans les cards avec des boutons en haut à droite
-- **Bridge artisan** : `window.isActiviteMixte` n'est pas exposé — utiliser `DATA.params.activiteMixte` dans le HTML artisan
-- **`sync()` obligatoire** : toujours appeler `sync()` (alias `Mode.setData(DATA)`) avant tout appel à une fonction bridgée — `DATA` peut avoir été muté entre-temps
-- **Tests avant push** : relancer au moins `tests.js` et `bridge_smoke.js` avant chaque push sur `main`
+### Synchronisation Freelance ↔ Artisan
+Les deux HTML partagent exactement la même logique métier via `shared/core/`. Toute modification d'une fonction dans `calculs.js` ou `taux.js` se répercute automatiquement sur les deux modes. **En revanche, les widgets et le HTML lui-même sont dupliqués** — un bug corrigé dans `wKPIs()` du freelance doit être reporté manuellement dans l'artisan. Vérifier systématiquement les deux fichiers avant de committer.
+
+### `SCHEMA_VERSION` — 4 endroits à synchroniser
+Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, etc.) :
+1. `indepuls_freelance.html` — constante en haut du script principal
+2. `indepuls_artisan.html` — idem
+3. `shared/modes/freelance.js` — constante `SCHEMA_VERSION`
+4. `shared/modes/artisan.js` — idem
+
+La fonction `migrate()` dans `storage.js` est idempotente — elle n'a pas de blocs conditionnels par numéro de version. Incrémenter la constante est donc sans risque, mais reste nécessaire pour que les données importées (backup JSON) soient reconnues comme compatibles.
+
+### Bridge artisan : `isActiviteMixte` manquant
+`window.isActiviteMixte` est exposé dans le bridge Freelance mais **absent du bridge Artisan**. Si du code HTML artisan appelle `isActiviteMixte()` comme une fonction, il plantera silencieusement (dashboard blanc). Toujours utiliser `DATA.params.activiteMixte` (booléen) directement dans le HTML artisan. Ne pas ajouter `isActiviteMixte` au bridge artisan sans vérifier tous les endroits où `DATA.params.activiteMixte` est déjà utilisé.
+
+### `sync()` avant chaque appel bridgé
+Le module ESM maintient sa propre variable `DATA` en mémoire. Si le script principal mute `DATA` (ex : l'utilisateur change un paramètre, on appelle `saveData()`), le module ne le sait pas. Le `sync()` en tête de chaque wrapper du bridge corrige ça en appelant `Mode.setData(DATA)`. **Ne jamais appeler une fonction bridgée sans sync préalable**, sinon les calculs portent sur des données obsolètes.
+
+### Fonctions les plus complexes du dashboard
+- `wKPIs()` : gère 3 cas (micro, impôts, SASU) avec des branches TVA — facile d'introduire des régressions
+- `renderSasuCard()` : dépend de `getSasuProjectionFinAnnee()` qui elle-même dépend de l'ancrage bancaire optionnel
+- `buildAlerts()` : try/catch autour de `getMicroPlafondInfo()` — les erreurs sont silencieuses en prod, vérifier les logs console
+
+### CSS — pièges fréquents
+- `.kpi-ico` est en `position:absolute; right:14px; top:14px` — il chevauche les boutons dans ce coin. Ne pas mettre de bouton en haut à droite d'une `.kpi` card
+- `.g3` sur mobile ≤640px passe à 1 colonne — tester les ajouts de widgets en responsive
+- Pas de scroll horizontal autorisé — `overflow-x: hidden` sur `body` dans artisan
+
+### Tests avant push
+Relancer au minimum :
+```powershell
+$node = "C:\Program Files\nodejs\node.exe"
+& $node tests.js                      # régression calculs Freelance
+& $node shared/tests/bridge_smoke.js  # vérifie que chaque window.* existe encore
+```
 
 ## Prochains chantiers identifiés
 
-- **Déclaration URSSAF** : afficher les périodes de cotisation et les montants à déclarer (trimestriel / mensuel) — forte valeur pour les micro-entrepreneurs
-- **Mode Artisan enrichi** : planning chantiers, gestion devis/acomptes spécifique BTP
-- **Export PDF / bilan mensuel** : génération d'un récapitulatif mensuel téléchargeable
-- **Synchronisation bancaire** : intégration optionnelle pour réconciliation automatique des encaissements
-- **Tests Artisan dans `tests.js`** : la suite principale ne couvre que le Freelance — écrire l'équivalent pour Artisan (VM HTML artisan)
+### 1. Suivi des déclarations URSSAF *(priorité haute)*
+Les micro-entrepreneurs déclarent leur CA et paient leurs cotisations chaque trimestre (ou mois s'ils ont opté pour le mensuel). Aujourd'hui Indépuls calcule les provisions mais n'indique pas *quand* déclarer ni combien exactement. Une page ou un widget "Prochaine déclaration URSSAF" avec le CA cumulé de la période et le montant à payer aurait une forte valeur pratique. À implémenter dans `calculs.js` (les données sont déjà disponibles).
+
+### 2. Tests Artisan dans `tests.js` *(priorité haute)*
+La suite principale (`tests.js`, 56 tests) ne couvre que le Freelance via un contexte VM qui charge `indepuls_freelance.html`. L'Artisan n'a pas d'équivalent — seul `bridge_smoke.js` vérifie que les fonctions existent. Un bug de calcul artisan peut passer inaperçu. Écrire `tests_artisan.js` sur le même modèle (VM + `indepuls_artisan.html`) en priorité.
+
+### 3. Mode Artisan enrichi *(moyen terme)*
+L'Artisan actuel est une adaptation du Freelance. Les besoins spécifiques BTP non couverts :
+- Planning chantiers avec jalons (devis → acompte → solde)
+- Gestion des sous-traitants (impact sur la marge)
+- Suivi des retenues de garantie
+Ces fonctionnalités iraient dans `shared/modes/artisan.js` et des widgets dédiés dans le HTML artisan.
+
+### 4. Export / bilan mensuel PDF *(moyen terme)*
+Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions, revenu net. Utile pour les rendez-vous comptables. Faisable en JS pur via `window.print()` avec une CSS `@media print` dédiée, sans dépendance externe. Serait commun aux deux modes.
+
+### 5. Synchronisation bancaire *(long terme)*
+Connexion à un agrégateur bancaire (Bridge API, Powens…) pour réconcilier automatiquement les encaissements avec les missions. Impact fort sur la qualité des données artisan (aujourd'hui saisie manuelle des encaissements). Nécessite un backend — hors portée du vanilla actuel.
