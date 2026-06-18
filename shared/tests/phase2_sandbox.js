@@ -62,7 +62,7 @@
  *      taux horaire, TVA, et un proxy d'historique annuel (CA annuel net).
  *
  * Aucun fichier de production n'est modifié par ce script.
- * Exécution : node refactor-test/tests/phase2_sandbox.js
+ * Exécution : node shared/tests/phase2_sandbox.js
  */
 
 'use strict';
@@ -217,7 +217,7 @@ async function loadHtmlContext(htmlFile) {
 function setData(ctx, d) { ctx.DATA = d; }
 
 // ─────────────────────────────────────────────────────────────
-// 2. Jeux de données (identiques à refactor-test/tests/validation.js,
+// 2. Jeux de données (identiques à shared/tests/validation.js,
 //    déjà validés 73/73 — réutilisés ici sans modification)
 // ─────────────────────────────────────────────────────────────
 

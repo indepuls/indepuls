@@ -1,81 +1,59 @@
-# refactor-test — Architecture commune Artisan/Freelance
+# Shared core — Indépuls
 
-Prototype technique. **Ne pas merger dans main sans validation explicite.**
-
-## Contexte
-
-`indepuls_freelance.html` et `indepuls_artisan.html` partagent ~95% de code.
-Ce dossier explore une architecture commune sans toucher aux fichiers de production.
+Moteur de calcul partagé entre les modes Artisan et Freelance.
+Mergé dans `main` — code de production.
 
 ## Structure
 
 ```
-refactor-test/
+shared/
 ├── core/
-│   ├── taux.js       — Référentiel fiscal (TAUX_URSSAF, TVA_SEUILS, constantes)
+│   ├── taux.js       — Référentiel fiscal 2026 (TAUX_URSSAF, TVA_SEUILS, ABATTEMENTS_MICRO, MICRO_LIMITS)
 │   ├── utils.js      — Utilitaires purs sans DATA (fmt, uuid, monthLabel…)
-│   ├── calculs.js    — Calculs métier purs (TVA, URSSAF, revenu net, dépenses…)
+│   ├── calculs.js    — Calculs métier purs (TVA, URSSAF, revenu net, abattement micro, plafonds…)
 │   └── storage.js    — loadData, saveData, migrate, exportData, handleImport
-└── modes/
-    ├── freelance.js  — Wrappers DATA + STORAGE_KEY pour le mode Freelance/OBM
-    └── artisan.js    — Wrappers DATA + STORAGE_KEY + fonctions propres à l'Artisan
+├── modes/
+│   ├── freelance.js  — Wrappers DATA + STORAGE_KEY pour le mode Freelance/OBM
+│   └── artisan.js    — Wrappers DATA + STORAGE_KEY + fonctions propres à l'Artisan
+└── tests/
+    ├── abattement_micro.test.js — 44 tests : abattement forfaitaire + plafonds régime micro
+    ├── bridge_smoke.js          — 100 tests : smoke test de chaque export Mode.* appelé par le bridge HTML
+    ├── phase2_sandbox.js        — 4063 comparaisons : branchement réel Freelance + substitution Artisan
+    ├── unified_model.test.js    — 19 tests : modèle unifié montantDevis = prestation + vente
+    └── validation.js            — 73 tests : alignement core/calculs.js sur les originaux HTML
 ```
 
 ## Convention
 
 Toutes les fonctions de `core/calculs.js` reçoivent `DATA` en premier paramètre.
 Les fichiers `modes/` créent des wrappers qui injectent leur `DATA` local,
-pour conserver l'API attendue par les HTML (ex : `getRevenuNetMois(mk)` au lieu
+pour conserver l'API attendue par les HTML (`getRevenuNetMois(mk)` au lieu
 de `C.getRevenuNetMois(DATA, mk)`).
 
-## Ce qui est extrait (Phase 1)
+Le bridge HTML (`<script type="module">` en fin de fichier) importe le module de mode
+et expose chaque fonction sur `window.*` pour les appels du script principal.
 
-| Domaine           | Fonctions extraites                                                          |
-|-------------------|------------------------------------------------------------------------------|
-| Taux fiscaux      | TAUX_URSSAF, TVA_SEUILS, getTauxStatut, DEP_CATEGORIES, SRC_LABELS          |
-| Utilitaires       | fmt, fmtE, uuid, today, getCurrentMk, getMonthKey, monthLabel, heuresMs…    |
-| TVA               | getTVAZone, getTVACollecteeMois, getTVAProvisionMensuelle, getNextTVAEcheance… |
-| URSSAF            | getTauxCharges*, getUrssafRegime, getUrssafAnnuelBrut, getUrssafProvision…   |
-| Dépenses          | getDepensesMois, getDepensesMoyenneMensuelle                                 |
-| Revenu net        | getRevenuNetMois, getCaBreakdownMois, getCaAnnuelBrut, getCaNetAnnuel        |
-| Taux horaire      | getTauxHoraireMinCible                                                       |
-| SASU              | getSasuCoutRemuMensuel, getSasuSoldeActuelEstime, getSasuProjectionFinAnnee  |
-| Temps / Heures    | getMissionTotalMs, getMissionHeures, getHeuresFact, getHeuresInterne         |
-| Stockage          | loadData, saveData, migrate, applyDefaults, exportData, handleImport         |
+## Lancer les tests
 
-## Ce qui reste dupliqué (hors scope Phase 1)
+```bash
+node tests.js                              # 56 tests unitaires (core Freelance)
+node shared/tests/abattement_micro.test.js # 44 tests abattement + plafonds micro
+node shared/tests/validation.js            # 73 tests alignement core vs originaux
+node shared/tests/unified_model.test.js    # 19 tests modèle unifié
+node shared/tests/phase2_sandbox.js        # 4063 comparaisons branchement prod
+node shared/tests/bridge_smoke.js          # 100 smoke tests bridge modes/*.js
+```
 
-- Toutes les fonctions de rendu HTML (`w*()`, `render*()`)
-- Gestion des modales et events DOM
-- `getDefaultData()` / `getExampleData()` (données différentes par mode)
-- Fonctions spécifiques Artisan : devis, chantiers, planning, encaissements
-- CSS et thèmes (700+ styles inline dans les template strings)
+## Domaines couverts
 
-## Risques identifiés
-
-1. **getCaFromMissions** : dans le HTML actuel, le filtrage sur le mois-clé passe par
-   `dateFact` pour les missions facturées mais par `dateDebutRec` pour les récurrentes.
-   La version extraite simplifie — à vérifier sur données réelles.
-
-2. **getMoisActifsAnnee** : dépend de `getCurrentMk()` qui lit `new Date()`.
-   En test, penser à mocker la date si on veut tester des années passées.
-
-3. **import dynamique** : les modules ES utilisent `import/export`. Les HTML
-   actuels sont des scripts inline sans bundler. La migration Phase 2 nécessite
-   soit un `<script type="module">`, soit Vite/esbuild pour bundler.
-
-4. **DATA global** : les HTML mutent `DATA` directement à de nombreux endroits.
-   La transition vers `setData()` / `getData()` devra être progressive.
-
-## Plan Phase 2 (si Phase 1 validée)
-
-1. Ajouter `<script type="module">` dans les HTML (testé sur Chrome/Firefox/Safari modernes)
-2. Remplacer 5 fonctions simples dans freelance.html par des imports (ex: fmt, uuid, isSASU…)
-3. Tester les 2 modes après chaque remplacement
-4. Itérer jusqu'à ce que les HTML ne contiennent plus que UI + appels aux modules
-
-## Décision finale
-
-À valider ensemble avant tout merge vers main.
-Si la Phase 2 s'avère trop risquée, on abandonne la branche et on conserve
-les deux fichiers actuels tels quels.
+| Domaine            | Fonctions clés                                                               |
+|--------------------|------------------------------------------------------------------------------|
+| Taux fiscaux       | TAUX_URSSAF, TVA_SEUILS, ABATTEMENTS_MICRO, MICRO_LIMITS, getTauxStatut    |
+| Abattement micro   | getAbattementMicro, getRevenuImposableMicro, getImpotEstimeMicro            |
+| Plafonds micro     | getMicroPlafondInfo (prorata année d'ouverture, mixte, sous-plafond presta) |
+| TVA                | getTVAZone, getTVACollecteeMois, getTVAProvisionMensuelle…                  |
+| URSSAF             | getTauxCharges*, getUrssafRegime, getUrssafAnnuelBrut…                      |
+| Dépenses           | getDepensesMois, getDepensesMoyenneMensuelle                                |
+| Revenu net         | getRevenuNetMois, getCaBreakdownMois, getCaAnnuelBrut, getCaNetAnnuel       |
+| SASU               | getSasuCoutRemuMensuel, getSasuSoldeActuelEstime, getSasuProjectionFinAnnee |
+| Temps / Heures     | getMissionTotalMs, getMissionHeures, getHeuresFact, getHeuresInterne        |

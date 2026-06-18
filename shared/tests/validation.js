@@ -8,7 +8,7 @@
  *   _core_*  = version extraite dans core/calculs.js
  * On compare les deux sur plusieurs jeux de données.
  *
- * Exécution : node refactor-test/tests/validation.js
+ * Exécution : node shared/tests/validation.js
  * Aucune dépendance externe.
  */
 
@@ -246,7 +246,7 @@ function _orig_ar_getCaFromMissions(D, mk) {
 
 // ─────────────────────────────────────────────────────────────
 // 2. FONCTIONS CORE EXTRAITES (même logique, DATA en paramètre)
-//    Copie de refactor-test/core/calculs.js — sans dépendance module
+//    Copie de shared/core/calculs.js — sans dépendance module
 // ─────────────────────────────────────────────────────────────
 
 function _core_isSASU(D)          { return D.params.statut === 'sasu'; }

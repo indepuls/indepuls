@@ -39,7 +39,7 @@ export const getPonctuelsTresorerie   = (mk) => C.getPonctuelsTresorerie(DATA, m
 
 // Le core retourne {presta, vente} (forme Freelance). L'Artisan attend
 // {prestation, vente, total} — voir la note dans core/calculs.js sur la
-// divergence de shape confirmée par refactor-test/tests/validation.js
+// divergence de shape confirmée par shared/tests/validation.js
 // (mêmes valeurs numériques, clés différentes). Ce wrapper traduit la forme
 // sans dupliquer la logique de calcul.
 export function getCaBreakdownMois(mk) {

@@ -178,7 +178,7 @@ export function getCaBreakdownMois(DATA, mk) {
 }
 
 // IMPORTANT : cette fonction gère deux familles de missions très différentes —
-// voir refactor-test/tests/validation.js pour la preuve de non-régression :
+// voir shared/tests/validation.js pour la preuve de non-régression :
 //   - isRecurring=true  : contribue mois par mois entre dateDebutRec et dateDebutRec+nbMoisRec,
 //     pour le montant montantMensuel. Statuts 'ref'/'att' ou absence de dateDebutRec → exclue.
 //   - isRecurring=false : si la mission a des encaissements, le CA du mois = somme des

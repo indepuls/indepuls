@@ -3,7 +3,7 @@
  *
  * Contexte : harmonisation décidée pour préparer les futurs métiers
  * (Artisan, Freelance, UGC, conciergerie, photographe, agence, consultant...)
- * autour d'un seul moteur de calcul. Voir refactor-test/README.md.
+ * autour d'un seul moteur de calcul. Voir shared/README.md.
  *
  * Couvre :
  *   - getCaBreakdownMois / getMissionVenteRatio en Freelance et Artisan,
@@ -12,7 +12,7 @@
  *   - migration de cohérence (applyDefaults) sur une mission Artisan legacy
  *     dont montantPrestation/montantVente ne correspondent pas à montantDevis
  *
- * Exécution : node refactor-test/tests/unified_model.test.js
+ * Exécution : node shared/tests/unified_model.test.js
  */
 
 'use strict';
