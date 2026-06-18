@@ -63,8 +63,8 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | Fichier / Dossier | Rôle |
 |---|---|
 | `index.html` | Page d'accueil + sélection du mode (freelance / artisan) |
-| `indepuls_freelance.html` | App complète mode freelance (~6 100 lignes, SCHEMA_VERSION 28) |
-| `indepuls_artisan.html` | App complète mode artisan (~6 600 lignes, SCHEMA_VERSION 28) |
+| `indepuls_freelance.html` | App complète mode freelance (~6 500 lignes, SCHEMA_VERSION 28) |
+| `indepuls_artisan.html` | App complète mode artisan (~7 000 lignes, SCHEMA_VERSION 28) |
 | `vercel.json` | Config déploiement Vercel |
 | `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
@@ -130,12 +130,14 @@ DATA = {
     soldeReelDate: '2026-06',            // mois de l'ancrage
     tva: true,
     tauxTVA: 20,
+    livreRecettesActif: false,           // livre des recettes (opt-in, false par défaut)
     // ... autres params (URSSAF, objectifs, etc.)
   },
   missions: [...],
   revenus: { '2026-05': { ... } },
   depenses: { '2026-05': [...] },
   bilanDismissed: false,                 // persistance bilan mensuel (artisan)
+  recettesManuel: [...],                 // recettes manuelles (livre des recettes)
 }
 ```
 
@@ -255,6 +257,8 @@ renderDashboard()
 | `modal-treso-anchor` | Saisie du solde bancaire réel (SASU) |
 | `modal-ponctuel` | Ajout revenu ponctuel |
 | `modal-depense` | Ajout/édition dépense |
+| `modal-lr-completer` | Popup complétion encaissement (livre des recettes) — mode règlement + référence justificative |
+| `modal-lr-manuelle` | Ajout/édition d'une recette manuelle (livre des recettes) |
 
 ## Conventions CSS
 
@@ -273,6 +277,22 @@ renderDashboard()
 - **Profil mis à jour automatiquement** à chaque login avec : email, theme, legal_status, activity_type
 - **Architecture** : `window.trackEvent(name, data)` disponible globalement dans chaque app, défini dans l'IIFE Supabase en bas de chaque fichier. Monkey-patching via `setTimeout(fn, 0)` pour intercepter les fonctions app sans les modifier.
 - **Pour ajouter un événement** : appeler `window.trackEvent('nom_evenement', {optionalData})` n'importe où dans le code app.
+
+## Fonctions clés — Livre des recettes
+
+```js
+getRecettesData()                          // merge auto (missions.encaissements) + manuel (recettesManuel), triées par date
+recetteComplete(r)                         // true si date+client+montant+modeReglement+refJustificative présents
+filtrerRecettes(recettes, periode, statut) // filtre par année/trimestre et valides/complètes/annulées/tout
+renderRecettes()                           // rendu page avec groupement trimestriel + indicateur complétude + export
+ouvrirPopupCompletion(missionId, encId)    // ouvre modal-lr-completer pré-rempli après un encaissement
+enregistrerCompletion()                    // sauvegarde modeReglement + refJustificative sur l'encaissement
+ouvrirRecetteManuelle(id)                  // ouvre modal-lr-manuelle (create si id null, edit sinon)
+saveRecetteManuelle()                      // sauvegarde dans DATA.recettesManuel[]
+toggleAnnulationRecette(origine, id, mId)  // bascule statut valide/annulee (jamais suppression)
+exportRecettesCSV()                        // CSV avec BOM '﻿', séparateur ;, filtre courant
+updateNavRecettes()                        // affiche/masque #nav-recettes selon livreRecettesActif
+```
 
 ## Fonctions clés — Archives (ajoutées)
 
@@ -299,6 +319,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - Source d'acquisition : champ optionnel sur chaque mission, donut chart dans les stats, phrase de rétrospective dans les archives
 - **Abattement forfaitaire micro 2026** : calcul de l'impôt estimé selon le statut (BNC 34%, BIC prestation 50%, BIC/achat vente 71%, minimum légal 305€) — widget `wJalonFiscal`, alertes plafond micro dans `buildAlerts` (60%/80%/100%), prorata pour les créateurs d'entreprise en cours d'année
 - **Refactoring shared/** : logique métier extraite dans `shared/core/` (ESM), bridge pattern pour exposer sur `window.*`, suites de tests complètes (4 355 assertions)
+- **Livre des recettes** : page optionnelle (activée via `DATA.params.livreRecettesActif`, false par défaut), alimentée automatiquement depuis `missions[].encaissements`, popup de complétion après chaque encaissement (mode règlement + référence justificative, skippable), recettes manuelles dans `DATA.recettesManuel[]`, tableau trimestriel avec indicateur de complétude, annulation sans suppression, export CSV avec BOM pour Excel — artisan (hook `saveEncaissement`) et freelance (hook `addEncaissementModal`)
 
 ## Points d'attention
 
