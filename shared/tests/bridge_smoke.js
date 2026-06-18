@@ -13,7 +13,7 @@
  * export attendu par les window.* du bridge sur un jeu de données minimal,
  * et vérifie qu'aucun n'est `undefined` / qu'aucun appel ne lève.
  *
- * Exécution : node refactor-test/tests/bridge_smoke.js
+ * Exécution : node shared/tests/bridge_smoke.js
  */
 'use strict';
 const fs = require('fs');
@@ -101,8 +101,6 @@ async function checkMode(modeFile, htmlFile, label) {
 }
 
 async function run() {
-  await checkMode('artisan.js', 'indepuls_artisan_refactor.html', 'artisan (refactor)');
-  await checkMode('freelance.js', 'indepuls_freelance_refactor.html', 'freelance (refactor)');
   await checkMode('freelance.js', 'indepuls_freelance.html', 'freelance (production)');
   await checkMode('artisan.js', 'indepuls_artisan.html', 'artisan (production)');
 
