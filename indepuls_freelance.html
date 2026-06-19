@@ -1711,6 +1711,32 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL MOTIF REFUS -->
+<div class="modal-ov hidden" id="modal-ref-motif">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">📋 Devis refusé</div>
+    <p class="ts mb12" style="color:var(--tl);line-height:1.6">Facultatif — indiquer le motif vous permettra de suivre les tendances dans vos statistiques.</p>
+    <input type="hidden" id="ref-motif-id">
+    <div class="fgroup">
+      <label class="flabel">Motif du refus</label>
+      <select id="ref-motif-select">
+        <option value="">— Non renseigné —</option>
+        <option value="prix">Prix trop élevé</option>
+        <option value="concurrent">Concurrent retenu</option>
+        <option value="delai">Délai trop long</option>
+        <option value="annule">Projet annulé / reporté</option>
+        <option value="sans_reponse">Pas de retour client</option>
+        <option value="perimetre">Périmètre mal défini</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="ignorerRefus()">Ignorer</button>
+      <button class="btn btn-acc" onclick="confirmRefus()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL FACTURATION -->
 <div class="modal-ov hidden" id="modal-fact-confirm">
   <div class="modal">
@@ -1944,7 +1970,7 @@ function getExampleData() {
       {id:'ex-cours',client:'Coach Sophie L.',categorie:'Contenu & communication',description:'Calendrier éditorial + newsletters mensuelles',montantDevis:650,montantPrestation:650,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:7200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'social',chargeEstimee:4,chargeUnit:'h_sem'},
       {id:'ex-att',client:'Horizon Conseil',categorie:'Stratégie',description:'Stratégie opérationnelle & feuille de route Q3',montantDevis:2200,montantPrestation:2200,montantVente:0,statut:'att',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'Devis envoyé le '+mk0+'-22, en attente de validation',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'reseau',chargeEstimee:10,chargeUnit:'h_sem'},
       // Devis refusé — illustre la notion de perte sèche
-      {id:'ex-ref',client:'Bloom Agency',categorie:'Gestion de projet',description:'Audit & restructuration équipe projet — devis non retenu',montantDevis:1400,montantPrestation:1400,montantVente:0,statut:'ref',dateFact:null,heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'Budget insuffisant — concurrent retenu. 7 h passées sur la préparation.',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'prospection'}
+      {id:'ex-ref',client:'Bloom Agency',categorie:'Gestion de projet',description:'Audit & restructuration équipe projet — devis non retenu',montantDevis:1400,montantPrestation:1400,montantVente:0,statut:'ref',dateFact:null,heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'Budget insuffisant — concurrent retenu. 7 h passées sur la préparation.',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'prospection',motifRefus:'prix'}
     ],
     revenus:{
       [mk4]:{impots:360,autresList:[]},
@@ -4692,9 +4718,17 @@ function startTimer(id) {
   saveData(); renderMissions(); updateSbTimer();
 }
 
+let pendingRefId=null;
 function setMissionStatut(id,val) {
   const m=DATA.missions.find(x=>x.id===id); if(!m) return;
   if(val==='fact'&&m.statut!=='fact'){ pendingFactId=id; document.getElementById('fact-date-input').value=today(); openModal('modal-fact-confirm'); return; }
+  if(val==='ref'&&m.statut!=='ref'){
+    pendingRefId=id;
+    document.getElementById('ref-motif-id').value=id;
+    document.getElementById('ref-motif-select').value=m.motifRefus||'';
+    m.statut='ref'; m.dateFact=null; saveData(); renderMissions();
+    openModal('modal-ref-motif'); return;
+  }
   m.statut=val; if(val!=='fact') m.dateFact=null;
   saveData(); renderMissions(); if(currentPage==='revenus') renderRevenus(); if(currentPage==='dashboard') renderDashboard();
 }
@@ -4703,6 +4737,20 @@ function confirmFacturation() {
   const m=DATA.missions.find(x=>x.id===pendingFactId);
   if(m){ m.statut='fact'; m.dateFact=document.getElementById('fact-date-input').value||today(); }
   saveData(); closeModal('modal-fact-confirm'); renderMissions(); renderDashboard();
+}
+function confirmRefus() {
+  const id=document.getElementById('ref-motif-id').value;
+  const motif=document.getElementById('ref-motif-select').value;
+  const m=DATA.missions.find(x=>x.id===id); if(!m) return;
+  m.motifRefus=motif||null;
+  saveData(); closeModal('modal-ref-motif');
+  if(currentPage==='dashboard') renderDashboard();
+}
+function ignorerRefus() {
+  const id=document.getElementById('ref-motif-id').value;
+  const m=DATA.missions.find(x=>x.id===id); if(m) m.motifRefus=m.motifRefus||null;
+  closeModal('modal-ref-motif');
+  if(currentPage==='dashboard') renderDashboard();
 }
 
 function makeAccordeon(icon, titre, body, bodyId='') {
@@ -4806,7 +4854,7 @@ function renderMissionsSummary(all) {
         <div><div class="card-title" style="font-size:13px;margin-bottom:10px">🤝 Top clients</div>${rentabClientsBody()}</div>
         <div><div class="card-title" style="font-size:13px;margin-bottom:10px">🏷 Top offres</div>${rentabCatBody()}</div>
       </div>
-      ${wSourceAcq(actives,'mission')}
+      ${(()=>{const src=wSourceAcq(actives,'mission'),ref=wMotifsRefus();return(src||ref)?`<div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">${src}${ref}</div>`:''})()}
     </div>
   </div>`;
 }
@@ -6194,10 +6242,52 @@ function wSourceAcq(actives, noun) {
   let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de vos nouveau${noun==='mission'?'x':'x'} ${noun}s.`:`Votre principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
   return `<div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">
     <div class="card-title" style="font-size:13px;margin-bottom:12px">📡 Sources d'acquisition</div>
-    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:160px;padding-top:8px">${legend}</div></div>
+    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:140px;padding-top:4px">${legend}</div></div>
     <div style="margin-top:10px;font-size:12px;color:var(--tl);line-height:1.6;background:var(--bg);padding:10px 12px;border-radius:8px">${phrase}</div>
   </div>`;
 }
+
+const REF_MOTIF_LABELS={'prix':'Prix trop élevé','concurrent':'Concurrent retenu','delai':'Délai trop long','annule':'Projet annulé / reporté','sans_reponse':'Pas de retour client','perimetre':'Périmètre mal défini','autre':'Autre'};
+const REF_MOTIF_COLORS={'prix':'#e53935','concurrent':'#f57c00','delai':'#fbc02d','annule':'#7b1fa2','sans_reponse':'#0288d1','perimetre':'#00897b','autre':'#9E9E9E'};
+
+function _buildPieChart(entries, colorMap) {
+  const total=entries.reduce((s,[,v])=>s+v,0);
+  if(!total) return {svg:''};
+  const cx=70,cy=70,R=50; let angle=-90;
+  const slices=entries.map(([key,val])=>{
+    const span=(val/total)*360;
+    const [x1,y1]=polarToCartesian(cx,cy,R,angle); angle+=span;
+    const [x2,y2]=polarToCartesian(cx,cy,R,angle);
+    const large=span>180?1:0, color=colorMap[key]||'#9E9E9E';
+    return `<path d="M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${color}" stroke="var(--card)" stroke-width="2"/>`;
+  }).join('');
+  return {svg:`<svg width="120" height="120" viewBox="0 0 140 140" style="flex-shrink:0">${slices}<circle cx="${cx}" cy="${cy}" r="28" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:13px;font-weight:700;fill:var(--text)">${total}</text></svg>`};
+}
+
+function wMotifsRefus() {
+  const refs=DATA.missions.filter(m=>!m.isManagement&&m.statut==='ref'&&m.motifRefus);
+  if(!refs.length) return '';
+  const byM={};
+  refs.forEach(m=>{ byM[m.motifRefus]=(byM[m.motifRefus]||0)+1; });
+  const entries=Object.entries(byM).sort((a,b)=>b[1]-a[1]);
+  const total=entries.reduce((s,[,v])=>s+v,0);
+  const {svg}=_buildPieChart(entries,REF_MOTIF_COLORS);
+  const legend=entries.map(([key,n])=>{
+    const color=REF_MOTIF_COLORS[key]||'#9E9E9E', lbl=REF_MOTIF_LABELS[key]||key;
+    const pct=Math.round(n/total*100);
+    return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><span style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0;margin-top:3px"></span><span style="flex:1;font-size:11px;line-height:1.4;color:var(--text)">${lbl}</span><span style="font-size:11px;font-weight:700;white-space:nowrap;color:var(--err)">${n} · ${pct}%</span></div>`;
+  }).join('');
+  const top=entries[0], topLbl=(REF_MOTIF_LABELS[top[0]]||top[0]).toLowerCase();
+  const phrase=total===1?`1 devis refusé renseigné — motif : <strong>${topLbl}</strong>.`
+    :top[1]/total>=0.5?`Le motif principal de refus est <strong>${topLbl}</strong> (${Math.round(top[1]/total*100)} % des cas).`
+    :`${total} refus renseignés — principal motif : <strong>${topLbl}</strong>.`;
+  return `<div style="flex:1;min-width:260px">
+    <div class="card-title" style="font-size:13px;margin-bottom:12px">❌ Motifs de refus</div>
+    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:140px;padding-top:4px">${legend}</div></div>
+    <div style="margin-top:10px;font-size:12px;color:var(--tl);line-height:1.6;background:var(--bg);padding:10px 12px;border-radius:8px">${phrase}</div>
+  </div>`;
+}
+
 function getSourceAcqPhrase(missions, noun) {
   const byS={};
   missions.filter(m=>!m.isManagement).forEach(m=>{
