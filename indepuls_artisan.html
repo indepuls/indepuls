@@ -1405,7 +1405,7 @@ html,body{overflow-x:hidden;}
     <div class="fgroup"><label class="flabel">Date <span class="ts">(facultatif)</span></label><input type="date" id="add-time-date"></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-add-time')">Fermer</button>
-      <button class="btn btn-acc" onclick="saveAddTime()">Ajouter</button>
+      <button class="btn btn-acc" data-enter-action onclick="saveAddTime()">Ajouter</button>
     </div>
   </div>
 </div>
@@ -1428,7 +1428,7 @@ html,body{overflow-x:hidden;}
     <div class="ts mt10" style="color:var(--tl);font-style:italic">💡 Utile si vous avez oublié de mettre le chrono en pause.</div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-correct-time')">Annuler</button>
-      <button class="btn btn-acc" onclick="saveCorrectTime()">Enregistrer la correction</button>
+      <button class="btn btn-acc" data-enter-action onclick="saveCorrectTime()">Enregistrer la correction</button>
     </div>
   </div>
 </div>
@@ -1473,7 +1473,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-archive')">Annuler</button>
-      <button class="btn btn-acc" onclick="saveArchiveManuelle()">Enregistrer</button>
+      <button class="btn btn-acc" data-enter-action onclick="saveArchiveManuelle()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1486,7 +1486,7 @@ html,body{overflow-x:hidden;}
     <div class="fgroup"><label class="flabel">Date de facturation</label><input type="date" id="fact-date-input"></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-fact-confirm')">Annuler</button>
-      <button class="btn btn-acc" onclick="confirmFacturation()">Confirmer</button>
+      <button class="btn btn-acc" data-enter-action onclick="confirmFacturation()">Confirmer</button>
     </div>
   </div>
 </div>
@@ -1611,7 +1611,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-lr-edition')">Annuler</button>
-      <button class="btn btn-acc" onclick="sauvegarderEditionRecette()">Enregistrer</button>
+      <button class="btn btn-acc" data-enter-action onclick="sauvegarderEditionRecette()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1644,7 +1644,7 @@ html,body{overflow-x:hidden;}
     <div class="fgroup mt4"><label class="flabel">Référence justificative</label><input type="text" id="lr-m-ref" placeholder="Ex : FAC-2026-042"></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-lr-manuelle')">Annuler</button>
-      <button class="btn btn-acc" onclick="saveRecetteManuelle()">Enregistrer</button>
+      <button class="btn btn-acc" data-enter-action onclick="saveRecetteManuelle()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1701,7 +1701,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="flex gap8 mt16" style="justify-content:flex-end">
       <button class="btn btn-out" onclick="closeModal('modal-ponctuel')">Annuler</button>
-      <button class="btn btn-pri" onclick="savePonctuelsItem()">Enregistrer</button>
+      <button class="btn btn-pri" data-enter-action onclick="savePonctuelsItem()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -6989,6 +6989,17 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSbTimer();
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
+});
+
+document.addEventListener('keydown', function(e) {
+  if(e.key !== 'Enter') return;
+  if(e.target.tagName === 'TEXTAREA') return;
+  if(e.target.tagName === 'SELECT') return;
+  if(e.target.tagName === 'BUTTON') return;
+  const btn = document.querySelector('.modal-ov:not(.hidden) [data-enter-action]');
+  if(!btn) return;
+  e.preventDefault();
+  btn.click();
 });
 </script>
 
