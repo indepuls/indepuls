@@ -1151,7 +1151,8 @@ html,body{overflow-x:hidden;}
           <div id="lr-completude" style="font-size:13px;color:var(--tl);margin-top:4px"></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-out btn-sm" onclick="exportRecettesCSV()">⬇ Export CSV</button>
+          <button class="btn btn-out btn-sm" onclick="exportRecettesCSV()">⬇ CSV</button>
+          <button class="btn btn-out btn-sm" onclick="exportRecettesPDF()">⬇ PDF</button>
           <button class="btn btn-acc btn-sm" onclick="ouvrirRecetteManuelle()">+ Recette manuelle</button>
         </div>
       </div>
@@ -1342,7 +1343,11 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="fgroup" style="min-width:0">
         <label class="ts">Note (optionnel)</label>
-        <input type="text" id="enc-m-note" placeholder="Ex : virement, chèque…" style="margin-top:4px">
+        <input type="text" id="enc-m-note" placeholder="Ex : acompte 50%…" style="margin-top:4px">
+      </div>
+      <div class="fgroup" style="flex:0 0 150px;min-width:0">
+        <label class="ts">Mode de règlement</label>
+        <select id="enc-m-mode-reglement" style="margin-top:4px"><option value="">— Choisir —</option><option value="virement">Virement bancaire</option><option value="cheque">Chèque</option><option value="especes">Espèces</option><option value="carte">Carte bancaire</option><option value="prelevement">Prélèvement</option><option value="autre">Autre</option></select>
       </div>
       <div class="fgroup" style="flex:0 0 auto">
         <button class="btn btn-sm btn-acc" type="button" onclick="addEncaissementModal()" style="margin-top:22px;white-space:nowrap">Valider</button>
@@ -1357,23 +1362,11 @@ html,body{overflow-x:hidden;}
 <!-- POPUP LIVRE DES RECETTES — COMPLÉTER -->
 <div class="modal-ov hidden" id="modal-lr-completer">
   <div class="modal" style="max-width:420px">
-    <div class="modal-title">Compléter le livre des recettes</div>
-    <div class="ts mb16" style="color:var(--tl)">Ces informations sont facultatives et peuvent être ignorées.</div>
+    <div class="modal-title">📒 Référence de facture</div>
+    <div class="ts mb16" style="color:var(--tl)">Facultatif — saisissez le numéro de facture ou de reçu pour compléter le livre des recettes.</div>
     <input type="hidden" id="lr-c-enc-id">
     <input type="hidden" id="lr-c-mission-id">
     <div class="fgroup">
-      <label class="flabel">Mode de règlement</label>
-      <select id="lr-c-mode">
-        <option value="">— Choisir —</option>
-        <option value="virement">Virement bancaire</option>
-        <option value="cheque">Chèque</option>
-        <option value="especes">Espèces</option>
-        <option value="carte">Carte bancaire</option>
-        <option value="prelevement">Prélèvement</option>
-        <option value="autre">Autre</option>
-      </select>
-    </div>
-    <div class="fgroup mt12">
       <label class="flabel">Référence justificative <span class="info-tip" title="Numéro de facture, numéro de reçu, ou toute référence permettant de retrouver le document.">?</span></label>
       <input type="text" id="lr-c-ref" placeholder="Ex : FAC-2026-042">
     </div>
@@ -1385,6 +1378,17 @@ html,body{overflow-x:hidden;}
 </div>
 
 <!-- MODAL RECETTE MANUELLE -->
+<!-- MODAL HISTORIQUE RECETTE -->
+<div class="modal-ov hidden" id="modal-lr-historique">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">📋 Historique des modifications</div>
+    <div id="lr-hist-content" style="min-height:60px"></div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-lr-historique')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov hidden" id="modal-lr-manuelle">
   <div class="modal" style="max-width:480px">
     <div class="modal-title" id="lr-m-title">Nouvelle recette</div>
@@ -1827,7 +1831,8 @@ function getExampleData() {
       dateOuverture:mk4,
       impotsTaux:11,
       remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
-      rentabClientSort:'ca', rentabCatSort:'ca'
+      rentabClientSort:'ca', rentabCatSort:'ca',
+      livreRecettesActif:true
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     missions:[
@@ -1835,10 +1840,10 @@ function getExampleData() {
       // Récurrente — retainer mensuel depuis janvier
       {id:'ex-rec',client:'Groupe Horizon',categorie:'Coordination',description:'Retainer mensuel — coordination & pilotage opérationnel',montantDevis:18000,montantPrestation:18000,montantVente:0,statut:'cours',dateFact:null,isRecurring:true,montantMensuel:1500,nbMoisRec:12,dateDebutRec:mk4,heuresSaisies:0,timerAccumulated:162000000,timerRunning:false,timerStart:null,notes:'Contrat annuel renouvelable',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'client_existant',chargeEstimee:5,chargeUnit:'h_sem'},
       // Missions ponctuelles — une par mois
-      {id:'ex-jan',client:'Agence Bloom',categorie:'Stratégie',description:'Audit organisationnel & plan stratégique Q1',montantDevis:1800,montantPrestation:1800,montantVente:0,statut:'fact',dateFact:mk4+'-22',heuresSaisies:0,timerAccumulated:43200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-j1',date:mk4+'-22',montant:1800,note:''}],sourceAcquisition:'recommandation'},
+      {id:'ex-jan',client:'Agence Bloom',categorie:'Stratégie',description:'Audit organisationnel & plan stratégique Q1',montantDevis:1800,montantPrestation:1800,montantVente:0,statut:'fact',dateFact:mk4+'-22',heuresSaisies:0,timerAccumulated:43200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-j1',date:mk4+'-22',montant:1800,note:'',modeReglement:'virement',refJustificative:'FAC-2026-001',dateModif:y+'-01-25'}],sourceAcquisition:'recommandation'},
       {id:'ex-fev',client:'Studio Créatif',categorie:'Formation',description:'Formation gestion de projet & priorisation (équipe de 4)',montantDevis:980,montantPrestation:980,montantVente:0,statut:'fact',dateFact:mk3+'-18',heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-f1',date:mk3+'-18',montant:980,note:''}],sourceAcquisition:'reseau'},
-      {id:'ex-mar',client:'Lundi Agency',categorie:'Gestion de projet',description:'Coordination déploiement CRM — phase 1',montantDevis:2400,montantPrestation:2400,montantVente:0,statut:'fact',dateFact:mk2+'-20',heuresSaisies:0,timerAccumulated:57600000,timerRunning:false,timerStart:null,notes:'À relancer pour phase 2 en Q3',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-m1',date:mk2+'-20',montant:2400,note:''}],sourceAcquisition:'recommandation'},
-      {id:'ex-avr',client:'Agence Bloom',categorie:'Gestion de projet',description:'Pilotage refonte site web — cadrage & coordination',montantDevis:1600,montantPrestation:1600,montantVente:0,statut:'fact',dateFact:mk1+'-17',heuresSaisies:0,timerAccumulated:39600000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-a1',date:mk1+'-17',montant:800,note:'Acompte 50 %'},{id:'enc-a2',date:mk1+'-28',montant:800,note:'Solde 50 %'}],sourceAcquisition:'client_existant'},
+      {id:'ex-mar',client:'Lundi Agency',categorie:'Gestion de projet',description:'Coordination déploiement CRM — phase 1',montantDevis:2400,montantPrestation:2400,montantVente:0,statut:'fact',dateFact:mk2+'-20',heuresSaisies:0,timerAccumulated:57600000,timerRunning:false,timerStart:null,notes:'À relancer pour phase 2 en Q3',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-m1',date:mk2+'-20',montant:2400,note:'',modeReglement:'virement',refJustificative:'FAC-2026-002',dateModif:y+'-03-22'}],sourceAcquisition:'recommandation'},
+      {id:'ex-avr',client:'Agence Bloom',categorie:'Gestion de projet',description:'Pilotage refonte site web — cadrage & coordination',montantDevis:1600,montantPrestation:1600,montantVente:0,statut:'fact',dateFact:mk1+'-17',heuresSaisies:0,timerAccumulated:39600000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-a1',date:mk1+'-17',montant:800,note:'Acompte 50 %',modeReglement:'virement',refJustificative:'FAC-2026-003',dateModif:y+'-04-18'},{id:'enc-a2',date:mk1+'-28',montant:800,note:'Solde 50 %',modeReglement:'virement',refJustificative:'FAC-2026-003',dateModif:y+'-04-28'}],sourceAcquisition:'client_existant'},
       {id:'ex-mai',client:'Studio Créatif',categorie:'Gestion de projet',description:'Coordination lancement collection été',montantDevis:2000,montantPrestation:2000,montantVente:0,statut:'fact',dateFact:mk1+'-20',heuresSaisies:0,timerAccumulated:50400000,timerRunning:false,timerStart:null,notes:'Super collab, à recontacter Q4',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-mai1',date:mk1+'-20',montant:2000,note:''}],sourceAcquisition:'client_existant'},
       {id:'ex-juin',client:'Lundi Agency',categorie:'Stratégie',description:'Accompagnement structuration équipe & process internes',montantDevis:1900,montantPrestation:1900,montantVente:0,statut:'fact',dateFact:mk0+'-12',heuresSaisies:0,timerAccumulated:32400000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-juin1',date:mk0+'-12',montant:1900,note:''}],sourceAcquisition:'client_existant'},
       // Programme collectif en cours
@@ -4055,7 +4060,7 @@ function renderRecettes() {
     g.items.forEach(r=>{
       const ann=r.statut==='annulee';
       const cpl=recetteComplete(r);
-      const modifBadge=r.dateModif?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--tl)">Modifiée</span>`:'';
+      const modifBadge=r.dateModif?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirHistoriqueRecette('${r.origine}','${r.id}','${r.missionId||''}')" title="Voir l'historique">Modifiée</span>`:'';
       const statutBadge=ann
         ?`<span style="font-size:11px;color:var(--tl)">Annulée</span>`
         :cpl
@@ -4063,7 +4068,7 @@ function renderRecettes() {
           :`<span style="font-size:11px;color:var(--warn)">⚠ Incomplète</span>`;
       const btnEditer=r.origine==='manuel'
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Éditer</button>`
-        :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPopupCompletion('${r.missionId}','${r.id}')">Compléter</button>`;
+        :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPopupCompletion('${r.missionId}','${r.id}')">Référence</button>`;
       const btnAnn=!ann
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px;color:var(--err)" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Annuler</button>`
         :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Rétablir</button>`;
@@ -4102,7 +4107,6 @@ function ouvrirPopupCompletion(missionId, encId) {
   const enc=m&&(m.encaissements||[]).find(x=>x.id===encId);
   document.getElementById('lr-c-mission-id').value=missionId;
   document.getElementById('lr-c-enc-id').value=encId;
-  document.getElementById('lr-c-mode').value=(enc&&enc.modeReglement)||'';
   document.getElementById('lr-c-ref').value=(enc&&enc.refJustificative)||'';
   openModal('modal-lr-completer');
 }
@@ -4112,13 +4116,13 @@ function fermerPopupCompletion() { closeModal('modal-lr-completer'); }
 function enregistrerCompletion() {
   const missionId=document.getElementById('lr-c-mission-id').value;
   const encId=document.getElementById('lr-c-enc-id').value;
-  const mode=document.getElementById('lr-c-mode').value;
   const ref=document.getElementById('lr-c-ref').value.trim();
   const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
   const enc=(m.encaissements||[]).find(x=>x.id===encId); if(!enc) return;
   const now=new Date().toISOString().slice(0,10);
   if(!enc.dateCreation) enc.dateCreation=enc.date;
-  enc.modeReglement=mode;
+  if(!enc.historique) enc.historique=[];
+  enc.historique.push({date:now, refJustificative:enc.refJustificative||''});
   enc.refJustificative=ref;
   enc.dateModif=now;
   saveData();
@@ -4152,7 +4156,7 @@ function saveRecetteManuelle() {
   if(!DATA.recettesManuel) DATA.recettesManuel=[];
   if(id){
     const r=DATA.recettesManuel.find(x=>x.id===id);
-    if(r) Object.assign(r,{date,client,libelle,montant,modeReglement,refJustificative,dateModif:now});
+    if(r) { if(!r.historique) r.historique=[]; r.historique.push({date:now,refJustificative:r.refJustificative||''}); Object.assign(r,{date,client,libelle,montant,modeReglement,refJustificative,dateModif:now}); }
   } else {
     DATA.recettesManuel.push({id:uuid(),date,client,libelle,montant,modeReglement,refJustificative,origine:'manuel',statut:'valide',dateCreation:now,dateModif:null});
   }
@@ -4199,6 +4203,78 @@ function exportRecettesCSV() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
+// ── Historique des modifications ─────────────────────────────
+function ouvrirHistoriqueRecette(origine, id, missionId) {
+  let historique=[], refActuelle='', dateModif='';
+  if(origine==='manuel') {
+    const r=(DATA.recettesManuel||[]).find(x=>x.id===id);
+    if(!r) return;
+    historique=r.historique||[]; refActuelle=r.refJustificative||''; dateModif=r.dateModif||'';
+  } else {
+    const m=DATA.missions.find(x=>x.id===missionId);
+    const enc=m&&(m.encaissements||[]).find(x=>x.id===id);
+    if(!enc) return;
+    historique=enc.historique||[]; refActuelle=enc.refJustificative||''; dateModif=enc.dateModif||'';
+  }
+  let html='';
+  if(historique.length===0) {
+    html=`<div class="ts" style="color:var(--tl);padding:8px 0">Modifiée le <strong>${dateModif||'—'}</strong> — valeur actuelle : <strong>${refActuelle||'(vide)'}</strong></div>`;
+  } else {
+    html=`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">`;
+    historique.forEach((h,i)=>{
+      const label=i===0?'Première saisie':'Modification';
+      html+=`<div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--brd);margin-top:5px;flex-shrink:0"></div>
+        <div><div style="font-size:11px;color:var(--tl)">${label} — ${h.date||'—'}</div>
+        <div style="font-size:13px">${h.refJustificative?`<code>${h.refJustificative}</code>`:'<em style="color:var(--tl)">Référence vide</em>'}</div></div>
+      </div>`;
+    });
+    html+=`</div><div style="border-top:1px solid var(--brd);padding-top:10px">
+      <div style="font-size:11px;color:var(--tl)">Valeur actuelle — ${dateModif||'—'}</div>
+      <div style="font-size:14px;font-weight:600">${refActuelle?`<code>${refActuelle}</code>`:'<em style="color:var(--tl)">Référence vide</em>'}</div>
+    </div>`;
+  }
+  document.getElementById('lr-hist-content').innerHTML=html;
+  openModal('modal-lr-historique');
+}
+
+// ── Export PDF ───────────────────────────────────────────────
+function exportRecettesPDF() {
+  const periode=(document.getElementById('lr-filtre-periode')||{}).value||'annee';
+  const statut=(document.getElementById('lr-filtre-statut')||{}).value||'valides';
+  const recettes=filtrerRecettes(getRecettesData(),periode,statut);
+  const annee=DATA.currentYear||new Date().getFullYear();
+  const periodeLabel={'annee':'Année '+annee,'t1':'T1 — Jan/Mar '+annee,'t2':'T2 — Avr/Jun '+annee,'t3':'T3 — Jul/Sep '+annee,'t4':'T4 — Oct/Déc '+annee,'tout':'Tout l\'historique'}[periode]||periode;
+  const rows=recettes.map(r=>`<tr class="${r.statut==='annulee'?'ann':''}">
+    <td>${r.date||'—'}</td><td>${r.client||'—'}</td><td>${r.libelle||'—'}</td>
+    <td class="num">${r.montant?r.montant.toFixed(2).replace('.',',')+' €':'—'}</td>
+    <td>${LR_MODES[r.modeReglement]||r.modeReglement||'—'}</td>
+    <td>${r.refJustificative||'—'}</td>
+    <td>${r.statut==='annulee'?'Annulée':recetteComplete(r)?'Complète':'Incomplète'}</td>
+  </tr>`).join('');
+  const total=recettes.filter(r=>r.statut!=='annulee').reduce((s,r)=>s+r.montant,0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livre des recettes</title><style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#111;margin:24px}
+    h1{font-size:16px;margin-bottom:4px}p.sub{font-size:11px;color:#666;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#f0f4ff;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #ddd}
+    td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}
+    .num{text-align:right}.ann{opacity:.45;text-decoration:line-through}
+    tfoot td{font-weight:700;border-top:2px solid #ddd;padding-top:8px}
+    @media print{body{margin:8px}button{display:none}}
+  </style></head><body>
+  <h1>📒 Livre des recettes — ${periodeLabel}</h1>
+  <p class="sub">Exporté le ${new Date().toLocaleDateString('fr-FR')} · ${DATA.params&&DATA.params.nom?DATA.params.nom:''}</p>
+  <table><thead><tr><th>Date</th><th>Client</th><th>Libellé</th><th>Montant HT</th><th>Règlement</th><th>Référence</th><th>Statut</th></tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr><td colspan="3">Total encaissé</td><td class="num">${total.toFixed(2).replace('.',',')} €</td><td colspan="3"></td></tr></tfoot>
+  </table>
+  <script>window.onload=function(){window.print()}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
 function updateNavRecettes() {
   const el=document.getElementById('nav-recettes');
   if(el) el.style.display=DATA.params.livreRecettesActif?'':'none';
@@ -4218,7 +4294,8 @@ function addEncaissementModal() {
   // Si TVA active : saisie = TTC → convertir en HT pour les calculs, conserver TTC pour l'affichage
   const tvaOn=DATA.params.tva, tvaRate=(DATA.params.tauxTVA||20)/100;
   const montant=tvaOn?Math.round(saisie/(1+tvaRate)*100)/100:saisie;
-  const enc={id:uuid(),date,type,montant,note};
+  const modeReglement=document.getElementById('enc-m-mode-reglement').value;
+  const enc={id:uuid(),date,type,montant,note,modeReglement};
   if(tvaOn) enc.montantTTC=saisie;
   m.encaissements.push(enc);
   const newEncId=enc.id;
@@ -4226,6 +4303,7 @@ function addEncaissementModal() {
   document.getElementById('enc-m-type').value='acompte';
   document.getElementById('enc-m-montant').value='';
   document.getElementById('enc-m-note').value='';
+  document.getElementById('enc-m-mode-reglement').value='';
   const calcInfo=document.getElementById('enc-m-calc-info');
   if(calcInfo) calcInfo.style.display='none';
   renderEncaissementsModal();
