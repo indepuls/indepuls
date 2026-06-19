@@ -1531,8 +1531,9 @@ html,body{overflow-x:hidden;}
     <input type="hidden" id="lr-c-enc-id">
     <input type="hidden" id="lr-c-mission-id">
     <div class="fgroup">
-      <label class="flabel">Référence justificative <span class="info-tip" title="Numéro de facture, numéro de reçu, ou toute référence permettant de retrouver le document.">?</span></label>
-      <input type="text" id="lr-c-ref" placeholder="Ex : FAC-2026-042">
+      <label class="flabel">Référence justificative <span class="info-tip" title="Numéro de facture, devis signé, bon de commande, reçu…">?</span></label>
+      <input type="text" id="lr-c-ref" placeholder="Ex : FAC-2026-042, Devis signé…">
+      <div id="lr-c-hint" class="ts" style="color:var(--tl);margin-top:5px;font-size:11px"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="fermerPopupCompletion()">Passer cette étape</button>
@@ -1541,13 +1542,33 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
-<!-- MODAL HISTORIQUE RECETTE -->
-<div class="modal-ov hidden" id="modal-lr-historique">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-title">📋 Historique des modifications</div>
-    <div id="lr-hist-content" style="min-height:60px"></div>
+<!-- MODAL ÉDITION RECETTE (historique + modification) -->
+<div class="modal-ov hidden" id="modal-lr-edition">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title">✏️ Modifier la recette</div>
+    <input type="hidden" id="lr-ed-mission-id">
+    <input type="hidden" id="lr-ed-enc-id">
+    <div id="lr-ed-historique"></div>
+    <div class="fgroup">
+      <label class="flabel">Mode de règlement</label>
+      <select id="lr-ed-mode">
+        <option value="">— Choisir —</option>
+        <option value="virement">Virement bancaire</option>
+        <option value="cheque">Chèque</option>
+        <option value="especes">Espèces</option>
+        <option value="carte">Carte bancaire</option>
+        <option value="prelevement">Prélèvement</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="fgroup mt12">
+      <label class="flabel">Référence justificative <span class="info-tip" title="Numéro de facture, devis signé, bon de commande, reçu…">?</span></label>
+      <input type="text" id="lr-ed-ref" placeholder="Ex : FAC-2026-042">
+      <div id="lr-ed-hint" class="ts" style="color:var(--tl);margin-top:5px;font-size:11px"></div>
+    </div>
     <div class="modal-foot">
-      <button class="btn btn-out" onclick="closeModal('modal-lr-historique')">Fermer</button>
+      <button class="btn btn-out" onclick="closeModal('modal-lr-edition')">Annuler</button>
+      <button class="btn btn-acc" onclick="sauvegarderEditionRecette()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -1557,6 +1578,7 @@ html,body{overflow-x:hidden;}
   <div class="modal" style="max-width:480px">
     <div class="modal-title" id="lr-m-title">Nouvelle recette</div>
     <input type="hidden" id="lr-m-id">
+    <div id="lr-m-historique"></div>
     <div class="frow">
       <div class="fgroup"><label class="flabel">Date d'encaissement *</label><input type="date" id="lr-m-date"></div>
       <div class="fgroup">
@@ -2207,15 +2229,19 @@ function renderRecettes() {
     g.items.forEach(r=>{
       const ann=r.statut==='annulee';
       const cpl=recetteComplete(r);
-      const modifBadge=r.dateModif?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirHistoriqueRecette('${r.origine}','${r.id}','${r.missionId||''}')" title="Voir l'historique">Modifiée</span>`:'';
+      const modifBadge=r.dateModif
+        ?(r.origine==='manuel'
+          ?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirRecetteManuelle('${r.id}')" title="Voir l'historique et modifier">Modifiée</span>`
+          :`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirEditionRecette('${r.missionId||''}','${r.id}')" title="Voir l'historique et modifier">Modifiée</span>`)
+        :'';
       const statutBadge=ann
         ?`<span style="font-size:11px;color:var(--tl)">Annulée</span>`
         :cpl
           ?`<span style="font-size:11px;color:var(--ok)">✔ Complète</span>`
-          :`<span style="font-size:11px;color:var(--warn)">⚠ Incomplète</span>`;
+          :`<span style="font-size:10px;color:var(--warn);white-space:nowrap">🟠 Infos complémentaires recommandées</span>`;
       const btnEditer=r.origine==='manuel'
-        ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Éditer</button>`
-        :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPopupCompletion('${r.missionId}','${r.id}')">Référence</button>`;
+        ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Modifier</button>`
+        :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirEditionRecette('${r.missionId||''}','${r.id}')">Modifier</button>`;
       const btnAnn=!ann
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px;color:var(--err)" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Annuler</button>`
         :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Rétablir</button>`;
@@ -2256,6 +2282,9 @@ function ouvrirPopupCompletion(missionId, encId) {
   document.getElementById('lr-c-mission-id').value=missionId;
   document.getElementById('lr-c-enc-id').value=encId;
   document.getElementById('lr-c-ref').value=(enc&&enc.refJustificative)||'';
+  const hints={acompte:'💡 Acompte : référencez le devis signé ou le bon de commande.',solde:'💡 Solde : indiquez le numéro de la facture finale.',paiement:'💡 Indiquez le numéro de facture ou de reçu correspondant.'};
+  const hintEl=document.getElementById('lr-c-hint');
+  if(hintEl) hintEl.textContent=hints[enc&&enc.type]||hints.paiement;
   openModal('modal-lr-completer');
 }
 
@@ -2289,6 +2318,8 @@ function ouvrirRecetteManuelle(id) {
   document.getElementById('lr-m-montant').value=r?r.montant:'';
   document.getElementById('lr-m-mode').value=r?(r.modeReglement||''):'';
   document.getElementById('lr-m-ref').value=r?(r.refJustificative||''):'';
+  const histEl=document.getElementById('lr-m-historique');
+  if(histEl) histEl.innerHTML=r?_renderLRHistorique(r.historique||[],r.dateModif||''):'';
   openModal('modal-lr-manuelle');
 }
 
@@ -2354,39 +2385,57 @@ function exportRecettesCSV() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-// ── Historique des modifications ─────────────────────────────
-function ouvrirHistoriqueRecette(origine, id, missionId) {
-  let historique=[], refActuelle='', dateModif='';
-  if(origine==='manuel') {
-    const r=(DATA.recettesManuel||[]).find(x=>x.id===id);
-    if(!r) return;
-    historique=r.historique||[]; refActuelle=r.refJustificative||''; dateModif=r.dateModif||'';
-  } else {
-    const m=DATA.missions.find(x=>x.id===missionId);
-    const enc=m&&(m.encaissements||[]).find(x=>x.id===id);
-    if(!enc) return;
-    historique=enc.historique||[]; refActuelle=enc.refJustificative||''; dateModif=enc.dateModif||'';
-  }
-  let html='';
-  if(historique.length===0) {
-    html=`<div class="ts" style="color:var(--tl);padding:8px 0">Modifiée le <strong>${dateModif||'—'}</strong> — valeur actuelle : <strong>${refActuelle||'(vide)'}</strong></div>`;
-  } else {
-    html=`<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">`;
-    historique.forEach((h,i)=>{
-      const label=i===0?'Première saisie':'Modification';
-      html+=`<div style="display:flex;gap:10px;align-items:flex-start">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--brd);margin-top:5px;flex-shrink:0"></div>
-        <div><div style="font-size:11px;color:var(--tl)">${label} — ${h.date||'—'}</div>
-        <div style="font-size:13px">${h.refJustificative?`<code>${h.refJustificative}</code>`:'<em style="color:var(--tl)">Référence vide</em>'}</div></div>
-      </div>`;
-    });
-    html+=`</div><div style="border-top:1px solid var(--brd);padding-top:10px">
-      <div style="font-size:11px;color:var(--tl)">Valeur actuelle — ${dateModif||'—'}</div>
-      <div style="font-size:14px;font-weight:600">${refActuelle?`<code>${refActuelle}</code>`:'<em style="color:var(--tl)">Référence vide</em>'}</div>
+// ── Édition recette (historique + formulaire) ────────────────
+function _renderLRHistorique(historique, dateModif) {
+  if(!historique.length && !dateModif) return '';
+  let html=`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Historique</div>`;
+  historique.forEach((h,i)=>{
+    const champs=[];
+    if(h.modeReglement!==undefined) champs.push(LR_MODES[h.modeReglement]||h.modeReglement||'—');
+    if(h.refJustificative!==undefined) champs.push(h.refJustificative||'(réf. vide)');
+    const val=champs.length?champs.join(' · '):(h.refJustificative||'(réf. vide)');
+    html+=`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:5px">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--brd);margin-top:4px;flex-shrink:0"></div>
+      <div style="font-size:12px"><span style="color:var(--tl)">${i===0?'Première saisie':'Modification'} — ${h.date||'—'}</span> · <code style="font-size:11px">${val}</code></div>
     </div>`;
-  }
-  document.getElementById('lr-hist-content').innerHTML=html;
-  openModal('modal-lr-historique');
+  });
+  if(dateModif) html+=`<div style="font-size:11px;color:var(--tl);margin-top:4px;border-top:1px solid var(--brd);padding-top:5px">Dernière modification : ${dateModif}</div>`;
+  html+=`</div>`;
+  return html;
+}
+
+function ouvrirEditionRecette(missionId, encId) {
+  const m=DATA.missions.find(x=>x.id===missionId);
+  const enc=m&&(m.encaissements||[]).find(x=>x.id===encId);
+  if(!enc) return;
+  document.getElementById('lr-ed-mission-id').value=missionId;
+  document.getElementById('lr-ed-enc-id').value=encId;
+  document.getElementById('lr-ed-mode').value=enc.modeReglement||'';
+  document.getElementById('lr-ed-ref').value=enc.refJustificative||'';
+  const hints={acompte:'💡 Acompte : référencez le devis signé ou le bon de commande.',solde:'💡 Solde : indiquez le numéro de facture finale.',paiement:'💡 Indiquez le numéro de facture ou de reçu correspondant.'};
+  const hintEl=document.getElementById('lr-ed-hint');
+  if(hintEl) hintEl.textContent=hints[enc.type]||hints.paiement;
+  document.getElementById('lr-ed-historique').innerHTML=_renderLRHistorique(enc.historique||[], enc.dateModif||'');
+  openModal('modal-lr-edition');
+}
+
+function sauvegarderEditionRecette() {
+  const missionId=document.getElementById('lr-ed-mission-id').value;
+  const encId=document.getElementById('lr-ed-enc-id').value;
+  const mode=document.getElementById('lr-ed-mode').value;
+  const ref=document.getElementById('lr-ed-ref').value.trim();
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  const enc=(m.encaissements||[]).find(x=>x.id===encId); if(!enc) return;
+  const now=new Date().toISOString().slice(0,10);
+  if(!enc.historique) enc.historique=[];
+  enc.historique.push({date:now, modeReglement:enc.modeReglement||'', refJustificative:enc.refJustificative||''});
+  enc.modeReglement=mode;
+  enc.refJustificative=ref;
+  enc.dateModif=now;
+  saveData();
+  closeModal('modal-lr-edition');
+  if(currentPage==='recettes') renderRecettes();
 }
 
 // ── Export PDF ───────────────────────────────────────────────
