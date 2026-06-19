@@ -136,6 +136,11 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 [data-theme="dark"] .al-warn,[data-theme="nuit"] .al-warn{background:#2a200a;color:#fbbf24;}[data-theme="dark"] .al-err,[data-theme="nuit"] .al-err{background:#2a0a0a;color:#f87171;}
 [data-theme="dark"] .al-ok,[data-theme="nuit"] .al-ok{background:#0a2a15;color:#4ade80;}[data-theme="dark"] .al-info,[data-theme="nuit"] .al-info{background:#0a1a2a;color:#93c5fd;}
 
+/* === VALIDATION CHAMPS === */
+@keyframes fieldShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.field-invalid{border-color:var(--err)!important;animation:fieldShake .3s;}
+.field-invalid:focus{outline-color:var(--err);}
+
 /* === MODAL === */
 @keyframes modalIn{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -527,7 +532,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">📊</span> Tableau de bord</div>
   <div class="nav-item" onclick="navigate('archives')"><span class="nav-icon">📈</span> Historique</div>
   <div class="nav-section">Activité</div>
-  <div class="nav-item" onclick="navigate('missions')"><span class="nav-icon">🎯</span> Missions</div>
+  <div class="nav-item" onclick="navigate('missions')" id="nav-missions-label"><span class="nav-icon">🎯</span> Missions</div>
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
@@ -584,7 +589,7 @@ html,body{overflow-x:hidden;}
           <div class="card-title">Suivi des missions</div>
           <div class="card-sub">Toutes vos missions en cours, passées ou en attente</div>
         </div>
-        <button class="btn btn-acc" onclick="openMissionModal()">+ Ajouter une mission</button>
+        <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
       </div>
       <div class="flex gap6 mb12" style="flex-wrap:wrap;" id="mission-filters">
         <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
@@ -737,23 +742,26 @@ html,body{overflow-x:hidden;}
           </div>
           <div class="fgroup">
             <label class="flabel">Métier exercé</label>
-            <select id="p-metier" onchange="saveParam('metier',this.value)">
+            <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard()">
               <option value="">— Sélectionner —</option>
-              <option value="OBM">OBM</option>
-              <option value="UGC">UGC</option>
-              <option value="Coach">Coach</option>
-              <option value="Graphiste">Graphiste</option>
-              <option value="Architecte">Architecte</option>
-              <option value="Thérapeute">Thérapeute</option>
-              <option value="Photographe">Photographe</option>
-              <option value="Webdesigner">Webdesigner</option>
-              <option value="Consultant·e">Consultant·e</option>
-              <option value="Conciergerie">Conciergerie</option>
-              <option value="Formateur·trice">Formateur·trice</option>
-              <option value="Développeur·se">Développeur·se</option>
-              <option value="Community manager">Community manager</option>
-              <option value="Assistante virtuelle">Assistante virtuelle</option>
-              <option value="Autre">Autre</option>
+              <optgroup label="Prestations de services">
+                <option value="obm">OBM</option>
+                <option value="coach">Coach</option>
+                <option value="consultant">Consultant·e</option>
+                <option value="therapeute">Thérapeute</option>
+                <option value="developpeur">Développeur·se</option>
+                <option value="community_manager">Community manager</option>
+                <option value="assistante_virtuelle">Assistante virtuelle</option>
+                <option value="webdesigner">Webdesigner</option>
+                <option value="architecte">Architecte</option>
+                <option value="conciergerie">Conciergerie</option>
+                <option value="formateur">Formateur·trice</option>
+              </optgroup>
+              <optgroup label="Créatif / Visuel">
+                <option value="graphiste">Graphiste</option>
+                <option value="photographe">Photographe</option>
+                <option value="ugc">UGC</option>
+              </optgroup>
             </select>
             <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
           </div>
@@ -1132,7 +1140,7 @@ html,body{overflow-x:hidden;}
           <div class="glossary-item"><div class="gterm">Taux de transformation</div><div class="gdef">% de devis acceptés (en cours + facturés) sur le total des devis émis.</div></div>
           <div class="glossary-item"><div class="gterm">Pertes sèches</div><div class="gdef">Heures passées sur des missions finalement refusées. Fait baisser votre taux horaire réel sans générer de CA.</div></div>
           <div class="glossary-item"><div class="gterm">Seuil franchise TVA</div><div class="gdef">37 500 € (prestations, tolérance 41 250 €) — 85 000 € (ventes, tolérance 93 500 €). Au-delà, vous devez collecter la TVA.</div></div>
-          <div class="glossary-item"><div class="gterm">Zone de tolérance TVA</div><div class="gdef">CA au-dessus du seuil mais sous la tolérance : franchise maintenue l'année en cours, TVA obligatoire l'année suivante. OBM Pilot vous alerte dès que vous entrez dans cette zone.</div></div>
+          <div class="glossary-item"><div class="gterm">Zone de tolérance TVA</div><div class="gdef">CA au-dessus du seuil mais sous la tolérance : franchise maintenue l'année en cours, TVA obligatoire l'année suivante. Indépuls vous alerte dès que vous entrez dans cette zone.</div></div>
           <div class="glossary-item"><div class="gterm">Activité mixte</div><div class="gdef">Prestations + ventes de produits. Chaque type suit son propre seuil TVA (37 500 € / 85 000 €).</div></div>
           <div class="glossary-item"><div class="gterm">Capacité de travail</div><div class="gdef">Heures disponibles vs charge estimée de vos missions en cours — pour savoir si vous pouvez accepter un nouveau client.</div></div>
           <div class="glossary-item"><div class="gterm">Charge estimée</div><div class="gdef">Temps approximatif qu'une mission représente chaque semaine ou mois. Valeur indicative, pas besoin d'être précis.</div></div>
@@ -1861,6 +1869,80 @@ const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_
 const SRC_COLORS={'recommandation':'#4CAF50','client_existant':'#2196F3','reseau':'#9C27B0','social':'#E91E63','web':'#FF9800','publicite':'#F44336','prospection':'#00BCD4','plateforme':'#8BC34A','autre':'#9E9E9E'};
 const STORAGE_KEY = 'indepuls_freelance';
 
+// ── VOCABULAIRE MÉTIER ───────────────────────────────────────
+// Couche d'affichage uniquement — ne jamais modifier les calculs ou DATA
+const VOCABULARY_FAMILIES = {
+  service: {
+    item:'Mission', items:'Missions', addItem:'+ Ajouter une mission',
+    newItem:'Nouvelle mission', editItem:'Modifier la mission',
+    itemsEnCours:'Missions en cours', emptyItems:'Aucune mission pour l\'instant.',
+    emptyFilter:'Aucune mission dans cette catégorie.',
+    temps:'Temps facturable', client:'Client', rentabilite:'Rentabilité missions',
+    navLabel:'🎯 Missions'
+  },
+  creative: {
+    item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
+    newItem:'Nouvelle prestation', editItem:'Modifier la prestation',
+    itemsEnCours:'Prestations en cours', emptyItems:'Aucune prestation pour l\'instant.',
+    emptyFilter:'Aucune prestation dans cette catégorie.',
+    temps:'Temps de production', client:'Client', rentabilite:'Rentabilité prestations',
+    navLabel:'🎨 Prestations'
+  },
+  chantier: {
+    item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
+    newItem:'Nouveau chantier', editItem:'Modifier le chantier',
+    itemsEnCours:'Chantiers en cours', emptyItems:'Aucun chantier pour l\'instant.',
+    emptyFilter:'Aucun chantier dans cette catégorie.',
+    temps:'Temps chantier', client:'Client', rentabilite:'Rentabilité chantiers',
+    navLabel:'🛠️ Chantiers'
+  },
+  fabrication: {
+    item:'Commande', items:'Commandes', addItem:'+ Ajouter une commande',
+    newItem:'Nouvelle commande', editItem:'Modifier la commande',
+    itemsEnCours:'Commandes en cours', emptyItems:'Aucune commande pour l\'instant.',
+    emptyFilter:'Aucune commande dans cette catégorie.',
+    temps:'Temps de production', client:'Client / Acheteur', rentabilite:'Rentabilité commandes',
+    navLabel:'📦 Commandes'
+  }
+};
+const BUSINESS_PROFILE_MAP = {
+  obm:'service', coach:'service', therapeute:'service', consultant:'service',
+  developpeur:'service', community_manager:'service', assistante_virtuelle:'service',
+  webdesigner:'service', architecte:'service', conciergerie:'service', formateur:'service',
+  graphiste:'creative', photographe:'creative', ugc:'creative',
+  macon:'chantier', peintre:'chantier', couvreur:'chantier', plombier:'chantier',
+  menuisier:'chantier', carreleur:'chantier', serrurier:'chantier', plaquiste:'chantier',
+  electricien:'chantier', paysagiste:'chantier', chauffagiste:'chantier', multicorps:'chantier',
+  fabricant:'fabrication', autre_fabrication:'fabrication'
+};
+// Migration des anciennes valeurs (avant introduction des clés normalisées)
+const METIER_MIGRATION_FL = {
+  'OBM':'obm','Coach':'coach','Thérapeute':'therapeute','Consultant·e':'consultant',
+  'Développeur·se':'developpeur','Community manager':'community_manager',
+  'Assistante virtuelle':'assistante_virtuelle','Webdesigner':'webdesigner',
+  'Architecte':'architecte','Conciergerie':'conciergerie','Formateur·trice':'formateur',
+  'Graphiste':'graphiste','Photographe':'photographe','UGC':'ugc','Autre':''
+};
+const DEFAULT_FAMILY = 'service';
+function tVocab(key) {
+  const metier = DATA.params?.metier || '';
+  const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
+  return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
+}
+function migrateMetierParam() {
+  const m = DATA.params?.metier;
+  if (m && METIER_MIGRATION_FL[m] !== undefined) {
+    DATA.params.metier = METIER_MIGRATION_FL[m];
+    saveData();
+  }
+}
+function applyVocabUI() {
+  const nav = document.getElementById('nav-missions-label');
+  if (nav) nav.textContent = tVocab('navLabel');
+  const btn = document.getElementById('btn-add-mission-top');
+  if (btn) btn.textContent = tVocab('addItem');
+}
+
 // Seuils TVA 2026 — source unique de vérité
 const TVA_SEUILS = {
   prestation: { franchise: 37500, tolerance: 41250 },
@@ -2199,11 +2281,11 @@ function exportData() {
   DATA.lastSave = new Date().toISOString();
   saveData();
   // Métadonnées d'identification — jamais stockées dans DATA, ajoutées uniquement à l'export
-  const exportPayload = { tool:'obm', appName:'OBM Pilot', appVersion:'4.0', ...DATA };
+  const exportPayload = { tool:'indepuls', appName:'Indépuls', appVersion:'4.0', ...DATA };
   const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `obm-pilot-sauvegarde-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `indepuls-sauvegarde-${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   dismissSaveBanner();
   showToast('✅ Sauvegarde téléchargée avec succès !');
@@ -2222,10 +2304,10 @@ function handleImport(event) {
     try {
       const parsed = JSON.parse(e.target.result);
       if (!parsed || typeof parsed !== 'object') throw new Error('Format invalide');
-      if (!parsed.missions && !parsed.params) throw new Error('Ce fichier ne semble pas être une sauvegarde OBM Pilot.');
-      if (parsed.tool && parsed.tool !== 'obm') {
+      if (!parsed.missions && !parsed.params) throw new Error('Ce fichier ne semble pas être une sauvegarde Indépuls.');
+      if (parsed.tool && parsed.tool !== 'indepuls' && parsed.tool !== 'obm') {
         const nom = parsed.appName || 'un autre outil';
-        throw new Error(`Ce fichier provient de ${nom} et ne peut pas être importé dans OBM Pilot. Utilisez une sauvegarde exportée depuis OBM Pilot.`);
+        throw new Error(`Ce fichier provient de ${nom} et ne peut pas être importé dans Indépuls. Utilisez une sauvegarde exportée depuis Indépuls.`);
       }
       localStorage.setItem(STORAGE_KEY + '_backup_' + Date.now(), JSON.stringify(DATA));
       const _bks=Object.keys(localStorage).filter(k=>k.startsWith(STORAGE_KEY+'_backup_')).sort();
@@ -2643,6 +2725,7 @@ function renderAll() {
   document.getElementById('topbar-title').textContent = getPageTitle(currentPage);
   updateSbTimer();
   updateNavRecettes();
+  applyVocabUI();
 }
 
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -2651,6 +2734,14 @@ function showToast(msg, color) {
   const t=document.createElement('div');
   t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;`;
   t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+function markInvalid(...ids) {
+  ids.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.classList.add('field-invalid');
+    el.addEventListener('input',()=>el.classList.remove('field-invalid'),{once:true});
+  });
+  const first=document.getElementById(ids[0]); if(first) first.focus();
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────
@@ -3418,9 +3509,9 @@ function wRentabCat() {
 
 function wMissionsActives() {
   const act=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'));
-  if(!act.length) return `<div class="card"><div class="card-header"><div class="card-title">Missions en cours</div></div><div class="empty ts">Aucune mission active.</div></div>`;
+  if(!act.length) return `<div class="card"><div class="card-header"><div class="card-title">${tVocab('itemsEnCours')}</div></div><div class="empty ts">Aucun élément actif.</div></div>`;
   const rows=act.map(m=>{ const h=getMissionHeures(m),th=m.montantDevis>0&&h>0?m.montantDevis/h:null,ms=getMissionTotalMs(m); return `<div class="flex gap10 mb8" style="padding:10px;background:var(--bg);border-radius:8px;align-items:center"><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button><div style="flex:1"><div class="fb">${esc(m.client)}</div><div class="ts">${esc(m.description||'')}</div></div><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div style="text-align:right;min-width:80px"><div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${th?fmtE(th,0)+'/h':'—'}</div></div><span class="badge b-${m.statut}">${m.statut==='cours'?'En cours':'En attente'}</span></div>`; }).join('');
-  return `<div class="card"><div class="card-header"><div class="card-title">Missions en cours</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
+  return `<div class="card"><div class="card-header"><div class="card-title">${tVocab('itemsEnCours')}</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
 }
 
 function wCapacite() {
@@ -4340,7 +4431,7 @@ function saveRecetteManuelle() {
   const date=document.getElementById('lr-m-date').value;
   const client=document.getElementById('lr-m-client').value.trim();
   const montant=parseFloat(document.getElementById('lr-m-montant').value)||0;
-  if(!date||!client||!montant){ alert('Date, client et montant sont obligatoires.'); return; }
+  if(!date||!client||!montant){ const inv=[]; if(!date) inv.push('lr-m-date'); if(!client) inv.push('lr-m-client'); if(!montant) inv.push('lr-m-montant'); markInvalid(...inv); return; }
   const libelle=document.getElementById('lr-m-libelle').value.trim();
   const modeReglement=document.getElementById('lr-m-mode').value;
   const refJustificative=document.getElementById('lr-m-ref').value.trim();
@@ -4354,6 +4445,7 @@ function saveRecetteManuelle() {
   }
   saveData();
   closeModal('modal-lr-manuelle');
+  showToast('✅ Recette enregistrée.');
   if(currentPage==='recettes') renderRecettes();
 }
 
@@ -4399,8 +4491,10 @@ function exportRecettesCSV() {
   });
   const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  const periodeLabel={'annee':'Année','T1':'T1','T2':'T2','T3':'T3','T4':'T4','tout':'Tout'}[periode]||periode;
   a.download=`livre-recettes-${DATA.currentYear||new Date().getFullYear()}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast(`✅ ${recettes.length} recette${recettes.length>1?'s':''} exportée${recettes.length>1?'s':''} — ${periodeLabel} ${recettes.length>0?DATA.currentYear||'':''}`);
 }
 
 // ── Historique des modifications ─────────────────────────────
@@ -4562,7 +4656,7 @@ function updateCollectifTemps() {
 }
 function openMissionModal(id) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
-  document.getElementById('mission-modal-title').textContent=m?'Modifier la mission':'Nouvelle mission';
+  document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
   document.getElementById('mission-edit-id').value=m?m.id:'';
   document.getElementById('m-client').value=m?m.client:'';
   document.getElementById('m-desc').value=m?m.description:'';
@@ -4649,9 +4743,11 @@ function saveMission() {
     montantDevis=parseFloat(document.getElementById('m-montant').value)||0;
     montantPrestation=montantDevis; montantVente=0;
   }
+  const client=document.getElementById('m-client').value.trim();
+  if(!client){ markInvalid('m-client'); return; }
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
-  const obj={ client:document.getElementById('m-client').value, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit,
+  const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit,
     typeMission:document.getElementById('m-type-mission').value||'individuelle',
     nbParticipants:parseInt(document.getElementById('m-participants').value)||0,
     prixParParticipant:parseFloat(document.getElementById('m-prix-part').value)||0,
@@ -4666,7 +4762,7 @@ function saveMission() {
   }
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
-  saveData(); closeModal('modal-mission'); renderMissions(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); showToast('✅ Mission enregistrée.'); renderMissions(); triggerSaveReminderIfNeeded();
 }
 
 function deleteMission(id) {
@@ -4869,8 +4965,8 @@ function renderMissions() {
     const isEmpty=missionFilter==='all';
     tbody.innerHTML=`<tr><td colspan="10"><div class="empty">
       <div class="ei">${isEmpty?'🗂':'🔍'}</div>
-      <p style="margin-bottom:${isEmpty?'14px':'4px'}">${isEmpty?'Aucune mission pour l\'instant.':'Aucune mission dans cette catégorie.'}</p>
-      ${isEmpty?'<button class="btn btn-acc btn-sm" onclick="openMissionModal()">+ Ajouter une mission</button>':''}
+      <p style="margin-bottom:${isEmpty?'14px':'4px'}">${isEmpty?tVocab('emptyItems'):tVocab('emptyFilter')}</p>
+      ${isEmpty?`<button class="btn btn-acc btn-sm" onclick="openMissionModal()">${tVocab('addItem')}</button>`:''}
     </div></td></tr>`;
     document.getElementById('missions-totals').innerHTML='';
     return;
@@ -5154,7 +5250,7 @@ function saveDepense(force) {
   };
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d) Object.assign(d,obj); }
   else { addDepense(obj); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
-  saveData(); closeModal('modal-dep'); renderDepenses();
+  saveData(); closeModal('modal-dep'); showToast('✅ Dépense enregistrée.'); renderDepenses();
 }
 function toggleDepTVA(checked) {
   document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
@@ -6524,8 +6620,10 @@ function createMissionFromSim() {
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
+  migrateMetierParam();
   document.body.setAttribute('data-theme', DATA.theme || 'obm');
   renderAll();
+  applyVocabUI();
   renderThemes();
   startTimerInterval();
   checkSaveReminder();
@@ -6535,6 +6633,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('keydown', function(e) {
+  if(e.key === 'Escape') {
+    const ov = document.querySelector('.modal-ov:not(.hidden)');
+    if(ov) { ov.classList.add('hidden'); return; }
+  }
   if(e.key !== 'Enter') return;
   if(e.target.tagName === 'TEXTAREA') return;
   if(e.target.tagName === 'SELECT') return;

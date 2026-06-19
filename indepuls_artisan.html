@@ -124,6 +124,11 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 [data-theme="dark"] .al-warn,[data-theme="nuit"] .al-warn{background:#2a200a;color:#fbbf24;}[data-theme="dark"] .al-err,[data-theme="nuit"] .al-err{background:#2a0a0a;color:#f87171;}
 [data-theme="dark"] .al-ok,[data-theme="nuit"] .al-ok{background:#0a2a15;color:#4ade80;}[data-theme="dark"] .al-info,[data-theme="nuit"] .al-info{background:#0a1a2a;color:#93c5fd;}
 
+/* === VALIDATION CHAMPS === */
+@keyframes fieldShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.field-invalid{border-color:var(--err)!important;animation:fieldShake .3s;}
+.field-invalid:focus{outline-color:var(--err);}
+
 /* === MODAL === */
 @keyframes modalIn{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -2112,11 +2117,11 @@ function exportData() {
   saveData();
   // Métadonnées d'identification ajoutées à l'export (pas stockées dans DATA)
   const dateStr = new Date().toISOString().slice(0,10);
-  const exportPayload = { tool:'artisan', appName:'Artisan Pilot', appVersion:'2.0', ...DATA };
+  const exportPayload = { tool:'indepuls-artisan', appName:'Indépuls', appVersion:'2.0', ...DATA };
   const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `artisan-pilot-sauvegarde-${dateStr}.json`;
+  a.download = `indepuls-artisan-sauvegarde-${dateStr}.json`;
   a.click();
   dismissSaveBanner();
   showToast('✅ Sauvegarde téléchargée avec succès !');
@@ -2134,10 +2139,10 @@ function handleImport(event) {
     try {
       const parsed = JSON.parse(e.target.result);
       if (!parsed || typeof parsed !== 'object') throw new Error('Format invalide');
-      if (!parsed.missions && !parsed.params) throw new Error('Ce fichier ne semble pas être une sauvegarde Artisan Pilot.');
-      if (parsed.tool && parsed.tool !== 'artisan') {
+      if (!parsed.missions && !parsed.params) throw new Error('Ce fichier ne semble pas être une sauvegarde Indépuls.');
+      if (parsed.tool && parsed.tool !== 'indepuls-artisan' && parsed.tool !== 'artisan') {
         const nom = parsed.appName || 'un autre outil';
-        throw new Error(`Ce fichier provient de ${nom} et ne peut pas être importé dans Artisan Pilot. Utilisez une sauvegarde exportée depuis Artisan Pilot.`);
+        throw new Error(`Ce fichier provient de ${nom} et ne peut pas être importé dans Indépuls. Utilisez une sauvegarde exportée depuis Indépuls.`);
       }
       localStorage.setItem(STORAGE_KEY + '_backup_' + Date.now(), JSON.stringify(DATA));
       const _bks=Object.keys(localStorage).filter(k=>k.startsWith(STORAGE_KEY+'_backup_')).sort();
@@ -2403,7 +2408,7 @@ function saveRecetteManuelle() {
   const date=document.getElementById('lr-m-date').value;
   const client=document.getElementById('lr-m-client').value.trim();
   const montant=parseFloat(document.getElementById('lr-m-montant').value)||0;
-  if(!date||!client||!montant){ alert('Date, client et montant sont obligatoires.'); return; }
+  if(!date||!client||!montant){ const inv=[]; if(!date) inv.push('lr-m-date'); if(!client) inv.push('lr-m-client'); if(!montant) inv.push('lr-m-montant'); markInvalid(...inv); return; }
   const libelle=document.getElementById('lr-m-libelle').value.trim();
   const modeReglement=document.getElementById('lr-m-mode').value;
   const refJustificative=document.getElementById('lr-m-ref').value.trim();
@@ -2417,6 +2422,7 @@ function saveRecetteManuelle() {
   }
   saveData();
   closeModal('modal-lr-manuelle');
+  showToast('✅ Recette enregistrée.');
   if(currentPage==='recettes') renderRecettes();
 }
 
@@ -2464,8 +2470,10 @@ function exportRecettesCSV() {
   });
   const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  const periodeLabel={'annee':'Année','T1':'T1','T2':'T2','T3':'T3','T4':'T4','tout':'Tout'}[periode]||periode;
   a.download=`livre-recettes-${DATA.currentYear||new Date().getFullYear()}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast(`✅ ${recettes.length} recette${recettes.length>1?'s':''} exportée${recettes.length>1?'s':''} — ${periodeLabel} ${recettes.length>0?DATA.currentYear||'':''}`);
 }
 
 // ── Historique recette ────────────────────────────────────────
@@ -3245,6 +3253,14 @@ function showToast(msg, color) {
   const t=document.createElement('div');
   t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;`;
   t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+function markInvalid(...ids) {
+  ids.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.classList.add('field-invalid');
+    el.addEventListener('input',()=>el.classList.remove('field-invalid'),{once:true});
+  });
+  const first=document.getElementById(ids[0]); if(first) first.focus();
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────
@@ -4693,11 +4709,13 @@ function saveMission() {
     montantDevis=parseFloat(document.getElementById('m-montant').value)||0;
     montantPrestation=montantDevis; montantVente=0;
   }
+  const client=document.getElementById('m-client').value.trim();
+  if(!client){ markInvalid('m-client'); return; }
   const sessions=editingSessions.map(s=>({debut:s.debut,fin:s.fin||s.debut}));
-  const obj={ client:document.getElementById('m-client').value, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:statut==='fact'?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:false, montantPrestation, montantVente, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
+  const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:statut==='fact'?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:false, montantPrestation, montantVente, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
-  saveData(); closeModal('modal-mission'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); showToast('✅ Chantier enregistré.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 
 // ── ENCAISSEMENTS — MODAL ────────────────────────────────────
@@ -5481,7 +5499,7 @@ function saveDepense(force) {
   };
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d) Object.assign(d,obj); }
   else { DATA.depenses.push({id:uuid(),...obj}); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
-  saveData(); closeModal('modal-dep'); renderDepenses();
+  saveData(); closeModal('modal-dep'); showToast('✅ Dépense enregistrée.'); renderDepenses();
 }
 function toggleDepTVA(checked) {
   document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
@@ -6992,6 +7010,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.addEventListener('keydown', function(e) {
+  if(e.key === 'Escape') {
+    const ov = document.querySelector('.modal-ov:not(.hidden)');
+    if(ov) { ov.classList.add('hidden'); return; }
+  }
   if(e.key !== 'Enter') return;
   if(e.target.tagName === 'TEXTAREA') return;
   if(e.target.tagName === 'SELECT') return;
