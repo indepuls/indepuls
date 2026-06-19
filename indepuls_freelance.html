@@ -1380,28 +1380,45 @@ html,body{overflow-x:hidden;}
 
 <!-- MODAL RECETTE MANUELLE -->
 <!-- MODAL HISTORIQUE RECETTE -->
-<!-- MODAL ÉDITION RECETTE (historique + modification) -->
+<!-- MODAL HISTORIQUE RECETTE (lecture seule — badge "Modifiée") -->
+<div class="modal-ov hidden" id="modal-lr-historique">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">📋 Historique des modifications</div>
+    <div id="lr-hist-content" style="min-height:40px"></div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-lr-historique')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ÉDITION RECETTE (formulaire seul — bouton "Modifier") -->
 <div class="modal-ov hidden" id="modal-lr-edition">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-title">✏️ Modifier la recette</div>
     <input type="hidden" id="lr-ed-mission-id">
     <input type="hidden" id="lr-ed-enc-id">
-    <div id="lr-ed-historique"></div>
-    <div class="fgroup">
-      <label class="flabel">Mode de règlement</label>
-      <select id="lr-ed-mode">
-        <option value="">— Choisir —</option>
-        <option value="virement">Virement bancaire</option>
-        <option value="cheque">Chèque</option>
-        <option value="especes">Espèces</option>
-        <option value="carte">Carte bancaire</option>
-        <option value="prelevement">Prélèvement</option>
-        <option value="autre">Autre</option>
-      </select>
+    <div class="frow">
+      <div class="fgroup">
+        <label class="flabel">Montant HT (€)</label>
+        <input type="number" id="lr-ed-montant" step="0.01" min="0" placeholder="0" oninput="updateLrEdTTC()">
+        <div id="lr-ed-ttc" class="ts" style="color:var(--tl);margin-top:4px;font-size:11px"></div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Mode de règlement</label>
+        <select id="lr-ed-mode">
+          <option value="">— Choisir —</option>
+          <option value="virement">Virement bancaire</option>
+          <option value="cheque">Chèque</option>
+          <option value="especes">Espèces</option>
+          <option value="carte">Carte bancaire</option>
+          <option value="prelevement">Prélèvement</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
     </div>
     <div class="fgroup mt12">
       <label class="flabel">Référence justificative <span class="info-tip" title="Numéro de facture, devis signé, bon de commande, reçu…">?</span></label>
-      <input type="text" id="lr-ed-ref" placeholder="Ex : FAC-2026-042">
+      <input type="text" id="lr-ed-ref" placeholder="Ex : FAC-2026-042, Devis signé…">
       <div id="lr-ed-hint" class="ts" style="color:var(--tl);margin-top:5px;font-size:11px"></div>
     </div>
     <div class="modal-foot">
@@ -1415,7 +1432,6 @@ html,body{overflow-x:hidden;}
   <div class="modal" style="max-width:480px">
     <div class="modal-title" id="lr-m-title">Nouvelle recette</div>
     <input type="hidden" id="lr-m-id">
-    <div id="lr-m-historique"></div>
     <div class="frow">
       <div class="fgroup"><label class="flabel">Date d'encaissement *</label><input type="date" id="lr-m-date"></div>
       <div class="fgroup">
@@ -1477,9 +1493,62 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div class="ts mt8" id="ponc-type-help" style="color:var(--tl);line-height:1.5;font-style:italic"></div>
+      <div id="ponc-lr-zone" style="display:none;margin-top:10px;border-top:1px solid var(--brd);padding-top:10px">
+        <div class="ts mb6" style="color:var(--tl);font-weight:600">📒 Livre des recettes</div>
+        <div class="frow" style="gap:8px;flex-wrap:wrap">
+          <div class="fgroup" style="flex:0 0 130px;min-width:0">
+            <label class="ts">Date</label>
+            <input type="date" id="ponc-date" style="margin-top:4px">
+          </div>
+          <div class="fgroup" style="flex:0 0 160px;min-width:0">
+            <label class="ts">Mode de règlement</label>
+            <select id="ponc-mode" style="margin-top:4px">
+              <option value="">— Choisir —</option>
+              <option value="virement">Virement bancaire</option>
+              <option value="cheque">Chèque</option>
+              <option value="especes">Espèces</option>
+              <option value="carte">Carte bancaire</option>
+              <option value="prelevement">Prélèvement</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div class="fgroup" style="min-width:0">
+            <label class="ts">Référence justificative</label>
+            <input type="text" id="ponc-ref" placeholder="Ex : FAC-2026-042" style="margin-top:4px">
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-ponctuels')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ÉDITION LR PONCTUEL (mode + ref sur item existant) -->
+<div class="modal-ov hidden" id="modal-ponc-lr-edit">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">📒 Livre des recettes</div>
+    <input type="hidden" id="ponc-lr-id">
+    <div class="fgroup">
+      <label class="flabel">Mode de règlement</label>
+      <select id="ponc-lr-mode">
+        <option value="">— Choisir —</option>
+        <option value="virement">Virement bancaire</option>
+        <option value="cheque">Chèque</option>
+        <option value="especes">Espèces</option>
+        <option value="carte">Carte bancaire</option>
+        <option value="prelevement">Prélèvement</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="fgroup mt12">
+      <label class="flabel">Référence justificative</label>
+      <input type="text" id="ponc-lr-ref" placeholder="Ex : FAC-2026-042">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-ponc-lr-edit')">Annuler</button>
+      <button class="btn btn-acc" onclick="sauvegarderPoncLR()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -3835,6 +3904,12 @@ function openPonctuelsModal(mk) {
   document.getElementById('ponc-type').value = 'prestation';
   document.getElementById('ponc-libelle').value = '';
   document.getElementById('ponc-montant').value = '';
+  const dateEl=document.getElementById('ponc-date');
+  if(dateEl) dateEl.value=today();
+  const modeEl=document.getElementById('ponc-mode');
+  if(modeEl) modeEl.value='';
+  const refEl=document.getElementById('ponc-ref');
+  if(refEl) refEl.value='';
   updatePoncTypeHelp();
   renderPonctuelsModal();
   openModal('modal-ponctuels');
@@ -3848,6 +3923,8 @@ function updatePoncTypeHelp() {
   };
   const el = document.getElementById('ponc-type-help');
   if(el) el.textContent = helps[type]||'';
+  const lrZone = document.getElementById('ponc-lr-zone');
+  if(lrZone) lrZone.style.display = type!=='hors_ca' ? '' : 'none';
 }
 function renderPonctuelsModal() {
   if(!_poncMk) return;
@@ -3862,13 +3939,21 @@ function renderPonctuelsModal() {
   if(!list.length){ listEl.innerHTML=`<div class="ts" style="color:var(--tl);padding:2px 0 8px">Aucun revenu ponctuel ce mois-ci.</div>`; return; }
   const tLabel={prestation:'Prestation',vente:'Vente',hors_ca:'Hors CA'};
   const tColor={prestation:'var(--ok,#2d7a4f)',vente:'var(--acc)',hors_ca:'var(--tl)'};
-  listEl.innerHTML=list.map(e=>`
-    <div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd)">
+  listEl.innerHTML=list.map(e=>{
+    const lrInfo=e.type!=='hors_ca'
+      ?`<span class="ts" style="color:var(--tl);font-size:11px">${LR_MODES[e.modeReglement]||'— mode'}${e.refJustificative?' · '+e.refJustificative:''}</span>`
+      :'';
+    const editBtn=e.type!=='hors_ca'
+      ?`<button class="btn btn-sm" style="padding:2px 7px;font-size:11px" onclick="ouvrirPoncLREdit('${e.id}')" title="Modifier mode/réf LR">✏️</button>`
+      :'';
+    return `<div style="display:grid;grid-template-columns:90px 1fr auto auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd)">
       <span class="ts" style="color:${tColor[e.type]||'var(--tl)'};font-weight:600">${tLabel[e.type]||e.type}</span>
-      <span class="ts">${esc(e.libelle||'—')}</span>
+      <div><span class="ts">${esc(e.libelle||'—')}</span>${lrInfo?`<br>${lrInfo}`:''}</div>
       <span class="ts" style="font-weight:700;white-space:nowrap">${fmtE(e.montant||0)}</span>
+      ${editBtn}
       <button class="btn btn-sm" style="color:#e53935;border-color:#e53935;padding:2px 7px;font-size:11px" onclick="deletePonctuel('${e.id}')">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function addPonctuel() {
   if(!_poncMk) return;
@@ -3876,17 +3961,52 @@ function addPonctuel() {
   const libelle = document.getElementById('ponc-libelle').value.trim();
   const montant = parseFloat(document.getElementById('ponc-montant').value)||0;
   if(montant<=0){ showToast('⚠️ Montant requis.'); return; }
-  _addPonctuelEntry(_poncMk, { id:uuid(), libelle, montant, type,
-    montantPrestation: type==='prestation'?montant:0, montantVente: type==='vente'?montant:0 });
+  const modeReglement = type!=='hors_ca'?(document.getElementById('ponc-mode').value||''):'';
+  const refJustificative = type!=='hors_ca'?(document.getElementById('ponc-ref').value.trim()):'';
+  const date = type!=='hors_ca'?((document.getElementById('ponc-date').value)||(_poncMk+'-01')):(_poncMk+'-01');
+  _addPonctuelEntry(_poncMk, { id:uuid(), libelle, montant, type, date, mk:_poncMk,
+    montantPrestation: type==='prestation'?montant:0, montantVente: type==='vente'?montant:0,
+    modeReglement, refJustificative });
   saveData();
   document.getElementById('ponc-libelle').value='';
   document.getElementById('ponc-montant').value='';
+  const modeEl=document.getElementById('ponc-mode'); if(modeEl) modeEl.value='';
+  const refEl=document.getElementById('ponc-ref'); if(refEl) refEl.value='';
   renderPonctuelsModal(); renderRevenus();
 }
 function deletePonctuel(id) {
   if(!_poncMk||!DATA.revenus[_poncMk]) return;
   removePonctuel(_poncMk, id);
   saveData(); renderPonctuelsModal(); renderRevenus();
+}
+function ouvrirPoncLREdit(id) {
+  let found=null;
+  Object.values(DATA.revenus||{}).forEach(rv=>{
+    const item=(rv.autresList||[]).find(x=>x.id===id);
+    if(item) found=item;
+  });
+  if(!found) return;
+  document.getElementById('ponc-lr-id').value=id;
+  document.getElementById('ponc-lr-mode').value=found.modeReglement||'';
+  document.getElementById('ponc-lr-ref').value=found.refJustificative||'';
+  openModal('modal-ponc-lr-edit');
+}
+function sauvegarderPoncLR() {
+  const id=document.getElementById('ponc-lr-id').value;
+  const mode=document.getElementById('ponc-lr-mode').value;
+  const ref=document.getElementById('ponc-lr-ref').value.trim();
+  let found=null;
+  Object.values(DATA.revenus||{}).forEach(rv=>{
+    const item=(rv.autresList||[]).find(x=>x.id===id);
+    if(item) found=item;
+  });
+  if(!found) return;
+  found.modeReglement=mode;
+  found.refJustificative=ref;
+  saveData();
+  closeModal('modal-ponc-lr-edit');
+  if(currentPage==='recettes') renderRecettes();
+  renderPonctuelsModal();
 }
 
 // ── ENCAISSEMENTS — MODAL RAPIDE ─────────────────────────────
@@ -3990,11 +4110,23 @@ function getRecettesData() {
     });
   });
   (DATA.recettesManuel||[]).forEach(r => recettes.push({...r,origine:'manuel'}));
+  Object.entries(DATA.revenus||{}).forEach(([mk,rv])=>{
+    (rv.autresList||[]).forEach(item=>{
+      if(item.type==='hors_ca') return;
+      recettes.push({
+        id:item.id, date:item.date||(mk+'-01'), client:'', libelle:item.libelle,
+        montant:item.montant, modeReglement:item.modeReglement||'',
+        refJustificative:item.refJustificative||'', origine:'ponctuel',
+        mk:mk, statut:item.statut||'valide', dateCreation:item.date||(mk+'-01'), dateModif:null,
+      });
+    });
+  });
   recettes.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   return recettes;
 }
 
 function recetteComplete(r) {
+  if(r.origine==='ponctuel') return !!(r.montant && r.modeReglement && r.refJustificative);
   return !!(r.date && r.client && r.montant && r.modeReglement && r.refJustificative);
 }
 
@@ -4095,6 +4227,8 @@ function renderRecettes() {
           :`<span style="font-size:10px;color:var(--warn);white-space:nowrap">🟠 Infos complémentaires recommandées</span>`;
       const btnEditer=r.origine==='manuel'
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Modifier</button>`
+        :r.origine==='ponctuel'
+          ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPoncLREdit('${r.id}')">Modifier</button>`
         :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirEditionRecette('${r.missionId||''}','${r.id}')">Modifier</button>`;
       const btnAnn=!ann
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px;color:var(--err)" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Annuler</button>`
@@ -4203,6 +4337,14 @@ function toggleAnnulationRecette(origine, id, missionId) {
     const r=(DATA.recettesManuel||[]).find(x=>x.id===id); if(!r) return;
     r.statut=r.statut==='annulee'?'valide':'annulee';
     r.dateModif=now;
+  } else if(origine==='ponctuel'){
+    let found=null;
+    Object.values(DATA.revenus||{}).forEach(rv=>{
+      const item=(rv.autresList||[]).find(x=>x.id===id);
+      if(item) found=item;
+    });
+    if(!found) return;
+    found.statut=found.statut==='annulee'?'valide':'annulee';
   } else {
     const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
     const enc=(m.encaissements||[]).find(x=>x.id===id); if(!enc) return;
