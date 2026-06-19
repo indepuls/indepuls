@@ -259,6 +259,16 @@ renderDashboard()
 | `modal-depense` | Ajout/édition dépense |
 | `modal-lr-completer` | Popup complétion encaissement (livre des recettes) — mode règlement + référence justificative |
 | `modal-lr-manuelle` | Ajout/édition d'une recette manuelle (livre des recettes) |
+| `modal-lr-historique` | Historique des modifications d'une recette (lecture seule, ouvert via badge "Modifiée") |
+| `modal-lr-edition` | Formulaire de modification d'une recette — montant, mode règlement, référence (ouvert via bouton "Modifier") |
+| `modal-ref-motif` | Popup saisie du motif de refus quand un devis passe au statut "Refusé" (facultatif) |
+| `modal-ponctuel` | Artisan : ajout d'un revenu ponctuel (avec champs LR si type ≠ hors_ca) |
+| `modal-ponctuels` | Freelance : liste des revenus ponctuels du mois (add form + édition) |
+| `modal-ponc-lr-edit` | Freelance : mini-modal pour éditer mode règlement + référence d'un ponctuel existant |
+| `modal-fact-confirm` | Confirmation facturation (saisie date) |
+| `modal-add-time` | Ajout de temps passé manuellement |
+| `modal-correct-time` | Correction du chrono |
+| `modal-archive` | Ajout/édition d'une année archivée manuellement |
 
 ## Conventions CSS
 
@@ -358,6 +368,44 @@ $node = "C:\Program Files\nodejs\node.exe"
 & $node tests.js                      # régression calculs Freelance
 & $node shared/tests/bridge_smoke.js  # vérifie que chaque window.* existe encore
 ```
+
+## Système de vocabulaire métier
+
+### Principe
+Le vocabulaire affiché s'adapte automatiquement au métier sélectionné dans Paramètres. C'est une **couche d'affichage uniquement** — aucun calcul ni structure DATA ne doit être modifié pour ajouter un métier.
+
+### Familles de vocabulaire (`VOCABULARY_FAMILIES`)
+
+| Famille | Exemples de métiers | Terme affiché |
+|---|---|---|
+| `service` (défaut freelance) | OBM, coach, consultant, thérapeute, développeur, CM, AV, webdesigner, architecte, conciergerie, formateur | Mission |
+| `creative` | Graphiste, photographe, UGC | Prestation |
+| `chantier` (défaut artisan) | Maçon, peintre, couvreur, plombier, menuisier, carreleur, serrurier, plaquiste, électricien, paysagiste, chauffagiste, multi-corps | Chantier |
+| `fabrication` | Fabricant / Créateur, savonnier, bijoutier, couturier, cosmétiques artisanaux | Commande |
+
+### Mapping métier → famille (`BUSINESS_PROFILE_MAP`)
+Objet centralisé dans chaque HTML (clés normalisées : `obm`, `coach`, `macon`, `fabricant`, etc.).
+
+### Fonction helper
+```js
+function tVocab(key) {
+  const metier = DATA.params?.metier || '';
+  const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
+  return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
+}
+```
+`DEFAULT_FAMILY = 'service'` dans freelance, `'chantier'` dans artisan.
+
+### Migration automatique
+`migrateMetierParam()` convertit les anciennes valeurs affichées (ex : `"Coach"`, `"Maçon"`) en clés normalisées (`"coach"`, `"macon"`) au premier chargement, sans perte de données.
+
+### Règle fondamentale
+**Ajouter un métier ne doit jamais conduire à créer une nouvelle application.** Il faut d'abord rattacher ce métier à une famille de vocabulaire existante via `BUSINESS_PROFILE_MAP`. Si aucune famille ne convient, créer une nouvelle famille dans `VOCABULARY_FAMILIES` — jamais un nouveau fichier HTML.
+
+### Clés de vocabulaire disponibles
+`item`, `items`, `addItem`, `newItem`, `editItem`, `itemsEnCours`, `emptyItems`, `emptyFilter`, `temps`, `client`, `rentabilite`, `navLabel`
+
+---
 
 ## Prochains chantiers identifiés
 

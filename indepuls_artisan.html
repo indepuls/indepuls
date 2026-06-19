@@ -518,7 +518,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">📊</span> Tableau de bord</div>
   <div class="nav-item" onclick="navigate('archives')"><span class="nav-icon">📈</span> Historique</div>
   <div class="nav-section">Activité</div>
-  <div class="nav-item" onclick="navigate('missions')"><span class="nav-icon">🛠️</span> Chantiers</div>
+  <div class="nav-item" onclick="navigate('missions')" id="nav-missions-label"><span class="nav-icon">🛠️</span> Chantiers</div>
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
@@ -581,7 +581,7 @@ html,body{overflow-x:hidden;}
           <div class="card-title">Suivi des chantiers</div>
           <div class="card-sub">Tous vos chantiers en cours, passés ou en attente</div>
         </div>
-        <button class="btn btn-acc" onclick="openMissionModal()">+ Ajouter un chantier</button>
+        <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter un chantier</button>
       </div>
       <div class="flex gap6 mb12" style="flex-wrap:wrap;" id="mission-filters">
         <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
@@ -736,21 +736,26 @@ html,body{overflow-x:hidden;}
           </div>
           <div class="fgroup">
             <label class="flabel">Métier exercé</label>
-            <select id="p-metier" onchange="saveParam('metier',this.value)">
+            <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard()">
               <option value="">— Sélectionner —</option>
-              <option value="Maçon">Maçon</option>
-              <option value="Peintre">Peintre</option>
-              <option value="Couvreur">Couvreur</option>
-              <option value="Plombier">Plombier</option>
-              <option value="Menuisier">Menuisier</option>
-              <option value="Carreleur">Carreleur</option>
-              <option value="Serrurier">Serrurier</option>
-              <option value="Plaquiste">Plaquiste</option>
-              <option value="Électricien">Électricien</option>
-              <option value="Paysagiste">Paysagiste</option>
-              <option value="Chauffagiste">Chauffagiste</option>
-              <option value="Multi-corps d'état">Multi-corps d'état</option>
-              <option value="Autre">Autre</option>
+              <optgroup label="Artisans du bâtiment">
+                <option value="macon">Maçon</option>
+                <option value="peintre">Peintre</option>
+                <option value="couvreur">Couvreur</option>
+                <option value="plombier">Plombier</option>
+                <option value="menuisier">Menuisier</option>
+                <option value="carreleur">Carreleur</option>
+                <option value="serrurier">Serrurier</option>
+                <option value="plaquiste">Plaquiste</option>
+                <option value="electricien">Électricien</option>
+                <option value="paysagiste">Paysagiste</option>
+                <option value="chauffagiste">Chauffagiste</option>
+                <option value="multicorps">Multi-corps d'état</option>
+              </optgroup>
+              <optgroup label="Fabrication & Création">
+                <option value="fabricant">Fabricant / Créateur</option>
+                <option value="autre_fabrication">Autre fabrication</option>
+              </optgroup>
             </select>
             <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
           </div>
@@ -1789,6 +1794,79 @@ const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
 const SRC_COLORS={'recommandation':'#4CAF50','client_existant':'#2196F3','reseau':'#9C27B0','social':'#E91E63','web':'#FF9800','publicite':'#F44336','prospection':'#00BCD4','plateforme':'#8BC34A','autre':'#9E9E9E'};
 const STORAGE_KEY = 'indepuls_artisan';
+
+// ── VOCABULAIRE MÉTIER ───────────────────────────────────────
+// Couche d'affichage uniquement — ne jamais modifier les calculs ou DATA
+const VOCABULARY_FAMILIES = {
+  service: {
+    item:'Mission', items:'Missions', addItem:'+ Ajouter une mission',
+    newItem:'Nouvelle mission', editItem:'Modifier la mission',
+    itemsEnCours:'Missions en cours', emptyItems:'Aucune mission pour l\'instant.',
+    emptyFilter:'Aucune mission dans cette catégorie.',
+    temps:'Temps facturable', client:'Client', rentabilite:'Rentabilité missions',
+    navLabel:'🎯 Missions'
+  },
+  creative: {
+    item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
+    newItem:'Nouvelle prestation', editItem:'Modifier la prestation',
+    itemsEnCours:'Prestations en cours', emptyItems:'Aucune prestation pour l\'instant.',
+    emptyFilter:'Aucune prestation dans cette catégorie.',
+    temps:'Temps de production', client:'Client', rentabilite:'Rentabilité prestations',
+    navLabel:'🎨 Prestations'
+  },
+  chantier: {
+    item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
+    newItem:'Nouveau chantier', editItem:'Modifier le chantier',
+    itemsEnCours:'Chantiers en cours', emptyItems:'Aucun chantier pour l\'instant.',
+    emptyFilter:'Aucun chantier dans cette catégorie.',
+    temps:'Temps chantier', client:'Client', rentabilite:'Rentabilité chantiers',
+    navLabel:'🛠️ Chantiers'
+  },
+  fabrication: {
+    item:'Commande', items:'Commandes', addItem:'+ Ajouter une commande',
+    newItem:'Nouvelle commande', editItem:'Modifier la commande',
+    itemsEnCours:'Commandes en cours', emptyItems:'Aucune commande pour l\'instant.',
+    emptyFilter:'Aucune commande dans cette catégorie.',
+    temps:'Temps de production', client:'Client / Acheteur', rentabilite:'Rentabilité commandes',
+    navLabel:'📦 Commandes'
+  }
+};
+const BUSINESS_PROFILE_MAP = {
+  obm:'service', coach:'service', therapeute:'service', consultant:'service',
+  developpeur:'service', community_manager:'service', assistante_virtuelle:'service',
+  webdesigner:'service', architecte:'service', conciergerie:'service', formateur:'service',
+  graphiste:'creative', photographe:'creative', ugc:'creative',
+  macon:'chantier', peintre:'chantier', couvreur:'chantier', plombier:'chantier',
+  menuisier:'chantier', carreleur:'chantier', serrurier:'chantier', plaquiste:'chantier',
+  electricien:'chantier', paysagiste:'chantier', chauffagiste:'chantier', multicorps:'chantier',
+  fabricant:'fabrication', autre_fabrication:'fabrication'
+};
+// Migration des anciennes valeurs affichées (avant introduction des clés normalisées)
+const METIER_MIGRATION_AR = {
+  'Maçon':'macon','Peintre':'peintre','Couvreur':'couvreur','Plombier':'plombier',
+  'Menuisier':'menuisier','Carreleur':'carreleur','Serrurier':'serrurier',
+  'Plaquiste':'plaquiste','Électricien':'electricien','Paysagiste':'paysagiste',
+  'Chauffagiste':'chauffagiste',"Multi-corps d'état":'multicorps','Autre':''
+};
+const DEFAULT_FAMILY = 'chantier';
+function tVocab(key) {
+  const metier = DATA.params?.metier || '';
+  const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
+  return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
+}
+function migrateMetierParam() {
+  const m = DATA.params?.metier;
+  if (m && METIER_MIGRATION_AR[m] !== undefined) {
+    DATA.params.metier = METIER_MIGRATION_AR[m];
+    saveData();
+  }
+}
+function applyVocabUI() {
+  const nav = document.getElementById('nav-missions-label');
+  if (nav) nav.textContent = tVocab('navLabel');
+  const btn = document.getElementById('btn-add-mission-top');
+  if (btn) btn.textContent = tVocab('addItem');
+}
 
 // ── RÉFÉRENTIEL FISCAL 2026 ──────────────────────────────────
 // Source unique de vérité pour tous les taux et seuils par nature d'activité.
@@ -3245,6 +3323,7 @@ function renderAll() {
   document.getElementById('topbar-title').textContent = getPageTitle(currentPage);
   updateSbTimer();
   updateNavRecettes();
+  applyVocabUI();
 }
 
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -4183,7 +4262,7 @@ function wRentabChantiers() {
     const thReel=h>0?marge/h:null;
     return {m,dep,marge,h,thReel};
   }).filter(x=>x.dep>0).sort((a,b)=>b.marge-a.marge);
-  if(!withDep.length) return `<div class="card"><div class="card-header"><div class="card-title">🏗 Rentabilité chantiers</div></div><div class="empty ts" style="padding:14px 0">Rattachez des dépenses à vos chantiers depuis l'onglet <span style="cursor:pointer;color:var(--acc)" onclick="navigate('depenses')">Dépenses</span> pour voir la rentabilité réelle.</div></div>`;
+  if(!withDep.length) return `<div class="card"><div class="card-header"><div class="card-title">🏗 ${tVocab('rentabilite')}</div></div><div class="empty ts" style="padding:14px 0">Rattachez des dépenses à vos ${tVocab('items').toLowerCase()} depuis l'onglet <span style="cursor:pointer;color:var(--acc)" onclick="navigate('depenses')">Dépenses</span> pour voir la rentabilité réelle.</div></div>`;
   const rows=withDep.slice(0,5).map(({m,dep,marge,thReel})=>`
     <div class="rentab-row">
       <div style="flex:1">
@@ -4196,14 +4275,14 @@ function wRentabChantiers() {
         <div class="ts">${thReel!==null?fmtE(thReel,0)+'/h réel':'—'}</div>
       </div>
     </div>`).join('');
-  return `<div class="card"><div class="card-header"><div class="card-title">🏗 Rentabilité chantiers</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
+  return `<div class="card"><div class="card-header"><div class="card-title">🏗 ${tVocab('rentabilite')}</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
 }
 
 function wMissionsActives() {
   const act=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'));
-  if(!act.length) return `<div class="card"><div class="card-header"><div class="card-title">Chantiers en cours</div></div><div class="empty ts">Aucun chantier actif.</div></div>`;
+  if(!act.length) return `<div class="card"><div class="card-header"><div class="card-title">${tVocab('itemsEnCours')}</div></div><div class="empty ts">Aucun élément actif.</div></div>`;
   const rows=act.map(m=>{ const h=getMissionHeures(m),th=m.montantDevis>0&&h>0?m.montantDevis/h:null,ms=getMissionTotalMs(m); return `<div class="flex gap10 mb8" style="padding:10px;background:var(--bg);border-radius:8px;align-items:center"><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button><div style="flex:1"><div class="fb">${m.client}</div><div class="ts">${m.description||''}</div></div><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div style="text-align:right;min-width:80px"><div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${th?fmtE(th,0)+'/h':'—'}</div></div><span class="badge b-${m.statut}">${m.statut==='cours'?'En cours':'En attente'}</span></div>`; }).join('');
-  return `<div class="card"><div class="card-header"><div class="card-title">Chantiers en cours</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
+  return `<div class="card"><div class="card-header"><div class="card-title">${tVocab('itemsEnCours')}</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
 }
 
 // ── SCORE DE SANTÉ ────────────────────────────────────────────
@@ -4649,7 +4728,7 @@ let depSort={col:'date',dir:'desc'}, depFilter='all', depCatFilter='all', depDon
 
 function openMissionModal(id) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
-  document.getElementById('mission-modal-title').textContent=m?'Modifier le chantier':'Nouveau chantier';
+  document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
   document.getElementById('mission-edit-id').value=m?m.id:'';
   document.getElementById('m-client').value=m?m.client:'';
   document.getElementById('m-desc').value=m?m.description:'';
@@ -5075,8 +5154,8 @@ function renderMissions() {
     const isEmpty=missionFilter==='all';
     tbody.innerHTML=`<tr><td colspan="10"><div class="empty">
       <div class="ei">${isEmpty?'🗂':'🔍'}</div>
-      <p style="margin-bottom:${isEmpty?'14px':'4px'}">${isEmpty?'Aucun chantier pour l\'instant.':'Aucun chantier dans cette catégorie.'}</p>
-      ${isEmpty?'<button class="btn btn-acc btn-sm" onclick="openMissionModal()">+ Ajouter un chantier</button>':''}
+      <p style="margin-bottom:${isEmpty?'14px':'4px'}">${isEmpty?tVocab('emptyItems'):tVocab('emptyFilter')}</p>
+      ${isEmpty?`<button class="btn btn-acc btn-sm" onclick="openMissionModal()">${tVocab('addItem')}</button>`:''}
     </div></td></tr>`;
     document.getElementById('missions-totals').innerHTML='';
     return;
@@ -6999,8 +7078,10 @@ async function confirmReset() {
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
+  migrateMetierParam();
   document.body.setAttribute('data-theme', DATA.theme || 'obm');
   renderAll();
+  applyVocabUI();
   renderThemes();
   startTimerInterval();
   checkSaveReminder();

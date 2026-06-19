@@ -179,37 +179,36 @@ html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA
 
   <div class="sel-cards">
 
-    <!-- Services & Freelance -->
+    <!-- Prestations de services -->
     <div class="sel-card c-freelance" onclick="go('freelance')">
       <div class="card-ico">💼</div>
-      <div class="card-name">Services & Freelance</div>
-      <div class="card-tag">Prestations de services · Activité intellectuelle</div>
-      <p class="card-desc">Pour tous les indépendants qui vendent des prestations de services, du temps, de l'expertise, des créations, ou qui proposent des formations et sessions collectives.</p>
+      <div class="card-name">Prestations de services</div>
+      <div class="card-tag">Missions • Clients • Temps • Rentabilité</div>
+      <p class="card-desc">Pour les indépendants qui vendent principalement leur temps, leur expertise ou leurs prestations.</p>
       <div class="card-chips">
         <span class="card-chip">OBM</span>
-        <span class="card-chip">UGC</span>
         <span class="card-chip">Coach</span>
-        <span class="card-chip">Graphiste</span>
-        <span class="card-chip">Architecte</span>
-        <span class="card-chip">Thérapeute</span>
-        <span class="card-chip">Photographe</span>
-        <span class="card-chip">Webdesigner</span>
         <span class="card-chip">Consultant·e</span>
-        <span class="card-chip">Conciergerie</span>
-        <span class="card-chip">Formateur·trice</span>
+        <span class="card-chip">Thérapeute</span>
         <span class="card-chip">Développeur·se</span>
         <span class="card-chip">Community manager</span>
         <span class="card-chip">Assistante virtuelle</span>
+        <span class="card-chip">Photographe</span>
+        <span class="card-chip">Graphiste</span>
+        <span class="card-chip">Webdesigner</span>
+        <span class="card-chip">Architecte</span>
+        <span class="card-chip">Conciergerie</span>
+        <span class="card-chip">Formateur·trice</span>
       </div>
       <button class="card-cta">Ouvrir mon espace →</button>
     </div>
 
-    <!-- Artisan -->
+    <!-- Production & Chantiers -->
     <div class="sel-card c-artisan" onclick="go('artisan')">
       <div class="card-ico">🔨</div>
-      <div class="card-name">Artisan</div>
-      <div class="card-tag">Chantiers · Devis · Matériaux · Planning</div>
-      <p class="card-desc">Pour les artisans et métiers manuels. Gérez vos chantiers, devis, matériaux, encaissements et votre planning mensuel.</p>
+      <div class="card-name">Production & Chantiers</div>
+      <div class="card-tag">Commandes • Devis • Coûts • Marge</div>
+      <p class="card-desc">Pour les indépendants qui réalisent des chantiers, fabriquent des produits ou travaillent sur commande.</p>
       <div class="card-chips">
         <span class="card-chip">Maçon</span>
         <span class="card-chip">Peintre</span>
@@ -217,12 +216,13 @@ html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA
         <span class="card-chip">Plombier</span>
         <span class="card-chip">Menuisier</span>
         <span class="card-chip">Carreleur</span>
-        <span class="card-chip">Serrurier</span>
-        <span class="card-chip">Plaquiste</span>
         <span class="card-chip">Électricien</span>
         <span class="card-chip">Paysagiste</span>
         <span class="card-chip">Chauffagiste</span>
         <span class="card-chip">Multi-corps d'état</span>
+        <span class="card-chip">Couturier·e</span>
+        <span class="card-chip">Fabricant·e cosmétiques</span>
+        <span class="card-chip">Fabricant / Créateur</span>
       </div>
       <button class="card-cta" style="background:#c4783a">Ouvrir mon espace →</button>
     </div>
@@ -243,8 +243,8 @@ html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA
 
 <script>
 const SESSIONS = {
-  freelance: { label:'💼 Services & Freelance', file:'./indepuls_freelance.html', color:'#5B2C4A' },
-  artisan:   { label:'🔨 Artisan',              file:'./indepuls_artisan.html',   color:'#c4783a' }
+  freelance: { label:'💼 Prestations de services', file:'./indepuls_freelance.html', color:'#5B2C4A' },
+  artisan:   { label:'🔨 Production & Chantiers',  file:'./indepuls_artisan.html',   color:'#c4783a' }
 };
 
 // file:// → navigation directe (iframes bloquées par le navigateur)
