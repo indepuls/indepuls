@@ -6833,6 +6833,8 @@ document.addEventListener('keydown', function(e) {
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
     _cloudLoaded = true;
+    // Données synchronisées dans le cloud — le popup "appareil uniquement" ne doit pas s'afficher
+    localStorage.setItem('indepuls_freelance_notice_shown', '1');
     // Mise à jour du profil avec les données actuelles
     _upsertProfile({
       email: user.email,

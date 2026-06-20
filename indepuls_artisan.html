@@ -7292,6 +7292,8 @@ document.addEventListener('keydown', function(e) {
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
     _cloudLoaded = true;
+    // Données synchronisées dans le cloud — le popup "appareil uniquement" ne doit pas s'afficher
+    localStorage.setItem('indepuls_artisan_notice_shown', '1');
     _upsertProfile({
       email: user.email,
       activity_type: (typeof DATA !== 'undefined' && DATA.params && DATA.params.metier) || APP_TYPE,
