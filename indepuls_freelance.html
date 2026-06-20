@@ -586,8 +586,8 @@ html,body{overflow-x:hidden;}
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">Suivi des missions</div>
-          <div class="card-sub">Toutes vos missions en cours, passées ou en attente</div>
+          <div class="card-title" id="missions-page-suivi">Suivi des missions</div>
+          <div class="card-sub" id="missions-page-sub">Toutes vos missions en cours, passées ou en attente</div>
         </div>
         <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
       </div>
@@ -601,7 +601,7 @@ html,body{overflow-x:hidden;}
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>Chrono</th><th>Client / Mission</th><th>Catégorie</th>
+            <th>Chrono</th><th id="missions-th-client">Client / Mission</th><th>Catégorie</th>
             <th>Devis</th><th>Statut</th><th>Facturée le</th>
             <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel</th><th>Notes</th><th></th>
           </tr></thead>
@@ -1047,7 +1047,7 @@ html,body{overflow-x:hidden;}
       </div>
     </div>
     <div id="sim-create-zone" style="display:none;margin-top:12px">
-      <button class="btn btn-acc" onclick="createMissionFromSim()">+ Créer une mission depuis ce test</button>
+      <button class="btn btn-acc" id="sim-create-btn" onclick="createMissionFromSim()">+ Créer une mission depuis ce test</button>
       <span class="ts ml8" style="color:var(--tl)">Pré-remplit le formulaire mission avec ces données.</span>
     </div>
   </div>
@@ -1091,9 +1091,9 @@ html,body{overflow-x:hidden;}
       <div class="step-card">
         <div class="step-num">3</div>
         <div class="step-body" style="flex:1">
-          <h3>Créez vos premières missions</h3>
-          <p>Ajoutez un client ou un programme dès l'émission du devis. Suivez votre temps avec le chronomètre intégré.</p>
-          <span class="step-cta" onclick="navigate('missions')">→ Aller dans Missions</span>
+          <h3 id="onboarding-step3-title">Créez vos premières missions</h3>
+          <p id="onboarding-step3-desc">Ajoutez un client ou un programme dès l'émission du devis. Suivez votre temps avec le chronomètre intégré.</p>
+          <span class="step-cta" id="onboarding-cta-1" onclick="navigate('missions')">→ Aller dans Missions</span>
         </div>
       </div>
 
@@ -1101,8 +1101,8 @@ html,body{overflow-x:hidden;}
         <div class="step-num">4</div>
         <div class="step-body" style="flex:1">
           <h3>Enregistrez vos encaissements</h3>
-          <p>Utilisez le bouton 💰 sur chaque mission pour déclarer les paiements réellement reçus — acomptes, soldes, versements partiels.</p>
-          <span class="step-cta" onclick="navigate('missions')">→ Aller dans Missions</span>
+          <p id="onboarding-step4-desc">Utilisez le bouton 💰 sur chaque mission pour déclarer les paiements réellement reçus — acomptes, soldes, versements partiels.</p>
+          <span class="step-cta" id="onboarding-cta-2" onclick="navigate('missions')">→ Aller dans Missions</span>
         </div>
       </div>
 
@@ -1879,6 +1879,11 @@ const VOCABULARY_FAMILIES = {
     emptyFilter:'Aucune mission dans cette catégorie.',
     temps:'Temps facturable', client:'Client', rentabilite:'Rentabilité missions',
     navLabel:'🎯 Missions',
+    pageTitle:'Missions', clientField:'Client / Mission',
+    suivi:'Suivi des missions', firstItem:'Créez votre première mission',
+    createButton:'Créer une mission', countMonth:'Missions ce mois',
+    sessions:'Sessions mission', goTo:'→ Aller dans Missions',
+    createFromTest:'Créer une mission à partir de ce test',
     tabCategories:'Offres & missions',
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
@@ -1891,6 +1896,11 @@ const VOCABULARY_FAMILIES = {
     emptyFilter:'Aucune prestation dans cette catégorie.',
     temps:'Temps de production', client:'Client', rentabilite:'Rentabilité prestations',
     navLabel:'🎨 Prestations',
+    pageTitle:'Prestations', clientField:'Client / Prestation',
+    suivi:'Suivi des prestations', firstItem:'Créez votre première prestation',
+    createButton:'Créer une prestation', countMonth:'Prestations ce mois',
+    sessions:'Sessions prestation', goTo:'→ Aller dans Prestations',
+    createFromTest:'Créer une prestation à partir de ce test',
     tabCategories:'Offres & prestations',
     catTitle:'Mes offres & catégories de prestations',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de prestations.\nVous pouvez renseigner vos offres, shootings, créations ou catégories de travail.',
@@ -1903,6 +1913,11 @@ const VOCABULARY_FAMILIES = {
     emptyFilter:'Aucun chantier dans cette catégorie.',
     temps:'Temps chantier', client:'Client', rentabilite:'Rentabilité chantiers',
     navLabel:'🛠️ Chantiers',
+    pageTitle:'Chantiers', clientField:'Client / Chantier',
+    suivi:'Suivi des chantiers', firstItem:'Créez votre premier chantier',
+    createButton:'Créer un chantier', countMonth:'Chantiers ce mois',
+    sessions:'Sessions chantier', goTo:'→ Aller dans Chantiers',
+    createFromTest:'Créer un chantier à partir de ce test',
     tabCategories:'Offres & chantiers',
     catTitle:'Mes offres & catégories de chantiers',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
@@ -1915,6 +1930,11 @@ const VOCABULARY_FAMILIES = {
     emptyFilter:'Aucune commande dans cette catégorie.',
     temps:'Temps de production', client:'Client / Acheteur', rentabilite:'Rentabilité commandes',
     navLabel:'📦 Commandes',
+    pageTitle:'Commandes', clientField:'Client / Commande',
+    suivi:'Suivi des commandes', firstItem:'Créez votre première commande',
+    createButton:'Créer une commande', countMonth:'Commandes ce mois',
+    sessions:'Sessions production', goTo:'→ Aller dans Commandes',
+    createFromTest:'Créer une commande à partir de ce test',
     tabCategories:'Produits & commandes',
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
@@ -1960,6 +1980,23 @@ function applyVocabUI() {
   if (nav) nav.textContent = tVocab('navLabel');
   const btn = document.getElementById('btn-add-mission-top');
   if (btn) btn.textContent = tVocab('addItem');
+  const suivi = document.getElementById('missions-page-suivi');
+  if (suivi) suivi.textContent = tVocab('suivi');
+  const sub = document.getElementById('missions-page-sub');
+  if (sub) sub.textContent = tVocab('items') + ' en cours, à venir ou en attente';
+  const thClient = document.getElementById('missions-th-client');
+  if (thClient) thClient.textContent = tVocab('clientField');
+  // Onboarding
+  const ob3title = document.getElementById('onboarding-step3-title');
+  if (ob3title) ob3title.textContent = tVocab('firstItem');
+  const obCta1 = document.getElementById('onboarding-cta-1');
+  if (obCta1) obCta1.textContent = tVocab('goTo');
+  const obCta2 = document.getElementById('onboarding-cta-2');
+  if (obCta2) obCta2.textContent = tVocab('goTo');
+  // Simulateur
+  const simBtn = document.getElementById('sim-create-btn');
+  if (simBtn) simBtn.textContent = '+ ' + tVocab('createFromTest');
+  // Paramètres
   const tabBtn = document.getElementById('tab-btn-categories');
   if (tabBtn) tabBtn.textContent = tVocab('tabCategories');
   const catTitle = document.getElementById('cat-section-title');
@@ -2701,10 +2738,11 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',missions:'Missions',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Tester une offre',recettes:'Livre des recettes'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Tester une offre',recettes:'Livre des recettes'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
+  if(page==='missions') return tVocab('pageTitle');
   return PAGE_TITLES[page]||page;
 }
 function updateDashboardTitle() {
@@ -2847,7 +2885,7 @@ function renderDashboard() {
         <div style="max-width:500px;margin:0 auto">
           ${step(1,hasParams,'⚙️','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs','Configurer',"navigate('params')")}
           ${step(2,hasDep,'💳','Ajoutez vos dépenses professionnelles','Logiciels · assurances · comptable · abonnements…','Ajouter mes dépenses',"navigate('depenses')")}
-          ${step(3,false,'📋','Créez votre première mission','Débloque le tableau de bord complet et le Score de Santé','Créer une mission',"navigate('missions')")}
+          ${step(3,false,'📋',tVocab('firstItem'),'Débloque le tableau de bord complet et le Score de Santé',tVocab('createButton'),"navigate('missions')")}
         </div>
         <div style="text-align:center;margin-top:20px">
           <button class="btn btn-out btn-sm" onclick="navigate('notice')">📖 Guide & glossaire</button>
@@ -3419,7 +3457,7 @@ function wTVAZone({caBrut,caTreso,caP,caV}) {
           </div>
           ${impTTC>0||encTTC>0?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
             ${impTTC>0?kpi('Impayés à encaisser','+ '+fmtE(impTTC)+' TTC',impArr.length+' facture'+(impArr.length>1?'s':'')+' en attente',''):'' }
-            ${encTTC>0?kpi('Missions en cours à facturer','+ '+fmtE(encTTC)+' TTC',encArr.length+' mission'+(encArr.length>1?'s':'')+' en cours',''):''}
+            ${encTTC>0?kpi(tVocab('itemsEnCours')+' à facturer','+ '+fmtE(encTTC)+' TTC',encArr.length+' '+(encArr.length>1?tVocab('items'):tVocab('item')).toLowerCase()+' en cours',''):''}
           </div>`:''}
           <div style="padding:8px 12px;border-radius:8px;background:${tCl}18;border-left:3px solid ${tCl};font-size:13px;font-weight:600;color:${tCl}">${tIco} ${tMsg}</div>
         </div>`;
@@ -3602,7 +3640,7 @@ function wCapacite() {
     <div class="divider mt10 mb10"></div>
     <div class="ts mb8" style="font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Répartition par client</div>
     ${clientRows}
-    `:`<div class="ts mt10" style="color:var(--tl)">Votre plafond : <strong>${fmt(cap,0)} h/sem</strong> (${p.joursParSemaine}j × ${p.heuresParJour}h)<br><span style="font-style:italic">Ajoutez une charge estimée sur vos missions en cours pour voir la répartition.</span> <span style="cursor:pointer;color:var(--acc)" onclick="navigate('missions')">→ Missions</span></div>`}
+    `:`<div class="ts mt10" style="color:var(--tl)">Votre plafond : <strong>${fmt(cap,0)} h/sem</strong> (${p.joursParSemaine}j × ${p.heuresParJour}h)<br><span style="font-style:italic">Ajoutez une charge estimée sur vos ${tVocab('items').toLowerCase()} en cours pour voir la répartition.</span> <span style="cursor:pointer;color:var(--acc)" onclick="navigate('missions')">→ ${tVocab('pageTitle')}</span></div>`}
   </div>`;
 }
 
@@ -3612,8 +3650,8 @@ let _pilierData = {};
 function openPilierDetail(key) {
   const p = _pilierData[key];
   if (!p) return;
-  const navLabels = {params:'Paramètres',missions:'Missions',revenus:'Revenus',depenses:'Dépenses',dashboard:'Tableau de bord'};
-  const navLabel = navLabels[p.navPage] || p.navPage;
+  const navLabels = {params:'Paramètres',revenus:'Revenus',depenses:'Dépenses',dashboard:'Tableau de bord'};
+  const navLabel = p.navPage==='missions' ? tVocab('pageTitle') : (navLabels[p.navPage] || p.navPage);
   document.getElementById('pilier-modal-title').textContent = p.label;
   document.getElementById('pilier-modal-score').innerHTML =
     `<span style="color:${p.c};font-weight:700">${p.pts} / 25</span>`;
@@ -3642,10 +3680,10 @@ function wScoreSante(d) {
       <div class="card-header"><div><div class="card-title">Score de Santé</div><div class="card-sub">Analyse de votre activité en 4 piliers</div></div></div>
       <div style="text-align:center;padding:28px 16px">
         <div style="font-size:38px;margin-bottom:10px">⏳</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre première mission</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre ${tVocab('item').toLowerCase()==='chantier'?'premier':'première'} ${tVocab('item').toLowerCase()}</div>
         <div style="font-size:12px;color:var(--tl);line-height:1.7;max-width:360px;margin:0 auto">Le score n'est calculé que lorsque vos données sont suffisantes pour produire une analyse pertinente.</div>
         ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum estimé d'après vos paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
-        <div style="margin-top:16px"><button class="btn btn-acc btn-sm" onclick="navigate('missions')">📋 Créer ma première mission</button></div>
+        <div style="margin-top:16px"><button class="btn btn-acc btn-sm" onclick="navigate('missions')">📋 ${tVocab('createButton')}</button></div>
       </div>
     </div>`;
   }
@@ -3850,11 +3888,11 @@ function wScoreSante(d) {
   // Commercial
   const coursCount=allM.filter(m=>m.statut==='cours').length;
   const rowsComm=txT!==null?[
-    {lbl:'Missions en cours',      val:coursCount+' mission'+(coursCount>1?'s':''), c:'var(--text)'},
+    {lbl:tVocab('itemsEnCours'),   val:coursCount+' '+(coursCount>1?tVocab('items'):tVocab('item')).toLowerCase(), c:'var(--text)'},
     {lbl:'Devis en attente',       val:attM.length>0?attM.length+' devis':'Aucun',  c:attM.length>0?'var(--text)':'var(--tl)'},
     {lbl:'CA potentiel',           val:pipelineVal>0?fmtE(pipelineVal):'—',         c:pipelineVal>0?'var(--text)':'var(--tl)'},
     {lbl:'Taux de transformation', val:txT+' %',                                    c:sComm>=20?'var(--ok)':sComm>=14?'var(--warn)':'var(--err)'},
-  ]:[{lbl:'Missions',val:'Aucune renseignée',c:'var(--tl)'}];
+  ]:[{lbl:tVocab('items'),val:'Aucune renseignée',c:'var(--tl)'}];
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
   const methRent=`<strong>Données ·</strong> TJM réel = revenu net annuel ÷ heures travaillées × ${hj} h/j<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
@@ -3883,11 +3921,11 @@ function wScoreSante(d) {
 
   const _actives=DATA.missions.filter(m=>!m.isManagement&&m.statut==='cours');
   const _activeRows=_actives.map(m=>{
-    const lbl=esc([m.client,m.description].filter(Boolean).join(' — ')||'Mission sans nom');
+    const lbl=esc([m.client,m.description].filter(Boolean).join(' — ')||tVocab('item')+' sans nom');
     const mt=m.isRecurring&&m.montantMensuel>0?` · ${fmtE(m.montantMensuel)}/mois`:m.montantDevis>0?` · ${fmtE(m.montantDevis)}`:'';
     return `<div onclick="goToMission('${m.id}')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok);flex-shrink:0;display:inline-block"></span><span style="font-size:13px;color:var(--text);font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lbl}</span><span style="font-size:12px;color:var(--tl);white-space:nowrap">${mt}</span><span style="font-size:11px;color:var(--acc);font-weight:700;margin-left:4px;flex-shrink:0">→</span></div>`;
   }).join('');
-  const _mecCard=_actives.length?`<div class="card" style="padding:14px 18px;margin-bottom:12px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--ok);font-weight:700;margin-bottom:8px">🟢 Missions en cours · ${_actives.length}</div>${_activeRows}</div>`:'';
+  const _mecCard=_actives.length?`<div class="card" style="padding:14px 18px;margin-bottom:12px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--ok);font-weight:700;margin-bottom:8px">🟢 ${tVocab('itemsEnCours')} · ${_actives.length}</div>${_activeRows}</div>`:'';
   return `<div>
     ${_mecCard}
     <div class="sante-layout" style="margin-bottom:12px">
@@ -6087,9 +6125,9 @@ function renderArchives() {
     const rowStyle=isCurrent?'style="font-weight:700"':isEmpty?'style="opacity:.45"':'';
     const yrCell=`${y}${isCurrent?' <span class="chip">En cours</span>':isEmpty?' <span class="ts">— à compléter</span>':d.manual?' <span class="ts">(manuel)</span>':''}`;
     const delCell=isCurrent?'<td></td>':isEmpty?'<td></td>':`<td style="display:flex;gap:4px"><button class="btn btn-out btn-xs" onclick="openEditArchiveModal(${y})">✏️</button><button class="btn btn-del btn-xs" onclick="deleteArchive(${y})">🗑</button></td>`;
-    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="Missions">${isEmpty?'—':d.missions||'—'}</td><td data-label="TH réel">${isEmpty?'—':th>0?fmtE(th,0)+'/h':'—'}</td>${delCell}</tr>`;
+    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="${tVocab('items')}">${isEmpty?'—':d.missions||'—'}</td><td data-label="TH réel">${isEmpty?'—':th>0?fmtE(th,0)+'/h':'—'}</td>${delCell}</tr>`;
   }).join('');
-  document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>Missions</th><th>TH réel</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>${tVocab('items')}</th><th>TH réel</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const thD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne()}:(DATA.archives[y]||{}); return d.heures>0?d.caNet/d.heures:0; });
   requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:'TH réel (€/h)',data:thD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
   renderArchCompare(); renderArchProgress();
