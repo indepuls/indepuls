@@ -736,7 +736,7 @@ html,body{overflow-x:hidden;}
           </div>
           <div class="fgroup">
             <label class="flabel">Métier exercé</label>
-            <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard()">
+            <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
               <optgroup label="Artisans du bâtiment">
                 <option value="macon">Maçon</option>
