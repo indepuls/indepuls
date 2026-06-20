@@ -706,7 +706,7 @@ html,body{overflow-x:hidden;}
     <div class="tab-hd">
       <button class="tab-btn active" onclick="switchParamTab('profil',this)">Mon profil</button>
       <button class="tab-btn" onclick="switchParamTab('objectifs',this)">Objectifs</button>
-      <button class="tab-btn" onclick="switchParamTab('categories',this)">Offres & chantiers</button>
+      <button class="tab-btn" id="tab-btn-categories" onclick="switchParamTab('categories',this)">Offres & chantiers</button>
       <button class="tab-btn" onclick="switchParamTab('themes',this)">Thème</button>
       <button class="tab-btn" onclick="switchParamTab('donnees',this)">Données</button>
     </div>
@@ -908,8 +908,8 @@ html,body{overflow-x:hidden;}
     <!-- CATÉGORIES -->
     <div class="tab-pane" id="tab-categories">
       <div class="card">
-        <div class="card-header"><div class="card-title">Mes offres & catégories de chantiers</div></div>
-        <div class="ts mb12">Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.</div>
+        <div class="card-header"><div class="card-title" id="cat-section-title">Mes offres & catégories de chantiers</div></div>
+        <div class="ts mb12" id="cat-section-desc">Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.</div>
         <div id="categories-list"></div>
         <div class="frow mt14" style="align-items:flex-end">
           <div class="fgroup" style="margin:0"><input type="text" id="new-cat-input" placeholder="Nouvelle catégorie..." onkeydown="if(event.key==='Enter')addCatInline()"></div>
@@ -1804,7 +1804,11 @@ const VOCABULARY_FAMILIES = {
     itemsEnCours:'Missions en cours', emptyItems:'Aucune mission pour l\'instant.',
     emptyFilter:'Aucune mission dans cette catégorie.',
     temps:'Temps facturable', client:'Client', rentabilite:'Rentabilité missions',
-    navLabel:'🎯 Missions'
+    navLabel:'🎯 Missions',
+    tabCategories:'Offres & missions',
+    catTitle:'Mes offres & catégories de missions',
+    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
+    defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre']
   },
   creative: {
     item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
@@ -1812,7 +1816,11 @@ const VOCABULARY_FAMILIES = {
     itemsEnCours:'Prestations en cours', emptyItems:'Aucune prestation pour l\'instant.',
     emptyFilter:'Aucune prestation dans cette catégorie.',
     temps:'Temps de production', client:'Client', rentabilite:'Rentabilité prestations',
-    navLabel:'🎨 Prestations'
+    navLabel:'🎨 Prestations',
+    tabCategories:'Offres & prestations',
+    catTitle:'Mes offres & catégories de prestations',
+    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de prestations.\nVous pouvez renseigner vos offres, shootings, créations ou catégories de travail.',
+    defaultCategories:['Identité visuelle','Création graphique','Shooting / reportage','Retouche / post-production','Contenu UGC','Réseaux sociaux','Conseil créatif','Autre']
   },
   chantier: {
     item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
@@ -1820,7 +1828,11 @@ const VOCABULARY_FAMILIES = {
     itemsEnCours:'Chantiers en cours', emptyItems:'Aucun chantier pour l\'instant.',
     emptyFilter:'Aucun chantier dans cette catégorie.',
     temps:'Temps chantier', client:'Client', rentabilite:'Rentabilité chantiers',
-    navLabel:'🛠️ Chantiers'
+    navLabel:'🛠️ Chantiers',
+    tabCategories:'Offres & chantiers',
+    catTitle:'Mes offres & catégories de chantiers',
+    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
+    defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre']
   },
   fabrication: {
     item:'Commande', items:'Commandes', addItem:'+ Ajouter une commande',
@@ -1828,7 +1840,11 @@ const VOCABULARY_FAMILIES = {
     itemsEnCours:'Commandes en cours', emptyItems:'Aucune commande pour l\'instant.',
     emptyFilter:'Aucune commande dans cette catégorie.',
     temps:'Temps de production', client:'Client / Acheteur', rentabilite:'Rentabilité commandes',
-    navLabel:'📦 Commandes'
+    navLabel:'📦 Commandes',
+    tabCategories:'Produits & commandes',
+    catTitle:'Mes produits & catégories de commandes',
+    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
+    defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre']
   }
 };
 const BUSINESS_PROFILE_MAP = {
@@ -1861,11 +1877,26 @@ function migrateMetierParam() {
     saveData();
   }
 }
+function getDefaultCategoriesForFamily() {
+  return tVocab('defaultCategories') || [];
+}
 function applyVocabUI() {
   const nav = document.getElementById('nav-missions-label');
   if (nav) nav.textContent = tVocab('navLabel');
   const btn = document.getElementById('btn-add-mission-top');
   if (btn) btn.textContent = tVocab('addItem');
+  const tabBtn = document.getElementById('tab-btn-categories');
+  if (tabBtn) tabBtn.textContent = tVocab('tabCategories');
+  const catTitle = document.getElementById('cat-section-title');
+  if (catTitle) catTitle.textContent = tVocab('catTitle');
+  const catDesc = document.getElementById('cat-section-desc');
+  if (catDesc) catDesc.textContent = tVocab('catDesc');
+  // Appliquer les catégories par défaut si la liste est vide
+  if (DATA.categories && DATA.categories.length === 0) {
+    DATA.categories = getDefaultCategoriesForFamily().slice();
+    saveData();
+    renderCategoriesList();
+  }
 }
 
 // ── RÉFÉRENTIEL FISCAL 2026 ──────────────────────────────────
@@ -6332,8 +6363,22 @@ function renderObjectifsResult() {
 }
 
 // ── CATÉGORIES ───────────────────────────────────────────────
+function resetCategoriesToDefault() {
+  const defs = getDefaultCategoriesForFamily();
+  if (!confirm(`Réinitialiser les catégories aux ${defs.length} valeurs par défaut de votre famille de métier ?\nVos catégories personnalisées seront supprimées.`)) return;
+  DATA.categories = defs.slice();
+  saveData(); renderCategoriesList();
+}
 function renderCategoriesList() {
   const el=document.getElementById('categories-list'); if(!el) return;
+  const defs = getDefaultCategoriesForFamily();
+  const isDefault = JSON.stringify(DATA.categories) === JSON.stringify(defs);
+  const resetBtn = isDefault ? '' :
+    `<div class="ts mt10" style="color:var(--tl)">
+      <button class="btn btn-out btn-xs" onclick="resetCategoriesToDefault()" style="font-size:11px">
+        ↺ Revenir aux catégories par défaut
+      </button>
+    </div>`;
   el.innerHTML=DATA.categories.map((c,i)=>{
     const esc=c.replace(/"/g,'&quot;');
     return `<div class="flex gap6 mb8" id="cat-row-${i}">
@@ -6341,7 +6386,7 @@ function renderCategoriesList() {
       <button class="btn btn-out btn-xs" onclick="editCat(${i})" title="Modifier">✏️</button>
       <button class="btn btn-del btn-xs" onclick="deleteCat(${i})">🗑</button>
     </div>`;
-  }).join('');
+  }).join('')+resetBtn;
 }
 function editCat(i) {
   const row=document.getElementById('cat-row-'+i); if(!row) return;
