@@ -330,6 +330,11 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Abattement forfaitaire micro 2026** : calcul de l'impôt estimé selon le statut (BNC 34%, BIC prestation 50%, BIC/achat vente 71%, minimum légal 305€) — widget `wJalonFiscal`, alertes plafond micro dans `buildAlerts` (60%/80%/100%), prorata pour les créateurs d'entreprise en cours d'année
 - **Refactoring shared/** : logique métier extraite dans `shared/core/` (ESM), bridge pattern pour exposer sur `window.*`, suites de tests complètes (4 355 assertions)
 - **Livre des recettes** : page optionnelle (activée via `DATA.params.livreRecettesActif`, false par défaut), alimentée automatiquement depuis `missions[].encaissements`, popup de complétion après chaque encaissement (mode règlement + référence justificative, skippable), recettes manuelles dans `DATA.recettesManuel[]`, tableau trimestriel avec indicateur de complétude, annulation sans suppression, export CSV avec BOM pour Excel — artisan (hook `saveEncaissement`) et freelance (hook `addEncaissementModal`)
+- **Livre des recettes — round 2** : séparation modal badge (historique diffs avant/après) vs bouton modifier (formulaire montant + mode + référence) ; revenus ponctuels intégrés avec champs LR ; légende camembert mobile sous le graphique ; motif de refus sur devis refusés + camembert stats côte à côte
+- **UX clavier** : touche Entrée sur les modaux éligibles (sans textarea ni choix multiples, via `data-enter-action`) ; touche Échap ferme le modal ouvert
+- **Validation visuelle champs obligatoires** : classe `.field-invalid` (bordure rouge + shake) sur les champs vides à la soumission, focus automatique, effacée dès la première saisie — `markInvalid(...ids)` helper disponible
+- **Toasts de confirmation** : `showToast()` appelé après enregistrement mission/chantier, dépense, recette manuelle ; toast de confirmation après export CSV avec nombre de recettes et période
+- **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
 
 ## Points d'attention
 
@@ -427,3 +432,9 @@ Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions
 
 ### 5. Synchronisation bancaire *(long terme)*
 Connexion à un agrégateur bancaire (Bridge API, Powens…) pour réconcilier automatiquement les encaissements avec les missions. Impact fort sur la qualité des données artisan (aujourd'hui saisie manuelle des encaissements). Nécessite un backend — hors portée du vanilla actuel.
+
+### 6. Accessibilité de base *(avant lancement commercial payant)*
+Le RGAA n'est pas légalement obligatoire pour une app privée, mais recommandé avant la mise en vente d'abonnements. Deux niveaux :
+- **Minimum (1-2h)** : associer chaque `<label>` à son `<input>` via `for="id"` ; ajouter une déclaration d'accessibilité sur le site ("accessibilité partielle, améliorations en cours")
+- **Complet (plusieurs jours)** : `role="button" tabindex="0"` sur les `<div onclick>` cliquables, gestionnaire Space/Entrée sur ces éléments, `aria-label` sur les boutons icônes sans texte, `aria-expanded` sur les accordéons
+À ne pas faire avant la béta — prioriser si un client le demande explicitement ou pour des appels d'offres entreprise/collectivité.
