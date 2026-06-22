@@ -1496,6 +1496,17 @@ html,body{overflow-x:hidden;}
     <div class="modal-title">Confirmer la facturation</div>
     <p class="mb12">À quelle date intégrer ce montant dans votre CA ?</p>
     <div class="fgroup"><label class="flabel">Date de facturation</label><input type="date" id="fact-date-input"></div>
+    <div style="border-top:1px solid var(--brd);padding-top:14px;margin-top:4px">
+      <label class="flabel" id="fact-temps-label">Temps passé</label>
+      <div id="fact-temps-msg" class="ts mb8" style="color:var(--tl)"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="number" id="fact-temps-h" min="0" step="1" placeholder="h" style="width:72px;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;font-size:14px;background:var(--inp);color:var(--tx)">
+        <span class="ts">h</span>
+        <input type="number" id="fact-temps-min" min="0" max="59" step="5" placeholder="min" style="width:72px;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;font-size:14px;background:var(--inp);color:var(--tx)">
+        <span class="ts">min</span>
+      </div>
+      <div id="fact-temps-hint" class="ts mt6" style="color:var(--tl)"></div>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-fact-confirm')">Annuler</button>
       <button class="btn btn-acc" data-enter-action onclick="confirmFacturation()">Confirmer</button>
@@ -5106,7 +5117,24 @@ function startTimer(id) {
 let pendingRefId=null;
 function setMissionStatut(id,val) {
   const m=DATA.missions.find(x=>x.id===id); if(!m) return;
-  if(val==='fact'&&m.statut!=='fact'){ pendingFactId=id; document.getElementById('fact-date-input').value=today(); openModal('modal-fact-confirm'); return; }
+  if(val==='fact'&&m.statut!=='fact'){
+    pendingFactId=id;
+    document.getElementById('fact-date-input').value=today();
+    const h=getMissionHeures(m), chronoMs=getMissionTotalMs(m);
+    const hEl=document.getElementById('fact-temps-h'), minEl=document.getElementById('fact-temps-min');
+    const msgEl=document.getElementById('fact-temps-msg'), hintEl=document.getElementById('fact-temps-hint');
+    if(h>0){
+      hEl.value=Math.floor(h); minEl.value=Math.round((h%1)*60)||'';
+      if(msgEl) msgEl.textContent='Temps enregistré : '+fmt(h,1)+' h. Modifiez si nécessaire.';
+      if(hintEl) hintEl.textContent=chronoMs>0?'⏱ Dont '+heuresMs(chronoMs)+' via chrono.':'';
+    } else {
+      hEl.value=''; minEl.value='';
+      const charge=m.chargeEstimee?(m.chargeEstimee+' '+(m.chargeUnit||'h/sem').replace('h_sem','h/sem').replace('j_sem','j/sem')):'';
+      if(msgEl) msgEl.textContent='Aucun temps enregistré. Combien d\'heures avez-vous passé sur ce chantier ?';
+      if(hintEl) hintEl.textContent=charge?'Charge prévue : '+charge+' — à titre indicatif.':'';
+    }
+    openModal('modal-fact-confirm'); return;
+  }
   if(val==='ref'&&m.statut!=='ref'){
     pendingRefId=id;
     document.getElementById('ref-motif-id').value=id;
@@ -5134,7 +5162,16 @@ function ignorerRefus() {
 
 function confirmFacturation() {
   const m=DATA.missions.find(x=>x.id===pendingFactId);
-  if(m){ m.statut='fact'; m.dateFact=document.getElementById('fact-date-input').value||today(); }
+  if(m){
+    m.statut='fact'; m.dateFact=document.getElementById('fact-date-input').value||today();
+    const h=parseInt(document.getElementById('fact-temps-h').value)||0;
+    const min=parseInt(document.getElementById('fact-temps-min').value)||0;
+    if(h>0||min>0){
+      const newMs=(h*3600+min*60)*1000;
+      const manualMs=(m.tempsManuel||[]).reduce((s,e)=>s+e.ms,0);
+      m.timerAccumulated=Math.max(0,newMs-manualMs-(m.heuresSaisies||0)*3600000);
+    }
+  }
   saveData(); closeModal('modal-fact-confirm'); renderMissions(); renderDashboard();
 }
 
