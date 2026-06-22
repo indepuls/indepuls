@@ -6026,16 +6026,8 @@ function renderObjectifsResult() {
 
 // ── CATÉGORIES ───────────────────────────────────────────────
 let _editCatIdx = -1;
-function resetCategoriesToDefault() {
-  const defs = getDefaultCategoriesForFamily();
-  if (!confirm(`Réinitialiser les catégories aux ${defs.length} valeurs par défaut ?`)) return;
-  DATA.categories = defs.slice(); saveData(); renderCategoriesList();
-}
 function renderCategoriesList() {
   const el=document.getElementById('categories-list'); if(!el) return;
-  const defs = getDefaultCategoriesForFamily();
-  const isDefault = JSON.stringify(DATA.categories) === JSON.stringify(defs);
-  const resetBtn = isDefault ? '' : `<div class="ts mt10" style="color:var(--tl)"><button class="btn btn-out btn-xs" onclick="resetCategoriesToDefault()" style="font-size:11px">↺ Revenir aux catégories par défaut</button></div>`;
   el.innerHTML=DATA.categories.map((c,i)=>{
     if(i===_editCatIdx) return `<div class="flex gap6 mb8">
       <input type="text" id="edit-cat-inp" value="${c.replace(/"/g,'&quot;')}" style="flex:1;padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--acc)" onkeydown="if(event.key==='Enter')saveCatEdit(${i});if(event.key==='Escape')cancelCatEdit()">
@@ -6047,7 +6039,7 @@ function renderCategoriesList() {
       <button class="btn btn-out btn-xs" onclick="startEditCat(${i})" title="Modifier">✏️</button>
       <button class="btn btn-del btn-xs" onclick="deleteCat(${i})">🗑</button>
     </div>`;
-  }).join('') + resetBtn;
+  }).join('');
   if(_editCatIdx>=0){ const inp=document.getElementById('edit-cat-inp'); if(inp){inp.focus();inp.select();} }
 }
 function startEditCat(i) { _editCatIdx=i; renderCategoriesList(); }

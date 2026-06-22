@@ -6418,22 +6418,8 @@ function renderObjectifsResult() {
 }
 
 // ── CATÉGORIES ───────────────────────────────────────────────
-function resetCategoriesToDefault() {
-  const defs = getDefaultCategoriesForFamily();
-  if (!confirm(`Réinitialiser les catégories aux ${defs.length} valeurs par défaut de votre famille de métier ?\nVos catégories personnalisées seront supprimées.`)) return;
-  DATA.categories = defs.slice();
-  saveData(); renderCategoriesList();
-}
 function renderCategoriesList() {
   const el=document.getElementById('categories-list'); if(!el) return;
-  const defs = getDefaultCategoriesForFamily();
-  const isDefault = JSON.stringify(DATA.categories) === JSON.stringify(defs);
-  const resetBtn = isDefault ? '' :
-    `<div class="ts mt10" style="color:var(--tl)">
-      <button class="btn btn-out btn-xs" onclick="resetCategoriesToDefault()" style="font-size:11px">
-        ↺ Revenir aux catégories par défaut
-      </button>
-    </div>`;
   el.innerHTML=DATA.categories.map((c,i)=>{
     const esc=c.replace(/"/g,'&quot;');
     return `<div class="flex gap6 mb8" id="cat-row-${i}">
@@ -6441,7 +6427,7 @@ function renderCategoriesList() {
       <button class="btn btn-out btn-xs" onclick="editCat(${i})" title="Modifier">✏️</button>
       <button class="btn btn-del btn-xs" onclick="deleteCat(${i})">🗑</button>
     </div>`;
-  }).join('')+resetBtn;
+  }).join('');
 }
 function editCat(i) {
   const row=document.getElementById('cat-row-'+i); if(!row) return;
