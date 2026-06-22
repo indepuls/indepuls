@@ -5043,6 +5043,16 @@ function deleteEncaissement(encId) {
 }
 
 // ── CHANTIERS — CRUD ──────────────────────────────────────────
+function duplicateMission(id) {
+  const m=DATA.missions.find(x=>x.id===id);
+  if(!m||m.isManagement) return;
+  const copy={...m, id:'m-'+Date.now(), statut:'att', dateFact:'', tempsMin:0, timerRunning:false, timerStart:null, timerAccumulated:0, encaissements:[], notes:m.notes||''};
+  delete copy.isManagement;
+  const idx=DATA.missions.findIndex(x=>x.id===id);
+  DATA.missions.splice(idx+1,0,copy);
+  saveData(); renderMissions();
+  showToast('✅ Chantier dupliqué.');
+}
 function deleteMission(id) {
   const m=DATA.missions.find(x=>x.id===id);
   if(m&&m.isManagement) return;
@@ -5271,7 +5281,7 @@ function renderMissions() {
       <td class="ts">${th?fmtE(th,1)+'/h':'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.notes||''}">${m.notes||'—'}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
-      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements / acomptes">💰</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
+      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements / acomptes">💰</button> <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
     tbody.appendChild(tr);
     // Sous-lignes de détail (dépenses + encaissements)
     if(!m.isManagement){
