@@ -611,7 +611,7 @@ html,body{overflow-x:hidden;}
       <div class="card-header">
         <div>
           <div class="card-title">Revenus <span id="rev-year-label"></span></div>
-          <div class="card-sub">CA chantiers calculé automatiquement · Revenus ponctuels à saisir par ligne (taxable ou trésorerie)</div>
+          <div class="card-sub" id="rev-card-sub">CA chantiers calculé automatiquement · Revenus ponctuels à saisir par ligne (taxable ou trésorerie)</div>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -1924,6 +1924,9 @@ function applyVocabUI() {
   // Modal sessions label
   const sessLabel = document.getElementById('modal-sessions-label');
   if (sessLabel) sessLabel.textContent = tVocab('sessions');
+  // Revenus — sous-titre carte
+  const revSub = document.getElementById('rev-card-sub');
+  if (revSub) revSub.textContent = 'CA ' + tVocab('items').toLowerCase() + ' calculé automatiquement · Revenus ponctuels à saisir par ligne (taxable ou trésorerie)';
   // Dépenses — filtres et formulaire
   const depFilterHors = document.getElementById('dep-filter-hors');
   if (depFilterHors) depFilterHors.textContent = 'Ponctuelles hors ' + tVocab('item').toLowerCase();
@@ -5361,7 +5364,7 @@ function renderRevenus() {
       <div style="padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-size:11px;color:var(--tl);font-weight:600;white-space:nowrap">📅 ${DATA.currentYear}</span>
-          ${sep}${st('💶','CA chantiers',fmtE(tCA),'')}
+          ${sep}${st('💶','CA '+tVocab('items').toLowerCase(),fmtE(tCA),'')}
           ${tACA>0?sep+st('➕','Ponctuels',fmtE(tACA),''):''}
           ${sep}${st('📥','Total brut',fmtE(tB),'')}
           ${sep}${st('📤','Charges',fmtE(tC),'')}
@@ -5390,7 +5393,7 @@ function renderRevenus() {
       <th rowspan="2" style="vertical-align:bottom">Revenu net</th>
     </tr>
     <tr>
-      <th style="background:rgba(45,122,79,.04)">CA Chantiers${tva?' <span class="ts">(HT)</span>':''} <span class="info-tip" title="Auto-calculé depuis les chantiers facturés">?</span></th>
+      <th style="background:rgba(45,122,79,.04)">CA ${tVocab('items')}${tva?' <span class="ts">(HT)</span>':''} <span class="info-tip" title="Auto-calculé depuis les ${tVocab('items').toLowerCase()} facturés">?</span></th>
       <th style="background:rgba(45,122,79,.04)">Revenus ponctuels <span class="info-tip" title="Prestation / vente taxable ou trésorerie hors activité. Seuls les éléments taxables génèrent des cotisations.">?</span></th>
       <th style="background:rgba(45,122,79,.04)">Total brut</th>
       <th style="background:rgba(185,28,28,.04)">Charges URSSAF+CFP</th>

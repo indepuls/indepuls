@@ -619,7 +619,7 @@ html,body{overflow-x:hidden;}
       <div class="card-header">
         <div>
           <div class="card-title">Revenus <span id="rev-year-label"></span></div>
-          <div class="card-sub">CA missions calculé automatiquement · Revenus ponctuels à saisir par ligne</div>
+          <div class="card-sub" id="rev-card-sub">CA missions calculé automatiquement · Revenus ponctuels à saisir par ligne</div>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -1993,6 +1993,12 @@ function applyVocabUI() {
   if (obCta1) obCta1.textContent = tVocab('goTo');
   const obCta2 = document.getElementById('onboarding-cta-2');
   if (obCta2) obCta2.textContent = tVocab('goTo');
+  // Revenus — sous-titre carte + label mobile CSS
+  const revSub = document.getElementById('rev-card-sub');
+  if (revSub) revSub.textContent = 'CA ' + tVocab('items').toLowerCase() + ' calculé automatiquement · Revenus ponctuels à saisir par ligne';
+  let revCaStyle = document.getElementById('rev-ca-style');
+  if (!revCaStyle) { revCaStyle = document.createElement('style'); revCaStyle.id = 'rev-ca-style'; document.head.appendChild(revCaStyle); }
+  revCaStyle.textContent = `#page-revenus .tbl-wrap .rev-ca::before{content:"CA ${tVocab('items').toLowerCase()}";}`;
   // Simulateur
   const simBtn = document.getElementById('sim-create-btn');
   if (simBtn) simBtn.textContent = '+ ' + tVocab('createFromTest');
@@ -5145,7 +5151,7 @@ function renderRevenus() {
       <div style="padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-size:11px;color:var(--tl);font-weight:600;white-space:nowrap">📅 ${DATA.currentYear}</span>
-          ${sep}${st('💶','CA services',fmtE(tCA),'')}
+          ${sep}${st('💶','CA '+tVocab('items').toLowerCase(),fmtE(tCA),'')}
           ${tA>0?sep+st('➕','Ponctuels',fmtE(tA),''):''}
           ${sep}${st('📥','Total brut',fmtE(tB),'')}
           ${sep}${st('📤','Charges',fmtE(tC),'')}
@@ -5174,7 +5180,7 @@ function renderRevenus() {
       <th rowspan="2" style="vertical-align:bottom">Revenu net</th>
     </tr>
     <tr>
-      <th style="background:rgba(45,122,79,.04)">CA Services${tva?' <span class="ts">(HT)</span>':''} <span class="info-tip" title="Auto-calculé depuis les missions facturées">?</span></th>
+      <th style="background:rgba(45,122,79,.04)">CA ${tVocab('items')}${tva?' <span class="ts">(HT)</span>':''} <span class="info-tip" title="Auto-calculé depuis les ${tVocab('items').toLowerCase()} facturées">?</span></th>
       <th style="background:rgba(45,122,79,.04)">Revenus ponctuels <span class="info-tip" title="Prestation / vente taxable ou trésorerie hors activité. Trois types : Prestation, Vente, Hors CA.">?</span></th>
       <th style="background:rgba(45,122,79,.04)">Total brut</th>
       <th style="background:rgba(185,28,28,.04)">Charges URSSAF+CFP</th>
@@ -5201,7 +5207,7 @@ function renderRevenus() {
     const poncBtn=`<button class="btn btn-out btn-sm" onclick="openPonctuelsModal('${mk}')" style="font-size:11px;padding:3px 10px;white-space:nowrap">${poncList.length>0?fmtE(a)+(tresorerie>0?` +${fmtE(tresorerie)} hors CA`:''):'+ Ajouter'}</button>`;
     return `<tr ${brut===0&&tresorerie===0?'style="opacity:.5"':''}>
       <td class="fb rev-mois" data-label="Mois">${monthLabelFull(mk)}</td>
-      <td class="fb rev-ca" data-label="CA services">${fmtE(ca)}</td>
+      <td class="fb rev-ca" data-label="${'CA '+tVocab('items').toLowerCase()}">${fmtE(ca)}</td>
       <td class="rev-ponct" data-label="Ponctuels">${poncBtn}</td>
       <td class="fb rev-brut" data-label="Total brut">${fmtE(brut)}</td>
       <td class="ts rev-charges" data-label="Charges">${fmtE(c)}</td>
