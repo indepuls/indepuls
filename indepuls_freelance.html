@@ -3739,13 +3739,14 @@ function wScoreSante(d) {
     sRemp=12;vRemp='—';subRemp='Aucune charge renseignée';
     diagRemp='○ Renseignez vos missions pour activer cet indicateur.';advRemp='';
   } else {
-    sRemp=capPct>=40&&capPct<=90?25:capPct>=20&&capPct<40?16:capPct>90?18:5;
+    sRemp=capPct<40?5:capPct<60?12:capPct<75?18:capPct<=90?25:capPct<=100?18:5;
     const libre=Math.max(0,cap-charge);
     vRemp=Math.min(capPct,999)+' %';subRemp=`${fmt(libre,1)} h libres / sem`;
-    if(capPct>90){diagRemp=`🔴 Portefeuille surchargé (${capPct} % de la capacité).`;advRemp='Évitez d\'accepter de nouvelles missions sans ajuster vos tarifs ou votre organisation.';}
-    else if(capPct>=60){diagRemp='🟢 Capacité bien utilisée. Votre portefeuille est équilibré.';advRemp=`${fmt(libre,1)} h libres par semaine — vous pouvez accueillir de nouvelles missions.`;}
-    else if(capPct>=30){diagRemp=`🟠 Portefeuille sous-chargé — ${fmt(libre,1)} h disponibles par semaine.`;advRemp='Quelques missions supplémentaires permettraient d\'atteindre votre objectif de revenu.';}
-    else{diagRemp=`🔴 Peu de charge active (${capPct} % de la capacité).`;advRemp='Priorité à la prospection. L\'objectif de revenu est difficile à atteindre dans ces conditions.';}
+    if(capPct>100){diagRemp=`🔴 Votre capacité facturable est dépassée (${capPct} %). Risque de surcharge ou d'épuisement à moyen terme.`;advRemp='Envisagez de déléguer, d\'augmenter vos tarifs ou de refuser les missions les moins rentables.';}
+    else if(capPct>=90){diagRemp=`🟠 Votre planning est presque plein (${capPct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;advRemp='Évitez d\'accepter de nouvelles missions sans ajuster votre organisation ou vos tarifs.';}
+    else if(capPct>=75){diagRemp='🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';advRemp=`${fmt(libre,1)} h disponibles par semaine — idéal pour le pilotage et les opportunités ponctuelles.`;}
+    else if(capPct>=40){diagRemp=`🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.`;advRemp=`${fmt(libre,1)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;}
+    else{diagRemp=`🔴 Votre capacité est largement sous-utilisée (${capPct} %). Le principal enjeu est actuellement de développer votre activité.`;advRemp='Priorité à la prospection. L\'objectif de revenu est difficile à atteindre dans ces conditions.';}
   }
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
@@ -3893,7 +3894,7 @@ function wScoreSante(d) {
   const rowsRemp=cap>0?[
     {lbl:'Charge estimée',    val:fmt(charge,1)+' h/sem',              c:sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)'},
     {lbl:'Capacité maximale', val:fmt(cap,0)+' h/sem',                 c:'var(--tl)'},
-    {lbl:'Heures libres',     val:fmt(Math.max(0,cap-charge),1)+' h/sem', c:'var(--tl)'},
+    {lbl:'Heures libres',     val:fmt(Math.max(0,cap-charge),1)+' h/sem', c:capPct<=90?'var(--ok)':capPct<=100?'var(--warn)':'var(--err)'},
     {lbl:'Taux d\'occupation',val:Math.min(capPct,999)+' %',           c:sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)'},
   ]:[{lbl:'Capacité',val:'Non configurée',c:'var(--tl)'}];
 
@@ -3918,7 +3919,7 @@ function wScoreSante(d) {
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
   const methRent=`<strong>Données ·</strong> TJM réel = revenu net annuel ÷ heures travaillées × ${hj} h/j<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
-  const methRemp=`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br><strong>Barème ·</strong> 40–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; &gt; 90 % → 18/25 (surchargé)<br>&nbsp;&nbsp;20–40 % → 16/25 &nbsp;·&nbsp; &lt; 20 % → 5/25`;
+  const methRemp=`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
   const methComm=`<strong>Données ·</strong> Statut des missions (hors refusées)<br><strong>Calcul ·</strong> (en cours + facturées) ÷ total missions × 100<br><strong>Barème ·</strong> ≥ 60 % → 23/25 &nbsp;·&nbsp; ≥ 40 % → 17/25 &nbsp;·&nbsp; ≥ 20 % → 9/25 &nbsp;·&nbsp; &lt; 20 % → 3/25<br><strong>Bonus ·</strong> +2 pts si des devis sont actifs (plafond 25)`;
 

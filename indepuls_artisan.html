@@ -4468,12 +4468,13 @@ function wScoreSante(d) {
     diagRemp='○ Planifiez vos sessions pour activer cet indicateur.';advRemp='Ajoutez des sessions dans l\'onglet Planning.';
   } else {
     const t=rm.taux,dispo=rm.ouvrables-rm.occupied;
-    sRemp=t>=70?25:t>=50?18:t>=30?10:3;
+    sRemp=t<40?5:t<60?12:t<75?18:t<=90?25:t<=100?18:5;
     vRemp=t+' %';subRemp=`${rm.occupied} j / ${rm.ouvrables} j ouvrables`;
-    if(t>=75){diagRemp='🟢 Planning bien rempli tout en conservant de la flexibilité.';advRemp='Pensez à anticiper le mois suivant.';}
-    else if(t>=55){diagRemp=`🟢 Remplissage correct (${t} %).`;advRemp=dispo>0?`Il reste ${dispo} jour${dispo>1?'s':''} disponibles. Quelques missions de plus consolideraient vos revenus.`:'Bonne occupation.';}
-    else if(t>=35){diagRemp=`🟠 Remplissage moyen — ${dispo} jour${dispo>1?'s':''} disponibles ce mois.`;advRemp='Relancez vos devis en attente ou cherchez de nouvelles opportunités.';}
-    else{diagRemp=`🔴 Planning trop vide (${t} % ce mois).`;advRemp='Priorité à la prospection et aux relances. L\'objectif de revenu est en danger.';}
+    if(t>100){diagRemp=`🔴 Votre capacité facturable est dépassée (${t} %). Risque de surcharge ou d'épuisement à moyen terme.`;advRemp='Envisagez de déléguer ou de refuser les chantiers les moins rentables.';}
+    else if(t>=90){diagRemp=`🟠 Votre planning est presque plein (${t} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;advRemp='Évitez d\'accepter de nouveaux chantiers sans ajuster votre organisation.';}
+    else if(t>=75){diagRemp='🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';advRemp=dispo>0?`${dispo} jour${dispo>1?'s':''} disponibles ce mois — idéal pour le pilotage et les opportunités ponctuelles.`:'';}
+    else if(t>=40){diagRemp=`🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.`;advRemp=`${dispo} jour${dispo>1?'s':''} encore disponibles ce mois — cherchez à consolider votre portefeuille client.`;}
+    else{diagRemp=`🔴 Votre capacité est largement sous-utilisée (${t} %). Le principal enjeu est actuellement de développer votre activité.`;advRemp='Priorité à la prospection et aux relances. L\'objectif de revenu est en danger.';}
   }
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
@@ -4621,7 +4622,7 @@ function wScoreSante(d) {
   const rowsRemp=hasSessions&&rm.ouvrables>0?[
     {lbl:'Jours planifiés',       val:rm.occupied+' j',                c:sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)'},
     {lbl:'Jours ouvrables',      val:rm.ouvrables+' j',               c:'var(--tl)'},
-    {lbl:'Jours disponibles',    val:(rm.ouvrables-rm.occupied)+' j', c:'var(--tl)'},
+    {lbl:'Jours disponibles',    val:(rm.ouvrables-rm.occupied)+' j', c:rm.taux<=90?'var(--ok)':rm.taux<=100?'var(--warn)':'var(--err)'},
     {lbl:'Remplissage ce mois',  val:rm.taux+' %',                    c:sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)'},
     {lbl:'Remplissage '+DATA.currentYear, val:ra.ouvrables>0?ra.taux+' %':'—', c:ra.ouvrables>0?(ra.taux>=70?'var(--ok)':ra.taux>=50?'var(--warn)':'var(--err)'):'var(--tl)'},
   ]:[{lbl:'Sessions',val:'Non renseignées',c:'var(--tl)'}];
@@ -4647,7 +4648,7 @@ function wScoreSante(d) {
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
   const methRent=`<strong>Données ·</strong> TJM réel = revenu net annuel ÷ heures travaillées × ${hj} h/j<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
-  const methRemp=`<strong>Données ·</strong> Sessions planifiées du mois en cours (onglet Planning)<br><strong>Calcul ·</strong> Jours planifiés ÷ jours ouvrables × 100<br><strong>Barème ·</strong> ≥ 70 % → 25/25 &nbsp;·&nbsp; ≥ 50 % → 18/25 &nbsp;·&nbsp; ≥ 30 % → 10/25 &nbsp;·&nbsp; &lt; 30 % → 3/25`;
+  const methRemp=`<strong>Données ·</strong> Sessions planifiées du mois en cours (onglet Planning)<br><strong>Calcul ·</strong> Jours planifiés ÷ jours ouvrables × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
   const methComm=`<strong>Données ·</strong> Statut des chantiers (hors refusés)<br><strong>Calcul ·</strong> (en cours + facturés) ÷ total chantiers × 100<br><strong>Barème ·</strong> ≥ 60 % → 23/25 &nbsp;·&nbsp; ≥ 40 % → 17/25 &nbsp;·&nbsp; ≥ 20 % → 9/25 &nbsp;·&nbsp; &lt; 20 % → 3/25<br><strong>Bonus ·</strong> +2 pts si des devis sont actifs (plafond 25)`;
 
