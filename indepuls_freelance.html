@@ -3560,8 +3560,9 @@ function wRentabClients() {
   if(!cls.length) return `<div class="card"><div class="card-header"><div class="card-title">Top clients</div></div><div class="empty"><div class="ei">🤝</div><p>Ajoutez des missions pour voir vos clients s'afficher ici.</p></div></div>`;
   const maxCA=Math.max(...cls.map(c=>c[1].ca),1);
   const maxTH=Math.max(...cls.map(c=>c[1].h>0?c[1].ca/c[1].h:0),1);
+  const thRef=getTauxHoraireMinCible()||0,colTH=(th,h)=>h===0?'wn':(thRef>0?(th>=thRef*1.1?'ok':th>=thRef*.75?'wn':'bd'):(th>=60?'ok':th>=35?'wn':'bd'));
   const renderRow=([cl,d])=>{
-    const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=th>=60?'ok':th>=35?'wn':'bd';
+    const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=colTH(th,d.h);
     return `<div class="rentab-row"><div style="flex:1"><div class="fb">${cl}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;
   };
   const hRef=DATA.missions.filter(m=>m.statut==='ref').reduce((s,m)=>s+getMissionHeures(m),0);
@@ -5004,7 +5005,8 @@ function rentabClientsBody() {
   if(!Object.keys(byC).length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun client à afficher pour l\'instant.</div>';
   const cls=Object.entries(byC).sort((a,b)=>sort==='th'?(b[1].h>0?b[1].ca/b[1].h:0)-(a[1].h>0?a[1].ca/a[1].h:0):b[1].ca-a[1].ca);
   const maxCA=Math.max(...cls.map(c=>c[1].ca),1),maxTH=Math.max(...cls.map(c=>c[1].h>0?c[1].ca/c[1].h:0),1);
-  const renderRow=([cl,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=th>=60?'ok':th>=35?'wn':'bd';return `<div class="rentab-row"><div style="flex:1"><div class="fb">${esc(cl)}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;};
+  const thRef=getTauxHoraireMinCible()||0,colTH=(th,h)=>h===0?'wn':(thRef>0?(th>=thRef*1.1?'ok':th>=thRef*.75?'wn':'bd'):(th>=60?'ok':th>=35?'wn':'bd'));
+  const renderRow=([cl,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=colTH(th,d.h);return `<div class="rentab-row"><div style="flex:1"><div class="fb">${esc(cl)}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;};
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('th')">Par TH</button></div>`;
   const top=cls.slice(0,5),rest=cls.slice(5);
   return sortBtns+top.map(renderRow).join('')+(rest.length?`<div class="ts mt8" style="cursor:pointer;color:var(--acc)" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${rest.length} autre${rest.length>1?'s':''} →</div><div style="display:none">${rest.map(renderRow).join('')}</div>`:'');
@@ -5020,7 +5022,8 @@ function rentabCatBody() {
   const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxTH=Math.max(...cats.map(([,v])=>v.h>0?v.ca/v.h:0),1);
   const thSub=thMoy>0?`<div class="ts mb10">TH moyen toutes offres : <strong>${fmtE(thMoy,0)}/h</strong></div>`:'';
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">Par TH</button></div>`;
-  return sortBtns+thSub+cats.map(([c,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,cl=th>=60?'ok':th>=35?'wn':'bd';return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;}).join('');
+  const thRef=getTauxHoraireMinCible()||0,colTH=(th,h)=>h===0?'wn':(thRef>0?(th>=thRef*1.1?'ok':th>=thRef*.75?'wn':'bd'):(th>=60?'ok':th>=35?'wn':'bd'));
+  return sortBtns+thSub+cats.map(([c,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,cl=colTH(th,d.h);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;}).join('');
 }
 function renderMissionsSummary(all) {
   const sumEl=document.getElementById('missions-summary');
