@@ -31,6 +31,7 @@ body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--te
 .sb-logo .sub{font-size:10px;opacity:.5;margin-top:3px;font-style:italic;}
 .nav-section{padding:14px 20px 5px;font-size:9px;text-transform:uppercase;letter-spacing:1.2px;opacity:.5;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--sbt);opacity:.75;transition:all .2s;border-left:3px solid transparent;font-size:13px;user-select:none;}
+.nav-item.nav-locked{opacity:.35;font-style:italic;}
 .nav-item:hover{opacity:1;background:rgba(255,255,255,.09);}
 .nav-item.active{opacity:1;background:rgba(255,255,255,.14);border-left-color:var(--acc);font-weight:700;}
 .nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
@@ -537,7 +538,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
   <div class="nav-item" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> Tester une offre</div>
-  <div class="nav-item" id="nav-recettes" onclick="navigate('recettes')" style="display:none"><span class="nav-icon">📒</span> Livre des recettes</div>
+  <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="Activez le livre des recettes dans les Paramètres"><span class="nav-icon">📒</span> Livre des recettes</div>
   <div class="nav-section">Réglages</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
   <div class="nav-item" onclick="navigate('notice')"><span class="nav-icon">📖</span> Guide & glossaire</div>
@@ -789,8 +790,8 @@ html,body{overflow-x:hidden;}
           <div class="divider"></div>
           <div class="card-sub mb12">Taux de charges — pré-remplis selon votre statut, ajustables si besoin</div>
           <div class="frow">
-            <div class="fgroup"><label class="flabel">Taux URSSAF (%)</label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
-            <div class="fgroup"><label class="flabel">Taux CFP (%)</label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
+            <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Cotisations sociales prélevées sur votre CA. Pré-rempli selon votre statut (ex : 22,2% pour une prestation de service en BNC). Modifiez uniquement si votre taux réel est différent.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
+            <div class="fgroup"><label class="flabel">Taux CFP (%) <span class="info-tip" title="Contribution à la Formation Professionnelle. Obligatoire pour les micro-entrepreneurs (0,1% en BNC, 0,2% en BIC prestation). Pré-rempli automatiquement selon votre statut.">?</span></label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
           </div>
           <div class="fgroup" style="margin-top:12px">
             <label class="flabel">Fréquence de paiement URSSAF <span class="info-tip" title="Choisissez la fréquence indiquée sur votre espace URSSAF (autoentrepreneur.urssaf.fr). En mensuel, la provision affichée correspond au CA du mois. En trimestriel, elle est lissée sur l'année pour une mise de côté régulière.">?</span></label>
@@ -1226,7 +1227,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="fgroup" id="m-montant-zone">
       <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
-      <input type="number" id="m-montant" step="10" min="0" placeholder="0">
+      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
     <div class="divider" style="margin:10px 0"></div>
     <div class="frow">
@@ -1260,11 +1261,11 @@ html,body{overflow-x:hidden;}
       <div class="frow">
         <div class="fgroup">
           <label class="flabel">Prestation / service (€ HT)</label>
-          <input type="number" id="m-presta" step="10" min="0" placeholder="0" oninput="updateMontantMixteTotal()">
+          <input type="number" id="m-presta" step="10" min="0" placeholder="Ex : 1 500" oninput="updateMontantMixteTotal()">
         </div>
         <div class="fgroup">
           <label class="flabel">Vente / produit (€ HT)</label>
-          <input type="number" id="m-vente" step="10" min="0" placeholder="0" oninput="updateMontantMixteTotal()">
+          <input type="number" id="m-vente" step="10" min="0" placeholder="Ex : 500" oninput="updateMontantMixteTotal()">
         </div>
       </div>
       <div class="ts" id="m-mixte-total" style="font-weight:700;color:var(--pri)"></div>
@@ -4662,9 +4663,15 @@ function exportRecettesPDF() {
   w.document.close();
 }
 
+function navRecettesClick() {
+  if(!DATA.params.livreRecettesActif){ navigate('params'); showToast('Activez le livre des recettes dans les Paramètres.','var(--pri)'); return; }
+  navigate('recettes');
+}
 function updateNavRecettes() {
   const el=document.getElementById('nav-recettes');
-  if(el) el.style.display=DATA.params.livreRecettesActif?'':'none';
+  if(!el) return;
+  if(DATA.params.livreRecettesActif){ el.classList.remove('nav-locked'); el.title=''; }
+  else { el.classList.add('nav-locked'); el.title='Activez le livre des recettes dans les Paramètres'; }
 }
 
 // ══ FIN LIVRE DES RECETTES ════════════════════════════════════
@@ -6479,29 +6486,38 @@ function getSourceAcqPhrase(missions, noun) {
 function getMgmtMission() { return DATA.missions.find(m=>m.isManagement); }
 
 function sbTimerToggle() {
-  const m=getMgmtMission(); if(!m) return;
-  startTimer(m.id);
+  const client=DATA.missions.find(m=>m.timerRunning&&!m.isManagement);
+  if(client){ startTimer(client.id); return; }
+  const mgmt=getMgmtMission(); if(!mgmt) return;
+  startTimer(mgmt.id);
   if(currentPage==='dashboard') renderDashboard();
 }
 
 function updateSbTimer() {
-  const m=getMgmtMission();
   const disp=document.getElementById('sb-timer-disp');
   const sub=document.getElementById('sb-timer-sub');
+  const lbl=document.getElementById('sb-timer-label');
   const btns=document.getElementById('sb-timer-btns');
   if(!disp||!sub||!btns) return;
-  const running=m&&m.timerRunning;
-  if(running){
-    const sessionMs=m.timerStart?Date.now()-m.timerStart:0;
+  const client=DATA.missions.find(m=>m.timerRunning&&!m.isManagement);
+  const mgmt=getMgmtMission();
+  if(client){
+    disp.textContent=heuresMs(getMissionTotalMs(client));
+    disp.className='sb-timer-disp on';
+    if(lbl) lbl.textContent=client.client||'Mission';
+    sub.textContent='Chrono en cours';
+    btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
+  } else if(mgmt&&mgmt.timerRunning){
+    const sessionMs=mgmt.timerStart?Date.now()-mgmt.timerStart:0;
     disp.textContent=heuresMs(sessionMs);
     disp.className='sb-timer-disp on';
-    sub.style.display='';
+    if(lbl) lbl.textContent='Temps interne';
     sub.textContent='Session en cours';
     btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
   } else {
     disp.textContent='00:00:00';
     disp.className='sb-timer-disp paused';
-    sub.style.display='';
+    if(lbl) lbl.textContent='Temps interne';
     sub.textContent='Session : prête';
     btns.innerHTML=`<button class="sb-timer-btn" onclick="sbTimerToggle()">▶ Démarrer</button>`;
   }
@@ -6705,6 +6721,11 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSbTimer();
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
+});
+
+window.addEventListener('beforeunload', () => {
+  DATA.missions.forEach(m => { if(m.timerRunning) commitTimer(m); });
+  saveData();
 });
 
 document.addEventListener('keydown', function(e) {
