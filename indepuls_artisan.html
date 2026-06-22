@@ -519,8 +519,8 @@ html,body{overflow-x:hidden;}
   <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">📊</span> Tableau de bord</div>
   <div class="nav-item" onclick="navigate('archives')"><span class="nav-icon">📈</span> Historique</div>
   <div class="nav-section">Activité</div>
-  <div class="nav-item" onclick="navigate('missions')" id="nav-missions-label"><span class="nav-icon">🛠️</span> Chantiers</div>
-  <script>(function(){try{var d=JSON.parse(localStorage.getItem('indepuls_artisan')||'{}'),m=(d.params||{}).metier,L={service:'🎯 Missions',creative:'🎨 Prestations',chantier:'🛠️ Chantiers',fabrication:'📦 Commandes'},l=L[m];if(l){var e=document.getElementById('nav-missions-label');if(e)e.textContent=l;}}catch(e){}})();</script>
+  <div class="nav-item" onclick="navigate('missions')" id="nav-missions-label" style="visibility:hidden"><span class="nav-icon">🛠️</span> Chantiers</div>
+  <script>(function(){try{var d=JSON.parse(localStorage.getItem('indepuls_artisan')||'{}'),m=(d.params||{}).metier,L={service:'🎯 Missions',creative:'🎨 Prestations',chantier:'🛠️ Chantiers',fabrication:'📦 Commandes'},l=L[m]||'🛠️ Chantiers';var e=document.getElementById('nav-missions-label');if(e){e.textContent=l;e.style.visibility='visible';}}catch(e){}})();</script>
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
