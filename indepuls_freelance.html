@@ -2552,6 +2552,15 @@ function isRecurringStillActive(m) {
   const [sy, sm] = m.dateDebutRec.split('-').map(Number);
   return new Date(sy, sm - 1 + m.nbMoisRec, 1) > new Date();
 }
+function getRecurringPeriodLabel(m) {
+  if (!m.dateDebutRec) return '';
+  const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+  const opts = {month:'short', year:'numeric'};
+  const startLbl = new Date(sy, sm - 1, 1).toLocaleString('fr-FR', opts);
+  if (!m.nbMoisRec || m.nbMoisRec <= 0) return startLbl + ' →';
+  const endLbl = new Date(sy, sm - 1 + m.nbMoisRec - 1, 1).toLocaleString('fr-FR', opts);
+  return startLbl + ' → ' + endLbl;
+}
 function getChargeEstimeeTotal() {
   return DATA.missions
     .filter(m=>!m.isManagement&&(m.statut==='cours'||isRecurringStillActive(m))&&m.chargeEstimee>0)
@@ -5164,17 +5173,19 @@ function renderMissions() {
     totH+=h;
     const tr=document.createElement('tr'); if(m.isManagement) tr.className='row-pinned'; tr.id='mrow-'+m.id;
     const isCol=m.typeMission==='collectif';
-    const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts">${m.nbMoisRec?`× ${m.nbMoisRec} mois = ${fmtE(m.montantDevis)}`:''}</div>`:tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis);
+    const _recEnc=(m.encaissements||[]).length, _recT=m.nbMoisRec||'?';
+    const dateFactCell=m.isRecurring?`${_recEnc}/${_recT} mois encaiss${_recEnc===1?'é':'és'}`:(m.dateFact||'—');
+    const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts" style="margin-top:2px">${getRecurringPeriodLabel(m)}</div>${m.nbMoisRec?`<div class="ts">Total : ${fmtE(m.montantDevis)}</div>`:''}`:(tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis));
     tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
-      <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>En attente</option><option value="cours" ${m.statut==='cours'?'selected':''}>En cours</option><option value="ref" ${m.statut==='ref'?'selected':''}>Refusé</option><option value="fact" ${m.statut==='fact'?'selected':''}>Facturé</option></select></td>
-      <td class="ts">${m.dateFact||'—'}</td>
+      <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>En attente</option><option value="cours" ${m.statut==='cours'?'selected':''}>En cours</option><option value="ref" ${m.statut==='ref'?'selected':''}>${m.isRecurring?'Refusée':'Refusé'}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${m.isRecurring?'Terminée':'Facturé'}</option></select></td>
+      <td class="ts">${dateFactCell}</td>
       <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div><div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
       <td class="ts">${th?fmtE(th,1)+'/h':'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
-      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button>${!m.isRecurring?` <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button>`:''} <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
+      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button> <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
     tbody.appendChild(tr);
     // Sous-ligne encaissements (missions ponctuelles avec au moins un versement)
     if(!m.isManagement&&!m.isRecurring){
