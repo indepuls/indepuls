@@ -340,6 +340,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **UX clavier** : touche Entrée sur les modaux éligibles (sans textarea ni choix multiples, via `data-enter-action`) ; touche Échap ferme le modal ouvert
 - **Validation visuelle champs obligatoires** : classe `.field-invalid` (bordure rouge + shake) sur les champs vides à la soumission, focus automatique, effacée dès la première saisie — `markInvalid(...ids)` helper disponible
 - **Toasts de confirmation** : `showToast()` appelé après enregistrement mission/chantier, dépense, recette manuelle ; toast de confirmation après export CSV avec nombre de recettes et période
+- **Refonte positionnement modules (2026-06)** : icône artisan 🔨 → 🧰 dans `index.html` et `SESSIONS`. Descriptions cartes d'accueil reformulées en "Je vends…" (1re personne). Chips mises à jour. Ajout de 10 nouveaux métiers dans le select freelance (expert_comptable, consultant_rh, juriste, traducteur, redacteur, coach_sportif, nutritionniste, sophrologue, hypnotherapeute, psychologue → tous famille `service`). Ajout de 13 nouveaux métiers dans le select artisan (traiteur, fleuriste → `chantier` ; chocolatier, patissier, ebeniste, createur_bijoux, fabricant_cosmetiques, fabricant_bougies, tapissier, maroquinier, ferronnier → `fabrication`). Info-bulle `?` ajoutée sur le label "Métier exercé" dans les deux fichiers. Aucun calcul ni migration impacté.
 - **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
 
 ## Points d'attention
@@ -389,13 +390,15 @@ Le vocabulaire affiché s'adapte automatiquement au métier sélectionné dans P
 
 | Famille | Exemples de métiers | Terme affiché |
 |---|---|---|
-| `service` (défaut freelance) | OBM, coach, consultant, thérapeute, développeur, CM, AV, webdesigner, architecte, conciergerie, formateur | Mission |
+| `service` (défaut freelance) | OBM, coach, consultant, expert-comptable, consultant RH, juriste, traducteur, rédacteur, coach sportif, nutritionniste, sophrologue, hypnothérapeute, psychologue, développeur, CM, AV, webdesigner, architecte, conciergerie, formateur | Mission |
 | `creative` | Graphiste, photographe, UGC | Prestation |
-| `chantier` (défaut artisan) | Maçon, peintre, couvreur, plombier, menuisier, carreleur, serrurier, plaquiste, électricien, paysagiste, chauffagiste, multi-corps | Chantier |
-| `fabrication` | Fabricant / Créateur, savonnier, bijoutier, couturier, cosmétiques artisanaux | Commande |
+| `chantier` (défaut artisan) | Maçon, peintre, couvreur, plombier, menuisier, carreleur, serrurier, plaquiste, électricien, paysagiste, chauffagiste, multi-corps, traiteur, fleuriste | Chantier |
+| `fabrication` | Fabricant / Créateur, chocolatier, pâtissier, ébéniste, créateur de bijoux, fabricant cosmétiques, fabricant bougies, tapissier, maroquinier, ferronnier | Commande |
+
+**Règle de positionnement des modules (2026-06)** : module violet = "Je vends mon temps / expertise / prestation" → freelance ; module orange = "Je réalise des chantiers / commandes / fabrications avec achats de matières" → artisan. Traiteur et fleuriste → artisan (famille `chantier`, vocabulaire "Chantier"). Rédacteur → freelance (famille `service`, même logique qu'un consultant). Ferronnier → artisan (famille `fabrication`, logique fabrication sur mesure).
 
 ### Mapping métier → famille (`BUSINESS_PROFILE_MAP`)
-Objet centralisé dans chaque HTML (clés normalisées : `obm`, `coach`, `macon`, `fabricant`, etc.).
+Objet centralisé dans chaque HTML (clés normalisées : `obm`, `coach`, `macon`, `fabricant`, etc.). Les deux fichiers HTML doivent toujours avoir le même `BUSINESS_PROFILE_MAP` — synchroniser manuellement à chaque ajout de métier.
 
 ### Fonction helper
 ```js

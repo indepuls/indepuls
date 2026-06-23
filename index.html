@@ -185,45 +185,47 @@ html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA
       <div class="card-ico">💼</div>
       <div class="card-name">Prestations de services</div>
       <div class="card-tag">Missions • Clients • Temps • Rentabilité</div>
-      <p class="card-desc">Pour les indépendants qui vendent principalement leur temps, leur expertise ou leurs prestations.</p>
+      <p class="card-desc">Je vends mon <strong>temps, mon expertise ou mes prestations</strong> → choisissez ce module.</p>
       <div class="card-chips">
         <span class="card-chip">OBM</span>
         <span class="card-chip">Coach</span>
         <span class="card-chip">Consultant·e</span>
-        <span class="card-chip">Thérapeute</span>
+        <span class="card-chip">Expert-comptable</span>
+        <span class="card-chip">Juriste indépendant·e</span>
+        <span class="card-chip">Formateur·trice</span>
         <span class="card-chip">Développeur·se</span>
-        <span class="card-chip">Community manager</span>
-        <span class="card-chip">Assistante virtuelle</span>
+        <span class="card-chip">Webdesigner</span>
         <span class="card-chip">Photographe</span>
         <span class="card-chip">Graphiste</span>
-        <span class="card-chip">Webdesigner</span>
-        <span class="card-chip">Architecte</span>
-        <span class="card-chip">Conciergerie</span>
-        <span class="card-chip">Formateur·trice</span>
+        <span class="card-chip">Rédacteur·trice</span>
+        <span class="card-chip">Coach sportif</span>
+        <span class="card-chip">Psychologue</span>
+        <span class="card-chip">Thérapeute</span>
       </div>
       <button class="card-cta">Ouvrir mon espace →</button>
     </div>
 
     <!-- Production & Chantiers -->
     <div class="sel-card c-artisan" onclick="go('artisan')">
-      <div class="card-ico">🔨</div>
+      <div class="card-ico">🧰</div>
       <div class="card-name">Production & Chantiers</div>
       <div class="card-tag">Commandes • Devis • Coûts • Marge</div>
-      <p class="card-desc">Pour les indépendants qui réalisent des chantiers, fabriquent des produits ou travaillent sur commande.</p>
+      <p class="card-desc">Je réalise des <strong>chantiers, commandes ou fabrications</strong> avec des achats de matières → choisissez ce module.</p>
       <div class="card-chips">
         <span class="card-chip">Maçon</span>
         <span class="card-chip">Peintre</span>
-        <span class="card-chip">Couvreur</span>
         <span class="card-chip">Plombier</span>
-        <span class="card-chip">Menuisier</span>
-        <span class="card-chip">Carreleur</span>
         <span class="card-chip">Électricien</span>
+        <span class="card-chip">Menuisier</span>
         <span class="card-chip">Paysagiste</span>
-        <span class="card-chip">Chauffagiste</span>
-        <span class="card-chip">Multi-corps d'état</span>
-        <span class="card-chip">Couturier·e</span>
+        <span class="card-chip">Traiteur</span>
+        <span class="card-chip">Fleuriste</span>
+        <span class="card-chip">Chocolatier·ère</span>
+        <span class="card-chip">Pâtissier·ère</span>
+        <span class="card-chip">Ébéniste</span>
+        <span class="card-chip">Créateur·trice de bijoux</span>
         <span class="card-chip">Fabricant·e cosmétiques</span>
-        <span class="card-chip">Fabricant / Créateur</span>
+        <span class="card-chip">Tapissier</span>
       </div>
       <button class="card-cta" style="background:#c4783a">Ouvrir mon espace →</button>
     </div>
@@ -245,7 +247,7 @@ html,body{height:100%;font-family:'Lato',system-ui,sans-serif;background:#F1EFEA
 <script>
 const SESSIONS = {
   freelance: { label:'💼 Prestations de services', file:'./indepuls_freelance.html', color:'#5B2C4A' },
-  artisan:   { label:'🔨 Production & Chantiers',  file:'./indepuls_artisan.html',   color:'#c4783a' }
+  artisan:   { label:'🧰 Production & Chantiers',  file:'./indepuls_artisan.html',   color:'#c4783a' }
 };
 
 // file:// → navigation directe (iframes bloquées par le navigateur)

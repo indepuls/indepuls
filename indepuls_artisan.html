@@ -737,7 +737,7 @@ html,body{overflow-x:hidden;}
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Métier exercé</label>
+            <label class="flabel">Métier exercé <span class="info-tip" title="Vous ne trouvez pas votre métier ? Choisissez celui qui s'en rapproche le plus. Nous enrichissons régulièrement cette liste. N'hésitez pas à nous contacter pour demander l'ajout d'un métier.">?</span></label>
             <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
               <optgroup label="Artisans du bâtiment">
@@ -755,6 +755,17 @@ html,body{overflow-x:hidden;}
                 <option value="multicorps">Multi-corps d'état</option>
               </optgroup>
               <optgroup label="Fabrication & Création">
+                <option value="traiteur">Traiteur</option>
+                <option value="fleuriste">Fleuriste</option>
+                <option value="chocolatier">Chocolatier·ère</option>
+                <option value="patissier">Pâtissier·ère</option>
+                <option value="ebeniste">Ébéniste</option>
+                <option value="createur_bijoux">Créateur·trice de bijoux</option>
+                <option value="fabricant_cosmetiques">Fabricant·e de cosmétiques</option>
+                <option value="fabricant_bougies">Fabricant·e de bougies</option>
+                <option value="tapissier">Tapissier</option>
+                <option value="maroquinier">Maroquinier</option>
+                <option value="ferronnier">Ferronnier</option>
                 <option value="fabricant">Fabricant / Créateur</option>
                 <option value="autre_fabrication">Autre fabrication</option>
               </optgroup>
@@ -1882,13 +1893,20 @@ const VOCABULARY_FAMILIES = {
 };
 const BUSINESS_PROFILE_MAP = {
   obm:'service', coach:'service', therapeute:'service', consultant:'service',
+  expert_comptable:'service', consultant_rh:'service', juriste:'service',
+  traducteur:'service', redacteur:'service', coach_sportif:'service',
+  nutritionniste:'service', sophrologue:'service', hypnotherapeute:'service', psychologue:'service',
   developpeur:'service', community_manager:'service', assistante_virtuelle:'service',
   webdesigner:'service', architecte:'service', conciergerie:'service', formateur:'service',
   graphiste:'creative', photographe:'creative', ugc:'creative',
   macon:'chantier', peintre:'chantier', couvreur:'chantier', plombier:'chantier',
   menuisier:'chantier', carreleur:'chantier', serrurier:'chantier', plaquiste:'chantier',
   electricien:'chantier', paysagiste:'chantier', chauffagiste:'chantier', multicorps:'chantier',
-  fabricant:'fabrication', autre_fabrication:'fabrication'
+  traiteur:'chantier', fleuriste:'chantier',
+  fabricant:'fabrication', autre_fabrication:'fabrication',
+  chocolatier:'fabrication', patissier:'fabrication', ebeniste:'fabrication',
+  createur_bijoux:'fabrication', fabricant_cosmetiques:'fabrication', fabricant_bougies:'fabrication',
+  tapissier:'fabrication', maroquinier:'fabrication', ferronnier:'fabrication'
 };
 // Migration des anciennes valeurs affichées (avant introduction des clés normalisées)
 const METIER_MIGRATION_AR = {

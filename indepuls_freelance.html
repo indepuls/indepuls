@@ -743,14 +743,24 @@ html,body{overflow-x:hidden;}
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Métier exercé</label>
+            <label class="flabel">Métier exercé <span class="info-tip" title="Vous ne trouvez pas votre métier ? Choisissez celui qui s'en rapproche le plus. Nous enrichissons régulièrement cette liste. N'hésitez pas à nous contacter pour demander l'ajout d'un métier.">?</span></label>
             <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
               <optgroup label="Prestations de services">
                 <option value="obm">OBM</option>
                 <option value="coach">Coach</option>
                 <option value="consultant">Consultant·e</option>
+                <option value="expert_comptable">Expert-comptable</option>
+                <option value="consultant_rh">Consultant RH</option>
+                <option value="juriste">Juriste indépendant·e</option>
+                <option value="traducteur">Traducteur·trice</option>
+                <option value="redacteur">Rédacteur·trice</option>
                 <option value="therapeute">Thérapeute</option>
+                <option value="coach_sportif">Coach sportif</option>
+                <option value="nutritionniste">Nutritionniste</option>
+                <option value="sophrologue">Sophrologue</option>
+                <option value="hypnotherapeute">Hypnothérapeute</option>
+                <option value="psychologue">Psychologue</option>
                 <option value="developpeur">Développeur·se</option>
                 <option value="community_manager">Community manager</option>
                 <option value="assistante_virtuelle">Assistante virtuelle</option>
@@ -1956,13 +1966,20 @@ const VOCABULARY_FAMILIES = {
 };
 const BUSINESS_PROFILE_MAP = {
   obm:'service', coach:'service', therapeute:'service', consultant:'service',
+  expert_comptable:'service', consultant_rh:'service', juriste:'service',
+  traducteur:'service', redacteur:'service', coach_sportif:'service',
+  nutritionniste:'service', sophrologue:'service', hypnotherapeute:'service', psychologue:'service',
   developpeur:'service', community_manager:'service', assistante_virtuelle:'service',
   webdesigner:'service', architecte:'service', conciergerie:'service', formateur:'service',
   graphiste:'creative', photographe:'creative', ugc:'creative',
   macon:'chantier', peintre:'chantier', couvreur:'chantier', plombier:'chantier',
   menuisier:'chantier', carreleur:'chantier', serrurier:'chantier', plaquiste:'chantier',
   electricien:'chantier', paysagiste:'chantier', chauffagiste:'chantier', multicorps:'chantier',
-  fabricant:'fabrication', autre_fabrication:'fabrication'
+  traiteur:'chantier', fleuriste:'chantier',
+  fabricant:'fabrication', autre_fabrication:'fabrication',
+  chocolatier:'fabrication', patissier:'fabrication', ebeniste:'fabrication',
+  createur_bijoux:'fabrication', fabricant_cosmetiques:'fabrication', fabricant_bougies:'fabrication',
+  tapissier:'fabrication', maroquinier:'fabrication', ferronnier:'fabrication'
 };
 // Migration des anciennes valeurs (avant introduction des clés normalisées)
 const METIER_MIGRATION_FL = {
