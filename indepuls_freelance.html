@@ -3709,26 +3709,28 @@ function wScoreSante(d) {
       </div>
     </div>`;
   }
-  const {thR,hT,objNet,caNetMoy}=d;
+  const {thR,hT,objNet,caNetMoy,caBrut}=d;
   const thMin=getTauxHoraireMinCible();
   const hj=DATA.params.heuresParJour||7;
   const curMk=getCurrentMk();
 
   // ── PILIER 1 : RENTABILITÉ (25 pts) ──────────────────────────
+  // Comparaison brut vs brut : thBrut (CA brut / heures) vs thMin (TH cible brut à facturer)
   let sRent=0;
-  const tjmReel=Math.round(thR*hj), tjmMin=Math.round(thMin*hj);
-  const gapTjm=tjmMin-tjmReel;
-  if(hT>0){const ref=thMin>0?thMin:60;const r=thR/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
+  const thBrut=hT>0?caBrut/hT:0;
+  const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
+  const gapTjm=tjmMin-tjmBrut;
+  if(hT>0){const ref=thMin>0?thMin:60;const r=thBrut/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
   const pctObj=objNet>0?caNetMoy/objNet*100:null;
   if(pctObj!==null&&hT>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
-  const vRent=hT>0?fmtE(tjmReel,0)+'/j':'—';
+  const vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
   const subRent=thMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
   let diagRent,advRent;
   if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
-  else if(sRent>=20){diagRent=`🟢 TJM réel ${thMin>0?`supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
-  else if(sRent>=14){diagRent=`🟠 TJM proche de la cible${thMin>0&&gapTjm>0?` — il manque encore ${fmtE(gapTjm,0)}/j`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
-  else if(sRent>=7){diagRent=`🔴 TJM inférieur${thMin>0?` de ${fmtE(gapTjm,0)}/j à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
-  else{diagRent=`🔴 TJM très faible${thMin>0?` — ${tjmReel>0?fmtE(tjmReel,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+  else if(sRent>=20){diagRent=`🟢 TJM brut ${thMin>0?`supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
+  else if(sRent>=14){diagRent=`🟠 TJM brut proche de la cible${thMin>0&&gapTjm>0?` — il manque encore ${fmtE(gapTjm,0)}/j`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+  else if(sRent>=7){diagRent=`🔴 TJM brut inférieur${thMin>0?` de ${fmtE(gapTjm,0)}/j à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
+  else{diagRent=`🔴 TJM brut très faible${thMin>0?` — ${tjmBrut>0?fmtE(tjmBrut,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
 
   // ── PILIER 2 : REMPLISSAGE / CAPACITÉ (25 pts) ───────────────
   let sRemp=0;
@@ -3882,11 +3884,12 @@ function wScoreSante(d) {
   // Rentabilité
   const rentC=hT>0?(sRent>=20?'var(--ok)':sRent>=14?'var(--warn)':'var(--err)'):'var(--tl)';
   const rowsRent=[
-    {lbl:'TJM réel',        val:hT>0?fmtE(tjmReel,0)+'/j':'—',          c:rentC},
-    {lbl:'TH réel',         val:hT>0?fmtE(thR,0)+'/h':'—',              c:rentC},
-    {lbl:'Seuil min. TJM',  val:thMin>0?fmtE(tjmMin,0)+'/j':'Non défini', c:'var(--tl)'},
-    {lbl:'Seuil min. TH',   val:thMin>0?fmtE(thMin,0)+'/h':'Non défini',  c:'var(--tl)'},
-    {lbl:'Écart TJM',       val:hT>0&&thMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&thMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'TJM brut réel',       val:hT>0?fmtE(tjmBrut,0)+'/j':'—',           c:rentC},
+    {lbl:'TH brut réel',        val:hT>0?fmtE(thBrut,0)+'/h':'—',             c:rentC},
+    {lbl:'Seuil min. TJM',      val:thMin>0?fmtE(tjmMin,0)+'/j':'Non défini',  c:'var(--tl)'},
+    {lbl:'Seuil min. TH',       val:thMin>0?fmtE(thMin,0)+'/h':'Non défini',   c:'var(--tl)'},
+    {lbl:'Écart TJM',           val:hT>0&&thMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&thMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                c:'var(--tl)'},
   ];
   if(pctObj!==null) rowsRent.push({lbl:'Objectif mensuel atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
@@ -3918,7 +3921,7 @@ function wScoreSante(d) {
   ]:[{lbl:tVocab('items'),val:'Aucune renseignée',c:'var(--tl)'}];
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
-  const methRent=`<strong>Données ·</strong> TJM réel = revenu net annuel ÷ heures travaillées × ${hj} h/j<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
+  const methRent=`<strong>Données ·</strong> TJM brut réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM brut vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
   const methRemp=`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
   const methComm=`<strong>Données ·</strong> Statut des missions (hors refusées)<br><strong>Calcul ·</strong> (en cours + facturées) ÷ total missions × 100<br><strong>Barème ·</strong> ≥ 60 % → 23/25 &nbsp;·&nbsp; ≥ 40 % → 17/25 &nbsp;·&nbsp; ≥ 20 % → 9/25 &nbsp;·&nbsp; &lt; 20 % → 3/25<br><strong>Bonus ·</strong> +2 pts si des devis sont actifs (plafond 25)`;
