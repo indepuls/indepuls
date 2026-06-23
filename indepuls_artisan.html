@@ -5360,7 +5360,8 @@ function renderMissionsSummary(all) {
         ${card('📭','Pertes sèches',fmt(pS,1)+' h','sur devis refusés',pS>5?'var(--warn)':'')}
       </div>
       ${(_hF>0||_hI>0)?`<div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">⏱ Répartition du temps travaillé</div><canvas id="chart-temps" style="width:100%" height="70"></canvas></div>`:''}
-      <div class="g2" style="gap:12px;margin-top:14px">
+      <div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">🏆 Top clients & offres</div></div>
+      <div class="g2" style="gap:12px">
         <div id="msn-top-clients">${rentabClientsBody()}</div>
         <div id="msn-top-cats">${rentabCatBody()}</div>
       </div>
