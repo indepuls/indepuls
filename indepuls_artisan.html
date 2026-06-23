@@ -4629,7 +4629,7 @@ function wScoreSante(d) {
     {lbl:'Écart TJM',           val:hT>0&&thMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&thMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
     {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                c:'var(--tl)'},
   ];
-  if(pctObj!==null) rowsRent.push({lbl:'Objectif mensuel atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
+  if(pctObj!==null) rowsRent.push({lbl:'Objectif de revenu net atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
   // Remplissage (Artisan — sessions + planning)
   const rowsRemp=hasSessions&&rm.ouvrables>0?[
