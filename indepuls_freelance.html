@@ -4776,6 +4776,7 @@ function addEncaissementModal() {
   const calcInfo=document.getElementById('enc-m-calc-info');
   if(calcInfo) calcInfo.style.display='none';
   renderEncaissementsModal();
+  if(currentPage==='missions') renderMissions();
   // Popup livre des recettes si fonctionnalité activée
   if(DATA.params.livreRecettesActif) {
     setTimeout(()=>ouvrirPopupCompletion(_encModalMissionId, newEncId), 250);
@@ -4784,7 +4785,7 @@ function addEncaissementModal() {
 function deleteEncaissementModal(encId) {
   const m=DATA.missions.find(x=>x.id===_encModalMissionId); if(!m) return;
   m.encaissements=m.encaissements.filter(e=>e.id!==encId);
-  saveData(); renderEncaissementsModal();
+  saveData(); renderEncaissementsModal(); if(currentPage==='missions') renderMissions();
 }
 
 function toggleMissionType(val) {
