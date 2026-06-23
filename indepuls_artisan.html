@@ -4480,6 +4480,11 @@ function wScoreSante(d) {
   }
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
+  // Total non encaissé = toutes facturées avec reste > 0, sans délai minimum (pour l'affichage)
+  const mtTotalNonEnc=DATA.missions
+    .filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&getResteAEncaisser(m)>0)
+    .reduce((s,m)=>s+getResteAEncaisser(m),0);
+  // Impayées = factures avec reste ≥ 14 j (base du scoring, inchangé)
   const impayees=getMissionsImpayees();
   const mtImpaye=impayees.reduce((s,x)=>s+x.reste,0);
   const gravesArr=impayees.filter(x=>x.days>=60);
@@ -4488,20 +4493,25 @@ function wScoreSante(d) {
   sTreso-=gravesArr.length*10;sTreso-=moyensArr.length*5;if(mtImpaye>3000)sTreso-=3;
   sTreso=Math.max(0,Math.min(25,sTreso));
   let vTreso,subTreso,diagTreso,advTreso;
-  if(mtImpaye===0){
+  if(mtTotalNonEnc===0){
     vTreso='Saine';subTreso='Aucun impayé';
     diagTreso='🟢 Aucun risque identifié sur votre trésorerie.';advTreso='Continuez à facturer régulièrement.';
+  } else if(mtImpaye===0){
+    vTreso=fmtE(mtTotalNonEnc);subTreso='À encaisser';
+    diagTreso=`🟢 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Aucun retard de paiement identifié à ce jour.`;
+    advTreso='Les délais de paiement sont respectés. Vérifiez vos règlements à échéance.';
   } else if(sTreso>=18){
-    vTreso=fmtE(mtImpaye);subTreso=`${impayees.length} en attente`;
-    diagTreso=`🟠 ${fmtE(mtImpaye)} en attente d'encaissement.`;advTreso='Surveillez les règlements à venir. Pas d\'urgence immédiate.';
+    vTreso=fmtE(mtTotalNonEnc);subTreso=`${impayees.length} en attente`;
+    diagTreso=`🟠 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} présentent un retard supérieur à 14 jours.`;
+    advTreso='Surveillez les règlements à venir. Pas d\'urgence immédiate.';
   } else if(sTreso>=10){
     const ol=impayees[0];
-    vTreso=fmtE(mtImpaye);subTreso=`${impayees.length} facture${impayees.length>1?'s':''} en retard`;
-    diagTreso=`🔴 ${fmtE(mtImpaye)} à encaisser — facture la plus ancienne : ${ol.days} j (${ol.m.client}).`;
+    vTreso=fmtE(mtTotalNonEnc);subTreso=`${impayees.length} facture${impayees.length>1?'s':''} en retard`;
+    diagTreso=`🔴 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} en retard — facture la plus ancienne : ${ol.days} j (${ol.m.client}).`;
     advTreso=`Relancez ${ol.m.client} en priorité (${fmtE(ol.reste)} en attente).`;
   } else {
-    vTreso=fmtE(mtImpaye);subTreso='Risque de tension';
-    diagTreso=`🔴 Trésorerie fragile — ${fmtE(mtImpaye)} en attente, dont ${fmtE(gravesArr.reduce((s,x)=>s+x.reste,0))} depuis plus de 60 j.`;
+    vTreso=fmtE(mtTotalNonEnc);subTreso='Risque de tension';
+    diagTreso=`🔴 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Dont ${fmtE(gravesArr.reduce((s,x)=>s+x.reste,0))} en retard depuis plus de 60 jours.`;
     advTreso='Contactez vos clients dès aujourd\'hui. Envisagez un rappel formel si nécessaire.';
   }
 
@@ -4631,13 +4641,15 @@ function wScoreSante(d) {
   ]:[{lbl:'Sessions',val:'Non renseignées',c:'var(--tl)'}];
 
   // Trésorerie
-  const rowsTreso=mtImpaye>0?[
-    {lbl:'Factures en attente', val:impayees.length+' facture'+(impayees.length>1?'s':''), c:'var(--err)'},
-    {lbl:'Montant à encaisser', val:fmtE(mtImpaye),                                        c:'var(--err)'},
-    {lbl:'Retard maximum',      val:impayees[0].days+' jours',                              c:impayees[0].days>=60?'var(--err)':impayees[0].days>=30?'var(--warn)':'var(--tl)'},
-  ]:[
-    {lbl:'Factures en attente', val:'Aucune',  c:'var(--ok)'},
-    {lbl:'Situation',           val:'Saine ✓', c:'var(--ok)'},
+  const rowsTreso=[
+    {lbl:'Facturé non encaissé', val:mtTotalNonEnc>0?fmtE(mtTotalNonEnc):'0 €', c:mtTotalNonEnc>0?'var(--text)':'var(--ok)'},
+    {lbl:'Dont en retard (≥ 14 j)', val:mtImpaye>0?fmtE(mtImpaye):'0 €',         c:mtImpaye>0?'var(--err)':'var(--ok)'},
+    ...(mtImpaye>0?[
+      {lbl:'Factures en retard', val:impayees.length+' facture'+(impayees.length>1?'s':''), c:'var(--err)'},
+      {lbl:'Retard maximum',     val:impayees[0].days+' jours', c:impayees[0].days>=60?'var(--err)':impayees[0].days>=30?'var(--warn)':'var(--tl)'},
+    ]:[
+      {lbl:'Situation',          val:mtTotalNonEnc>0?'Délais respectés ✓':'Saine ✓', c:'var(--ok)'},
+    ]),
   ];
 
   // Commercial
@@ -4652,7 +4664,7 @@ function wScoreSante(d) {
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
   const methRent=`<strong>Données ·</strong> TJM brut réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM brut vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
   const methRemp=`<strong>Données ·</strong> Sessions planifiées du mois en cours (onglet Planning)<br><strong>Calcul ·</strong> Jours planifiés ÷ jours ouvrables × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
-  const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
+  const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
   const methComm=`<strong>Données ·</strong> Statut des chantiers (hors refusés)<br><strong>Calcul ·</strong> (en cours + facturés) ÷ total chantiers × 100<br><strong>Barème ·</strong> ≥ 60 % → 23/25 &nbsp;·&nbsp; ≥ 40 % → 17/25 &nbsp;·&nbsp; ≥ 20 % → 9/25 &nbsp;·&nbsp; &lt; 20 % → 3/25<br><strong>Bonus ·</strong> +2 pts si des devis sont actifs (plafond 25)`;
 
   // ── RENDU D'UN PILIER (carte compacte) ───────────────────────
