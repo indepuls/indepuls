@@ -4516,24 +4516,52 @@ function wScoreSante(d) {
   }
 
   // ── PILIER 4 : COMMERCIAL (25 pts) ───────────────────────────
-  const allM=DATA.missions.filter(m=>!m.isManagement&&m.statut!=='ref');
-  const okM=allM.filter(m=>m.statut==='cours'||m.statut==='fact').length;
-  const attM=allM.filter(m=>m.statut==='att');
+  // Mesure la visibilité commerciale future, pas les ventes passées.
+  // Actifs = ponctuels att/cours + récurrents dont la période n'est pas terminée.
+  const _today=new Date(),_todayMs=_today.getTime();
+  const activesM=DATA.missions.filter(m=>{
+    if(m.isManagement) return false;
+    if(m.isRecurring){
+      if(!m.dateDebutRec) return false;
+      const [sy,sm]=m.dateDebutRec.split('-').map(Number);
+      if(!m.nbMoisRec||m.nbMoisRec<=0) return true;
+      return new Date(sy,sm-1+m.nbMoisRec,1)>_today;
+    }
+    return m.statut==='att'||m.statut==='cours';
+  });
+  const nbActives=activesM.length;
+  const attM=DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='att');
+  const nbDevis=attM.length;
   const pipelineVal=attM.reduce((s,m)=>s+(m.montantDevis||0),0);
-  const txT=allM.length>0?Math.round(okM/allM.length*100):null;
-  let sComm=0,vComm,subComm,diagComm,advComm;
-  if(txT===null){
-    sComm=12;vComm='—';subComm='Aucun chantier';
-    diagComm='○ Ajoutez vos chantiers pour activer cet indicateur.';advComm='';
+  // Visibilité = mois restants jusqu'à la fin du récurrent actif le plus long
+  let _visMs=0;
+  activesM.filter(m=>m.isRecurring&&m.dateDebutRec&&m.nbMoisRec>0).forEach(m=>{
+    const [sy,sm]=m.dateDebutRec.split('-').map(Number);
+    const e=new Date(sy,sm-1+m.nbMoisRec,1).getTime();
+    if(e>_visMs) _visMs=e;
+  });
+  const _visMois=_visMs>_todayMs?Math.ceil((_visMs-_todayMs)/(30.44*86400000)):0;
+  const visLabel=nbActives===0?'Aucune':_visMois>0?(_visMois>12?'> 12 mois':_visMois+' mois'):'Active';
+  let sComm;
+  if(nbActives>=3||(nbActives>=2&&nbDevis>=1)) sComm=25;
+  else if(nbActives===2||(nbActives===1&&nbDevis>=1)) sComm=18;
+  else if(nbActives===1) sComm=10;
+  else sComm=3;
+  const vComm=nbActives>0?`${nbActives} actif${nbActives>1?'s':''}`:'Aucun';
+  const subComm=nbDevis>0?`${nbDevis} devis · ${fmtE(pipelineVal)}`:'Aucun devis actif';
+  let diagComm,advComm;
+  if(sComm>=25){
+    diagComm='🟢 Votre activité dispose d\'une visibilité commerciale confortable.';
+    advComm=nbDevis>0?`${nbDevis} devis en attente (${fmtE(pipelineVal)}) — relancez-les avant qu\'ils refroidissent.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
+  } else if(sComm>=18){
+    diagComm='🟠 Votre activité reste sécurisée mais il est temps d\'alimenter votre prospection.';
+    advComm=nbDevis>0?`Relancez vos ${nbDevis} devis en attente et cherchez de nouvelles opportunités.`:'Envoyez de nouveaux devis pour renforcer votre visibilité commerciale.';
+  } else if(sComm>=10){
+    diagComm='🟠 Visibilité commerciale limitée — un seul chantier actif, aucun devis.';
+    advComm='Priorité à la prospection pour sécuriser les prochaines semaines.';
   } else {
-    sComm=txT>=60?23:txT>=40?17:txT>=20?9:3;
-    if(attM.length>0) sComm=Math.min(25,sComm+2);
-    vComm=txT+' %';
-    subComm=attM.length>0?`${attM.length} devis · ${fmtE(pipelineVal)}`:'Aucun devis actif';
-    if(sComm>=20){diagComm=`🟢 Activité commerciale saine.${attM.length>0?` ${attM.length} devis actif${attM.length>1?'s':''} (${fmtE(pipelineVal)}).`:''}`;advComm=attM.length>0?`Relancez vos devis actifs avant qu'ils refroidissent — un simple message suffit.`:'Bon rythme — visez à toujours avoir 2 à 3 propositions en attente de réponse.';}
-    else if(sComm>=14){diagComm=`🟠 Pipeline actif (${attM.length} devis) mais pouvant être renforcé.`;advComm='Relancez vos devis en attente. Maintenez idéalement 3 opportunités actives en permanence.';}
-    else if(sComm>=7){diagComm=`🔴 Peu d'opportunités ouvertes${attM.length>0?` — ${attM.length} devis seulement`:' — aucun devis actif'}.`;advComm='Essayez de maintenir au moins 3 devis actifs en permanence pour sécuriser votre activité.';}
-    else{diagComm='🔴 Aucun devis en attente actuellement.';advComm='Le risque de baisse d\'activité augmente fortement. Priorité à la prospection.';}
+    diagComm='🔴 Aucune activité future identifiée. Priorité à la prospection.';
+    advComm='Envoyez au moins un nouveau devis cette semaine pour alimenter votre pipeline.';
   }
 
   // ── SCORE GLOBAL ─────────────────────────────────────────────
@@ -4653,19 +4681,18 @@ function wScoreSante(d) {
   ];
 
   // Commercial
-  const coursCount=allM.filter(m=>m.statut==='cours').length;
-  const rowsComm=txT!==null?[
-    {lbl:tVocab('itemsEnCours'),   val:coursCount+' '+(coursCount>1?tVocab('items'):tVocab('item')).toLowerCase(), c:'var(--text)'},
-    {lbl:'Devis en attente',       val:attM.length>0?attM.length+' devis':'Aucun',  c:attM.length>0?'var(--text)':'var(--tl)'},
+  const rowsComm=[
+    {lbl:'Chantiers actifs',       val:nbActives>0?nbActives.toString():'Aucun',    c:nbActives>=2?'var(--ok)':nbActives===1?'var(--warn)':'var(--err)'},
+    {lbl:'Devis en attente',       val:nbDevis>0?nbDevis+' devis':'Aucun',          c:nbDevis>0?'var(--text)':'var(--tl)'},
     {lbl:'CA potentiel',           val:pipelineVal>0?fmtE(pipelineVal):'—',         c:pipelineVal>0?'var(--text)':'var(--tl)'},
-    {lbl:'Taux de transformation', val:txT+' %',                                    c:sComm>=20?'var(--ok)':sComm>=14?'var(--warn)':'var(--err)'},
-  ]:[{lbl:tVocab('items'),val:'Aucun renseigné',c:'var(--tl)'}];
+    {lbl:'Visibilité commerciale', val:visLabel,                                     c:nbActives>=2?'var(--ok)':nbActives===1?'var(--warn)':'var(--err)'},
+  ];
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
   const methRent=`<strong>Données ·</strong> TJM brut réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM brut vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
   const methRemp=`<strong>Données ·</strong> Sessions planifiées du mois en cours (onglet Planning)<br><strong>Calcul ·</strong> Jours planifiés ÷ jours ouvrables × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
-  const methComm=`<strong>Données ·</strong> Statut des chantiers (hors refusés)<br><strong>Calcul ·</strong> (en cours + facturés) ÷ total chantiers × 100<br><strong>Barème ·</strong> ≥ 60 % → 23/25 &nbsp;·&nbsp; ≥ 40 % → 17/25 &nbsp;·&nbsp; ≥ 20 % → 9/25 &nbsp;·&nbsp; &lt; 20 % → 3/25<br><strong>Bonus ·</strong> +2 pts si des devis sont actifs (plafond 25)`;
+  const methComm=`<strong>Données ·</strong> Chantiers actifs = ponctuels en cours/en attente + récurrents encore dans leur période<br><strong>Barème ·</strong> ≥ 3 actifs OU ≥ 2 actifs + 1 devis → 25/25 &nbsp;·&nbsp; 2 actifs OU 1 actif + 1 devis → 18/25<br>&nbsp;&nbsp;1 actif sans devis → 10/25 &nbsp;·&nbsp; 0 actif → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin du récurrent actif le plus long`;
 
   // ── RENDU D'UN PILIER (carte compacte) ───────────────────────
   const pilierCard=(label,pts,diag,adv,navPage,rows,meth)=>{

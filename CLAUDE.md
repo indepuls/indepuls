@@ -318,6 +318,10 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 ## Fonctionnalités implémentées (historique)
 
 - Score de santé : 4 piliers (rentabilité, remplissage, trésorerie, commercial), cards compactes + modal détail
+  - **Pilier Commercial (refonte 2026-06)** : mesure la *visibilité future*, pas les ventes passées. Missions actives = ponctuelles `att`/`cours` + récurrentes dont `dateDebutRec + nbMoisRec > aujourd'hui` (quel que soit le statut). Score : ≥3 actives OU ≥2+1devis→25 / 2 OU 1+1devis→18 / 1 seule→10 / 0→3. Taux de transformation supprimé du score. Visibilité affichée en mois (fin de la récurrente la plus longue).
+  - **Pilier Rentabilité** : compare TH brut réel (CA brut/heures) vs TH minimum cible brut (calculé depuis l'objectif net). TH net affiché en indicateur complémentaire seulement.
+  - **Pilier Trésorerie** : score basé sur retards ≥14j (inchangé), mais affiche systématiquement le total facturé non encaissé (sans délai minimum) pour éviter le faux sentiment de sécurité.
+  - **Pilier Remplissage** : barème en courbe cloche — 75–90 % optimal (25/25), <40 % ou >100 % critique (5/25).
 - Mode SASU complet : widget rémunération recommandée, trésorerie projetée, suppression doublons KPI
 - TVA unifiée : "Prochaine échéance TVA" (court terme) vs "TVA totale estimée à réserver" (annuel)
 - Évolution CA pleine largeur sur mobile (3e KPI = `grid-column: 1/-1`)
