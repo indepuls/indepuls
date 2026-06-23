@@ -3020,6 +3020,15 @@ function getCAMixte() {
 // Utilisé pour les alertes : on ne signale pas un CA faible si l'activité < 3 mois.
 // getMoisDepuisOuverture -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 
+// Pour une mission récurrente, le statut "Facturé" indique une étape administrative,
+// mais l'activité reste considérée comme en cours jusqu'à la fin de la période prévue.
+function isRecurringStillActive(m) {
+  if (!m.isRecurring || !m.dateDebutRec) return false;
+  if (!m.nbMoisRec || m.nbMoisRec <= 0) return true;
+  const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+  return new Date(sy, sm - 1 + m.nbMoisRec, 1) > new Date();
+}
+
 // Tableau des mois "actifs" dans l'année affichée :
 // – élimine les mois futurs (pour l'année courante)
 // – élimine les mois AVANT l'ouverture si celle-ci tombe dans cette même année
@@ -3936,7 +3945,7 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caMixtePresta,caMixteVentes}) {
   // Alertes contextuelles : pipeline et facturation
   const moisAgeCtx=getMoisDepuisOuverture();
   if(moisAgeCtx===null||moisAgeCtx>=2){
-    const actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'));
+    const actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'||isRecurringStillActive(m)));
     if(!actives.length) alerts.push({pr:2,cl:'al-warn',txt:`🔍 Aucun chantier en cours ni devis en attente — pensez à alimenter votre pipeline.`});
   }
   const factMissionsCtx=DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact'&&m.dateFact);
@@ -4387,7 +4396,7 @@ function wRentabChantiers() {
 }
 
 function wMissionsActives() {
-  const act=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'));
+  const act=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'||isRecurringStillActive(m)));
   if(!act.length) return `<div class="card"><div class="card-header"><div class="card-title">${tVocab('itemsEnCours')}</div></div><div class="empty ts">Aucun élément actif.</div></div>`;
   const rows=act.map(m=>{ const h=getMissionHeures(m),th=m.montantDevis>0&&h>0?m.montantDevis/h:null,ms=getMissionTotalMs(m); return `<div class="flex gap10 mb8" style="padding:10px;background:var(--bg);border-radius:8px;align-items:center"><button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button><div style="flex:1"><div class="fb">${m.client}</div><div class="ts">${m.description||''}</div></div><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div style="text-align:right;min-width:80px"><div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${th?fmtE(th,0)+'/h':'—'}</div></div><span class="badge b-${m.statut}">${m.statut==='cours'?'En cours':'En attente'}</span></div>`; }).join('');
   return `<div class="card"><div class="card-header"><div class="card-title">${tVocab('itemsEnCours')}</div><button class="btn btn-out btn-sm" onclick="navigate('missions')">Voir tout →</button></div>${rows}</div>`;
@@ -4713,7 +4722,7 @@ function wScoreSante(d) {
     </div>`;
   };
 
-  const _actives=DATA.missions.filter(m=>!m.isManagement&&m.statut==='cours');
+  const _actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||isRecurringStillActive(m)));
   const _activeRows=_actives.map(m=>{
     const lbl=[m.client,m.description].filter(Boolean).join(' — ')||tVocab('item')+' sans nom';
     const mt=m.montantDevis>0?` · ${fmtE(m.montantDevis)}`:'';
@@ -4763,7 +4772,7 @@ function wProjection3Mois(d) {
     const dt=new Date(now.getFullYear(),now.getMonth()+i,1);
     const mk=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
     let caRec=0;
-    DATA.missions.filter(m=>!m.isManagement&&m.isRecurring&&m.statut==='cours'&&m.dateDebutRec).forEach(m=>{
+    DATA.missions.filter(m=>!m.isManagement&&m.isRecurring&&(m.statut==='cours'||m.statut==='fact')&&m.dateDebutRec).forEach(m=>{
       const [sy,sm]=m.dateDebutRec.split('-').map(Number);
       const [ty,tm]=mk.split('-').map(Number);
       const diff=(ty-sy)*12+(tm-sm),nb=m.nbMoisRec||9999;
@@ -5274,9 +5283,9 @@ function renderMissionsSummary(all) {
   if(!sumEl) return;
   const actives=all.filter(m=>!m.isManagement);
   if(!actives.length){ sumEl.innerHTML=''; return; }
-  const enCours=actives.filter(m=>m.statut==='cours');
+  const enCours=actives.filter(m=>m.statut==='cours'||isRecurringStillActive(m));
   const enAtt=actives.filter(m=>m.statut==='att');
-  const facturees=actives.filter(m=>m.statut==='fact');
+  const facturees=actives.filter(m=>m.statut==='fact'&&!isRecurringStillActive(m));
   const caEnCours=enCours.reduce((s,m)=>s+(m.montantDevis||0),0);
   const caEnAtt=enAtt.reduce((s,m)=>s+(m.montantDevis||0),0);
   const caFacture=facturees.reduce((s,m)=>s+(m.montantDevis||0),0);
@@ -5337,7 +5346,7 @@ function renderMissions() {
   const tbody=document.getElementById('missions-tbody'); tbody.innerHTML='';
   const bm={att:'b-att',cours:'b-cours',ref:'b-ref',fact:'b-fact'};
   const tvaOn=DATA.params.tva, tvaRate=DATA.params.tauxTVA/100;
-  let filtered=DATA.missions.filter(m=>missionFilter==='all'||m.statut===missionFilter);
+  let filtered=DATA.missions.filter(m=>missionFilter==='all'||m.statut===missionFilter||(missionFilter==='cours'&&isRecurringStillActive(m)));
   filtered.sort((a,b)=>(b.isManagement?1:0)-(a.isManagement?1:0));
   if(!filtered.length){
     const isEmpty=missionFilter==='all';

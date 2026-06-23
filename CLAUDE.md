@@ -322,6 +322,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
   - **Pilier Rentabilité** : compare TH brut réel (CA brut/heures) vs TH minimum cible brut (calculé depuis l'objectif net). TH net affiché en indicateur complémentaire seulement.
   - **Pilier Trésorerie** : score basé sur retards ≥14j (inchangé), mais affiche systématiquement le total facturé non encaissé (sans délai minimum) pour éviter le faux sentiment de sécurité.
   - **Pilier Remplissage** : barème en courbe cloche — 75–90 % optimal (25/25), <40 % ou >100 % critique (5/25).
+- **Règle métier missions récurrentes (2026-06)** : pour une mission récurrente, `statut === 'fact'` est un état *administratif* (dernière facture envoyée), pas une fin d'activité. Partout où l'application doit déterminer si une activité est en cours, on utilise `isRecurringStillActive(m)` = `dateDebutRec + nbMoisRec > aujourd'hui` (durée indéfinie `nbMoisRec <= 0` = toujours active). Cette règle s'applique à : `getChargeEstimeeTotal`, filtre "En cours" de la liste missions, `wMissionsActives`, `wRemplissage`, `_actives` dans le Score Santé, `wProjection3Mois`, `renderMissionsSummary`. **Ne pas modifier** : CA, encaissements, trésorerie, historique (déjà corrects ou exclusion délibérée).
 - Mode SASU complet : widget rémunération recommandée, trésorerie projetée, suppression doublons KPI
 - TVA unifiée : "Prochaine échéance TVA" (court terme) vs "TVA totale estimée à réserver" (annuel)
 - Évolution CA pleine largeur sur mobile (3e KPI = `grid-column: 1/-1`)
