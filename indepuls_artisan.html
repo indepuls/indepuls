@@ -5138,7 +5138,7 @@ function deleteEncaissement(encId) {
 function duplicateMission(id) {
   const m=DATA.missions.find(x=>x.id===id);
   if(!m||m.isManagement) return;
-  const copy={...m, id:'m-'+Date.now(), statut:'att', dateFact:'', tempsMin:0, timerRunning:false, timerStart:null, timerAccumulated:0, encaissements:[], notes:m.notes||''};
+  const copy={...m, id:'m-'+Date.now(), statut:'att', dateFact:'', tempsMin:0, timerRunning:false, timerStart:null, timerAccumulated:0, tempsManuel:[], encaissements:[], notes:m.notes||''};
   delete copy.isManagement;
   const idx=DATA.missions.findIndex(x=>x.id===id);
   DATA.missions.splice(idx+1,0,copy);
@@ -6356,9 +6356,9 @@ function saveCorrectTime() {
     renderTempsInterneModal();
   } else {
     const m=DATA.missions.find(x=>x.id===id); if(!m) return;
-    const manualMs=(m.tempsManuel||[]).reduce((s,e)=>s+e.ms,0);
-    m.timerAccumulated=Math.max(0,newMs-manualMs);
-    if(m.timerRunning){ m.timerRunning=false; m.timerStart=null; }
+    m.tempsManuel=[];
+    m.timerAccumulated=newMs;
+    m.timerRunning=false; m.timerStart=null;
   }
   saveData(); closeModal('modal-correct-time'); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
