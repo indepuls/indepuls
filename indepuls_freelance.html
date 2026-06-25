@@ -2466,7 +2466,7 @@ function heuresMs(ms) { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.
 // getMissionTotalMs → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // getMissionHeures → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // getTauxHoraireMinCible → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
-function saveParam(key,val) { DATA.params[key]=val; saveData(); }
+function saveParam(key,val) { DATA.params[key]=val; if(DATA.isExample) DATA.isExample=false; saveData(); }
 function themeColor(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
 
 // ── ENCAISSEMENTS ─────────────────────────────────────────────

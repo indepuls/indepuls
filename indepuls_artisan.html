@@ -2873,7 +2873,7 @@ function monthLabelFull(k) { const [y,m]=k.split('-'); return new Date(+y,+m-1,1
 function heuresMs(ms) { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`; }
 // getMissionTotalMs -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // getMissionHeures -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
-function saveParam(key,val) { DATA.params[key]=val; saveData(); }
+function saveParam(key,val) { DATA.params[key]=val; if(DATA.isExample) DATA.isExample=false; saveData(); }
 // Sauvegarde un taux de charges et synchronise le champ prestation correspondant.
 // Pour micro-achat, tauxURSSAF/tauxCFP = taux vente principal (12,3 %/0,1 %).
 // tauxCotisationsPrestation/tauxCFPPrestation sont indépendants (BIC pour la colonne
