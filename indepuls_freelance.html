@@ -658,6 +658,7 @@ html,body{overflow-x:hidden;}
             <option value="mensuelle">Mensuelles</option>
             <option value="annuelle">Annuelles</option>
             <option value="ponctuelle">Ponctuelles</option>
+            <option value="mission">Liées à une mission</option>
           </select>
         </div>
         <div id="dep-cat-select-wrap" style="display:flex;align-items:center;gap:6px;display:none">
@@ -1324,6 +1325,7 @@ html,body{overflow-x:hidden;}
       <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
     </div>
     <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
+    <div id="m-couts-directs-zone" style="display:none"></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
@@ -1627,6 +1629,16 @@ html,body{overflow-x:hidden;}
       </div>
       <div id="dep-tva-montant-zone" style="display:none">
         <div class="fgroup"><label class="flabel">Montant TVA (€)</label><input type="number" id="d-tva-montant" step="0.01" min="0" placeholder="Ex: 12.00"></div>
+      </div>
+    </div>
+    <div id="dep-mission-zone" style="display:none">
+      <div class="divider"></div>
+      <div class="fgroup">
+        <label class="flabel">Rattacher à une mission <span class="ts">(optionnel)</span></label>
+        <select id="d-mission-id">
+          <option value="">— Aucune —</option>
+        </select>
+        <div class="ts" style="margin-top:4px;color:var(--tl)">La dépense sera associée à cette mission et exclue des charges fixes.</div>
       </div>
     </div>
     <div id="dep-zero-zone" style="display:none;margin-top:14px;border:1.5px solid var(--warn);border-left:4px solid var(--warn);border-radius:8px;padding:12px 14px;background:rgba(201,115,22,.05)">
@@ -4866,6 +4878,18 @@ function openMissionModal(id) {
   }
   toggleMissionType(typeMission);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
+  // Coûts directs liés à cette mission
+  const depZone=document.getElementById('m-couts-directs-zone');
+  if(depZone){
+    if(m){
+      const dep=getDepensesAffaire(m.id);
+      if(dep>0){
+        const marge=(m.montantDevis||0)-dep;
+        depZone.style.display='';
+        depZone.innerHTML=`<div class="divider"></div><div style="font-size:12px;color:var(--tl);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Coûts directs liés</div><div style="display:flex;gap:16px;flex-wrap:wrap"><span>💸 <strong>${fmtE(dep)}</strong> de coûts</span><span>📊 Marge brute : <strong>${fmtE(marge)}</strong> (${m.montantDevis>0?Math.round(marge/m.montantDevis*100):0} %)</span></div>`;
+      } else { depZone.style.display='none'; }
+    } else { depZone.style.display='none'; }
+  }
   openModal('modal-mission');
 }
 
@@ -5411,6 +5435,16 @@ function openDepModal(id) {
     document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
     document.getElementById('d-tva-montant').value=d&&d.montantTVA?d.montantTVA:'';
   }
+  // Sélecteur mission (coûts directs)
+  const missionSel = document.getElementById('d-mission-id');
+  const missionsDisponibles = DATA.missions.filter(m => !m.isManagement && !m.isRecurring);
+  if (missionsDisponibles.length) {
+    missionSel.innerHTML = '<option value="">— Aucune —</option>' +
+      missionsDisponibles.map(m => `<option value="${m.id}"${(d&&d.chantierId===m.id)?' selected':''}>${m.client||'Sans client'} — ${m.description||m.categorie||'Mission'} (${fmtE(m.montantDevis||0)})</option>`).join('');
+    document.getElementById('dep-mission-zone').style.display = '';
+  } else {
+    document.getElementById('dep-mission-zone').style.display = 'none';
+  }
   hideDepConfirm();
   openModal('modal-dep');
 }
@@ -5442,6 +5476,7 @@ function saveDepense(force) {
     }
   }
   hideDepConfirm();
+  const chantierId = document.getElementById('d-mission-id')?.value || '';
   const obj={
     date:document.getElementById('d-date').value,
     categorie:document.getElementById('d-cat').value||'Autre',
@@ -5450,9 +5485,10 @@ function saveDepense(force) {
     recurrence:rec,
     dateDebut:rec!=='ponctuelle'?(document.getElementById('d-toujours').checked?'always':document.getElementById('d-date-debut').value):'',
     tvaDeductible:tvaDeductible,
-    montantTVA:tvaDeductible?parseFloat(document.getElementById('d-tva-montant').value)||0:0
+    montantTVA:tvaDeductible?parseFloat(document.getElementById('d-tva-montant').value)||0:0,
   };
-  if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d) Object.assign(d,obj); }
+  if(chantierId) obj.chantierId = chantierId; else delete obj.chantierId;
+  if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d){ Object.assign(d,obj); if(!chantierId) delete d.chantierId; } }
   else { addDepense(obj); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
   saveData(); closeModal('modal-dep'); showToast('✅ Dépense enregistrée.'); renderDepenses();
 }
@@ -5575,12 +5611,14 @@ function renderDepenses() {
   const sumEl=document.getElementById('dep-summary');
   if(sumEl){
     if(all.length){
-      const dMens  = all.filter(d=>d.recurrence==='mensuelle');
-      const dAnn   = all.filter(d=>d.recurrence==='annuelle');
-      const dPonct = all.filter(d=>d.recurrence==='ponctuelle');
+      const dMens  = all.filter(d=>d.recurrence==='mensuelle' && !d.chantierId);
+      const dAnn   = all.filter(d=>d.recurrence==='annuelle'  && !d.chantierId);
+      const dPonct = all.filter(d=>d.recurrence==='ponctuelle'&& !d.chantierId);
+      const dMiss  = all.filter(d=>!!d.chantierId);
       const totMens  = dMens.reduce((s,d)=>s+(d.montant||0),0);
       const totAnn   = dAnn.reduce((s,d)=>s+(d.montant||0),0);
       const totPonct = dPonct.reduce((s,d)=>s+(d.montant||0),0);
+      const totMiss  = dMiss.reduce((s,d)=>s+(d.montant||0),0);
       const sep=`<span style="color:var(--brd);font-size:18px;line-height:1;margin:0 1px;user-select:none">|</span>`;
       const st=(ico,lbl,val,clr)=>`<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><span>${ico}</span><span style="font-size:11px;color:var(--tl)">${lbl}</span><span style="font-weight:700;font-size:13px;${clr?'color:'+clr+';':''}">${val}</span></span>`;
       const donutHtml=renderDepDonut();
@@ -5591,6 +5629,7 @@ function renderDepenses() {
           ${sep}${st('🏠','Fixes',fmtE(totMens)+'/mois','var(--ok)')}
           ${sep}${st('📆','Annuelles',fmtE(totAnn)+'/an','')}
           ${sep}${st('⚡','Ponctuelles',fmtE(totPonct),'')}
+          ${totMiss>0?sep+st('🔗','Missions',fmtE(totMiss),''):''}
           ${hasDonut?`<span id="dep-donut-btn" style="margin-left:auto;font-size:11px;color:var(--tl);white-space:nowrap">${depDonutOpen?'Répartition ▲':'Répartition ▼'}</span>`:''}
         </div>
         ${hasDonut?`<div id="dep-donut-panel" style="display:${depDonutOpen?'':'none'};padding:0 20px 16px;border-top:1px solid var(--brd)">${donutHtml}</div>`:''}
@@ -5602,9 +5641,10 @@ function renderDepenses() {
 
   // ── Filtre rapide ──
   let filtered=[...all];
-  if(depFilter==='mensuelle')  filtered=filtered.filter(d=>d.recurrence==='mensuelle');
-  else if(depFilter==='annuelle')  filtered=filtered.filter(d=>d.recurrence==='annuelle');
-  else if(depFilter==='ponctuelle') filtered=filtered.filter(d=>d.recurrence==='ponctuelle');
+  if(depFilter==='mensuelle')   filtered=filtered.filter(d=>d.recurrence==='mensuelle'  && !d.chantierId);
+  else if(depFilter==='annuelle')  filtered=filtered.filter(d=>d.recurrence==='annuelle'   && !d.chantierId);
+  else if(depFilter==='ponctuelle') filtered=filtered.filter(d=>d.recurrence==='ponctuelle' && !d.chantierId);
+  else if(depFilter==='mission')   filtered=filtered.filter(d=>!!d.chantierId);
   if(depCatFilter!=='all') filtered=filtered.filter(d=>(d.categorie||'Autre')===depCatFilter);
 
   // ── Tri ──
@@ -5636,7 +5676,7 @@ function renderDepenses() {
     <td class="dep-cat" data-label="Catégorie"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
     <td class="fb dep-amt" data-label="Montant">${fmtE(d.montant)}</td>
     ${tvaTd(d)}
-    <td class="dep-rec" data-label="Récurrence"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''): ''}</td>
+    <td class="dep-rec" data-label="Récurrence"><span class="badge b-mgmt">${rL[d.recurrence]||d.recurrence}</span>${d.chantierId?(()=>{const lm=DATA.missions.find(x=>x.id===d.chantierId);return`<div class="ts" style="margin-top:3px">🔗 ${lm?(lm.client||lm.description||'Mission'):'Mission supprimée'}</div>`;})():d.recurrence!=='ponctuelle'?(d.dateDebut==='always'?`<div class="ts" style="font-style:italic">depuis toujours</div>`:d.dateDebut?`<div class="ts">depuis ${d.dateDebut}</div>`:''): ''}</td>
     <td class="dep-act"><button class="btn btn-out btn-xs" onclick="openDepModal('${d.id}')">✏️</button> <button class="btn btn-del btn-xs" onclick="deleteDepense('${d.id}')">🗑</button></td>
   </tr>`).join('');
 
