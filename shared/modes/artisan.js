@@ -5,6 +5,7 @@
 // sans toucher au core partagé.
 
 import * as C from '../core/calculs.js';
+import * as P from '../core/planning.js';
 import * as S from '../core/storage.js';
 import { getTauxStatut } from '../core/taux.js';
 
@@ -85,6 +86,13 @@ export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA,
 export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
 export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
+
+// ── PLANNING ─────────────────────────────────────────────────
+
+export const getTauxRemplissageMois  = (mk) => P.getTauxRemplissageMois(DATA, mk);
+export const getTauxRemplissageAnnee = ()   => P.getTauxRemplissageAnnee(DATA);
+export const scorerRemplissage       = P.scorerRemplissage;
+export const getPilierRemplissage    = ()   => P.getPilierRemplissage(DATA);
 
 // ── FONCTIONS SPÉCIFIQUES ARTISAN ────────────────────────────
 // Ces fonctions n'ont pas d'équivalent Freelance.

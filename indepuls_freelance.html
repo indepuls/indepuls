@@ -2258,6 +2258,7 @@ function getDefaultData() {
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       dateOuverture:'', metier:'',
+      modePlanning:'estime',
       livreRecettesActif:false
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
@@ -2290,6 +2291,8 @@ function migrate(data) {
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
+  if (data.params?.modePlanning && !['estime','calendrier','aucun'].includes(data.params.modePlanning))
+    delete data.params.modePlanning;
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -3641,9 +3644,8 @@ function wMissionsActives() {
 
 function wCapacite() {
   const p=DATA.params;
-  const cap=getCapaciteHSem(); // heuresParJour × joursParSemaine
-  const charge=getChargeEstimeeTotal();
-  const pct=charge>0?Math.round(charge/cap*100):0;
+  const pilRemp=Mode.getPilierRemplissage();
+  const cap=pilRemp.details?.capacite??0, charge=pilRemp.details?.utilise??0, pct=pilRemp.details?.taux??0;
   const cl=pct>100?'bad':pct>80?'warn':'good';
   const clC=pct>100?'var(--err)':pct>80?'var(--warn)':'var(--ok)';
   const emoji=pct>100?'🔴':pct>80?'🟠':'🟢';
@@ -3767,23 +3769,9 @@ function wScoreSante(d) {
   else{diagRent=`🔴 TJM brut très faible${thMin>0?` — ${tjmBrut>0?fmtE(tjmBrut,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
 
   // ── PILIER 2 : REMPLISSAGE / CAPACITÉ (25 pts) ───────────────
-  let sRemp=0;
-  const cap=getCapaciteHSem(),charge=getChargeEstimeeTotal();
-  const capPct=cap>0?Math.round(charge/cap*100):0;
-  let vRemp,subRemp,diagRemp,advRemp;
-  if(cap===0||charge===0){
-    sRemp=12;vRemp='—';subRemp='Aucune charge renseignée';
-    diagRemp='○ Renseignez vos missions pour activer cet indicateur.';advRemp='';
-  } else {
-    sRemp=capPct<40?5:capPct<60?12:capPct<75?18:capPct<=90?25:capPct<=100?18:5;
-    const libre=Math.max(0,cap-charge);
-    vRemp=Math.min(capPct,999)+' %';subRemp=`${fmt(libre,1)} h libres / sem`;
-    if(capPct>100){diagRemp=`🔴 Votre capacité facturable est dépassée (${capPct} %). Risque de surcharge ou d'épuisement à moyen terme.`;advRemp='Envisagez de déléguer, d\'augmenter vos tarifs ou de refuser les missions les moins rentables.';}
-    else if(capPct>=90){diagRemp=`🟠 Votre planning est presque plein (${capPct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;advRemp='Évitez d\'accepter de nouvelles missions sans ajuster votre organisation ou vos tarifs.';}
-    else if(capPct>=75){diagRemp='🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';advRemp=`${fmt(libre,1)} h disponibles par semaine — idéal pour le pilotage et les opportunités ponctuelles.`;}
-    else if(capPct>=40){diagRemp=`🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.`;advRemp=`${fmt(libre,1)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;}
-    else{diagRemp=`🔴 Votre capacité est largement sous-utilisée (${capPct} %). Le principal enjeu est actuellement de développer votre activité.`;advRemp='Priorité à la prospection. L\'objectif de revenu est difficile à atteindre dans ces conditions.';}
-  }
+  const pilRemp=Mode.getPilierRemplissage();
+  const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp,conseil:advRemp}=pilRemp;
+  const cap=pilRemp.details?.capacite??0,charge=pilRemp.details?.utilise??0,capPct=pilRemp.details?.taux??0;
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
   // Total non encaissé = toutes facturées avec reste > 0, sans délai minimum (pour l'affichage)

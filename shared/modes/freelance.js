@@ -11,6 +11,7 @@
 //   Phase 3 — le HTML ne contient plus que le UI, toute la logique vient d'ici.
 
 import * as C from '../core/calculs.js';
+import * as P from '../core/planning.js';
 import * as S from '../core/storage.js';
 import { getTauxStatut } from '../core/taux.js';
 
@@ -87,6 +88,15 @@ export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA,
 export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
 export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
+
+// ── PLANNING ─────────────────────────────────────────────────
+
+export const toHeuresSem            = (v, u) => P.toHeuresSem(DATA.params, v, u);
+export const getCapaciteHSem        = ()     => P.getCapaciteHSem(DATA);
+export const getMissionChargeHSem   = (m)    => P.getMissionChargeHSem(DATA, m);
+export const getChargeEstimeeTotal  = ()     => P.getChargeEstimeeTotal(DATA);
+export const scorerRemplissage      = P.scorerRemplissage;
+export const getPilierRemplissage   = ()     => P.getPilierRemplissage(DATA);
 
 // ── STORAGE ──────────────────────────────────────────────────
 

@@ -2222,6 +2222,7 @@ function getDefaultData() {
       remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
       dateOuverture:'', metier:'',
       rentabClientSort:'ca', rentabCatSort:'ca',
+      modePlanning:'calendrier',
       livreRecettesActif:false
     },
     categories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur-mesure','Conseil / Devis','Formation / Atelier','Autre'],
@@ -2252,6 +2253,8 @@ function migrate(data) {
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
+  if (data.params?.modePlanning && !['estime','calendrier','aucun'].includes(data.params.modePlanning))
+    delete data.params.modePlanning;
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -4261,9 +4264,10 @@ function wRemplissage() {
   const curMk=getCurrentMk();
   const [cY,cM]=curMk.split('-');
   const moisLabel=new Date(+cY,+cM-1,1).toLocaleString('fr-FR',{month:'long'});
-  const rm=getTauxRemplissageMois(curMk);
+  const pilRemp=Mode.getPilierRemplissage();
+  const hasSessions=pilRemp.details!==null&&pilRemp.methode==='calendrier';
+  const rm=pilRemp.details?{occupied:pilRemp.details.utilise,ouvrables:pilRemp.details.capacite,taux:pilRemp.details.taux}:{occupied:0,ouvrables:0,taux:0};
   const ra=getTauxRemplissageAnnee();
-  const hasSessions=DATA.missions.some(m=>!m.isManagement&&(m.sessions||[]).length>0);
 
   // État vide : aucune session renseignée
   if(!hasSessions){
@@ -4496,24 +4500,11 @@ function wScoreSante(d) {
   else{diagRent=`🔴 TJM brut très faible${thMin>0?` — ${tjmBrut>0?fmtE(tjmBrut,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
 
   // ── PILIER 2 : REMPLISSAGE (25 pts) ──────────────────────────
-  let sRemp=0;
-  const rm=getTauxRemplissageMois(curMk);
+  const pilRemp=Mode.getPilierRemplissage();
+  const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp,conseil:advRemp}=pilRemp;
+  const hasSessions=pilRemp.details!==null&&pilRemp.methode==='calendrier';
+  const rm=pilRemp.details?{occupied:pilRemp.details.utilise,ouvrables:pilRemp.details.capacite,taux:pilRemp.details.taux}:{occupied:0,ouvrables:0,taux:0};
   const ra=getTauxRemplissageAnnee();
-  const hasSessions=DATA.missions.some(m=>!m.isManagement&&(m.sessions||[]).length>0);
-  let vRemp,subRemp,diagRemp,advRemp;
-  if(!hasSessions||rm.ouvrables===0){
-    sRemp=12;vRemp='—';subRemp='Non renseigné';
-    diagRemp='○ Planifiez vos sessions pour activer cet indicateur.';advRemp='Ajoutez des sessions dans l\'onglet Planning.';
-  } else {
-    const t=rm.taux,dispo=rm.ouvrables-rm.occupied;
-    sRemp=t<40?5:t<60?12:t<75?18:t<=90?25:t<=100?18:5;
-    vRemp=t+' %';subRemp=`${rm.occupied} j / ${rm.ouvrables} j ouvrables`;
-    if(t>100){diagRemp=`🔴 Votre capacité facturable est dépassée (${t} %). Risque de surcharge ou d'épuisement à moyen terme.`;advRemp='Envisagez de déléguer ou de refuser les chantiers les moins rentables.';}
-    else if(t>=90){diagRemp=`🟠 Votre planning est presque plein (${t} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;advRemp='Évitez d\'accepter de nouveaux chantiers sans ajuster votre organisation.';}
-    else if(t>=75){diagRemp='🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';advRemp=dispo>0?`${dispo} jour${dispo>1?'s':''} disponibles ce mois — idéal pour le pilotage et les opportunités ponctuelles.`:'';}
-    else if(t>=40){diagRemp=`🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.`;advRemp=`${dispo} jour${dispo>1?'s':''} encore disponibles ce mois — cherchez à consolider votre portefeuille client.`;}
-    else{diagRemp=`🔴 Votre capacité est largement sous-utilisée (${t} %). Le principal enjeu est actuellement de développer votre activité.`;advRemp='Priorité à la prospection et aux relances. L\'objectif de revenu est en danger.';}
-  }
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
   // Total non encaissé = toutes facturées avec reste > 0, sans délai minimum (pour l'affichage)

@@ -70,6 +70,10 @@ function argsFor(name) {
   if (name === 'setData') return [DATA_MIN];
   if (name === 'getTVAZone') return [1000, 37500, 41250];
   if (name === 'tvaZoneFill' || name === 'tvaZoneKpi') return ['tolerance'];
+  if (name === 'getTauxRemplissageMois') return ['2026-03'];
+  if (name === 'getMissionChargeHSem')   return [DATA_MIN.missions[0]];
+  if (name === 'toHeuresSem')            return [5, 'h_sem'];
+  if (name === 'scorerRemplissage')      return [75];
   return [];
 }
 
