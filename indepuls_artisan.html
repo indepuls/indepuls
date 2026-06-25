@@ -1115,7 +1115,7 @@ html,body{overflow-x:hidden;}
         <div class="mb12" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Temps estimé</div>
         <div class="frow">
           <div class="fgroup">
-            <label class="flabel">Temps chantier (h)</label>
+            <label class="flabel" id="dv-label-temps">Temps chantier (h)</label>
             <input type="number" id="dv-h-chantier" min="0" step="0.5" placeholder="0" oninput="calcDevis()">
           </div>
           <div class="fgroup">
@@ -1129,7 +1129,7 @@ html,body{overflow-x:hidden;}
         <div class="mb12" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Coûts estimés</div>
         <div class="frow">
           <div class="fgroup">
-            <label class="flabel">Fournitures / Matériaux (€)</label>
+            <label class="flabel" id="dv-label-coutdirect">Fournitures / Matériaux (€)</label>
             <input type="number" id="dv-fournitures" min="0" step="10" placeholder="0" oninput="calcDevis()">
           </div>
           <div class="fgroup">
@@ -1142,7 +1142,7 @@ html,body{overflow-x:hidden;}
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-out btn-sm" onclick="resetDevis()">Réinitialiser</button>
-          <button class="btn btn-acc btn-sm" id="dv-btn-creer" style="display:none" onclick="devisVersMission()">+ Créer un chantier à partir de ce test</button>
+          <button class="btn btn-acc btn-sm" id="dv-btn-creer" style="display:none" onclick="devisVersMission()">+ <span id="dv-label-creer">Créer un chantier à partir de ce test</span></button>
         </div>
       </div>
 
@@ -1967,8 +1967,12 @@ function applyVocabUI() {
   const obCta2 = document.getElementById('onboarding-cta-2');
   if (obCta2) obCta2.textContent = tVocab('goTo');
   // Simulateur / Devis
-  const dvBtn = document.getElementById('dv-btn-creer');
-  if (dvBtn) dvBtn.textContent = '+ ' + tVocab('createFromTest');
+  const dvCreer = document.getElementById('dv-label-creer');
+  if (dvCreer) dvCreer.textContent = tVocab('createFromTest');
+  const dvTemps = document.getElementById('dv-label-temps');
+  if (dvTemps) dvTemps.textContent = tVocab('temps') + ' (h)';
+  const dvCout = document.getElementById('dv-label-coutdirect');
+  if (dvCout) dvCout.textContent = tVocab('coutDirectLabel') + ' (€)';
   // Modal sessions label
   const sessLabel = document.getElementById('modal-sessions-label');
   if (sessLabel) sessLabel.textContent = tVocab('sessions');
