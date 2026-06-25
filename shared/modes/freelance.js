@@ -12,6 +12,7 @@
 
 import * as C from '../core/calculs.js';
 import * as P from '../core/planning.js';
+import * as A from '../core/affaires.js';
 import * as S from '../core/storage.js';
 import { getTauxStatut } from '../core/taux.js';
 
@@ -88,6 +89,17 @@ export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA,
 export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
 export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
+
+// ── AFFAIRES ─────────────────────────────────────────────────
+
+export const getDepensesAffaire          = (affaireId) => A.getDepensesAffaire(DATA, affaireId);
+export const getDepensesAffairesMap      = ()          => A.getDepensesAffairesMap(DATA);
+export const getMargeAffaire             = (m)         => A.getMargeAffaire(DATA, m);
+export const getTHReelAffaire            = (m)         => A.getTHReelAffaire(DATA, m);
+export const getPctCoutAffaire           = (m)         => A.getPctCoutAffaire(DATA, m);
+export const getAffairesAvecCouts        = (missions)  => A.getAffairesAvecCouts(DATA, missions);
+export const getMargeMoyennePortefeuille = (missions)  => A.getMargeMoyennePortefeuille(DATA, missions);
+export const excludeDepensesLiees        = (depenses)  => A.excludeDepensesLiees(depenses);
 
 // ── PLANNING ─────────────────────────────────────────────────
 

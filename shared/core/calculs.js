@@ -128,8 +128,11 @@ export function getDepensesMois(DATA, mk) {
 export function getDepensesMoyenneMensuelle(DATA) {
   const actMois = getActiveMonthsInYear(DATA);
   if (actMois === 0) return 0;
+  // Exclut les dépenses rattachées à une affaire (chantierId) : elles sont
+  // absorbées par la marge de chaque affaire et ne font pas partie de la
+  // charge structurelle mensuelle. Règle commune artisan et freelance.
   return DATA.depenses
-    .filter(d => d.recurrence !== 'ponctuelle')
+    .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId)
     .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montant || 0) / actMois : (d.montant || 0)), 0);
 }
 
