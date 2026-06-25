@@ -1211,7 +1211,7 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Client</label><input type="text" id="m-client" placeholder="Nom ou société"></div>
       <div class="fgroup"><label class="flabel">Catégorie</label><select id="m-cat"><option value="">— Choisir —</option></select></div>
     </div>
-    <div class="fgroup"><label class="flabel">Description du chantier</label><input type="text" id="m-desc" placeholder="Ex: Rénovation salle de bains"></div>
+    <div class="fgroup"><label class="flabel" id="m-desc-label">Description du chantier</label><input type="text" id="m-desc" placeholder="Ex: Rénovation salle de bains"></div>
     <div class="frow">
       <div class="fgroup">
         <label class="flabel">Type de facturation</label>
@@ -1847,7 +1847,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
-    coutDirectLabel:'Coûts directs'
+    coutDirectLabel:'Coûts directs',
+    descLabel:'Description de la mission', descPlaceholder:'Ex : Stratégie réseaux sociaux'
   },
   creative: {
     item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
@@ -1865,7 +1866,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes offres & catégories de prestations',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de prestations.\nVous pouvez renseigner vos offres, shootings, créations ou catégories de travail.',
     defaultCategories:['Création','Production','Shooting','Montage','Branding','Site web','Réseaux sociaux','Impression','Conseil','Autre'],
-    coutDirectLabel:'Coûts directs'
+    coutDirectLabel:'Coûts directs',
+    descLabel:'Description de la prestation', descPlaceholder:'Ex : Shooting portrait professionnel'
   },
   chantier: {
     item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
@@ -1883,7 +1885,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes offres & catégories de chantiers',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre'],
-    coutDirectLabel:'Fournitures / matériaux'
+    coutDirectLabel:'Fournitures / matériaux',
+    descLabel:'Description du chantier', descPlaceholder:'Ex : Rénovation salle de bains'
   },
   fabrication: {
     item:'Commande', items:'Commandes', addItem:'+ Ajouter une commande',
@@ -1901,7 +1904,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
     defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre'],
-    coutDirectLabel:'Matières premières'
+    coutDirectLabel:'Matières premières',
+    descLabel:'Description de la commande', descPlaceholder:'Ex : Collier pendentif argent sur mesure'
   }
 };
 const BUSINESS_PROFILE_MAP = {
@@ -4951,11 +4955,16 @@ function openMissionModal(id) {
   if(planZone) planZone.style.display=m&&m.isManagement?'none':'';
   initEditingSessions(m);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
+  // Label et placeholder description selon la famille métier
+  const descLabelEl=document.getElementById('m-desc-label');
+  if(descLabelEl) descLabelEl.textContent=tVocab('descLabel');
+  const descInput=document.getElementById('m-desc');
+  if(descInput) descInput.placeholder=tVocab('descPlaceholder');
   // Bloc coûts directs liés — visible uniquement sur une affaire existante
   const coutsZone=document.getElementById('m-couts-directs-zone');
   if(coutsZone){
     const showCouts=!!(m&&!m.isManagement);
-    coutsZone.style.display=showCouts?'':'none';
+    coutsZone.style.display=showCouts?'block':'none';
     if(showCouts){
       const dep=getDepensesChantier(m.id);
       document.getElementById('m-cout-direct-total').textContent=fmtE(dep);
