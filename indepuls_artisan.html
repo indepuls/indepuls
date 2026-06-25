@@ -5381,6 +5381,31 @@ function renderMissionsSummary(all) {
         <div id="msn-top-clients">${rentabClientsBody()}</div>
         <div id="msn-top-cats">${rentabCatBody()}</div>
       </div>
+      ${(()=>{
+        const family=BUSINESS_PROFILE_MAP[DATA.params?.metier]||DEFAULT_FAMILY;
+        if(family!=='fabrication') return '';
+        const withCouts=facturees.map(m=>{const dep=getDepensesChantier(m.id);return{m,dep,marge:m.montantDevis-dep};}).filter(x=>x.dep>0);
+        if(!withCouts.length) return `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--brd)"><div class="card-title" style="margin-bottom:6px;font-size:13px">📦 Rentabilité commandes — ${tVocab('coutDirectLabel')}</div><div class="ts" style="color:var(--tl)">Rattachez des ${tVocab('coutDirectLabel').toLowerCase()} à vos commandes depuis l'onglet <span style="cursor:pointer;color:var(--acc)" onclick="navigate('depenses')">Dépenses</span> pour voir la marge brute.</div></div>`;
+        const nb=withCouts.length;
+        const totalMarge=withCouts.reduce((s,x)=>s+x.marge,0);
+        const totalCA=withCouts.reduce((s,x)=>s+x.m.montantDevis,0);
+        const totalDep=withCouts.reduce((s,x)=>s+x.dep,0);
+        const margeMoy=totalMarge/nb;
+        const pctCout=totalCA>0?totalDep/totalCA*100:null;
+        const r=1-getTauxChargesPresta()-getImpotsTaux();
+        const depMens=getDepensesMoyenneMensuelle()+(DATA.params.chargesAnnuellesCompl||0)/12;
+        const caMens=r>0&&DATA.params.objectifNetMensuel?(DATA.params.objectifNetMensuel+depMens)/r:0;
+        const nbObj=margeMoy>0&&caMens>0?Math.ceil(caMens/margeMoy):null;
+        const margeColor=margeMoy>=0?'var(--ok)':'var(--err)';
+        return `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--brd)">
+          <div class="card-title" style="margin-bottom:10px;font-size:13px">📦 Rentabilité commandes — ${tVocab('coutDirectLabel')} <span class="ts" style="font-weight:400;color:var(--tl)">(${nb} commande${nb>1?'s':''} avec coûts renseignés)</span></div>
+          <div class="g3" style="gap:10px">
+            ${card('💹','Marge brute moy.',fmtE(margeMoy,0)+'/cmd',`${nb} commande${nb>1?'s':''} analysée${nb>1?'s':''}`,margeColor)}
+            ${card('🧮','% coût / CA',pctCout!==null?fmt(pctCout,1)+' %':'—',`${fmtE(totalDep)} de ${tVocab('coutDirectLabel').toLowerCase()} sur ${fmtE(totalCA)} de CA`,pctCout!==null&&pctCout>60?'var(--warn)':'')}
+            ${nbObj?card('🎯','Cmds / mois pour objectif',nbObj+' commande'+(nbObj>1?'s':''),`à ${fmtE(margeMoy,0)} marge moy. pour ${fmtE(caMens)}/mois`,''):''}
+          </div>
+        </div>`;
+      })()}
       ${(()=>{const src=wSourceAcq(actives,'chantier'),ref=wMotifsRefus();return(src||ref)?`<div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">${src}${ref}</div>`:''})()}
     </div>
   </div>`;
