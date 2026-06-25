@@ -68,13 +68,15 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | `vercel.json` | Config déploiement Vercel |
 | `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
-| `shared/core/calculs.js` | ~580 lignes, 54 fonctions exportées — tout le calcul métier |
+| `shared/core/calculs.js` | ~580 lignes, 54 fonctions exportées — calculs financiers uniquement |
+| `shared/core/planning.js` | Moteur Planning : capacité, remplissage, score — voir section dédiée ci-dessous |
 | `shared/core/taux.js` | Référentiel fiscal 2026 (TVA, URSSAF, abattements, plafonds micro) |
 | `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` |
 | `shared/modes/freelance.js` | Pont ESM Freelance → window.* |
 | `shared/modes/artisan.js` | Pont ESM Artisan → window.* (shape `getCaBreakdownMois` différente) |
 | `shared/tests/abattement_micro.test.js` | 44 tests ESM — abattements, plafonds micro, prorata |
-| `shared/tests/bridge_smoke.js` | 100 tests — vérifie que chaque window.* appelé par le HTML existe |
+| `shared/tests/planning.test.js` | 61 tests ESM — moteur Planning, tous modes, valeurs limites |
+| `shared/tests/bridge_smoke.js` | 102 tests — vérifie que chaque window.* appelé par le HTML existe |
 | `shared/tests/validation.js` | 73 tests — compare fonctions HTML locales vs core |
 | `shared/tests/unified_model.test.js` | 19 tests — modèle `montantDevis = prestation + vente` |
 | `shared/tests/phase2_sandbox.js` | 4 063 comparaisons Freelance bridge vs core direct |
@@ -340,13 +342,27 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **UX clavier** : touche Entrée sur les modaux éligibles (sans textarea ni choix multiples, via `data-enter-action`) ; touche Échap ferme le modal ouvert
 - **Validation visuelle champs obligatoires** : classe `.field-invalid` (bordure rouge + shake) sur les champs vides à la soumission, focus automatique, effacée dès la première saisie — `markInvalid(...ids)` helper disponible
 - **Toasts de confirmation** : `showToast()` appelé après enregistrement mission/chantier, dépense, recette manuelle ; toast de confirmation après export CSV avec nombre de recettes et période
+- **Moteur Planning mutualisé (2026-06)** : création de `shared/core/planning.js` comme domaine métier séparé de `calculs.js`. Fonctions exportées : `toHeuresSem`, `getCapaciteHSem`, `getMissionChargeHSem`, `getChargeEstimeeTotal` (moteur Temps estimé) ; `getTauxRemplissageMois`, `getTauxRemplissageAnnee` (moteur Calendrier) ; `scorerRemplissage` (barème commun 40/60/75/90/100) ; `getPilierRemplissage(DATA)` (point d'entrée unifié). Paramètre `DATA.params.modePlanning` ('estime' | 'calendrier' | 'aucun') ajouté dans `getDefaultData` des deux HTML ('estime' pour freelance, 'calendrier' pour artisan) et garde dans `migrate()`. Structure `details` normalisée : `{capacite, utilise, libre, taux, unite}`. Score Santé pilier Remplissage, `wCapacite` (FL) et `wRemplissage` (AR) migrent vers `Mode.getPilierRemplissage()`. `calculs.js` non modifié. 226/226 tests passent.
 - **Refonte positionnement modules (2026-06)** : icône artisan 🔨 → 🧰 dans `index.html` et `SESSIONS`. Descriptions cartes d'accueil reformulées en "Je vends…" (1re personne). Chips mises à jour. Ajout de 10 nouveaux métiers dans le select freelance (expert_comptable, consultant_rh, juriste, traducteur, redacteur, coach_sportif, nutritionniste, sophrologue, hypnotherapeute, psychologue → tous famille `service`). Ajout de 13 nouveaux métiers dans le select artisan (traiteur, fleuriste → `chantier` ; chocolatier, patissier, ebeniste, createur_bijoux, fabricant_cosmetiques, fabricant_bougies, tapissier, maroquinier, ferronnier → `fabrication`). Info-bulle `?` ajoutée sur le label "Métier exercé" dans les deux fichiers. Aucun calcul ni migration impacté.
 - **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
 
 ## Points d'attention
 
 ### Synchronisation Freelance ↔ Artisan
-Les deux HTML partagent exactement la même logique métier via `shared/core/`. Toute modification d'une fonction dans `calculs.js` ou `taux.js` se répercute automatiquement sur les deux modes. **En revanche, les widgets et le HTML lui-même sont dupliqués** — un bug corrigé dans `wKPIs()` du freelance doit être reporté manuellement dans l'artisan. Vérifier systématiquement les deux fichiers avant de committer.
+Les deux HTML partagent exactement la même logique métier via `shared/core/`. Toute modification d'une fonction dans `calculs.js`, `planning.js` ou `taux.js` se répercute automatiquement sur les deux modes. **En revanche, les widgets et le HTML lui-même sont dupliqués** — un bug corrigé dans `wKPIs()` du freelance doit être reporté manuellement dans l'artisan. Vérifier systématiquement les deux fichiers avant de committer.
+
+### Moteur Planning — `shared/core/planning.js`
+
+Le domaine Planning est **séparé de `calculs.js`** (qui reste centré sur les finances). Ne pas ajouter de logique Planning dans `calculs.js`.
+
+`getPilierRemplissage(DATA)` est le **seul point d'entrée** pour le Score Santé (pilier Remplissage), `wCapacite` (FL) et `wRemplissage` (AR). Il lit `DATA.params.modePlanning` et retourne un objet uniforme :
+
+```js
+{ score, valeur, sousTitre, diagnostic, conseil, methode,
+  details: { capacite, utilise, libre, taux, unite } | null }
+```
+
+`DATA.params.modePlanning` valeurs valides : `'estime'` (FL par défaut) | `'calendrier'` (AR par défaut) | `'aucun'`. Toute valeur inconnue est effacée par `migrate()` et remplacée par la valeur de `getDefaultData()`.
 
 ### `SCHEMA_VERSION` — 4 endroits à synchroniser
 Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, etc.) :
