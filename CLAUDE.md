@@ -69,6 +69,7 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
 | `shared/core/calculs.js` | ~580 lignes, 54 fonctions exportées — calculs financiers uniquement |
+| `shared/core/affaires.js` | Rentabilité unitaire par affaire : dépenses liées, marge, TH réel, agrégations portefeuille |
 | `shared/core/planning.js` | Moteur Planning : capacité, remplissage, score — voir section dédiée ci-dessous |
 | `shared/core/taux.js` | Référentiel fiscal 2026 (TVA, URSSAF, abattements, plafonds micro) |
 | `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` |
@@ -342,6 +343,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **UX clavier** : touche Entrée sur les modaux éligibles (sans textarea ni choix multiples, via `data-enter-action`) ; touche Échap ferme le modal ouvert
 - **Validation visuelle champs obligatoires** : classe `.field-invalid` (bordure rouge + shake) sur les champs vides à la soumission, focus automatique, effacée dès la première saisie — `markInvalid(...ids)` helper disponible
 - **Toasts de confirmation** : `showToast()` appelé après enregistrement mission/chantier, dépense, recette manuelle ; toast de confirmation après export CSV avec nombre de recettes et période
+- **Module Affaires (2026-06)** : création de `shared/core/affaires.js` — domaine "rentabilité unitaire par affaire", séparé de `calculs.js` (flux financiers). Fonctions exportées : `getDepensesAffaire(DATA, affaireId)`, `getDepensesAffairesMap(DATA)`, `excludeDepensesLiees(depenses)`, `getMargeAffaire(DATA, m)`, `getTHReelAffaire(DATA, m)`, `getPctCoutAffaire(DATA, m)`, `getAffairesAvecCouts(DATA, missions)`, `getMargeMoyennePortefeuille(DATA, missions)`. Champ de liaison : `DATA.depenses[].chantierId` (nom technique stable, ne pas renommer). Fix `calculs.js` : `getDepensesMoyenneMensuelle` exclut désormais les dépenses liées (`!d.chantierId`) — règle commune artisan et freelance. `artisan.js` et `freelance.js` : import `affaires.js` + 8 exports wrappers. Bridge artisan HTML : 8 `window.*` exposés. `getDepensesChantier()` dans l'HTML reste une copie locale (lecture directe DATA, pas de sync() en boucle) — `getDepensesAffaire` via bridge est la voie externe.
 - **Moteur Planning mutualisé (2026-06)** : création de `shared/core/planning.js` comme domaine métier séparé de `calculs.js`. Fonctions exportées : `toHeuresSem`, `getCapaciteHSem`, `getMissionChargeHSem`, `getChargeEstimeeTotal` (moteur Temps estimé) ; `getTauxRemplissageMois`, `getTauxRemplissageAnnee` (moteur Calendrier) ; `scorerRemplissage` (barème commun 40/60/75/90/100) ; `getPilierRemplissage(DATA)` (point d'entrée unifié). Paramètre `DATA.params.modePlanning` ('estime' | 'calendrier' | 'aucun') ajouté dans `getDefaultData` des deux HTML ('estime' pour freelance, 'calendrier' pour artisan) et garde dans `migrate()`. Structure `details` normalisée : `{capacite, utilise, libre, taux, unite}`. Score Santé pilier Remplissage, `wCapacite` (FL) et `wRemplissage` (AR) migrent vers `Mode.getPilierRemplissage()`. `calculs.js` non modifié. 226/226 tests passent.
 - **Refonte positionnement modules (2026-06)** : icône artisan 🔨 → 🧰 dans `index.html` et `SESSIONS`. Descriptions cartes d'accueil reformulées en "Je vends…" (1re personne). Chips mises à jour. Ajout de 10 nouveaux métiers dans le select freelance (expert_comptable, consultant_rh, juriste, traducteur, redacteur, coach_sportif, nutritionniste, sophrologue, hypnotherapeute, psychologue → tous famille `service`). Ajout de 13 nouveaux métiers dans le select artisan (traiteur, fleuriste → `chantier` ; chocolatier, patissier, ebeniste, createur_bijoux, fabricant_cosmetiques, fabricant_bougies, tapissier, maroquinier, ferronnier → `fabrication`). Info-bulle `?` ajoutée sur le label "Métier exercé" dans les deux fichiers. Aucun calcul ni migration impacté.
 - **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
@@ -350,6 +352,26 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 
 ### Synchronisation Freelance ↔ Artisan
 Les deux HTML partagent exactement la même logique métier via `shared/core/`. Toute modification d'une fonction dans `calculs.js`, `planning.js` ou `taux.js` se répercute automatiquement sur les deux modes. **En revanche, les widgets et le HTML lui-même sont dupliqués** — un bug corrigé dans `wKPIs()` du freelance doit être reporté manuellement dans l'artisan. Vérifier systématiquement les deux fichiers avant de committer.
+
+### Module Affaires — `shared/core/affaires.js`
+
+Ce module répond à : **"Cette affaire est-elle rentable ?"** Il ne contient aucun calcul de flux mensuel (→ `calculs.js`), aucune logique de planning (→ `planning.js`), aucun rendu HTML.
+
+**Clé de liaison :** `DATA.depenses[].chantierId` rattache une dépense à une affaire (chantier / mission / commande / prestation). Ce nom de champ technique ne doit pas être renommé — il est encapsulé derrière `getDepensesAffaire`.
+
+**Fonctions clés :**
+```js
+getDepensesAffaire(DATA, affaireId)        // total dépenses liées à une affaire
+getDepensesAffairesMap(DATA)               // map affaireId → total (un seul passage)
+excludeDepensesLiees(depenses)             // filtre !chantierId (charge structurelle)
+getMargeAffaire(DATA, mission)             // montantDevis − dépenses liées
+getTHReelAffaire(DATA, mission)            // marge / heures (null si 0 h)
+getPctCoutAffaire(DATA, mission)           // ratio coût/CA (0–1)
+getAffairesAvecCouts(DATA, missions)       // liste enrichie {m, dep, marge, h, thReel, pctCout}
+getMargeMoyennePortefeuille(DATA, missions)// marge% pondérée par CA (null si aucun coût)
+```
+
+**Dépendances :** `getMissionHeures` de `calculs.js` (même pattern que `planning.js` → `calculs.js`). Pas de dépendance vers `planning.js`.
 
 ### Moteur Planning — `shared/core/planning.js`
 
