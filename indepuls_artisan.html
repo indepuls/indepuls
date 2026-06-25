@@ -1276,6 +1276,15 @@ html,body{overflow-x:hidden;}
       <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
     </div>
     <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
+    <div id="m-couts-directs-zone" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)" id="m-cout-direct-label-title">Coûts directs liés</span>
+          <span style="font-size:14px;font-weight:700;margin-left:12px" id="m-cout-direct-total">0 €</span>
+        </div>
+        <button class="btn btn-out btn-sm" onclick="addDepenseLinked()">+ Ajouter</button>
+      </div>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
@@ -1837,7 +1846,8 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Offres & missions',
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
-    defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre']
+    defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
+    coutDirectLabel:'Coûts directs'
   },
   creative: {
     item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
@@ -1854,7 +1864,8 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Offres & prestations',
     catTitle:'Mes offres & catégories de prestations',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de prestations.\nVous pouvez renseigner vos offres, shootings, créations ou catégories de travail.',
-    defaultCategories:['Création','Production','Shooting','Montage','Branding','Site web','Réseaux sociaux','Impression','Conseil','Autre']
+    defaultCategories:['Création','Production','Shooting','Montage','Branding','Site web','Réseaux sociaux','Impression','Conseil','Autre'],
+    coutDirectLabel:'Coûts directs'
   },
   chantier: {
     item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
@@ -1871,7 +1882,8 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Offres & chantiers',
     catTitle:'Mes offres & catégories de chantiers',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
-    defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre']
+    defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre'],
+    coutDirectLabel:'Fournitures / matériaux'
   },
   fabrication: {
     item:'Commande', items:'Commandes', addItem:'+ Ajouter une commande',
@@ -1888,7 +1900,8 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Produits & commandes',
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
-    defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre']
+    defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre'],
+    coutDirectLabel:'Matières premières'
   }
 };
 const BUSINESS_PROFILE_MAP = {
@@ -3932,8 +3945,8 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caMixtePresta,caMixteVentes}) {
   DATA.missions.filter(m=>!m.isManagement&&m.montantDevis>0).forEach(m=>{
     const dep=getDepensesChantier(m.id); if(!dep) return;
     const pct=dep/m.montantDevis*100;
-    if(pct>50)      alerts.push({pr:1,cl:'al-warn',txt:`📦 "${m.client||m.description}" : ${fmt(pct,0)} % du devis en fournitures (${fmtE(dep)}) — marge brute ${fmtE(m.montantDevis-dep)}.`});
-    else if(pct>30) alerts.push({pr:2,cl:'al-info',txt:`📦 "${m.client||m.description}" : ${fmt(pct,0)} % du devis absorbé en fournitures (${fmtE(dep)}).`});
+    if(pct>50)      alerts.push({pr:1,cl:'al-warn',txt:`📦 "${m.client||m.description}" : ${fmt(pct,0)} % du devis en ${tVocab('coutDirectLabel').toLowerCase()} (${fmtE(dep)}) — marge brute ${fmtE(m.montantDevis-dep)}.`});
+    else if(pct>30) alerts.push({pr:2,cl:'al-info',txt:`📦 "${m.client||m.description}" : ${fmt(pct,0)} % du devis absorbé en ${tVocab('coutDirectLabel').toLowerCase()} (${fmtE(dep)}).`});
   });
   getMissionsImpayees().forEach(({m,days,reste})=>{
     const pr=days>=60?0:days>=30?1:2;
@@ -4416,7 +4429,7 @@ function wRentabChantiers() {
       <div style="flex:1">
         <div class="fb">${m.client||'—'}</div>
         <div class="ts">${m.description||''}</div>
-        <div class="ts mt2">Fournitures : ${fmtE(dep)}</div>
+        <div class="ts mt2">${tVocab('coutDirectLabel')} : ${fmtE(dep)}</div>
       </div>
       <div style="text-align:right">
         <div class="fb" style="color:${marge>=0?'var(--ok)':'var(--err)'}">${fmtE(marge)}</div>
@@ -4938,6 +4951,18 @@ function openMissionModal(id) {
   if(planZone) planZone.style.display=m&&m.isManagement?'none':'';
   initEditingSessions(m);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
+  // Bloc coûts directs liés — visible uniquement sur une affaire existante
+  const coutsZone=document.getElementById('m-couts-directs-zone');
+  if(coutsZone){
+    const showCouts=!!(m&&!m.isManagement);
+    coutsZone.style.display=showCouts?'':'none';
+    if(showCouts){
+      const dep=getDepensesChantier(m.id);
+      document.getElementById('m-cout-direct-total').textContent=fmtE(dep);
+      const lbl=document.getElementById('m-cout-direct-label-title');
+      if(lbl) lbl.textContent=tVocab('coutDirectLabel')+' liés';
+    }
+  }
   openModal('modal-mission');
 }
 
@@ -5294,7 +5319,7 @@ function rentabChantiersBody() {
     return {m,dep,marge,h,thReel};
   }).filter(x=>x.dep>0).sort((a,b)=>b.marge-a.marge);
   if(!withDep.length) return `<div class="ts" style="padding:6px 0;color:var(--tl)">Rattachez des dépenses à vos chantiers depuis l'onglet <span style="cursor:pointer;color:var(--acc)" onclick="navigate('depenses')">Dépenses</span> pour voir la rentabilité réelle après matériaux.</div>`;
-  return withDep.map(({m,dep,marge,thReel})=>`<div class="rentab-row"><div style="flex:1"><div class="fb">${m.client||'—'}</div><div class="ts">${m.description||''}</div><div class="ts mt2">Fournitures : ${fmtE(dep)}</div></div><div style="text-align:right"><div class="fb" style="color:${marge>=0?'var(--ok)':'var(--err)'}">${fmtE(marge)}</div><div class="ts">${thReel!==null?fmtE(thReel,0)+'/h réel':'—'}</div></div></div>`).join('');
+  return withDep.map(({m,dep,marge,thReel})=>`<div class="rentab-row"><div style="flex:1"><div class="fb">${m.client||'—'}</div><div class="ts">${m.description||''}</div><div class="ts mt2">${tVocab('coutDirectLabel')} : ${fmtE(dep)}</div></div><div style="text-align:right"><div class="fb" style="color:${marge>=0?'var(--ok)':'var(--err)'}">${fmtE(marge)}</div><div class="ts">${thReel!==null?fmtE(thReel,0)+'/h réel':'—'}</div></div></div>`).join('');
 }
 function renderMissionsSummary(all) {
   const sumEl=document.getElementById('missions-summary');
@@ -5406,9 +5431,9 @@ function renderMissions() {
         const trDet=document.createElement('tr');
         trDet.style.cssText='background:rgba(0,0,0,.025);';
         trDet.innerHTML=`<td></td><td colspan="9" style="padding:3px 10px 7px;font-size:12px;color:var(--tl)">
-          ↳ Fournitures liées : <strong style="color:var(--text)">${fmtE(dep)}</strong>
+          ↳ ${tVocab('coutDirectLabel')} liés : <strong style="color:var(--text)">${fmtE(dep)}</strong>
           &nbsp;·&nbsp; Marge brute : <strong style="color:${marge>=0?'var(--ok)':'var(--err)'}">${fmtE(marge)}</strong>
-          ${thReel!==null?`&nbsp;·&nbsp; TH réel après fournitures : <strong style="color:${thReel>=30?'var(--ok)':thReel>=15?'var(--warn)':'var(--err)'}">${fmtE(thReel,0)}/h</strong>`:''}
+          ${thReel!==null?`&nbsp;·&nbsp; TH réel après ${tVocab('coutDirectLabel').toLowerCase()} : <strong style="color:${thReel>=30?'var(--ok)':thReel>=15?'var(--warn)':'var(--err)'}">${fmtE(thReel,0)}/h</strong>`:''}
         </td>`;
         tbody.appendChild(trDet);
       }
@@ -5764,6 +5789,24 @@ function toggleToujours(checked) {
   if(checked) inp.value='';
 }
 function hideDepConfirm() { document.getElementById('dep-zero-zone').style.display='none'; }
+
+let _pendingMissionReopen = null;
+function openDepModalLinked(missionId) {
+  openDepModal();
+  document.getElementById('d-chantier-check').checked = true;
+  toggleDepChantier(true);
+  document.getElementById('d-chantier-id').value = missionId;
+  document.getElementById('d-rec').value = 'ponctuelle';
+  toggleDateDebutDep('ponctuelle');
+  _pendingMissionReopen = missionId;
+}
+function addDepenseLinked() {
+  const id = document.getElementById('mission-edit-id').value;
+  if (!id) return;
+  closeModal('modal-mission');
+  openDepModalLinked(id);
+}
+
 function saveDepense(force) {
   const editId=document.getElementById('dep-edit-id').value;
   const tva=DATA.params.tva;
@@ -5798,6 +5841,7 @@ function saveDepense(force) {
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d) Object.assign(d,obj); }
   else { DATA.depenses.push({id:uuid(),...obj}); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
   saveData(); closeModal('modal-dep'); showToast('✅ Dépense enregistrée.'); renderDepenses();
+  if(_pendingMissionReopen){const _pmr=_pendingMissionReopen;_pendingMissionReopen=null;openMissionModal(_pmr);}
 }
 function toggleDepTVA(checked) {
   document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
