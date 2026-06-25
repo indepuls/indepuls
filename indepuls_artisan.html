@@ -6717,9 +6717,10 @@ function calcDevis() {
   const _urssafTaux=(p.tauxURSSAF||0)+(p.tauxCFP||0);
   const _impotTaux=p.impotsTaux||0;
   const _tauxC=_urssafTaux/100+_impotTaux/100;
-  // Net = ce qui reste réellement dans la poche après URSSAF + impôts
-  const margeNette=marge>0?Math.round(marge*(1-_tauxC)):0;
-  const thEstJourNet=thEstJour!==null&&_tauxC>0?Math.round(thEstJour*(1-_tauxC)):null;
+  // URSSAF + impôts calculés sur le CA brut (montant facturé), pas sur la marge
+  const chargesAbsolues=Math.round(montant*_tauxC);
+  const margeNette=Math.max(0,marge-chargesAbsolues);
+  const thEstJourNet=hTotal>0&&thEstJour!==null?Math.round(margeNette/hTotal*(p.heuresParJour||7)):null;
   const thMinJourNet=thMinJour!==null&&_tauxC>0?Math.round(thMinJour*(1-_tauxC)):null;
 
   // Verdict : compare TH estimé au TH minimum
@@ -6810,7 +6811,7 @@ function calcDevis() {
       ${fournitures>0||frais>0?`
       <div class="divider"></div>
       <div style="font-size:12px;color:var(--tl);line-height:1.9">
-        ${fournitures>0?`<div>Fournitures / Matériaux : <strong style="color:var(--text)">${fmtE(fournitures)}</strong></div>`:''}
+        ${fournitures>0?`<div>${tVocab('coutDirectLabel')} : <strong style="color:var(--text)">${fmtE(fournitures)}</strong></div>`:''}
         ${frais>0?`<div>Autres frais : <strong style="color:var(--text)">${fmtE(frais)}</strong></div>`:''}
         <div>Total coûts déduits : <strong style="color:var(--text)">${fmtE(fournitures+frais)}</strong></div>
       </div>`:''}
@@ -6818,19 +6819,19 @@ function calcDevis() {
         const p=DATA.params;
         const advLines=[];
         // Provision URSSAF — utilise les variables déjà calculées
-        if(_urssafTaux>0&&marge>0){
-          const provUrssaf=Math.round(marge*_urssafTaux/100);
-          advLines.push(`💼 URSSAF à mettre de côté sur ce devis : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % de la marge)`);
+        if(_urssafTaux>0&&montant>0){
+          const provUrssaf=Math.round(montant*_urssafTaux/100);
+          advLines.push(`💼 URSSAF à mettre de côté sur ce devis : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
         }
         // Provision impôts
-        if(_impotTaux>0&&marge>0){
-          const provImp=Math.round(marge*_impotTaux/100);
-          advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImp)}</strong> (${_impotTaux} % de la marge)`);
+        if(_impotTaux>0&&montant>0){
+          const provImp=Math.round(montant*_impotTaux/100);
+          advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImp)}</strong> (${_impotTaux} % du CA)`);
         }
         // Prix minimum pour atteindre la cible
         if(thMin>0&&hTotal>0&&thEst!==null&&thEst<thMin){
           const prixMinCible=Math.ceil((thMin*hTotal+fournitures+frais)/10)*10;
-          advLines.push(`🎯 Pour atteindre votre objectif net, facturez ce chantier au minimum <strong>${fmtE(prixMinCible)}</strong>`);
+          advLines.push(`🎯 Pour atteindre votre objectif net, facturez cette ${tVocab('item').toLowerCase()} au minimum <strong>${fmtE(prixMinCible)}</strong>`);
         }
         if(!advLines.length) return '';
         return `<div class="divider"></div><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Conseils personnalisés</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}`;
