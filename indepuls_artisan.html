@@ -1371,14 +1371,11 @@ html,body{overflow-x:hidden;}
         <option value="Autre">Autre</option>
       </select>
     </div>
-    <div class="flex gap10 mb8" style="align-items:center">
-      <input type="checkbox" id="d-chantier-check" onchange="toggleDepChantier(this.checked)" style="width:auto">
-      <label for="d-chantier-check" class="flabel" id="dep-rattacher-label" style="margin:0;cursor:pointer">Rattacher à un chantier</label>
-    </div>
-    <div id="dep-chantier-zone" style="display:none">
+    <div id="dep-chantier-zone">
       <div class="fgroup">
-        <label class="flabel" id="dep-chantier-label">Chantier concerné</label>
-        <select id="d-chantier-id"><option value="" id="dep-chantier-placeholder">— Choisir un chantier —</option></select>
+        <label class="flabel" id="dep-chantier-label">Rattacher à un chantier <span class="ts">(optionnel)</span></label>
+        <select id="d-chantier-id"><option value="">— Aucun —</option></select>
+        <div class="ts" style="color:var(--accent);margin-top:4px">La dépense sera associée à ce chantier et <strong>exclue</strong> des charges fixes.</div>
       </div>
     </div>
     <div class="frow">
@@ -1984,12 +1981,8 @@ function applyVocabUI() {
   if (depFilterHors) depFilterHors.textContent = 'Ponctuelles hors ' + tVocab('item').toLowerCase();
   const depFilterLiees = document.getElementById('dep-filter-liees');
   if (depFilterLiees) depFilterLiees.textContent = 'Liées à un ' + tVocab('item').toLowerCase();
-  const depRattacher = document.getElementById('dep-rattacher-label');
-  if (depRattacher) depRattacher.textContent = 'Rattacher à un ' + tVocab('item').toLowerCase();
   const depChanLabel = document.getElementById('dep-chantier-label');
-  if (depChanLabel) depChanLabel.textContent = tVocab('item') + ' concerné';
-  const depChanPlaceholder = document.getElementById('dep-chantier-placeholder');
-  if (depChanPlaceholder) depChanPlaceholder.textContent = '— Choisir un ' + tVocab('item').toLowerCase() + ' —';
+  if (depChanLabel) depChanLabel.firstChild.textContent = 'Rattacher à un ' + tVocab('item').toLowerCase() + ' ';
   // Paramètres
   const tabBtn = document.getElementById('tab-btn-categories');
   if (tabBtn) tabBtn.textContent = tVocab('tabCategories');
@@ -2897,9 +2890,7 @@ function themeColor(v) { return getComputedStyle(document.body).getPropertyValue
 function getDepensesChantier(missionId) {
   return DATA.depenses.filter(d=>d.chantierId===missionId).reduce((s,d)=>s+(d.montant||0),0);
 }
-function toggleDepChantier(checked) {
-  document.getElementById('dep-chantier-zone').style.display=checked?'':'none';
-}
+
 // getHeuresFact -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // getHeuresInterne -> branchee sur core/calculs.js via modes/artisan.js (voir le bloc module en fin de fichier)
 // Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
@@ -5800,7 +5791,7 @@ function openDepModal(id) {
   // Zone rattachement chantier
   const dChanSel=document.getElementById('d-chantier-id');
   if(dChanSel){
-    dChanSel.innerHTML='<option value="">— Choisir un chantier —</option>';
+    dChanSel.innerHTML='<option value="">— Aucun —</option>';
     [...DATA.missions].filter(m=>!m.isManagement)
       .sort((a,b)=>(a.client||'').localeCompare(b.client||''))
       .forEach(m=>{
@@ -5810,9 +5801,6 @@ function openDepModal(id) {
         if(d&&d.chantierId===m.id) o.selected=true;
         dChanSel.appendChild(o);
       });
-    const linked=!!(d&&d.chantierId);
-    document.getElementById('d-chantier-check').checked=linked;
-    document.getElementById('dep-chantier-zone').style.display=linked?'':'none';
   }
   hideDepConfirm();
   openModal('modal-dep');
@@ -5831,8 +5819,6 @@ function hideDepConfirm() { document.getElementById('dep-zero-zone').style.displ
 let _pendingMissionReopen = null;
 function openDepModalLinked(missionId) {
   openDepModal();
-  document.getElementById('d-chantier-check').checked = true;
-  toggleDepChantier(true);
   document.getElementById('d-chantier-id').value = missionId;
   document.getElementById('d-rec').value = 'ponctuelle';
   toggleDateDebutDep('ponctuelle');
@@ -5863,8 +5849,7 @@ function saveDepense(force) {
     }
   }
   hideDepConfirm();
-  const chanLinked=document.getElementById('d-chantier-check').checked;
-  const chanId=chanLinked?(document.getElementById('d-chantier-id').value||null):null;
+  const chanId=document.getElementById('d-chantier-id').value||null;
   const obj={
     date:document.getElementById('d-date').value,
     categorie:document.getElementById('d-cat').value||'Autre',
