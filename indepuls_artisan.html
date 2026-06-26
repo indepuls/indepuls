@@ -737,26 +737,21 @@ html,body{overflow-x:hidden;}
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Métier exercé <span class="info-tip" title="Vous ne trouvez pas votre métier ? Choisissez celui qui s'en rapproche le plus. Nous enrichissons régulièrement cette liste. N'hésitez pas à nous contacter pour demander l'ajout d'un métier.">?</span></label>
+            <label class="flabel">Profil d'activité <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
             <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
-              <optgroup label="Prestation de services">
-                <option value="prestataire_services">Prestataire de services</option>
-                <option value="creatif_com">Créatif / Communication</option>
-                <option value="evenementiel">Prestataire événementiel</option>
-              </optgroup>
               <optgroup label="Artisan">
                 <option value="artisan_batiment">Artisan bâtiment</option>
-                <option value="artisan_commande">Artisan sur commande</option>
+                <option value="artisan_commande">Fabricant sur mesure</option>
               </optgroup>
               <optgroup label="Fabrication">
                 <option value="fabricant_serie">Fabricant série</option>
               </optgroup>
-              <optgroup label="Commerce">
+              <optgroup label="Achat / Revente">
                 <option value="achat_revente">Achat / Revente</option>
               </optgroup>
             </select>
-            <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
+            <div id="p-metier-desc" class="ts mt4" style="color:var(--tl)"></div>
           </div>
         </div>
         <div id="micro-charges-block">
@@ -1976,7 +1971,19 @@ function migrateMetierParam() {
 function getDefaultCategoriesForFamily() {
   return tVocab('defaultCategories') || [];
 }
+const PROFIL_DESCRIPTIONS = {
+  artisan_batiment: "Vous planifiez des chantiers, travaillez généralement à la journée et suivez vos coûts directs. L'interface active un planning calendrier.",
+  artisan_commande: "Vous réalisez des créations sur mesure ou à la commande, avec un suivi de la rentabilité par affaire.",
+  fabricant_serie: "Vous fabriquez plusieurs produits similaires en série et souhaitez suivre leur rentabilité.",
+  achat_revente: "Vous achetez puis revendez des produits et souhaitez suivre la rentabilité de chaque vente ou lot.",
+};
+function updateProfilDesc() {
+  const el = document.getElementById('p-metier-desc');
+  if (!el) return;
+  el.textContent = PROFIL_DESCRIPTIONS[DATA.params?.metier] || '';
+}
 function applyVocabUI() {
+  updateProfilDesc();
   updateNavDevis();
   const nav = document.getElementById('nav-missions-label');
   if (nav) nav.textContent = tVocab('navLabel');

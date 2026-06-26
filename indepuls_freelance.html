@@ -750,7 +750,7 @@ html,body{overflow-x:hidden;}
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Métier exercé <span class="info-tip" title="Vous ne trouvez pas votre métier ? Choisissez celui qui s'en rapproche le plus. Nous enrichissons régulièrement cette liste. N'hésitez pas à nous contacter pour demander l'ajout d'un métier.">?</span></label>
+            <label class="flabel">Profil d'activité <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
             <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
               <optgroup label="Prestation de services">
@@ -758,18 +758,8 @@ html,body{overflow-x:hidden;}
                 <option value="creatif_com">Créatif / Communication</option>
                 <option value="evenementiel">Prestataire événementiel</option>
               </optgroup>
-              <optgroup label="Artisan">
-                <option value="artisan_batiment">Artisan bâtiment</option>
-                <option value="artisan_commande">Artisan sur commande</option>
-              </optgroup>
-              <optgroup label="Fabrication">
-                <option value="fabricant_serie">Fabricant série</option>
-              </optgroup>
-              <optgroup label="Commerce">
-                <option value="achat_revente">Achat / Revente</option>
-              </optgroup>
             </select>
-            <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
+            <div id="p-metier-desc" class="ts mt4" style="color:var(--tl)"></div>
           </div>
         </div>
         <div class="divider"></div>
@@ -2060,7 +2050,18 @@ function migrateMetierParam() {
 function getDefaultCategoriesForFamily() {
   return tVocab('defaultCategories') || [];
 }
+const PROFIL_DESCRIPTIONS = {
+  prestataire_services: "Vous réalisez principalement des prestations intellectuelles ou de service, facturées au temps passé ou au forfait.",
+  creatif_com: "Vous réalisez des prestations créatives ou de communication (graphisme, web, contenu...) généralement vendues au forfait ou au projet.",
+  evenementiel: "Votre activité est organisée autour de dates réservées (mariages, événements, interventions...). L'interface active un planning calendrier.",
+};
+function updateProfilDesc() {
+  const el = document.getElementById('p-metier-desc');
+  if (!el) return;
+  el.textContent = PROFIL_DESCRIPTIONS[DATA.params?.metier] || '';
+}
 function applyVocabUI() {
+  updateProfilDesc();
   const nav = document.getElementById('nav-missions-label');
   if (nav) nav.textContent = tVocab('navLabel');
   const btn = document.getElementById('btn-add-mission-top');
