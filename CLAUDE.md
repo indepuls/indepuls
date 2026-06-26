@@ -63,8 +63,8 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | Fichier / Dossier | Rôle |
 |---|---|
 | `index.html` | Page d'accueil + sélection du mode (freelance / artisan) |
-| `indepuls_freelance.html` | App complète mode freelance (~6 500 lignes, SCHEMA_VERSION 28) |
-| `indepuls_artisan.html` | App complète mode artisan (~7 000 lignes, SCHEMA_VERSION 28) |
+| `indepuls_freelance.html` | App complète mode freelance (~7 000 lignes, SCHEMA_VERSION 29) |
+| `indepuls_artisan.html` | App complète mode artisan (~7 500 lignes, SCHEMA_VERSION 29) |
 | `vercel.json` | Config déploiement Vercel |
 | `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
@@ -216,7 +216,7 @@ Ces différences doivent être maintenues à jour — elles ont causé des bugs 
 
 ## SCHEMA_VERSION
 
-- Les deux HTML sont à `SCHEMA_VERSION = 28` (alignés en juin 2026)
+- Les deux HTML sont à `SCHEMA_VERSION = 29` (juin 2026 — migration `modePlanning → modules.planning`)
 - `shared/modes/artisan.js` et `shared/modes/freelance.js` portent aussi cette version
 - `migrate()` dans `storage.js` est **idempotent** (pas de blocs conditionnels par version) — incrémenter la constante ne cause pas de migration risquée, mais reste nécessaire pour marquer un changement de structure `DATA`
 - À incrémenter dans les 4 endroits : les 2 HTML + les 2 fichiers modes
@@ -347,6 +347,10 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Moteur Planning mutualisé (2026-06)** : création de `shared/core/planning.js` comme domaine métier séparé de `calculs.js`. Fonctions exportées : `toHeuresSem`, `getCapaciteHSem`, `getMissionChargeHSem`, `getChargeEstimeeTotal` (moteur Temps estimé) ; `getTauxRemplissageMois`, `getTauxRemplissageAnnee` (moteur Calendrier) ; `scorerRemplissage` (barème commun 40/60/75/90/100) ; `getPilierRemplissage(DATA)` (point d'entrée unifié). Paramètre `DATA.params.modePlanning` ('estime' | 'calendrier' | 'aucun') ajouté dans `getDefaultData` des deux HTML ('estime' pour freelance, 'calendrier' pour artisan) et garde dans `migrate()`. Structure `details` normalisée : `{capacite, utilise, libre, taux, unite}`. Score Santé pilier Remplissage, `wCapacite` (FL) et `wRemplissage` (AR) migrent vers `Mode.getPilierRemplissage()`. `calculs.js` non modifié. 226/226 tests passent.
 - **Refonte positionnement modules (2026-06)** : icône artisan 🔨 → 🧰 dans `index.html` et `SESSIONS`. Descriptions cartes d'accueil reformulées en "Je vends…" (1re personne). Chips mises à jour. Ajout de 10 nouveaux métiers dans le select freelance (expert_comptable, consultant_rh, juriste, traducteur, redacteur, coach_sportif, nutritionniste, sophrologue, hypnotherapeute, psychologue → tous famille `service`). Ajout de 13 nouveaux métiers dans le select artisan (traiteur, fleuriste → `chantier` ; chocolatier, patissier, ebeniste, createur_bijoux, fabricant_cosmetiques, fabricant_bougies, tapissier, maroquinier, ferronnier → `fabrication`). Info-bulle `?` ajoutée sur le label "Métier exercé" dans les deux fichiers. Aucun calcul ni migration impacté.
 - **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
+- **Modules comportementaux v29 (2026-06)** : `DATA.params.modePlanning` → `DATA.params.modules` (objet avec `planning`, `uniteTemps`, `objectif`, `devis`). `getDefaultModules(metier)` retourne les valeurs par défaut selon le profil. `applyDefaults()` injecte l'objet si absent. `migrate()` assure la rétrocompatibilité v28→v29. Architecture `family` (vocabulaire) reste découplée de `modules` (comportement).
+- **Phase 5 — TH/TJM artisan** : `isJours()` helper ; `calcDevis()` convertit jours→heures ; labels TJM/€j dans devis, recalcObjectifs, KPI, alertes objectif pour les profils `uniteTemps='jours'` (ex: artisan_batiment)
+- **Phase 6 — planning conditionnel artisan** : nav Planning masqué si `modules.planning==='aucun'` ; guard navigate('planning') ; `#m-planning-zone` dans la modale mission masqué si aucun ou management ; widget Remplissage retourne '' si planning=aucun
+- **Phase 7 — calendrier planning freelance** : page Planning complète dans freelance (navigation mois, rendu calendrier HTML, sessions par mission, taux de remplissage) ; nav Planning visible uniquement si `modules.planning==='calendrier'` (profil evenementiel) ; `initEditingSessions()`, `addSessionToEdit()`, `removeSessionFromEdit()` pour la gestion des sessions dans la modale ; `getTauxRemplissageMois` et `getTauxRemplissageAnnee` exportés dans `shared/modes/freelance.js`
 
 ## Points d'attention
 
@@ -384,7 +388,7 @@ Le domaine Planning est **séparé de `calculs.js`** (qui reste centré sur les 
   details: { capacite, utilise, libre, taux, unite } | null }
 ```
 
-`DATA.params.modePlanning` valeurs valides : `'estime'` (FL par défaut) | `'calendrier'` (AR par défaut) | `'aucun'`. Toute valeur inconnue est effacée par `migrate()` et remplacée par la valeur de `getDefaultData()`.
+`DATA.params.modules.planning` valeurs valides : `'estime'` | `'calendrier'` | `'aucun'`. Anciennement `DATA.params.modePlanning` (migré en v29 → `modules.planning`). Toute valeur inconnue est remplacée par la valeur de `getDefaultModules(metier)`.
 
 ### `SCHEMA_VERSION` — 4 endroits à synchroniser
 Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, etc.) :
@@ -392,6 +396,28 @@ Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, 
 2. `indepuls_artisan.html` — idem
 3. `shared/modes/freelance.js` — constante `SCHEMA_VERSION`
 4. `shared/modes/artisan.js` — idem
+
+### `DATA.params.modules` — objet de comportement par profil
+Depuis v29, les flags comportementaux sont regroupés dans `DATA.params.modules` :
+```js
+DATA.params.modules = {
+  planning:    'estime' | 'calendrier' | 'aucun',
+  uniteTemps:  'heures' | 'jours',
+  objectif:    'th' | 'tjm' | 'marge_commande',
+  devis:       true | false,
+}
+```
+Defaults par profil via `getDefaultModules(metier)`. `applyDefaults()` l'injecte si absent.
+Migration : `params.modePlanning` → `params.modules.planning` (effectuée dans `migrate()`).
+
+**Règles d'affichage liées aux modules :**
+- `modules.planning === 'aucun'` → nav Planning masqué, guard `navigate('planning')`, `#m-planning-zone` masqué, widget Remplissage vide
+- `modules.planning === 'calendrier'` → planning calendrier actif avec sessions, widget Remplissage affiché
+- `modules.planning === 'estime'` → planning par estimation (charge en h/sem), widget Capacité
+- `modules.uniteTemps === 'jours'` → labels TJM au lieu de TH, `calcDevis()` convertit jours×heuresParJour
+- `modules.devis === false'` → onglet Devis masqué (fabricant_serie, achat_revente)
+- `isJours()` helper disponible dans les deux HTML : `DATA.params?.modules?.uniteTemps === 'jours'`
+- `updateNavPlanning()` : dans freelance, visible si `==='calendrier'` ; dans artisan, visible si `!=='aucun'`
 
 La fonction `migrate()` dans `storage.js` est idempotente — elle n'a pas de blocs conditionnels par numéro de version. Incrémenter la constante est donc sans risque, mais reste nécessaire pour que les données importées (backup JSON) soient reconnues comme compatibles.
 
