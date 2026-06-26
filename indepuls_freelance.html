@@ -6971,6 +6971,16 @@ document.addEventListener('keydown', function(e) {
   window.getRevenuImposableMicro   = (caP, caV) => { sync(); return Mode.getRevenuImposableMicro(caP, caV); };
   window.getImpotEstimeMicro       = (caP, caV) => { sync(); return Mode.getImpotEstimeMicro(caP, caV); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
+
+  // ── AFFAIRES ────────────────────────────────────────────────
+  window.getDepensesAffaire          = (id)  => { sync(); return Mode.getDepensesAffaire(id); };
+  window.getDepensesAffairesMap      = ()    => { sync(); return Mode.getDepensesAffairesMap(); };
+  window.getMargeAffaire             = (m)   => { sync(); return Mode.getMargeAffaire(m); };
+  window.getTHReelAffaire            = (m)   => { sync(); return Mode.getTHReelAffaire(m); };
+  window.getPctCoutAffaire           = (m)   => { sync(); return Mode.getPctCoutAffaire(m); };
+  window.getAffairesAvecCouts        = (ms)  => { sync(); return Mode.getAffairesAvecCouts(ms); };
+  window.getMargeMoyennePortefeuille = (ms)  => { sync(); return Mode.getMargeMoyennePortefeuille(ms); };
+  window.excludeDepensesLiees        = (dep) => Mode.excludeDepensesLiees(dep); // pure, pas de sync
 </script>
 
 <!-- BOUTON CHANGER DE SESSION -->
