@@ -520,12 +520,12 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('archives')"><span class="nav-icon">📈</span> Historique</div>
   <div class="nav-section">Activité</div>
   <div class="nav-item" onclick="navigate('missions')" id="nav-missions-label" style="visibility:hidden"><span class="nav-icon">🛠️</span> Chantiers</div>
-  <script>(function(){try{var d=JSON.parse(localStorage.getItem('indepuls_artisan')||'{}'),m=(d.params||{}).metier,L={service:'🎯 Missions',creative:'🎨 Prestations',chantier:'🛠️ Chantiers',fabrication:'📦 Commandes'},l=L[m]||'🛠️ Chantiers';var e=document.getElementById('nav-missions-label');if(e){e.textContent=l;e.style.visibility='visible';}}catch(e){}})();</script>
+  <script>(function(){try{var d=JSON.parse(localStorage.getItem('indepuls_artisan')||'{}'),m=(d.params||{}).metier,L={service:'🎯 Missions',chantier:'🛠️ Chantiers',fabrication:'📦 Commandes',achat_revente:'🛍️ Ventes',prestataire_services:'🎯 Missions',creatif_com:'🎯 Missions',evenementiel:'🎯 Missions',artisan_batiment:'🛠️ Chantiers',artisan_commande:'📦 Commandes',fabricant_serie:'📦 Commandes'},l=L[m]||'🛠️ Chantiers';var e=document.getElementById('nav-missions-label');if(e){e.textContent=l;e.style.visibility='visible';}}catch(e){}})();</script>
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
-  <div class="nav-item" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
-  <div class="nav-item" onclick="navigate('devis')"><span class="nav-icon">🧮</span> Tester un devis</div>
+  <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
+  <div class="nav-item" id="nav-devis" onclick="navigate('devis')"><span class="nav-icon">🧮</span> Tester un devis</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="Activez le livre des recettes dans les Paramètres"><span class="nav-icon">📒</span> Livre des recettes</div>
   <div class="nav-section">Réglages</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
@@ -740,34 +740,20 @@ html,body{overflow-x:hidden;}
             <label class="flabel">Métier exercé <span class="info-tip" title="Vous ne trouvez pas votre métier ? Choisissez celui qui s'en rapproche le plus. Nous enrichissons régulièrement cette liste. N'hésitez pas à nous contacter pour demander l'ajout d'un métier.">?</span></label>
             <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
-              <optgroup label="Artisans du bâtiment">
-                <option value="macon">Maçon</option>
-                <option value="peintre">Peintre</option>
-                <option value="couvreur">Couvreur</option>
-                <option value="plombier">Plombier</option>
-                <option value="menuisier">Menuisier</option>
-                <option value="carreleur">Carreleur</option>
-                <option value="serrurier">Serrurier</option>
-                <option value="plaquiste">Plaquiste</option>
-                <option value="electricien">Électricien</option>
-                <option value="paysagiste">Paysagiste</option>
-                <option value="chauffagiste">Chauffagiste</option>
-                <option value="multicorps">Multi-corps d'état</option>
+              <optgroup label="Prestation de services">
+                <option value="prestataire_services">Prestataire de services</option>
+                <option value="creatif_com">Créatif / Communication</option>
+                <option value="evenementiel">Prestataire événementiel</option>
               </optgroup>
-              <optgroup label="Fabrication & Création">
-                <option value="traiteur">Traiteur</option>
-                <option value="fleuriste">Fleuriste</option>
-                <option value="chocolatier">Chocolatier·ère</option>
-                <option value="patissier">Pâtissier·ère</option>
-                <option value="ebeniste">Ébéniste</option>
-                <option value="createur_bijoux">Créateur·trice de bijoux</option>
-                <option value="fabricant_cosmetiques">Fabricant·e de cosmétiques</option>
-                <option value="fabricant_bougies">Fabricant·e de bougies</option>
-                <option value="tapissier">Tapissier</option>
-                <option value="maroquinier">Maroquinier</option>
-                <option value="ferronnier">Ferronnier</option>
-                <option value="fabricant">Fabricant / Créateur</option>
-                <option value="autre_fabrication">Autre fabrication</option>
+              <optgroup label="Artisan">
+                <option value="artisan_batiment">Artisan bâtiment</option>
+                <option value="artisan_commande">Artisan sur commande</option>
+              </optgroup>
+              <optgroup label="Fabrication">
+                <option value="fabricant_serie">Fabricant série</option>
+              </optgroup>
+              <optgroup label="Commerce">
+                <option value="achat_revente">Achat / Revente</option>
               </optgroup>
             </select>
             <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
@@ -1044,7 +1030,7 @@ html,body{overflow-x:hidden;}
           <h3 id="onboarding-step3-title">Créez vos premiers chantiers</h3>
           <p id="onboarding-step3-desc">Ajoutez un chantier dès l'émission du devis. Suivez votre temps à chaque étape et planifiez vos interventions.</p>
           <span class="step-cta" id="onboarding-cta-1" onclick="navigate('missions')">→ Aller dans Chantiers</span>
-          <span class="step-cta" onclick="navigate('planning')" style="margin-left:12px">→ Voir le Planning</span>
+          <span class="step-cta" id="onboarding-cta-planning" onclick="navigate('planning')" style="margin-left:12px">→ Voir le Planning</span>
         </div>
       </div>
 
@@ -1818,7 +1804,7 @@ html,body{overflow-x:hidden;}
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
-const SCHEMA_VERSION = 28; // v28 : aligné sur freelance — stamp uniquement, migration idempotente
+const SCHEMA_VERSION = 29; // v29 : params.modules (planning/uniteTemps/objectif/devis)
 const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Fournitures & matériaux','Carburant','Entretien véhicule','Location de matériel','Équipements de protection (EPI)','Déchets & évacuation chantier','Locaux & stockage','Autre'];
 const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#b45309','#dc2626','#9f1239','#0e7490','#059669','#64748b','#78716c','#6b7280'];
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
@@ -1828,6 +1814,7 @@ const STORAGE_KEY = 'indepuls_artisan';
 // ── VOCABULAIRE MÉTIER ───────────────────────────────────────
 // Couche d'affichage uniquement — ne jamais modifier les calculs ou DATA
 const VOCABULARY_FAMILIES = {
+  // ── 4 familles de vocabulaire — indépendantes des modules fonctionnels ──
   service: {
     item:'Mission', items:'Missions', addItem:'+ Ajouter une mission',
     newItem:'Nouvelle mission', editItem:'Modifier la mission',
@@ -1846,25 +1833,6 @@ const VOCABULARY_FAMILIES = {
     defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     coutDirectLabel:'Coûts directs',
     descLabel:'Description de la mission', descPlaceholder:'Ex : Stratégie réseaux sociaux'
-  },
-  creative: {
-    item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
-    newItem:'Nouvelle prestation', editItem:'Modifier la prestation',
-    itemsEnCours:'Prestations en cours', emptyItems:'Aucune prestation pour l\'instant.',
-    emptyFilter:'Aucune prestation dans cette catégorie.',
-    temps:'Temps de production', client:'Client', rentabilite:'Rentabilité prestations',
-    navLabel:'🎨 Prestations',
-    pageTitle:'Prestations', clientField:'Client / Prestation',
-    suivi:'Suivi des prestations', firstItem:'Créez votre première prestation',
-    createButton:'Créer une prestation', countMonth:'Prestations ce mois',
-    sessions:'Sessions prestation', goTo:'→ Aller dans Prestations',
-    createFromTest:'Créer une prestation à partir de ce test',
-    tabCategories:'Offres & prestations',
-    catTitle:'Mes offres & catégories de prestations',
-    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de prestations.\nVous pouvez renseigner vos offres, shootings, créations ou catégories de travail.',
-    defaultCategories:['Création','Production','Shooting','Montage','Branding','Site web','Réseaux sociaux','Impression','Conseil','Autre'],
-    coutDirectLabel:'Coûts directs',
-    descLabel:'Description de la prestation', descPlaceholder:'Ex : Shooting portrait professionnel'
   },
   chantier: {
     item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
@@ -1903,31 +1871,81 @@ const VOCABULARY_FAMILIES = {
     defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre'],
     coutDirectLabel:'Matières premières',
     descLabel:'Description de la commande', descPlaceholder:'Ex : Collier pendentif argent sur mesure'
+  },
+  achat_revente: {
+    item:'Vente', items:'Ventes', addItem:'+ Ajouter une vente',
+    newItem:'Nouvelle vente', editItem:'Modifier la vente',
+    itemsEnCours:'Ventes en cours', emptyItems:'Aucune vente pour l\'instant.',
+    emptyFilter:'Aucune vente dans cette catégorie.',
+    temps:'Temps passé', client:'Acheteur', rentabilite:'Rentabilité ventes',
+    navLabel:'🛍️ Ventes',
+    pageTitle:'Ventes', clientField:'Article / Vente',
+    suivi:'Suivi des ventes', firstItem:'Ajoutez votre première vente',
+    createButton:'Ajouter une vente', countMonth:'Ventes ce mois',
+    sessions:'Sessions', goTo:'→ Aller dans Ventes',
+    createFromTest:'Créer une vente à partir de ce test',
+    tabCategories:'Produits & ventes',
+    catTitle:'Mes catégories de ventes',
+    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de ventes. Vous pouvez y renseigner vos types de produits ou catégories.',
+    defaultCategories:['Vêtements','Accessoires','Décoration','Électronique','Livres & média','Loisirs & sport','Autre'],
+    coutDirectLabel:"Coût d'achat",
+    descLabel:'Description du lot / article', descPlaceholder:"Ex : Veste cuir vintage taille M"
   }
 };
 const BUSINESS_PROFILE_MAP = {
+  // ── 7 profils (nouvelles clés) ──────────────────────────────────────────
+  prestataire_services:'service', creatif_com:'service', evenementiel:'service',
+  artisan_batiment:'chantier',
+  fabricant_serie:'fabrication', artisan_commande:'fabrication',
+  achat_revente:'achat_revente',
+  // ── Anciennes clés spécifiques (compatibilité utilisateurs existants) ───
   obm:'service', coach:'service', therapeute:'service', consultant:'service',
   expert_comptable:'service', consultant_rh:'service', juriste:'service',
   traducteur:'service', redacteur:'service', coach_sportif:'service',
   nutritionniste:'service', sophrologue:'service', hypnotherapeute:'service', psychologue:'service',
   developpeur:'service', community_manager:'service', assistante_virtuelle:'service',
-  webdesigner:'service', architecte:'service', conciergerie:'service', formateur:'service',
-  graphiste:'creative', photographe:'creative', ugc:'creative',
+  conciergerie:'service', formateur:'service',
+  webdesigner:'service', architecte:'service',
+  graphiste:'service', photographe:'service', ugc:'service',  // ex-creative → service
   macon:'chantier', peintre:'chantier', couvreur:'chantier', plombier:'chantier',
   menuisier:'chantier', carreleur:'chantier', serrurier:'chantier', plaquiste:'chantier',
   electricien:'chantier', paysagiste:'chantier', chauffagiste:'chantier', multicorps:'chantier',
-  traiteur:'chantier', fleuriste:'chantier',
+  traiteur:'service', fleuriste:'service',                     // ex-chantier → service
   fabricant:'fabrication', autre_fabrication:'fabrication',
   chocolatier:'fabrication', patissier:'fabrication', ebeniste:'fabrication',
   createur_bijoux:'fabrication', fabricant_cosmetiques:'fabrication', fabricant_bougies:'fabrication',
   tapissier:'fabrication', maroquinier:'fabrication', ferronnier:'fabrication'
 };
-// Migration des anciennes valeurs affichées (avant introduction des clés normalisées)
+// Migration des anciennes valeurs vers les 7 nouveaux profils
 const METIER_MIGRATION_AR = {
-  'Maçon':'macon','Peintre':'peintre','Couvreur':'couvreur','Plombier':'plombier',
-  'Menuisier':'menuisier','Carreleur':'carreleur','Serrurier':'serrurier',
-  'Plaquiste':'plaquiste','Électricien':'electricien','Paysagiste':'paysagiste',
-  'Chauffagiste':'chauffagiste',"Multi-corps d'état":'multicorps','Autre':''
+  // Anciennes valeurs affichées (avant introduction des clés normalisées)
+  'Maçon':'artisan_batiment','Peintre':'artisan_batiment','Couvreur':'artisan_batiment',
+  'Plombier':'artisan_batiment','Menuisier':'artisan_batiment','Carreleur':'artisan_batiment',
+  'Serrurier':'artisan_batiment','Plaquiste':'artisan_batiment','Électricien':'artisan_batiment',
+  'Paysagiste':'artisan_batiment','Chauffagiste':'artisan_batiment',
+  "Multi-corps d'état":'artisan_batiment','Autre':'',
+  // Anciennes clés normalisées → nouveaux profils
+  macon:'artisan_batiment', peintre:'artisan_batiment', couvreur:'artisan_batiment',
+  plombier:'artisan_batiment', menuisier:'artisan_batiment', carreleur:'artisan_batiment',
+  serrurier:'artisan_batiment', plaquiste:'artisan_batiment', electricien:'artisan_batiment',
+  paysagiste:'artisan_batiment', chauffagiste:'artisan_batiment', multicorps:'artisan_batiment',
+  traiteur:'evenementiel', fleuriste:'evenementiel',
+  graphiste:'creatif_com', photographe:'creatif_com', ugc:'creatif_com',
+  webdesigner:'creatif_com', architecte:'creatif_com',
+  obm:'prestataire_services', coach:'prestataire_services', therapeute:'prestataire_services',
+  consultant:'prestataire_services', expert_comptable:'prestataire_services',
+  consultant_rh:'prestataire_services', juriste:'prestataire_services',
+  traducteur:'prestataire_services', redacteur:'prestataire_services',
+  coach_sportif:'prestataire_services', nutritionniste:'prestataire_services',
+  sophrologue:'prestataire_services', hypnotherapeute:'prestataire_services',
+  psychologue:'prestataire_services', developpeur:'prestataire_services',
+  community_manager:'prestataire_services', assistante_virtuelle:'prestataire_services',
+  conciergerie:'prestataire_services', formateur:'prestataire_services',
+  ebeniste:'artisan_commande', tapissier:'artisan_commande', ferronnier:'artisan_commande',
+  maroquinier:'artisan_commande',
+  chocolatier:'fabricant_serie', patissier:'fabricant_serie', fabricant:'fabricant_serie',
+  autre_fabrication:'fabricant_serie', createur_bijoux:'fabricant_serie',
+  fabricant_cosmetiques:'fabricant_serie', fabricant_bougies:'fabricant_serie'
 };
 const DEFAULT_FAMILY = 'chantier';
 function tVocab(key) {
@@ -1935,6 +1953,19 @@ function tVocab(key) {
   const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
 }
+function getDefaultModules(metier) {
+  const M = {
+    prestataire_services: { planning:'estime',    uniteTemps:'heures', objectif:'th',             devis:true  },
+    creatif_com:          { planning:'estime',    uniteTemps:'heures', objectif:'th',             devis:true  },
+    evenementiel:         { planning:'calendrier', uniteTemps:'heures', objectif:'th',             devis:true  },
+    artisan_batiment:     { planning:'calendrier', uniteTemps:'jours',  objectif:'tjm',            devis:true  },
+    fabricant_serie:      { planning:'estime',    uniteTemps:'heures', objectif:'marge_commande', devis:false },
+    artisan_commande:     { planning:'estime',    uniteTemps:'heures', objectif:'marge_commande', devis:true  },
+    achat_revente:        { planning:'estime',    uniteTemps:'heures', objectif:'marge_commande', devis:false },
+  };
+  return M[metier] ? {...M[metier]} : { planning:'estime', uniteTemps:'heures', objectif:'th', devis:false };
+}
+function isJours() { return DATA.params?.modules?.uniteTemps === 'jours'; }
 function migrateMetierParam() {
   const m = DATA.params?.metier;
   if (m && METIER_MIGRATION_AR[m] !== undefined) {
@@ -1946,6 +1977,7 @@ function getDefaultCategoriesForFamily() {
   return tVocab('defaultCategories') || [];
 }
 function applyVocabUI() {
+  updateNavDevis();
   const nav = document.getElementById('nav-missions-label');
   if (nav) nav.textContent = tVocab('navLabel');
   const btn = document.getElementById('btn-add-mission-top');
@@ -1996,6 +2028,14 @@ function applyVocabUI() {
     saveData();
     renderCategoriesList();
   }
+  updateNavPlanning();
+  const planCta = document.getElementById('onboarding-cta-planning');
+  if (planCta) planCta.style.display = DATA.params.modules?.planning === 'aucun' ? 'none' : '';
+  // Devis : adapter les labels selon l'unité de temps
+  const dvLabelTemps = document.getElementById('dv-label-temps');
+  if (dvLabelTemps) dvLabelTemps.textContent = isJours() ? 'Temps chantier (j)' : 'Temps chantier (h)';
+  const dvLabelCout = document.getElementById('dv-label-coutdirect');
+  if (dvLabelCout) dvLabelCout.textContent = tVocab('coutDirectLabel') + ' (€)';
 }
 
 // ── RÉFÉRENTIEL FISCAL 2026 ──────────────────────────────────
@@ -2236,7 +2276,6 @@ function getDefaultData() {
       remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
       dateOuverture:'', metier:'',
       rentabClientSort:'ca', rentabCatSort:'ca',
-      modePlanning:'calendrier',
       livreRecettesActif:false
     },
     categories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur-mesure','Conseil / Devis','Formation / Atelier','Autre'],
@@ -2267,8 +2306,13 @@ function migrate(data) {
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
-  if (data.params?.modePlanning && !['estime','calendrier','aucun'].includes(data.params.modePlanning))
+  // Migrer modePlanning → modules.planning
+  if (data.params?.modePlanning) {
+    if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
+    if (['estime','calendrier','aucun'].includes(data.params.modePlanning))
+      data.params.modules.planning = data.params.modePlanning;
     delete data.params.modePlanning;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -2277,6 +2321,7 @@ function applyDefaults(data) {
   const def = getDefaultData();
   if (!data.params) data.params = def.params;
   Object.keys(def.params).forEach(k => { if (data.params[k] === undefined) data.params[k] = def.params[k]; });
+  if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
   if (!data.categories) data.categories = def.categories;
   if (!data.missions) data.missions = def.missions;
   if (!data.revenus) data.revenus = {};
@@ -3213,7 +3258,21 @@ function updateDashboardTitle() {
   if(currentPage==='dashboard') document.getElementById('topbar-title').textContent=getPageTitle('dashboard');
 }
 
+function updateNavDevis() {
+  const el = document.getElementById('nav-devis');
+  if (!el) return;
+  const visible = DATA.params.modules?.devis !== false;
+  el.style.display = visible ? '' : 'none';
+}
+function updateNavPlanning() {
+  const el = document.getElementById('nav-planning');
+  if (!el) return;
+  const visible = DATA.params.modules?.planning !== 'aucun';
+  el.style.display = visible ? '' : 'none';
+}
 function navigate(page) {
+  if (page === 'devis' && DATA.params.modules?.devis === false) { navigate('dashboard'); return; }
+  if (page === 'planning' && DATA.params.modules?.planning === 'aucun') { navigate('dashboard'); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -3544,7 +3603,7 @@ function renderDashboard() {
         '<div class="card-header"><div class="card-title">&#x1F4CA; Vos premiers indicateurs</div>' +
         '<div class="card-sub">Calculés à partir de vos paramètres — affinés après l\'ajout de vos chantiers</div></div>' +
         '<div class="g3" style="gap:12px">' +
-          '<div class="kpi neu"><div class="kpi-ico">&#x23F1;</div><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">'+fmtE(thMinO,0)+'/h</div><div class="kpi-sub">Pour atteindre votre objectif</div></div>' +
+          '<div class="kpi neu"><div class="kpi-ico">&#x23F1;</div><div class="kpi-label">'+(isJours()?'TJM minimum':'Taux horaire minimum')+'</div><div class="kpi-val">'+fmtE(isJours()?thMinO*(DATA.params.heuresParJour||7):thMinO,0)+(isJours()?'/j':'/h')+'</div><div class="kpi-sub">Pour atteindre votre objectif</div></div>' +
           '<div class="kpi neu"><div class="kpi-ico">&#x1F3AF;</div><div class="kpi-label">Objectif mensuel net</div><div class="kpi-val">'+fmtE(objNet2O,0)+'</div><div class="kpi-sub">Net après charges</div></div>' +
           '<div class="kpi neu"><div class="kpi-ico">&#x1F4C8;</div><div class="kpi-label">CA annuel minimum</div><div class="kpi-val">'+fmtE(caMinO,0)+'</div><div class="kpi-sub">Pour couvrir charges + objectif</div></div>' +
         '</div>' +
@@ -3862,7 +3921,7 @@ function buildWidget(key,d) {
     case 'surveiller':        return wSurveiller(d);
     case 'chart-ca':          return `<div class="card"><div class="card-header"><div class="card-title">CA mensuel ${DATA.currentYear}</div></div><canvas id="chart-ca" style="width:100%" height="160"></canvas></div>`;
     case 'chart-temps':     return ''; // déplacé dans la page Chantiers (Vue d'ensemble)
-    case 'remplissage':        return wRemplissage();
+    case 'remplissage':        return DATA.params.modules?.planning==='aucun' ? '' : wRemplissage();
     case 'rentab-clients':    return wRentabClients();
     case 'rentab-cat':        return wRentabCat();
     case 'rentab-chantiers':  return wRentabChantiers();
@@ -3899,16 +3958,51 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
       <div style="margin:5px 0 3px;height:6px;background:var(--brd);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pctObj}%;background:${objColor};border-radius:3px;transition:width .4s"></div></div>
       <div style="font-size:11px;color:var(--tl)">${pctObj>=100?'✓ Objectif atteint':'manque '+fmtE(delta)+' / mois'}</div>
     </div>
-    <div style="padding:0 16px;border-right:1px solid var(--brd)">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">TH réel</div>
-      <div style="font-size:20px;font-weight:700;color:${thColor};line-height:1">${hT>0?fmtE(thR,0)+'/h':'—'}</div>
-      <div style="font-size:11px;color:var(--tl);margin-top:4px">${thMin>0?'obj. min. '+fmtE(thMin,0)+'/h':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie'}</div>
-    </div>
-    <div style="padding-left:16px">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Planning — ${moisLabel}</div>
-      <div style="font-size:20px;font-weight:700;color:${rempColor};line-height:1">${hasSessions?rm.taux+' %':'—'}</div>
-      <div style="font-size:11px;color:var(--tl);margin-top:4px">${hasSessions?rm.occupied+'j planifiés / '+rm.ouvrables+'j ouvrables':'Planifiez des sessions'}</div>
-    </div>
+    ${(()=>{
+      const _obj=DATA.params?.modules?.objectif||'th';
+      const hj=DATA.params.heuresParJour||7;
+      if(_obj==='tjm'){
+        const tjmR=hT>0?Math.round(thR*hj):0;
+        const tjmMin=thMin>0?Math.ceil(thMin*hj/10)*10:0;
+        const tjmColor=tjmMin>0?(tjmR>=tjmMin?'var(--ok)':tjmR>=tjmMin*.8?'var(--warn)':hT>0?'var(--err)':'var(--tl)'):(tjmR>=300?'var(--ok)':tjmR>=200?'var(--warn)':hT>0?'var(--err)':'var(--tl)');
+        return `<div style="padding:0 16px;border-right:1px solid var(--brd)">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">TJM réel</div>
+          <div style="font-size:20px;font-weight:700;color:${tjmColor};line-height:1">${hT>0?fmtE(tjmR,0)+'/j':'—'}</div>
+          <div style="font-size:11px;color:var(--tl);margin-top:4px">${tjmMin>0?'obj. min. '+fmtE(tjmMin,0)+'/j':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie'}</div>
+        </div>
+        <div style="padding-left:16px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Planning — ${moisLabel}</div>
+          <div style="font-size:20px;font-weight:700;color:${rempColor};line-height:1">${hasSessions?rm.taux+' %':'—'}</div>
+          <div style="font-size:11px;color:var(--tl);margin-top:4px">${hasSessions?rm.occupied+'j planifiés / '+rm.ouvrables+'j ouvrables':'Planifiez des sessions'}</div>
+        </div>`;
+      } else if(_obj==='marge_commande'){
+        const missions=DATA.missions.filter(m=>!m.isManagement&&m.montantDevis>0);
+        const avecCouts=missions.map(m=>{const dep=getDepensesChantier(m.id);return{marge:m.montantDevis-dep,hasDep:dep>0};}).filter(x=>x.hasDep);
+        const margeMoy=avecCouts.length>0?avecCouts.reduce((s,x)=>s+x.marge,0)/avecCouts.length:null;
+        const margeColor=margeMoy===null?'var(--tl)':margeMoy>=0?'var(--ok)':'var(--err)';
+        return `<div style="padding:0 16px;border-right:1px solid var(--brd)">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Marge moy.</div>
+          <div style="font-size:20px;font-weight:700;color:${margeColor};line-height:1">${margeMoy!==null?fmtE(margeMoy,0):'—'}</div>
+          <div style="font-size:11px;color:var(--tl);margin-top:4px">${avecCouts.length>0?avecCouts.length+' commande'+(avecCouts.length>1?'s':'')+' avec coûts':'Rattachez des coûts aux commandes'}</div>
+        </div>
+        <div style="padding-left:16px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">TH réel</div>
+          <div style="font-size:20px;font-weight:700;color:${thColor};line-height:1">${hT>0?fmtE(thR,0)+'/h':'—'}</div>
+          <div style="font-size:11px;color:var(--tl);margin-top:4px">${hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie'}</div>
+        </div>`;
+      } else {
+        return `<div style="padding:0 16px;border-right:1px solid var(--brd)">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">TH réel</div>
+          <div style="font-size:20px;font-weight:700;color:${thColor};line-height:1">${hT>0?fmtE(thR,0)+'/h':'—'}</div>
+          <div style="font-size:11px;color:var(--tl);margin-top:4px">${thMin>0?'obj. min. '+fmtE(thMin,0)+'/h':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie'}</div>
+        </div>
+        <div style="padding-left:16px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Planning — ${moisLabel}</div>
+          <div style="font-size:20px;font-weight:700;color:${rempColor};line-height:1">${hasSessions?rm.taux+' %':'—'}</div>
+          <div style="font-size:11px;color:var(--tl);margin-top:4px">${hasSessions?rm.occupied+'j planifiés / '+rm.ouvrables+'j ouvrables':'Planifiez des sessions'}</div>
+        </div>`;
+      }
+    })()}
   </div>`;
 }
 
@@ -4947,7 +5041,7 @@ function openMissionModal(id) {
   }
   // Planification — sessions
   const planZone=document.getElementById('m-planning-zone');
-  if(planZone) planZone.style.display=m&&m.isManagement?'none':'';
+  if(planZone) planZone.style.display=(m&&m.isManagement)||DATA.params.modules?.planning==='aucun'?'none':'';
   initEditingSessions(m);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
   // Label et placeholder description selon la famille métier
@@ -5386,8 +5480,8 @@ function renderMissionsSummary(all) {
         <div id="msn-top-cats">${rentabCatBody()}</div>
       </div>
       ${(()=>{
-        const family=BUSINESS_PROFILE_MAP[DATA.params?.metier]||DEFAULT_FAMILY;
-        if(family!=='fabrication') return '';
+        const _obj=DATA.params?.modules?.objectif||'th';
+        if(_obj!=='marge_commande') return '';
         const withCouts=facturees.map(m=>{const dep=getDepensesChantier(m.id);return{m,dep,marge:m.montantDevis-dep};}).filter(x=>x.dep>0);
         if(!withCouts.length) return `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--brd)"><div class="card-title" style="margin-bottom:6px;font-size:13px">📦 Rentabilité commandes — ${tVocab('coutDirectLabel')}</div><div class="ts" style="color:var(--tl)">Rattachez des ${tVocab('coutDirectLabel').toLowerCase()} à vos commandes depuis l'onglet <span style="cursor:pointer;color:var(--acc)" onclick="navigate('depenses')">Dépenses</span> pour voir la marge brute.</div></div>`;
         const nb=withCouts.length;
@@ -6584,7 +6678,7 @@ function renderObjectifsResult() {
     el.innerHTML=`
       <div class="g2">
         <div class="kpi neu"><div class="kpi-label">CA HT mensuel à atteindre</div><div class="kpi-val">${fmtE(caMensMin)}</div><div class="kpi-sub">= ${fmtE(caAnMin)} / an</div>${depTxtDetail}</div>
-        <div class="kpi neu"><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
+        <div class="kpi neu"><div class="kpi-label">${isJours()?'TJM minimum':'Taux horaire minimum'}</div><div class="kpi-val">${hMens>0?(isJours()?fmtE(thMin*(p.heuresParJour||7),0)+'/j':fmtE(thMin,0)+'/h'):'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
         <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.remunerationNette||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
       </div>
@@ -6604,7 +6698,7 @@ function renderObjectifsResult() {
   el.innerHTML=`
     <div class="g2">
       <div class="kpi neu"><div class="kpi-label">CA mensuel à atteindre</div><div class="kpi-val">${fmtE(caMens)}</div><div class="kpi-sub">= ${fmtE(caAn)} / an</div>${depTxtDetail}</div>
-      <div class="kpi neu"><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${fmtE(thMin,0)}/h</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
+      <div class="kpi neu"><div class="kpi-label">${isJours()?'TJM minimum':'Taux horaire minimum'}</div><div class="kpi-val">${isJours()?fmtE(thMin*(p.heuresParJour||7),0)+'/j':fmtE(thMin,0)+'/h'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
       <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
       <div class="kpi neu"><div class="kpi-label">Charges + impôts</div><div class="kpi-val">${fmt((getTauxChargesPresta()+getImpotsTaux())*100,1)} %</div><div class="kpi-sub">${p.activiteMixte?`Côté prestation · vente ${fmt((getTauxChargesVente())*100,1)} %`:'URSSAF+CFP+impôts'}</div></div>
     </div>
@@ -6614,7 +6708,7 @@ function renderObjectifsResult() {
       ${p.tva?`<div class="kpi-sub">≈ ${fmtE(thJour*(1+(p.tauxTVA||20)/100),0)} € TTC / jour</div>`:''}
       <div class="kpi-sub">${p.tva?`${fmtE(thMin,0)} €/h × ${p.heuresParJour}h/j · parlez le bon langage pour vos devis`:`${fmtE(thJour,0)} €/j nécessaires pour atteindre ${fmtE(p.objectifNetMensuel)}/mois nets — cotisations et charges incluses`}</div>
     </div>`:''}
-    <div class="alert al-info mt12">💡 Pour ${fmtE(p.objectifNetMensuel)}/mois nets, facturez <strong>${fmtE(caMens)}/mois</strong> → taux horaire min. <strong>${fmtE(thMin,0)}/h</strong> · objectif journée : <strong>${fmtE(thJour,0)} €${p.tva?' HT':''}/j</strong>.${p.activiteMixte?` <span style="color:var(--tl)">En activité mixte, cet objectif est estimé à partir du taux prestation (${fmt(getTauxChargesPresta()*100,1)} %), par prudence.</span>`:''}</div>`;
+    <div class="alert al-info mt12">💡 Pour ${fmtE(p.objectifNetMensuel)}/mois nets, facturez <strong>${fmtE(caMens)}/mois</strong> → ${isJours()?`TJM min. <strong>${fmtE(thJour,0)}/j</strong> · TH : <strong>${fmtE(thMin,0)}/h</strong>`:`taux horaire min. <strong>${fmtE(thMin,0)}/h</strong> · objectif journée : <strong>${fmtE(thJour,0)} €${p.tva?' HT':''}/j</strong>`}.${p.activiteMixte?` <span style="color:var(--tl)">En activité mixte, cet objectif est estimé à partir du taux prestation (${fmt(getTauxChargesPresta()*100,1)} %), par prudence.</span>`:''}</div>`;
 }
 
 // ── CATÉGORIES ───────────────────────────────────────────────
@@ -6675,11 +6769,14 @@ function renderDevis() {
 
 function calcDevis() {
   const montant=parseFloat(document.getElementById('dv-montant').value)||0;
-  const hChantier=parseFloat(document.getElementById('dv-h-chantier').value)||0;
+  const inputChantier=parseFloat(document.getElementById('dv-h-chantier').value)||0;
   const hTtrajet=parseFloat(document.getElementById('dv-h-trajet').value)||0;
   const fournitures=parseFloat(document.getElementById('dv-fournitures').value)||0;
   const frais=parseFloat(document.getElementById('dv-frais').value)||0;
   const p=DATA.params;
+  const _isJ=isJours(), _hj=p.heuresParJour||7;
+  // Si uniteTemps=jours, l'utilisateur saisit des jours — on convertit en heures pour les calculs
+  const hChantier=_isJ?inputChantier*_hj:inputChantier;
 
   // Pas de montant → état vide
   if(!montant){
@@ -6724,7 +6821,7 @@ function calcDevis() {
     verdict='Ce devis couvre votre objectif, mais laisse peu de marge pour les imprévus.';
     verdictCl='al-warn'; verdictIcon='⚠️'; borderColor='var(--warn)';
   } else {
-    verdict='Attention : ce devis est sous votre taux horaire cible.';
+    verdict=_isJ?'Attention : ce devis est sous votre TJM cible.':'Attention : ce devis est sous votre taux horaire cible.';
     verdictCl='al-err'; verdictIcon='⛔'; borderColor='var(--err)';
   }
 
@@ -6741,7 +6838,7 @@ function calcDevis() {
     return `<div style="margin:14px 0 6px">
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tl);margin-bottom:4px">
         <span>0</span>
-        <span>Objectif ${fmtE(thMin,0)}/h &nbsp;·&nbsp; Cible confort ${fmtE(cible,0)}/h</span>
+        <span>${_isJ?`Objectif ${fmtE(thMin*_hj,0)}/j · Cible confort ${fmtE(cible*_hj,0)}/j`:`Objectif ${fmtE(thMin,0)}/h · Cible confort ${fmtE(cible,0)}/h`}</span>
       </div>
       <div style="position:relative;height:10px">
         <div class="prog-bar" style="height:10px;position:absolute;inset:0">
@@ -6755,9 +6852,10 @@ function calcDevis() {
 
   const thEstLine = thEst!==null
     ? `<div class="kpi ${thEst>=thMin*1.1?'good':thEst>=thMin?'warn':'bad'}" style="border-left:4px solid ${borderColor}">
-        <div class="kpi-label">Taux horaire estimé — brut après frais de chantier</div>
-        <div class="kpi-val">${fmtE(thEst,0)}<span style="font-size:14px;font-weight:400"> €/h brut</span></div>
-        ${thMin>0?`<div class="kpi-sub">Brut min requis : ${fmtE(thMin,0)}/h · Cible confort : ${fmtE(thMin*1.1,0)}/h${thEst>=thMin*1.1?' ✓':thEst>=thMin?' ~':''}</div>`:'<div class="kpi-sub">—</div>'}
+        <div class="kpi-label">${_isJ?'Taux journalier estimé — brut après frais':'Taux horaire estimé — brut après frais de chantier'}</div>
+        <div class="kpi-val">${_isJ?fmtE(thEst*_hj,0):fmtE(thEst,0)}<span style="font-size:14px;font-weight:400"> ${_isJ?'€/j brut':'€/h brut'}</span></div>
+        ${thMin>0?`<div class="kpi-sub">${_isJ?`Brut min requis : ${fmtE(thMin*_hj,0)}/j · Cible confort : ${fmtE(thMin*1.1*_hj,0)}/j${thEst>=thMin*1.1?' ✓':thEst>=thMin?' ~':''}`:
+          `Brut min requis : ${fmtE(thMin,0)}/h · Cible confort : ${fmtE(thMin*1.1,0)}/h${thEst>=thMin*1.1?' ✓':thEst>=thMin?' ~':''}`}</div>`:'<div class="kpi-sub">—</div>'}
         ${thBarre}
         ${thEstJour!==null?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)">
           <div class="kpi-label">Équivalent journée (${p.heuresParJour}h/j) · avant charges</div>
@@ -6786,8 +6884,8 @@ function calcDevis() {
         </div>
         <div class="kpi neu">
           <div class="kpi-label">Temps total estimé</div>
-          <div class="kpi-val">${hTotal>0?fmt(hTotal,1)+' h':'—'}</div>
-          <div class="kpi-sub">${hChantier>0?fmt(hChantier,1)+'h chantier':''}${hChantier>0&&hTtrajet>0?' + ':''}${hTtrajet>0?fmt(hTtrajet,1)+'h trajet':''}</div>
+          <div class="kpi-val">${hTotal>0?(_isJ?fmt(inputChantier,1)+' j':fmt(hTotal,1)+' h'):'—'}</div>
+          <div class="kpi-sub">${_isJ?(inputChantier>0?fmt(inputChantier,1)+'j chantier':'')+(inputChantier>0&&hTtrajet>0?' + ':'')+(hTtrajet>0?fmt(hTtrajet,1)+'h trajet':''):(hChantier>0?fmt(hChantier,1)+'h chantier':'')+(hChantier>0&&hTtrajet>0?' + ':'')+(hTtrajet>0?fmt(hTtrajet,1)+'h trajet':'')}</div>
         </div>
       </div>
 

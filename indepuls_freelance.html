@@ -534,10 +534,11 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('archives')"><span class="nav-icon">📈</span> Historique</div>
   <div class="nav-section">Activité</div>
   <div class="nav-item" onclick="navigate('missions')" id="nav-missions-label" style="visibility:hidden"><span class="nav-icon">🎯</span> Missions</div>
-  <script>(function(){try{var d=JSON.parse(localStorage.getItem('indepuls_freelance')||'{}'),m=(d.params||{}).metier,L={service:'🎯 Missions',creative:'🎨 Prestations',chantier:'🛠️ Chantiers',fabrication:'📦 Commandes'},l=L[m]||'🎯 Missions';var e=document.getElementById('nav-missions-label');if(e){e.textContent=l;e.style.visibility='visible';}}catch(e){}})();</script>
+  <script>(function(){try{var d=JSON.parse(localStorage.getItem('indepuls_freelance')||'{}'),m=(d.params||{}).metier,L={service:'🎯 Missions',chantier:'🛠️ Chantiers',fabrication:'📦 Commandes',achat_revente:'🛍️ Ventes',prestataire_services:'🎯 Missions',creatif_com:'🎯 Missions',evenementiel:'🎯 Missions',artisan_batiment:'🛠️ Chantiers',artisan_commande:'📦 Commandes',fabricant_serie:'📦 Commandes'},l=L[m]||'🎯 Missions';var e=document.getElementById('nav-missions-label');if(e){e.textContent=l;e.style.visibility='visible';}}catch(e){}})();</script>
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
+  <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
   <div class="nav-item" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> Tester une offre</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="Activez le livre des recettes dans les Paramètres"><span class="nav-icon">📒</span> Livre des recettes</div>
   <div class="nav-section">Réglages</div>
@@ -580,6 +581,11 @@ html,body{overflow-x:hidden;}
     <div id="example-banner"></div>
     <div style="margin-bottom:14px"><span class="ts" id="current-year-label"></span></div>
     <div id="dashboard-content"></div>
+  </div>
+
+  <!-- PLANNING -->
+  <div class="page" id="page-planning">
+    <div id="planning-content" style="max-width:900px"></div>
   </div>
 
   <!-- MISSIONS -->
@@ -747,33 +753,20 @@ html,body{overflow-x:hidden;}
             <label class="flabel">Métier exercé <span class="info-tip" title="Vous ne trouvez pas votre métier ? Choisissez celui qui s'en rapproche le plus. Nous enrichissons régulièrement cette liste. N'hésitez pas à nous contacter pour demander l'ajout d'un métier.">?</span></label>
             <select id="p-metier" onchange="saveParam('metier',this.value);renderDashboard();applyVocabUI()">
               <option value="">— Sélectionner —</option>
-              <optgroup label="Prestations de services">
-                <option value="obm">OBM</option>
-                <option value="coach">Coach</option>
-                <option value="consultant">Consultant·e</option>
-                <option value="expert_comptable">Expert-comptable</option>
-                <option value="consultant_rh">Consultant RH</option>
-                <option value="juriste">Juriste indépendant·e</option>
-                <option value="traducteur">Traducteur·trice</option>
-                <option value="redacteur">Rédacteur·trice</option>
-                <option value="therapeute">Thérapeute</option>
-                <option value="coach_sportif">Coach sportif</option>
-                <option value="nutritionniste">Nutritionniste</option>
-                <option value="sophrologue">Sophrologue</option>
-                <option value="hypnotherapeute">Hypnothérapeute</option>
-                <option value="psychologue">Psychologue</option>
-                <option value="developpeur">Développeur·se</option>
-                <option value="community_manager">Community manager</option>
-                <option value="assistante_virtuelle">Assistante virtuelle</option>
-                <option value="webdesigner">Webdesigner</option>
-                <option value="architecte">Architecte</option>
-                <option value="conciergerie">Conciergerie</option>
-                <option value="formateur">Formateur·trice</option>
+              <optgroup label="Prestation de services">
+                <option value="prestataire_services">Prestataire de services</option>
+                <option value="creatif_com">Créatif / Communication</option>
+                <option value="evenementiel">Prestataire événementiel</option>
               </optgroup>
-              <optgroup label="Créatif / Visuel">
-                <option value="graphiste">Graphiste</option>
-                <option value="photographe">Photographe</option>
-                <option value="ugc">UGC</option>
+              <optgroup label="Artisan">
+                <option value="artisan_batiment">Artisan bâtiment</option>
+                <option value="artisan_commande">Artisan sur commande</option>
+              </optgroup>
+              <optgroup label="Fabrication">
+                <option value="fabricant_serie">Fabricant série</option>
+              </optgroup>
+              <optgroup label="Commerce">
+                <option value="achat_revente">Achat / Revente</option>
               </optgroup>
             </select>
             <div class="ts mt4" style="color:var(--tl)">Optionnel — servira à adapter le vocabulaire de l'interface.</div>
@@ -1323,6 +1316,15 @@ html,body{overflow-x:hidden;}
         <option value="autre">Autre</option>
       </select>
       <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
+    </div>
+    <div id="m-planning-zone">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
+      <div id="m-sessions-list" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="fgroup" style="flex:1;min-width:120px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut"></div>
+        <div class="fgroup" style="flex:1;min-width:120px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin"></div>
+        <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
+      </div>
     </div>
     <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
     <div id="m-couts-directs-zone" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
@@ -1904,7 +1906,7 @@ html,body{overflow-x:hidden;}
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
-const SCHEMA_VERSION = 28; // v28 : 8 thèmes (ocean, nuit, rose, latte, havane, alpine, eucalyptus)
+const SCHEMA_VERSION = 29; // v29 : params.modules (planning/uniteTemps/objectif/devis)
 const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Coworking & bureau','Outils IA','Hébergement & nom de domaine','Livres & ressources professionnelles','Autre'];
 const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#0e7490','#6d28d9','#4338ca','#b45309','#6b7280'];
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
@@ -1914,6 +1916,7 @@ const STORAGE_KEY = 'indepuls_freelance';
 // ── VOCABULAIRE MÉTIER ───────────────────────────────────────
 // Couche d'affichage uniquement — ne jamais modifier les calculs ou DATA
 const VOCABULARY_FAMILIES = {
+  // ── 4 familles de vocabulaire — indépendantes des modules fonctionnels ──
   service: {
     item:'Mission', items:'Missions', addItem:'+ Ajouter une mission',
     newItem:'Nouvelle mission', editItem:'Modifier la mission',
@@ -1930,23 +1933,6 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre']
-  },
-  creative: {
-    item:'Prestation', items:'Prestations', addItem:'+ Ajouter une prestation',
-    newItem:'Nouvelle prestation', editItem:'Modifier la prestation',
-    itemsEnCours:'Prestations en cours', emptyItems:'Aucune prestation pour l\'instant.',
-    emptyFilter:'Aucune prestation dans cette catégorie.',
-    temps:'Temps de production', client:'Client', rentabilite:'Rentabilité prestations',
-    navLabel:'🎨 Prestations',
-    pageTitle:'Prestations', clientField:'Client / Prestation',
-    suivi:'Suivi des prestations', firstItem:'Créez votre première prestation',
-    createButton:'Créer une prestation', countMonth:'Prestations ce mois',
-    sessions:'Sessions prestation', goTo:'→ Aller dans Prestations',
-    createFromTest:'Créer une prestation à partir de ce test',
-    tabCategories:'Offres & prestations',
-    catTitle:'Mes offres & catégories de prestations',
-    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de prestations.\nVous pouvez renseigner vos offres, shootings, créations ou catégories de travail.',
-    defaultCategories:['Création','Production','Shooting','Montage','Branding','Site web','Réseaux sociaux','Impression','Conseil','Autre']
   },
   chantier: {
     item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
@@ -1981,38 +1967,88 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
     defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre']
+  },
+  achat_revente: {
+    item:'Vente', items:'Ventes', addItem:'+ Ajouter une vente',
+    newItem:'Nouvelle vente', editItem:'Modifier la vente',
+    itemsEnCours:'Ventes en cours', emptyItems:'Aucune vente pour l\'instant.',
+    emptyFilter:'Aucune vente dans cette catégorie.',
+    temps:'Temps passé', client:'Acheteur', rentabilite:'Rentabilité ventes',
+    navLabel:'🛍️ Ventes',
+    pageTitle:'Ventes', clientField:'Article / Vente',
+    suivi:'Suivi des ventes', firstItem:'Ajoutez votre première vente',
+    createButton:'Ajouter une vente', countMonth:'Ventes ce mois',
+    sessions:'Sessions', goTo:'→ Aller dans Ventes',
+    createFromTest:'Créer une vente à partir de ce test',
+    tabCategories:'Produits & ventes',
+    catTitle:'Mes catégories de ventes',
+    catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de ventes. Vous pouvez y renseigner vos types de produits ou catégories.',
+    defaultCategories:['Vêtements','Accessoires','Décoration','Électronique','Livres & média','Loisirs & sport','Autre']
   }
 };
 const BUSINESS_PROFILE_MAP = {
+  // ── 7 profils (nouvelles clés) ──────────────────────────────────────────
+  prestataire_services:'service', creatif_com:'service', evenementiel:'service',
+  artisan_batiment:'chantier',
+  fabricant_serie:'fabrication', artisan_commande:'fabrication',
+  achat_revente:'achat_revente',
+  // ── Anciennes clés spécifiques (compatibilité utilisateurs existants) ───
   obm:'service', coach:'service', therapeute:'service', consultant:'service',
   expert_comptable:'service', consultant_rh:'service', juriste:'service',
   traducteur:'service', redacteur:'service', coach_sportif:'service',
   nutritionniste:'service', sophrologue:'service', hypnotherapeute:'service', psychologue:'service',
   developpeur:'service', community_manager:'service', assistante_virtuelle:'service',
-  webdesigner:'service', architecte:'service', conciergerie:'service', formateur:'service',
-  graphiste:'creative', photographe:'creative', ugc:'creative',
+  conciergerie:'service', formateur:'service',
+  webdesigner:'service', architecte:'service',
+  graphiste:'service', photographe:'service', ugc:'service',  // ex-creative → service
   macon:'chantier', peintre:'chantier', couvreur:'chantier', plombier:'chantier',
   menuisier:'chantier', carreleur:'chantier', serrurier:'chantier', plaquiste:'chantier',
   electricien:'chantier', paysagiste:'chantier', chauffagiste:'chantier', multicorps:'chantier',
-  traiteur:'chantier', fleuriste:'chantier',
+  traiteur:'service', fleuriste:'service',                     // ex-chantier → service
   fabricant:'fabrication', autre_fabrication:'fabrication',
   chocolatier:'fabrication', patissier:'fabrication', ebeniste:'fabrication',
   createur_bijoux:'fabrication', fabricant_cosmetiques:'fabrication', fabricant_bougies:'fabrication',
   tapissier:'fabrication', maroquinier:'fabrication', ferronnier:'fabrication'
 };
-// Migration des anciennes valeurs (avant introduction des clés normalisées)
+// Migration des anciennes valeurs vers les 7 nouveaux profils
 const METIER_MIGRATION_FL = {
-  'OBM':'obm','Coach':'coach','Thérapeute':'therapeute','Consultant·e':'consultant',
-  'Développeur·se':'developpeur','Community manager':'community_manager',
-  'Assistante virtuelle':'assistante_virtuelle','Webdesigner':'webdesigner',
-  'Architecte':'architecte','Conciergerie':'conciergerie','Formateur·trice':'formateur',
-  'Graphiste':'graphiste','Photographe':'photographe','UGC':'ugc','Autre':''
+  // Anciennes valeurs affichées (avant introduction des clés normalisées)
+  'OBM':'prestataire_services','Coach':'prestataire_services','Thérapeute':'prestataire_services',
+  'Consultant·e':'prestataire_services','Développeur·se':'prestataire_services',
+  'Community manager':'prestataire_services','Assistante virtuelle':'prestataire_services',
+  'Webdesigner':'creatif_com','Architecte':'creatif_com',
+  'Conciergerie':'prestataire_services','Formateur·trice':'prestataire_services',
+  'Graphiste':'creatif_com','Photographe':'creatif_com','UGC':'creatif_com','Autre':'',
+  // Anciennes clés normalisées → nouveaux profils
+  obm:'prestataire_services', coach:'prestataire_services', therapeute:'prestataire_services',
+  consultant:'prestataire_services', expert_comptable:'prestataire_services',
+  consultant_rh:'prestataire_services', juriste:'prestataire_services',
+  traducteur:'prestataire_services', redacteur:'prestataire_services',
+  coach_sportif:'prestataire_services', nutritionniste:'prestataire_services',
+  sophrologue:'prestataire_services', hypnotherapeute:'prestataire_services',
+  psychologue:'prestataire_services', developpeur:'prestataire_services',
+  community_manager:'prestataire_services', assistante_virtuelle:'prestataire_services',
+  conciergerie:'prestataire_services', formateur:'prestataire_services',
+  webdesigner:'creatif_com', architecte:'creatif_com',
+  graphiste:'creatif_com', photographe:'creatif_com', ugc:'creatif_com'
 };
 const DEFAULT_FAMILY = 'service';
 function tVocab(key) {
   const metier = DATA.params?.metier || '';
   const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
+}
+function getDefaultModules(metier) {
+  const M = {
+    prestataire_services: { planning:'estime',    uniteTemps:'heures', objectif:'th',             devis:true  },
+    creatif_com:          { planning:'estime',    uniteTemps:'heures', objectif:'th',             devis:true  },
+    evenementiel:         { planning:'calendrier', uniteTemps:'heures', objectif:'th',             devis:true  },
+    artisan_batiment:     { planning:'calendrier', uniteTemps:'jours',  objectif:'tjm',            devis:true  },
+    fabricant_serie:      { planning:'estime',    uniteTemps:'heures', objectif:'marge_commande', devis:false },
+    artisan_commande:     { planning:'estime',    uniteTemps:'heures', objectif:'marge_commande', devis:true  },
+    achat_revente:        { planning:'estime',    uniteTemps:'heures', objectif:'marge_commande', devis:false },
+  };
+  return M[metier] ? {...M[metier]} : { planning:'estime', uniteTemps:'heures', objectif:'th', devis:false };
 }
 function migrateMetierParam() {
   const m = DATA.params?.metier;
@@ -2064,6 +2100,310 @@ function applyVocabUI() {
     saveData();
     renderCategoriesList();
   }
+  updateNavPlanning();
+  // Planning : label sessions dans la modale + visibilité de la zone
+  const sessLabel = document.getElementById('modal-sessions-label');
+  if (sessLabel) sessLabel.textContent = tVocab('sessions') || 'Sessions';
+  const planZoneNav = document.getElementById('m-planning-zone');
+  if (planZoneNav) planZoneNav.style.display = DATA.params.modules?.planning === 'calendrier' ? '' : 'none';
+}
+
+// ── PLANNING — SESSIONS ──────────────────────────────────────
+let editingSessions = [];
+
+function initEditingSessions(m) {
+  editingSessions = m ? JSON.parse(JSON.stringify(m.sessions||[])) : [];
+  const debEl = document.getElementById('m-sess-debut');
+  const finEl = document.getElementById('m-sess-fin');
+  if (debEl) debEl.value = '';
+  if (finEl) finEl.value = '';
+  renderEditSessions();
+}
+
+function renderEditSessions() {
+  const el = document.getElementById('m-sessions-list'); if (!el) return;
+  if (editingSessions.length === 0) {
+    el.innerHTML = `<div class="ts" style="color:var(--tl);padding:4px 0 2px">Aucune session — la mission n'apparaîtra pas dans le calendrier.</div>`;
+    return;
+  }
+  el.innerHTML = editingSessions.map((s,i) => {
+    const fin = s.fin || s.debut;
+    const range = s.debut === fin
+      ? `${formatDateFR(s.debut)} <span class="ts">(1 jour)</span>`
+      : `${formatDateFR(s.debut)} → ${formatDateFR(fin)}`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
+      <span style="flex:1;font-size:12px">${range}</span>
+      <button class="btn btn-del btn-xs" onclick="removeSessionFromEdit(${i})">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function addSessionToEdit() {
+  const debut = document.getElementById('m-sess-debut').value;
+  const fin = document.getElementById('m-sess-fin').value || debut;
+  if (!debut) { alert('Date de début requise.'); return; }
+  editingSessions.push({debut, fin});
+  editingSessions.sort((a,b) => a.debut < b.debut ? -1 : 1);
+  document.getElementById('m-sess-debut').value = '';
+  document.getElementById('m-sess-fin').value = '';
+  renderEditSessions();
+}
+
+function removeSessionFromEdit(idx) {
+  editingSessions.splice(idx, 1);
+  renderEditSessions();
+}
+
+function formatDateFR(ds) {
+  if (!ds) return '—';
+  const [, mm, dd] = ds.split('-');
+  const mois = ['jan.','fév.','mars','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
+  return `${parseInt(dd)} ${mois[parseInt(mm)-1]}`;
+}
+
+// ── PLANNING — CALENDRIER ────────────────────────────────────
+let planningMk = null;
+
+function getTauxRemplissageMois(mk) {
+  const [year, month] = mk.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const pad = n => String(n).padStart(2,'0');
+  let occupied = 0;
+  for (let d=1; d<=daysInMonth; d++) {
+    const ds = `${year}-${pad(month)}-${pad(d)}`;
+    const hit = DATA.missions.some(m => {
+      if (m.isManagement || !(m.sessions||[]).length) return false;
+      return m.sessions.some(s => ds >= s.debut && ds <= (s.fin||s.debut));
+    });
+    if (hit) occupied++;
+  }
+  const joursParSem = DATA.params.joursParSemaine || 5;
+  const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+  return { occupied, ouvrables, taux: Math.min(100, Math.round(occupied / ouvrables * 100)) };
+}
+
+function getTauxRemplissageAnnee() {
+  const mks = getMoisActifsAnnee();
+  if (!mks.length) return { occupied:0, ouvrables:0, taux:0 };
+  let totOcc=0, totOuv=0;
+  mks.forEach(mk => { const r=getTauxRemplissageMois(mk); totOcc+=r.occupied; totOuv+=r.ouvrables; });
+  return { occupied:totOcc, ouvrables:totOuv, taux: totOuv>0 ? Math.min(100,Math.round(totOcc/totOuv*100)) : 0 };
+}
+
+function planningNav(dir) {
+  if (!planningMk) planningMk = getCurrentMk();
+  const [y,m] = planningMk.split('-').map(Number);
+  const d = new Date(y, m-1+dir, 1);
+  planningMk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderPlanning();
+}
+function planningToday() { planningMk = getCurrentMk(); renderPlanning(); }
+
+function renderPlanning() {
+  if (!planningMk) planningMk = getCurrentMk();
+  const mk = planningMk;
+  const [year, month] = mk.split('-').map(Number);
+  const moisLabel = new Date(year, month-1, 1).toLocaleString('fr-FR',{month:'long',year:'numeric'});
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstWeekday = (new Date(year, month-1, 1).getDay()+6)%7;
+  const pad = n => String(n).padStart(2,'0');
+  const mkStr = d => `${year}-${pad(month)}-${pad(d)}`;
+  const mFirst = `${year}-${pad(month)}-01`, mLast = `${year}-${pad(month)}-${pad(daysInMonth)}`;
+
+  const missionsMois = DATA.missions.filter(m => {
+    if (m.isManagement || m.statut === 'ref' || !(m.sessions||[]).length) return false;
+    return m.sessions.some(s => s.debut <= mLast && (s.fin||s.debut) >= mFirst);
+  }).sort((a,b) => {
+    const aD=(a.sessions||[])[0]?.debut||'z', bD=(b.sessions||[])[0]?.debut||'z';
+    return aD<bD?-1:1;
+  });
+
+  const COLORS = ['#4f7cff','#e84393','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16'];
+  const colorMap = {};
+  missionsMois.forEach((m,i) => { colorMap[m.id] = COLORS[i%COLORS.length]; });
+
+  const getMissionsDay = ds => DATA.missions.filter(m => {
+    if (m.isManagement || !(m.sessions||[]).length) return false;
+    return m.sessions.some(s => ds >= s.debut && ds <= (s.fin||s.debut)) && colorMap[m.id];
+  });
+
+  let occupiedDays = 0;
+  for (let d=1; d<=daysInMonth; d++) {
+    if (getMissionsDay(mkStr(d)).length > 0) occupiedDays++;
+  }
+  const joursParSem = DATA.params.joursParSemaine || 5;
+  const joursOuvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+
+  const wdH = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(w =>
+    `<div style="text-align:center;font-size:10px;font-weight:700;color:var(--tl);text-transform:uppercase;padding:5px 2px">${w}</div>`
+  ).join('');
+
+  const calDays = [];
+  for (let i=0; i<firstWeekday; i++) calDays.push(null);
+  for (let d=1; d<=daysInMonth; d++) calDays.push(d);
+  while (calDays.length % 7 !== 0) calDays.push(null);
+
+  const today = new Date(); const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  const calGrid = calDays.map(d => {
+    if (!d) return `<div></div>`;
+    const ds = mkStr(d);
+    const missions = getMissionsDay(ds);
+    const isToday = ds === todayStr;
+    const isWe = (new Date(year,month-1,d).getDay()+6)%7 >= 5;
+    const bgToday = isToday ? 'background:var(--acc);color:#fff;font-weight:700;' : '';
+    const opWe = isWe && !missions.length ? 'opacity:.35;' : '';
+    const bars = missions.map(m => {
+      const c = colorMap[m.id];
+      const mk2 = {bg:c+'22',tx:c,bd:c};
+      return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
+    }).join('');
+    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);${bgToday}${opWe}">
+      <div style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
+      ${bars}
+    </div>`;
+  }).join('');
+
+  const missionRows = missionsMois.map(m => {
+    const c = colorMap[m.id];
+    const sessThisMois = (m.sessions||[]).filter(s => s.debut <= mLast && (s.fin||s.debut) >= mFirst);
+    let range;
+    if (sessThisMois.length===0) range='Présent ce mois';
+    else if (sessThisMois.length===1){
+      const s=sessThisMois[0], fin=s.fin||s.debut;
+      range=s.debut===fin?`${formatDateFR(s.debut)} (1 jour)`:`${formatDateFR(s.debut)} → ${formatDateFR(fin)}`;
+    } else { range=`${sessThisMois.length} sessions`; }
+    return `<div class="widget-item" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openMissionModal('${m.id}')">
+      <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.client||'—'} <span style="font-weight:400;color:var(--tl)">${m.description||''}</span></div>
+        <div class="ts" style="margin-top:1px">${range}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const html = `
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+    <div>
+      <h2 style="margin:0;font-size:20px;color:var(--pri)">📅 Planning</h2>
+      <div style="font-size:13px;color:var(--tl);margin-top:2px">Carnet de commandes — vue calendrier mensuelle</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-out btn-sm" onclick="planningNav(-1)">‹</button>
+      <span style="font-size:14px;font-weight:700;min-width:140px;text-align:center">${moisLabel}</span>
+      <button class="btn btn-out btn-sm" onclick="planningNav(1)">›</button>
+      <button class="btn btn-out btn-sm" onclick="planningToday()">Aujourd'hui</button>
+    </div>
+  </div>
+  ${missionsMois.length>0?`
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="kpi neu" style="flex:1;min-width:100px;padding:10px 14px;margin:0">
+      <div class="kpi-label">${tVocab('countMonth')}</div>
+      <div class="kpi-val" style="font-size:20px">${missionsMois.length}</div>
+    </div>
+    <div class="kpi neu" style="flex:1;min-width:100px;padding:10px 14px;margin:0">
+      <div class="kpi-label">Jours planifiés</div>
+      <div class="kpi-val" style="font-size:20px">${occupiedDays}<span style="font-size:13px;font-weight:400;color:var(--tl)"> / ${joursOuvrables}</span></div>
+      <div class="kpi-sub" style="font-size:10px;color:var(--tl);margin-top:2px">${joursParSem}j / semaine</div>
+    </div>
+    <div class="kpi ${occupiedDays/joursOuvrables>0.8?'warn':'neu'}" style="flex:1;min-width:100px;padding:10px 14px;margin:0">
+      <div class="kpi-label">Taux de remplissage</div>
+      <div class="kpi-val" style="font-size:20px">${Math.min(100,Math.round(occupiedDays/joursOuvrables*100))} %</div>
+    </div>
+  </div>`:''}
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+      ${wdH}
+      ${calGrid}
+    </div>
+  </div>
+  ${missionsMois.length>0?`
+  <div class="card">
+    <div class="card-header"><div class="card-title">${tVocab('items')} ce mois</div></div>
+    ${missionRows}
+  </div>`:`
+  <div class="card" style="text-align:center;padding:48px 24px;border:2px dashed var(--brd)">
+    <div style="font-size:44px;margin-bottom:16px">📅</div>
+    <div style="font-size:14px;color:var(--tl);line-height:1.8">Aucune ${tVocab('item').toLowerCase()} planifiée ce mois.<br>Ajoutez des sessions dans vos ${tVocab('items').toLowerCase()} pour remplir ce calendrier.</div>
+    <button class="btn btn-acc btn-sm mt12" onclick="navigate('missions')">${tVocab('goTo')}</button>
+  </div>`}`;
+
+  document.getElementById('planning-content').innerHTML = html;
+}
+
+function wRemplissage() {
+  const p = DATA.params;
+  const curMk = getCurrentMk();
+  const [cY,cM] = curMk.split('-');
+  const moisLabel = new Date(+cY,+cM-1,1).toLocaleString('fr-FR',{month:'long'});
+  const rm = getTauxRemplissageMois(curMk);
+  const ra = getTauxRemplissageAnnee();
+  const hasSessions = DATA.missions.some(m => !m.isManagement && (m.sessions||[]).length > 0);
+
+  if (!hasSessions) {
+    return `<div class="card">
+      <div class="card-header">
+        <div class="card-title">Remplissage planning</div>
+        <button class="btn btn-out btn-sm" onclick="navigate('planning')">→ Planning</button>
+      </div>
+      <div class="ts mt4" style="color:var(--tl);line-height:1.8">
+        Votre rythme : <strong>${p.joursParSemaine||5}j / semaine</strong><br>
+        <span style="font-style:italic">Ajoutez des sessions sur vos ${tVocab('items').toLowerCase()} pour voir votre taux de remplissage.</span>
+      </div>
+    </div>`;
+  }
+
+  const cl = rm.taux>90?'bad':rm.taux>70?'warn':'good';
+  const clC = rm.taux>90?'var(--err)':rm.taux>70?'var(--warn)':'var(--ok)';
+  const emoji = rm.taux>90?'🔴':rm.taux>70?'🟠':'🟢';
+  const msg = rm.taux>90?'Quasi complet':rm.taux>70?'Bien chargé':rm.taux>40?'Disponible':'Peu chargé';
+  const joursFree = Math.max(0, rm.ouvrables - rm.occupied);
+  const mStart = curMk+'-01', mEnd = curMk+'-31';
+  const missionsActives = DATA.missions.filter(m =>
+    !m.isManagement && (m.sessions||[]).some(s => s.debut<=mEnd && (s.fin||s.debut)>=mStart)
+  );
+  const rows = missionsActives.slice(0,5).map(m => {
+    let jours=0;
+    (m.sessions||[]).forEach(s => {
+      const d1=new Date(Math.max(new Date(s.debut),new Date(mStart)));
+      const d2=new Date(Math.min(new Date(s.fin||s.debut),new Date(mEnd)));
+      if(d1>d2) return;
+      const cur=new Date(d1);
+      while(cur<=d2){ const dw=cur.getDay(); if(dw!==0&&dw!==6) jours++; cur.setDate(cur.getDate()+1); }
+    });
+    const pCap=rm.ouvrables>0?Math.min(Math.round(jours/rm.ouvrables*100),100):0;
+    const pOcc=rm.occupied>0?Math.round(jours/rm.occupied*100):0;
+    return jours>0?`<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span class="ts">${m.client}${m.description?`<span style="color:var(--tl)"> — ${m.description}</span>`:''}</span>
+        <span class="ts" style="font-weight:700;white-space:nowrap;margin-left:8px">${jours}j · ${pOcc} %</span>
+      </div>
+      <div class="prog-bar" style="height:4px"><div style="height:100%;width:${pCap}%;background:var(--acc);border-radius:4px;transition:width .4s"></div></div>
+    </div>`:''
+  }).filter(Boolean).join('');
+
+  return `<div class="card">
+    <div class="card-header">
+      <div class="card-title">Remplissage planning</div>
+      <button class="btn btn-out btn-sm" onclick="navigate('planning')">Voir planning →</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <div style="font-size:30px;line-height:1">${emoji}</div>
+      <div>
+        <div style="font-size:28px;font-weight:700;color:${clC};line-height:1">${rm.taux} %</div>
+        <div class="ts mt2" style="color:var(--tl)">${msg} — ${rm.occupied}j planifiés / ${rm.ouvrables}j ouvrables en ${moisLabel}</div>
+      </div>
+    </div>
+    <div class="prog-bar mb10" style="height:8px;border-radius:5px">
+      <div class="prog-fill ${cl}" style="width:${Math.min(rm.taux,100)}%;border-radius:5px;transition:width .4s"></div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:${joursFree>0?'var(--ok)':'var(--err)'}">
+      📭 ${joursFree} jour${joursFree>1?'s':''} disponible${joursFree>1?'s':''} ce mois
+    </div>
+    <div class="ts mt4" style="color:var(--tl)">
+      Annuel ${DATA.currentYear} : <strong>${ra.taux} %</strong> — ${ra.occupied}j planifiés / ${ra.ouvrables}j ouvrables
+    </div>
+    ${rows?`<div class="divider mt10 mb8"></div><div class="ts mb8" style="font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Répartition ce mois</div>${rows}`:''}
+  </div>`;
 }
 
 // Seuils TVA 2026 — source unique de vérité
@@ -2159,7 +2499,7 @@ function getExampleData() {
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     missions:[
-      {id:'mgmt-interne',client:'Mon entreprise',categorie:'Gestion interne',description:'Gestion de mon activité',montantDevis:0,montantPrestation:0,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:true,encaissements:[]},
+      {id:'mgmt-interne',client:'Mon entreprise',categorie:'Gestion interne',description:'Gestion de mon activité',montantDevis:0,montantPrestation:0,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:true,encaissements:[],sessions:[]},
       // Récurrente — retainer mensuel depuis janvier
       {id:'ex-rec',client:'Groupe Horizon',categorie:'Coordination',description:'Retainer mensuel — coordination & pilotage opérationnel',montantDevis:18000,montantPrestation:18000,montantVente:0,statut:'cours',dateFact:null,isRecurring:true,montantMensuel:1500,nbMoisRec:12,dateDebutRec:mk4,heuresSaisies:0,timerAccumulated:162000000,timerRunning:false,timerStart:null,notes:'Contrat annuel renouvelable',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'client_existant',chargeEstimee:5,chargeUnit:'h_sem'},
       // Missions ponctuelles — une par mois
@@ -2277,7 +2617,6 @@ function getDefaultData() {
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       dateOuverture:'', metier:'',
-      modePlanning:'estime',
       livreRecettesActif:false
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
@@ -2310,8 +2649,13 @@ function migrate(data) {
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
-  if (data.params?.modePlanning && !['estime','calendrier','aucun'].includes(data.params.modePlanning))
+  // Migrer modePlanning → modules.planning
+  if (data.params?.modePlanning) {
+    if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
+    if (['estime','calendrier','aucun'].includes(data.params.modePlanning))
+      data.params.modules.planning = data.params.modePlanning;
     delete data.params.modePlanning;
+  }
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -2320,6 +2664,7 @@ function applyDefaults(data) {
   const def = getDefaultData();
   if (!data.params) data.params = def.params;
   Object.keys(def.params).forEach(k => { if (data.params[k] === undefined) data.params[k] = def.params[k]; });
+  if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
   if (!data.categories) data.categories = def.categories;
   if (!data.missions) data.missions = def.missions;
   if (!data.revenus) data.revenus = {};
@@ -2336,6 +2681,7 @@ function applyDefaults(data) {
     if (m.tempsCreation === undefined)    m.tempsCreation = 0;
     if (m.tempsAnimation === undefined)   m.tempsAnimation = 0;
     if (m.tempsSupport === undefined)     m.tempsSupport = 0;
+    if (m.sessions === undefined)         m.sessions = [];
     if (m.montantVente == null)           m.montantVente = 0;
     if (m.montantPrestation == null)      m.montantPrestation = 0;
     // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié,
@@ -2813,7 +3159,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Tester une offre',recettes:'Livre des recettes'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Tester une offre',recettes:'Livre des recettes'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -2824,7 +3170,14 @@ function updateDashboardTitle() {
   if(currentPage==='dashboard') document.getElementById('topbar-title').textContent=getPageTitle('dashboard');
 }
 
+function isJours() { return DATA.params?.modules?.uniteTemps === 'jours'; }
+function updateNavPlanning() {
+  const el = document.getElementById('nav-planning');
+  if (!el) return;
+  el.style.display = DATA.params.modules?.planning === 'calendrier' ? '' : 'none';
+}
 function navigate(page) {
+  if (page === 'planning' && DATA.params.modules?.planning !== 'calendrier') { navigate('dashboard'); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -2850,6 +3203,7 @@ function renderPage(page) {
   switch(page) {
     case 'dashboard': renderDashboard(); break;
     case 'missions': renderMissions(); break;
+    case 'planning': renderPlanning(); break;
     case 'revenus': renderRevenus(); break;
     case 'depenses': renderDepenses(); break;
     case 'archives': renderArchives(); break;
@@ -3236,6 +3590,7 @@ function buildWidget(key,d) {
     case 'chart-temps':       return ''; // déplacé dans la page Missions (Vue d'ensemble)
     case 'rentab-clients':    return wRentabClients();
     case 'rentab-cat':        return wRentabCat();
+    case 'remplissage':        return DATA.params.modules?.planning==='calendrier' ? wRemplissage() : '';
     case 'capacite':          return wCapacite();
     case 'missions-actives':  return wMissionsActives();
     case 'score-sante':       return ''; // zone fixe (en tête du dashboard)
@@ -4885,6 +5240,10 @@ function openMissionModal(id) {
   }
   toggleMissionType(typeMission);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
+  // Sessions planning
+  const planZone=document.getElementById('m-planning-zone');
+  if(planZone) planZone.style.display=DATA.params.modules?.planning==='calendrier'?'':'none';
+  initEditingSessions(m);
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
   if(depZone){
@@ -4943,7 +5302,8 @@ function saveMission() {
   if(!client){ markInvalid('m-client'); return; }
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
-  const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit,
+  const sessions = editingSessions.map(s => ({debut:s.debut, fin:s.fin||s.debut}));
+  const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit, sessions,
     typeMission:document.getElementById('m-type-mission').value||'individuelle',
     nbParticipants:parseInt(document.getElementById('m-participants').value)||0,
     prixParParticipant:parseFloat(document.getElementById('m-prix-part').value)||0,
@@ -4958,7 +5318,7 @@ function saveMission() {
   }
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
-  saveData(); closeModal('modal-mission'); showToast('✅ Mission enregistrée.'); renderMissions(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); showToast('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 
 function duplicateMission(id) {

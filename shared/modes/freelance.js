@@ -107,6 +107,8 @@ export const toHeuresSem            = (v, u) => P.toHeuresSem(DATA.params, v, u)
 export const getCapaciteHSem        = ()     => P.getCapaciteHSem(DATA);
 export const getMissionChargeHSem   = (m)    => P.getMissionChargeHSem(DATA, m);
 export const getChargeEstimeeTotal  = ()     => P.getChargeEstimeeTotal(DATA);
+export const getTauxRemplissageMois  = (mk)  => P.getTauxRemplissageMois(DATA, mk);
+export const getTauxRemplissageAnnee = ()    => P.getTauxRemplissageAnnee(DATA);
 export const scorerRemplissage      = P.scorerRemplissage;
 export const getPilierRemplissage   = ()     => P.getPilierRemplissage(DATA);
 
