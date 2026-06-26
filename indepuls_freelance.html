@@ -3656,7 +3656,7 @@ function wMissionsActives() {
 
 function wCapacite() {
   const p=DATA.params;
-  const pilRemp=Mode.getPilierRemplissage();
+  const pilRemp=getPilierRemplissage();
   const cap=pilRemp.details?.capacite??0, charge=pilRemp.details?.utilise??0, pct=pilRemp.details?.taux??0;
   const cl=pct>100?'bad':pct>80?'warn':'good';
   const clC=pct>100?'var(--err)':pct>80?'var(--warn)':'var(--ok)';
@@ -3781,7 +3781,7 @@ function wScoreSante(d) {
   else{diagRent=`🔴 TJM brut très faible${thMin>0?` — ${tjmBrut>0?fmtE(tjmBrut,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
 
   // ── PILIER 2 : REMPLISSAGE / CAPACITÉ (25 pts) ───────────────
-  const pilRemp=Mode.getPilierRemplissage();
+  const pilRemp=getPilierRemplissage();
   const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp,conseil:advRemp}=pilRemp;
   const cap=pilRemp.details?.capacite??0,charge=pilRemp.details?.utilise??0,capPct=pilRemp.details?.taux??0;
 
@@ -6971,6 +6971,7 @@ document.addEventListener('keydown', function(e) {
   window.getRevenuImposableMicro   = (caP, caV) => { sync(); return Mode.getRevenuImposableMicro(caP, caV); };
   window.getImpotEstimeMicro       = (caP, caV) => { sync(); return Mode.getImpotEstimeMicro(caP, caV); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
+  window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
 
   // ── AFFAIRES ────────────────────────────────────────────────
   window.getDepensesAffaire          = (id)  => { sync(); return Mode.getDepensesAffaire(id); };
