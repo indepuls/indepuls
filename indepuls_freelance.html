@@ -1325,7 +1325,14 @@ html,body{overflow-x:hidden;}
       <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
     </div>
     <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
-    <div id="m-couts-directs-zone" style="display:none"></div>
+    <div id="m-couts-directs-zone" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)">Coûts directs liés</span>
+        <span style="font-size:14px;font-weight:700;margin-left:12px" id="m-cout-direct-total">0 €</span>
+        <button class="btn btn-out btn-sm" onclick="addDepenseLinked()" style="margin-left:auto">+ Ajouter</button>
+      </div>
+      <div id="m-cout-direct-detail" style="font-size:12px;color:var(--tl)"></div>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
@@ -4881,13 +4888,15 @@ function openMissionModal(id) {
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
   if(depZone){
-    if(m){
+    if(m&&!m.isManagement){
       const dep=getDepensesAffaire(m.id);
-      if(dep>0){
+      depZone.style.display='block';
+      document.getElementById('m-cout-direct-total').textContent=fmtE(dep);
+      const detail=document.getElementById('m-cout-direct-detail');
+      if(detail&&dep>0){
         const marge=(m.montantDevis||0)-dep;
-        depZone.style.display='';
-        depZone.innerHTML=`<div class="divider"></div><div style="font-size:12px;color:var(--tl);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Coûts directs liés</div><div style="display:flex;gap:16px;flex-wrap:wrap"><span>💸 <strong>${fmtE(dep)}</strong> de coûts</span><span>📊 Marge brute : <strong>${fmtE(marge)}</strong> (${m.montantDevis>0?Math.round(marge/m.montantDevis*100):0} %)</span></div>`;
-      } else { depZone.style.display='none'; }
+        detail.innerHTML=`📊 Marge brute : <strong>${fmtE(marge)}</strong>${m.montantDevis>0?' ('+Math.round(marge/m.montantDevis*100)+' %)':''}`;
+      } else if(detail){ detail.textContent=''; }
     } else { depZone.style.display='none'; }
   }
   openModal('modal-mission');
@@ -5458,6 +5467,20 @@ function toggleToujours(checked) {
   if(checked) inp.value='';
 }
 function hideDepConfirm() { document.getElementById('dep-zero-zone').style.display='none'; }
+
+let _pendingMissionReopen = null;
+function openDepModalLinked(missionId) {
+  openDepModal();
+  document.getElementById('d-mission-id').value = missionId;
+  document.getElementById('d-rec').value = 'ponctuelle';
+  _pendingMissionReopen = missionId;
+}
+function addDepenseLinked() {
+  const id = document.getElementById('mission-edit-id').value;
+  if (!id) return;
+  closeModal('modal-mission');
+  openDepModalLinked(id);
+}
 function saveDepense(force) {
   const editId=document.getElementById('dep-edit-id').value;
   const tva=DATA.params.tva;
@@ -5491,6 +5514,7 @@ function saveDepense(force) {
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d){ Object.assign(d,obj); if(!chantierId) delete d.chantierId; } }
   else { addDepense(obj); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
   saveData(); closeModal('modal-dep'); showToast('✅ Dépense enregistrée.'); renderDepenses();
+  if(_pendingMissionReopen){const _pmr=_pendingMissionReopen;_pendingMissionReopen=null;openMissionModal(_pmr);}
 }
 function toggleDepTVA(checked) {
   document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
