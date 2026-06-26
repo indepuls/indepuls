@@ -7466,16 +7466,25 @@ function toggleResetBtn(checked) {
 }
 async function confirmReset() {
   if(!document.getElementById('reset-confirm-check').checked) return;
-  // Effacer localStorage
+  // 1. Arrêter le timer en cours
+  if(timerInterval) { clearInterval(timerInterval); timerInterval=null; }
+  // 2. Effacer localStorage + backups
   localStorage.removeItem(STORAGE_KEY);
   Object.keys(localStorage)
     .filter(k=>k.startsWith(STORAGE_KEY+'_backup_')||k==='indepuls_artisan_notice_shown')
     .forEach(k=>localStorage.removeItem(k));
-  // Flag sessionStorage : empêche loadFromCloud de restaurer les données après rechargement
-  sessionStorage.setItem('indepuls_reset', '1');
-  // Effacer la sauvegarde cloud (best-effort — le flag ci-dessus est le filet de sécurité)
+  // 3. Effacer le cloud (avec session garantie disponible à ce stade)
   if (window._deleteCloudData) await window._deleteCloudData();
-  window.location.reload();
+  // 4. Reset DATA en mémoire → données démo (sans reload pour éviter que loadFromCloud restaure)
+  DATA = getExampleData();
+  closeModal('modal-reset');
+  document.body.setAttribute('data-theme', DATA.theme || 'obm');
+  renderAll();
+  applyVocabUI();
+  renderThemes();
+  startTimerInterval();
+  navigate('dashboard');
+  showToast('✅ Application réinitialisée — mode démo actif.');
 }
 
 // ── INIT ─────────────────────────────────────────────────────
@@ -7695,15 +7704,6 @@ document.addEventListener('keydown', function(e) {
 
   async function loadFromCloud(user) {
     _analyticsUserId = user.id;
-    // Si l'utilisateur vient de réinitialiser, on supprime le cloud et on n'écrase pas les données locales
-    if (sessionStorage.getItem('indepuls_reset') === '1') {
-      sessionStorage.removeItem('indepuls_reset');
-      try {
-        await sb.from('user_data').delete().eq('user_id', user.id).eq('app_type', APP_TYPE);
-      } catch(e) { console.warn('deleteCloudData on reset failed:', e); }
-      _cloudLoaded = true;
-      return;
-    }
     try {
       var res = await sb.from('user_data').select('data').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
       if (res.data && res.data.data) {
