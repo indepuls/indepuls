@@ -1371,13 +1371,6 @@ html,body{overflow-x:hidden;}
         <option value="Autre">Autre</option>
       </select>
     </div>
-    <div id="dep-chantier-zone">
-      <div class="fgroup">
-        <label class="flabel" id="dep-chantier-label">Rattacher à un chantier <span class="ts">(optionnel)</span></label>
-        <select id="d-chantier-id"><option value="">— Aucun —</option></select>
-        <div class="ts" style="color:var(--accent);margin-top:4px">La dépense sera associée à ce chantier et <strong>exclue</strong> des charges fixes.</div>
-      </div>
-    </div>
     <div class="frow">
       <div class="fgroup"><label class="flabel">Récurrence</label>
         <select id="d-rec" onchange="toggleDateDebutDep(this.value)">
@@ -1393,6 +1386,13 @@ html,body{overflow-x:hidden;}
           <label for="d-toujours" class="ts" style="cursor:pointer;margin:0">Depuis toujours / date inconnue</label>
         </div>
         <input type="date" id="d-date-debut">
+      </div>
+    </div>
+    <div id="dep-chantier-zone">
+      <div class="fgroup">
+        <label class="flabel" id="dep-chantier-label">Rattacher à un chantier <span class="ts">(optionnel)</span></label>
+        <select id="d-chantier-id"><option value="">— Aucun —</option></select>
+        <div class="ts" style="color:var(--accent);margin-top:4px">La dépense sera associée à ce chantier et <strong>exclue</strong> des charges fixes.</div>
       </div>
     </div>
     <div id="dep-tva-zone" style="display:none">
@@ -4919,7 +4919,7 @@ let depSort={col:'date',dir:'desc'}, depFilter='all', depCatFilter='all', depDon
 function openMissionModal(id) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
   document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
-  document.getElementById('mission-edit-id').value=m?m.id:'';
+  document.getElementById('mission-edit-id').value=m?m.id:uuid();
   document.getElementById('m-client').value=m?m.client:'';
   document.getElementById('m-desc').value=m?m.description:'';
   document.getElementById('m-notes').value=m?(m.notes||''):'';
@@ -4955,13 +4955,14 @@ function openMissionModal(id) {
   if(descLabelEl) descLabelEl.textContent=tVocab('descLabel');
   const descInput=document.getElementById('m-desc');
   if(descInput) descInput.placeholder=tVocab('descPlaceholder');
-  // Bloc coûts directs liés — visible uniquement sur une affaire existante
+  // Bloc coûts directs liés
   const coutsZone=document.getElementById('m-couts-directs-zone');
   if(coutsZone){
-    const showCouts=!!(m&&!m.isManagement);
+    const showCouts=!(m&&m.isManagement);
     coutsZone.style.display=showCouts?'block':'none';
     if(showCouts){
-      const dep=getDepensesChantier(m.id);
+      const currentId=document.getElementById('mission-edit-id').value;
+      const dep=getDepensesChantier(currentId);
       document.getElementById('m-cout-direct-total').textContent=fmtE(dep);
       const lbl=document.getElementById('m-cout-direct-label-title');
       if(lbl) lbl.textContent=tVocab('coutDirectLabel')+' liés';
@@ -4999,8 +5000,9 @@ function saveMission() {
   if(!client){ markInvalid('m-client'); return; }
   const sessions=editingSessions.map(s=>({debut:s.debut,fin:s.fin||s.debut}));
   const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, statut, dateFact:statut==='fact'?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:false, montantPrestation, montantVente, sessions, sourceAcquisition:document.getElementById('m-source-acq').value||'' };
-  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
-  else { DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
+  const existingM=DATA.missions.find(x=>x.id===editId);
+  if(existingM){ if(existingM.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(existingM,obj); }
+  else { DATA.missions.push({id:editId,...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
   saveData(); closeModal('modal-mission'); showToast('✅ Chantier enregistré.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 

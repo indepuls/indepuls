@@ -4839,7 +4839,7 @@ function updateCollectifTemps() {
 function openMissionModal(id) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
   document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
-  document.getElementById('mission-edit-id').value=m?m.id:'';
+  document.getElementById('mission-edit-id').value=m?m.id:uuid();
   document.getElementById('m-client').value=m?m.client:'';
   document.getElementById('m-desc').value=m?m.description:'';
   document.getElementById('m-notes').value=m?(m.notes||''):'';
@@ -4888,12 +4888,13 @@ function openMissionModal(id) {
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
   if(depZone){
-    if(m&&!m.isManagement){
-      const dep=getDepensesAffaire(m.id);
+    if(!(m&&m.isManagement)){
+      const currentId=document.getElementById('mission-edit-id').value;
+      const dep=getDepensesAffaire(currentId);
       depZone.style.display='block';
       document.getElementById('m-cout-direct-total').textContent=fmtE(dep);
       const detail=document.getElementById('m-cout-direct-detail');
-      if(detail&&dep>0){
+      if(detail&&dep>0&&m){
         const marge=(m.montantDevis||0)-dep;
         detail.innerHTML=`📊 Marge brute : <strong>${fmtE(marge)}</strong>${m.montantDevis>0?' ('+Math.round(marge/m.montantDevis*100)+' %)':''}`;
       } else if(detail){ detail.textContent=''; }
@@ -4956,8 +4957,9 @@ function saveMission() {
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
     obj.montantPrestation=obj.montantDevis; obj.montantVente=0;
   }
-  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
-  else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
+  const existingM=DATA.missions.find(x=>x.id===editId);
+  if(existingM){ if(existingM.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(existingM,obj); }
+  else { addMission({id:editId,...obj}); window.trackEvent('mission_added',{categorie:obj.categorie}); }
   saveData(); closeModal('modal-mission'); showToast('✅ Mission enregistrée.'); renderMissions(); triggerSaveReminderIfNeeded();
 }
 
