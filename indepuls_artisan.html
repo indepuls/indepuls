@@ -1972,10 +1972,22 @@ function getDefaultCategoriesForFamily() {
   return tVocab('defaultCategories') || [];
 }
 const PROFIL_DESCRIPTIONS = {
-  artisan_batiment: "Vous planifiez des chantiers, travaillez généralement à la journée et suivez vos coûts directs. L'interface active un planning calendrier.",
-  artisan_commande: "Vous réalisez des créations sur mesure ou à la commande, avec un suivi de la rentabilité par affaire.",
-  fabricant_serie: "Vous fabriquez plusieurs produits similaires en série et souhaitez suivre leur rentabilité.",
-  achat_revente: "Vous achetez puis revendez des produits et souhaitez suivre la rentabilité de chaque vente ou lot.",
+  prestataire_services: "Vous réalisez principalement des prestations intellectuelles ou de service, vendues au temps passé ou au forfait.",
+  creatif_com: "Vous réalisez des prestations créatives ou de communication, généralement vendues au projet.",
+  evenementiel: "Votre activité est organisée autour de dates réservées (mariages, événements, interventions…).",
+  artisan_batiment: "Vous planifiez des chantiers et suivez vos coûts directs ainsi que vos encaissements.",
+  fabricant_serie: "Vous fabriquez plusieurs produits similaires et souhaitez suivre leur rentabilité.",
+  artisan_commande: "Vous réalisez des créations sur mesure avec un suivi de la rentabilité par affaire.",
+  achat_revente: "Vous achetez puis revendez des produits et souhaitez suivre la rentabilité de chaque vente.",
+};
+const PROFIL_LABELS = {
+  prestataire_services: 'Prestataire de services',
+  creatif_com: 'Créatif / Communication',
+  evenementiel: 'Prestataire événementiel',
+  artisan_batiment: 'Artisan bâtiment',
+  fabricant_serie: 'Fabricant série',
+  artisan_commande: 'Fabricant sur commande',
+  achat_revente: 'Achat / Revente',
 };
 function updateProfilDesc() {
   const el = document.getElementById('p-metier-desc');
@@ -2213,7 +2225,7 @@ function renderExampleBanner() {
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <span style="font-size:22px">👋</span>
-          <h2>Bienvenue dans Artisan Pilot</h2>
+          <h2>Bienvenue sur Indépuls</h2>
         </div>
         <p style="margin-bottom:6px"><strong>Vous découvrez actuellement une version avec des données d'exemple.</strong></p>
         <p>Ces exemples ont été créés pour vous permettre :</p>
@@ -3596,9 +3608,10 @@ function renderDashboard() {
   const hasMissions=DATA.missions.filter(m=>!m.isManagement).length>0;
   const hasRevenu=Object.keys(DATA.revenus).length>0;
   if(!DATA.isExample&&!hasMissions&&!hasRevenu){
+    const hasMetierO = !!DATA.params.metier;
     const hasParamsO = !!(DATA.params.nom || DATA.params.objectifNetMensuel !== 4000);
     const hasDepO = DATA.depenses.filter(function(dep){return !dep.isExample;}).length > 0;
-    const stepsOkO = (hasParamsO?1:0) + (hasDepO?1:0);
+    const stepsOkO = (hasMetierO?1:0) + (hasParamsO?1:0) + (hasDepO?1:0);
     const thMinO = getTauxHoraireMinCible();
     const hj2O = DATA.params.heuresParJour || 7;
     const hAn2O = hj2O * (DATA.params.joursParSemaine||4) * (DATA.params.semainesParAn||44);
@@ -3627,14 +3640,51 @@ function renderDashboard() {
              :'<span class="step-cta" onclick="'+fn+'">'+lbl+' &#x2192;</span>') +
         '</div></div>';
     }
+    const profilNomO = PROFIL_LABELS[DATA.params.metier] || '';
+    const profilDescO = PROFIL_DESCRIPTIONS[DATA.params.metier] || '';
+    const selectOptionsO =
+      '<option value="">&#8212; Sélectionner mon profil &#8212;</option>' +
+      '<optgroup label="Prestation de services">' +
+        '<option value="prestataire_services">Prestataire de services</option>' +
+        '<option value="creatif_com">Créatif / Communication</option>' +
+        '<option value="evenementiel">Prestataire événementiel</option>' +
+      '</optgroup>' +
+      '<optgroup label="Artisan">' +
+        '<option value="artisan_batiment">Artisan bâtiment</option>' +
+      '</optgroup>' +
+      '<optgroup label="Fabrication">' +
+        '<option value="fabricant_serie">Fabricant série</option>' +
+        '<option value="artisan_commande">Fabricant sur commande</option>' +
+      '</optgroup>' +
+      '<optgroup label="Achat / Revente">' +
+        '<option value="achat_revente">Achat / Revente</option>' +
+      '</optgroup>';
+    const step1Html = hasMetierO
+      ? '<div class="step-card" style="border-left:4px solid var(--ok)">' +
+        '<div class="step-num" style="background:var(--ok)">&#x2713;</div>' +
+        '<div class="step-body" style="flex:1">' +
+          '<h3>&#x1F3AF; Profil d\'activité</h3>' +
+          '<p style="font-weight:600;margin-bottom:4px">'+profilNomO+'</p>' +
+          '<p style="color:var(--tl);font-size:13px;margin-bottom:8px">'+profilDescO+'</p>' +
+          '<span class="step-cta" onclick="navigate(\'params\')">Continuer la configuration &#x2192;</span>' +
+        '</div></div>'
+      : '<div class="step-card">' +
+        '<div class="step-num">1</div>' +
+        '<div class="step-body" style="flex:1">' +
+          '<h3>&#x1F3AF; Choisissez votre profil d\'activité</h3>' +
+          '<select onchange="saveParam(\'metier\',this.value);applyDefaults(DATA);saveData();applyVocabUI();renderDashboard()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--brd);background:var(--bg);color:var(--txt);font-size:14px;margin-top:8px">' +
+            selectOptionsO +
+          '</select>' +
+          '<p style="font-size:12px;color:var(--tl);margin-top:10px">Vous pourrez modifier ce choix à tout moment depuis les paramètres.</p>' +
+        '</div></div>';
     const progPctO = Math.round(stepsOkO/3*100);
     const progColO = stepsOkO===3?'var(--ok)':'var(--acc)';
     document.getElementById('dashboard-content').innerHTML =
       '<div class="card" style="padding:32px 28px;border:2px dashed var(--brd)">' +
         '<div style="text-align:center;margin-bottom:24px">' +
           '<div style="font-size:40px;margin-bottom:12px">&#x1F389;</div>' +
-          '<h2 style="font-family:\'Playfair Display\',Georgia,serif;font-size:21px;color:var(--pri);margin-bottom:8px">Bienvenue dans Artisan Pilot</h2>' +
-          '<p style="color:var(--tl);line-height:1.6;max-width:440px;margin:0 auto">Quelques informations suffisent pour obtenir vos premiers indicateurs personnalisés.</p>' +
+          '<h2 style="font-family:\'Playfair Display\',Georgia,serif;font-size:21px;color:var(--pri);margin-bottom:8px">Bienvenue sur Indépuls</h2>' +
+          '<p style="color:var(--tl);line-height:1.6;max-width:440px;margin:0 auto">Votre espace va être personnalisé selon votre profil d\'activité.</p>' +
         '</div>' +
         '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px">' +
           '<span style="font-size:12px;font-weight:700;color:var(--tl)">'+stepsOkO+'/3 étapes complétées</span>' +
@@ -3643,9 +3693,10 @@ function renderDashboard() {
           '</div>' +
         '</div>' +
         '<div style="max-width:500px;margin:0 auto">' +
-          mkStep(1,hasParamsO,'&#x2699;&#xFE0F;','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs',"navigate('params')",'Configurer') +
-          mkStep(2,hasDepO,'&#x1F4B3;','Ajoutez vos dépenses professionnelles','Matériel · assurances · comptable · carburant · abonnements…',"navigate('depenses')",'Ajouter mes dépenses') +
-          mkStep(3,false,'&#x1F6E0;&#xFE0F;',tVocab('firstItem'),'Débloque le tableau de bord complet et le Score de Santé',"navigate('missions')",tVocab('createButton')) +
+          step1Html +
+          mkStep(2,hasParamsO,'&#x2699;&#xFE0F;','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs',"navigate('params')",'Configurer') +
+          mkStep(3,hasDepO,'&#x1F4B3;','Ajoutez vos dépenses professionnelles','Matériel · assurances · comptable · carburant · abonnements…',"navigate('depenses')",'Ajouter mes dépenses') +
+          mkStep(4,false,'&#x1F6E0;&#xFE0F;',tVocab('firstItem'),'Étape finale : débloque le tableau de bord complet et le Score de Santé',"navigate('missions')",tVocab('createButton')) +
         '</div>' +
         '<div style="text-align:center;margin-top:20px"><button class="btn btn-out btn-sm" onclick="navigate(\'notice\')">Guide &amp; glossaire</button></div>' +
       '</div>' + earlyHtml;

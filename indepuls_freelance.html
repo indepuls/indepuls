@@ -2051,9 +2051,22 @@ function getDefaultCategoriesForFamily() {
   return tVocab('defaultCategories') || [];
 }
 const PROFIL_DESCRIPTIONS = {
-  prestataire_services: "Vous réalisez principalement des prestations intellectuelles ou de service, facturées au temps passé ou au forfait.",
-  creatif_com: "Vous réalisez des prestations créatives ou de communication (graphisme, web, contenu...) généralement vendues au forfait ou au projet.",
-  evenementiel: "Votre activité est organisée autour de dates réservées (mariages, événements, interventions...). L'interface active un planning calendrier.",
+  prestataire_services: "Vous réalisez principalement des prestations intellectuelles ou de service, vendues au temps passé ou au forfait.",
+  creatif_com: "Vous réalisez des prestations créatives ou de communication, généralement vendues au projet.",
+  evenementiel: "Votre activité est organisée autour de dates réservées (mariages, événements, interventions…).",
+  artisan_batiment: "Vous planifiez des chantiers et suivez vos coûts directs ainsi que vos encaissements.",
+  fabricant_serie: "Vous fabriquez plusieurs produits similaires et souhaitez suivre leur rentabilité.",
+  artisan_commande: "Vous réalisez des créations sur mesure avec un suivi de la rentabilité par affaire.",
+  achat_revente: "Vous achetez puis revendez des produits et souhaitez suivre la rentabilité de chaque vente.",
+};
+const PROFIL_LABELS = {
+  prestataire_services: 'Prestataire de services',
+  creatif_com: 'Créatif / Communication',
+  evenementiel: 'Prestataire événementiel',
+  artisan_batiment: 'Artisan bâtiment',
+  fabricant_serie: 'Fabricant série',
+  artisan_commande: 'Fabricant sur commande',
+  achat_revente: 'Achat / Revente',
 };
 function updateProfilDesc() {
   const el = document.getElementById('p-metier-desc');
@@ -2547,7 +2560,7 @@ function renderExampleBanner() {
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <span style="font-size:22px">👋</span>
-          <h2>Bienvenue dans Indépuls Services &amp; Freelance</h2>
+          <h2>Bienvenue sur Indépuls</h2>
         </div>
         <p style="margin-bottom:6px"><strong>Vous découvrez actuellement une version avec des données d'exemple.</strong></p>
         <p>Ces exemples ont été créés pour vous permettre :</p>
@@ -3267,15 +3280,15 @@ function renderDashboard() {
   const hasMissions=DATA.missions.filter(m=>!m.isManagement).length>0;
   const hasRevenu=Object.keys(DATA.revenus).length>0;
   if(!DATA.isExample && !hasMissions && !hasRevenu){
+    const hasMetier = !!DATA.params.metier;
     const hasParams = !!(DATA.params.nom || DATA.params.objectifNetMensuel !== 4000);
     const hasDep = DATA.depenses.filter(dep=>!dep.isExample).length > 0;
-    const stepsOk = [hasParams, hasDep].filter(Boolean).length;
+    const stepsOk = [hasMetier, hasParams, hasDep].filter(Boolean).length;
     const thMin = getTauxHoraireMinCible();
     const hj2 = DATA.params.heuresParJour || 7;
     const jSem2 = DATA.params.joursParSemaine || 4;
     const sem2 = DATA.params.semainesParAn || 44;
     const hAn2 = hj2 * jSem2 * sem2;
-    const tjmMin = Math.round(thMin * hj2);
     const objNet2 = DATA.params.objectifNetMensuel || 0;
     const caMinAnnuel = Math.round(thMin * hAn2);
     const earlyResults = (hasParams && objNet2 > 0 && thMin > 0) ? `
@@ -3297,14 +3310,51 @@ function renderDashboard() {
           ${done?`<span style="font-size:11px;color:var(--ok);font-weight:700">✓ Complété</span>`:`<span class="step-cta" onclick="${ctaFn}">${ctaLabel} →</span>`}
         </div>
       </div>`;
+    const profilNom = PROFIL_LABELS[DATA.params.metier] || '';
+    const profilDesc = PROFIL_DESCRIPTIONS[DATA.params.metier] || '';
+    const step1 = hasMetier
+      ? `<div class="step-card" style="border-left:4px solid var(--ok)">
+          <div class="step-num" style="background:var(--ok)">✓</div>
+          <div class="step-body" style="flex:1">
+            <h3>🎯 Profil d'activité</h3>
+            <p style="font-weight:600;margin-bottom:4px">${profilNom}</p>
+            <p style="color:var(--tl);font-size:13px;margin-bottom:8px">${profilDesc}</p>
+            <span class="step-cta" onclick="navigate('params')">Continuer la configuration →</span>
+          </div>
+        </div>`
+      : `<div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-body" style="flex:1">
+            <h3>🎯 Choisissez votre profil d'activité</h3>
+            <select onchange="saveParam('metier',this.value);applyDefaults(DATA);saveData();applyVocabUI();renderDashboard()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--brd);background:var(--bg);color:var(--txt);font-size:14px;margin-top:8px">
+              <option value="">— Sélectionner mon profil —</option>
+              <optgroup label="Prestation de services">
+                <option value="prestataire_services">Prestataire de services</option>
+                <option value="creatif_com">Créatif / Communication</option>
+                <option value="evenementiel">Prestataire événementiel</option>
+              </optgroup>
+              <optgroup label="Artisan">
+                <option value="artisan_batiment">Artisan bâtiment</option>
+              </optgroup>
+              <optgroup label="Fabrication">
+                <option value="fabricant_serie">Fabricant série</option>
+                <option value="artisan_commande">Fabricant sur commande</option>
+              </optgroup>
+              <optgroup label="Achat / Revente">
+                <option value="achat_revente">Achat / Revente</option>
+              </optgroup>
+            </select>
+            <p style="font-size:12px;color:var(--tl);margin-top:10px">Vous pourrez modifier ce choix à tout moment depuis les paramètres.</p>
+          </div>
+        </div>`;
     const progPct = Math.round(stepsOk / 3 * 100);
     const progCol = stepsOk === 3 ? 'var(--ok)' : 'var(--acc)';
     document.getElementById('dashboard-content').innerHTML=`
       <div class="card" style="padding:32px 28px;border:2px dashed var(--brd)">
         <div style="text-align:center;margin-bottom:24px">
           <div style="font-size:40px;margin-bottom:12px">🎉</div>
-          <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:21px;color:var(--pri);margin-bottom:8px">Bienvenue dans Indépuls Services &amp; Freelance</h2>
-          <p style="color:var(--tl);line-height:1.6;max-width:440px;margin:0 auto">Quelques informations suffisent pour obtenir vos premiers indicateurs personnalisés.</p>
+          <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:21px;color:var(--pri);margin-bottom:8px">Bienvenue sur Indépuls</h2>
+          <p style="color:var(--tl);line-height:1.6;max-width:440px;margin:0 auto">Votre espace va être personnalisé selon votre profil d'activité.</p>
         </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px">
           <span style="font-size:12px;font-weight:700;color:var(--tl)">${stepsOk}/3 étapes complétées</span>
@@ -3313,9 +3363,10 @@ function renderDashboard() {
           </div>
         </div>
         <div style="max-width:500px;margin:0 auto">
-          ${step(1,hasParams,'⚙️','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs','Configurer',"navigate('params')")}
-          ${step(2,hasDep,'💳','Ajoutez vos dépenses professionnelles','Logiciels · assurances · comptable · abonnements…','Ajouter mes dépenses',"navigate('depenses')")}
-          ${step(3,false,'📋',tVocab('firstItem'),'Débloque le tableau de bord complet et le Score de Santé',tVocab('createButton'),"navigate('missions')")}
+          ${step1}
+          ${step(2,hasParams,'⚙️','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs','Configurer',"navigate('params')")}
+          ${step(3,hasDep,'💳','Ajoutez vos dépenses professionnelles','Logiciels · assurances · comptable · abonnements…','Ajouter mes dépenses',"navigate('depenses')")}
+          ${step(4,false,'📋',tVocab('firstItem'),'Étape finale : débloque le tableau de bord complet et le Score de Santé',tVocab('createButton'),"navigate('missions')")}
         </div>
         <div style="text-align:center;margin-top:20px">
           <button class="btn btn-out btn-sm" onclick="navigate('notice')">📖 Guide & glossaire</button>
