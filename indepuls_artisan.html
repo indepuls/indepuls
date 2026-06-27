@@ -3659,24 +3659,35 @@ function renderDashboard() {
       '<optgroup label="Achat / Revente">' +
         '<option value="achat_revente">Achat / Revente</option>' +
       '</optgroup>';
-    const step1Html = hasMetierO
-      ? '<div class="step-card" style="border-left:4px solid var(--ok)">' +
-        '<div class="step-num" style="background:var(--ok)">&#x2713;</div>' +
-        '<div class="step-body" style="flex:1">' +
-          '<h3>&#x1F3AF; Profil d\'activité</h3>' +
-          '<p style="font-weight:600;margin-bottom:4px">'+profilNomO+'</p>' +
-          '<p style="color:var(--tl);font-size:13px;margin-bottom:8px">'+profilDescO+'</p>' +
-          '<span class="step-cta" onclick="navigate(\'params\')">Continuer la configuration &#x2192;</span>' +
-        '</div></div>'
-      : '<div class="step-card">' +
-        '<div class="step-num">1</div>' +
-        '<div class="step-body" style="flex:1">' +
-          '<h3>&#x1F3AF; Choisissez votre profil d\'activité</h3>' +
-          '<select onchange="saveParam(\'metier\',this.value);applyDefaults(DATA);saveData();applyVocabUI();renderDashboard()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--brd);background:var(--bg);color:var(--txt);font-size:14px;margin-top:8px">' +
-            selectOptionsO +
-          '</select>' +
-          '<p style="font-size:12px;color:var(--tl);margin-top:10px">Vous pourrez modifier ce choix à tout moment depuis les paramètres.</p>' +
-        '</div></div>';
+    const selectedAttrO = function(val){ return DATA.params.metier===val?' selected':''; };
+    const selectWithValueO =
+      '<option value="">&#8212; Sélectionner mon profil &#8212;</option>' +
+      '<optgroup label="Prestation de services">' +
+        '<option value="prestataire_services"'+selectedAttrO('prestataire_services')+'>Prestataire de services</option>' +
+        '<option value="creatif_com"'+selectedAttrO('creatif_com')+'>Créatif / Communication</option>' +
+        '<option value="evenementiel"'+selectedAttrO('evenementiel')+'>Prestataire événementiel</option>' +
+      '</optgroup>' +
+      '<optgroup label="Artisan">' +
+        '<option value="artisan_batiment"'+selectedAttrO('artisan_batiment')+'>Artisan bâtiment</option>' +
+      '</optgroup>' +
+      '<optgroup label="Fabrication">' +
+        '<option value="fabricant_serie"'+selectedAttrO('fabricant_serie')+'>Fabricant série</option>' +
+        '<option value="artisan_commande"'+selectedAttrO('artisan_commande')+'>Fabricant sur commande</option>' +
+      '</optgroup>' +
+      '<optgroup label="Achat / Revente">' +
+        '<option value="achat_revente"'+selectedAttrO('achat_revente')+'>Achat / Revente</option>' +
+      '</optgroup>';
+    const step1Html =
+      '<div class="step-card" style="'+(hasMetierO?'border-left:4px solid var(--ok)':'')+'">' +
+      '<div class="step-num" style="'+(hasMetierO?'background:var(--ok)':'')+'">'+( hasMetierO?'&#x2713;':'1')+'</div>' +
+      '<div class="step-body" style="flex:1">' +
+        '<h3>&#x1F3AF; Choisissez votre profil d\'activité</h3>' +
+        '<select onchange="saveParam(\'metier\',this.value);applyDefaults(DATA);saveData();applyVocabUI();renderDashboard()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--brd);background:var(--bg);color:var(--txt);font-size:14px;margin-top:8px">' +
+          selectWithValueO +
+        '</select>' +
+        (profilDescO ? '<p style="color:var(--tl);font-size:13px;margin-top:8px">'+profilDescO+'</p>' : '') +
+        '<p style="font-size:12px;color:var(--tl);margin-top:6px">Vous pourrez modifier ce choix à tout moment depuis les paramètres.</p>' +
+      '</div></div>';
     const progPctO = Math.round(stepsOkO/3*100);
     const progColO = stepsOkO===3?'var(--ok)':'var(--acc)';
     document.getElementById('dashboard-content').innerHTML =
