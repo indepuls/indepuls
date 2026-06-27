@@ -3302,8 +3302,8 @@ function renderDashboard() {
         ${hasDep?`<div class="alert al-ok" style="margin-top:12px;font-size:12px">✅ Vos dépenses sont prises en compte dans le taux horaire minimum calculé ci-dessus.</div>`:`<div class="alert al-info" style="margin-top:12px;font-size:12px">💡 Ajoutez vos dépenses professionnelles pour affiner votre taux horaire minimum.</div>`}
       </div>` : '';
     const step = (num, done, icon, title, desc, ctaLabel, ctaFn) => `
-      <div class="step-card" style="${done?'border-left:4px solid var(--ok)':''}">
-        <div class="step-num" style="${done?'background:var(--ok)':''}">${done?'✓':num}</div>
+      <div class="step-card" style="border-left:4px solid ${done?'var(--ok)':'var(--err)'}">
+        <div class="step-num" style="background:${done?'var(--ok)':'var(--err)'}">${done?'✓':num}</div>
         <div class="step-body" style="flex:1">
           <h3>${icon} ${title}</h3>
           <p>${desc}</p>
@@ -3313,8 +3313,8 @@ function renderDashboard() {
     const profilNom = PROFIL_LABELS[DATA.params.metier] || '';
     const profilDesc = PROFIL_DESCRIPTIONS[DATA.params.metier] || '';
     const selAttr = (val) => DATA.params.metier === val ? ' selected' : '';
-    const step1 = `<div class="step-card" style="${hasMetier?'border-left:4px solid var(--ok)':''}">
-        <div class="step-num" style="${hasMetier?'background:var(--ok)':''}">${hasMetier?'✓':'1'}</div>
+    const step1 = `<div class="step-card" style="border-left:4px solid ${hasMetier?'var(--ok)':'var(--err)'}">
+        <div class="step-num" style="background:${hasMetier?'var(--ok)':'var(--err)'}">${hasMetier?'✓':'1'}</div>
         <div class="step-body" style="flex:1">
           <h3>🎯 Choisissez votre profil d'activité</h3>
           <select onchange="saveParam('metier',this.value);applyDefaults(DATA);saveData();applyVocabUI();renderDashboard()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--brd);background:var(--bg);color:var(--txt);font-size:14px;margin-top:8px">
@@ -3339,8 +3339,8 @@ function renderDashboard() {
           <p style="font-size:12px;color:var(--tl);margin-top:6px">Vous pourrez modifier ce choix à tout moment depuis les paramètres.</p>
         </div>
       </div>`;
-    const progPct = Math.round(stepsOk / 3 * 100);
-    const progCol = stepsOk === 3 ? 'var(--ok)' : 'var(--acc)';
+    const progPct = Math.round(stepsOk / 4 * 100);
+    const progCol = stepsOk === 4 ? 'var(--ok)' : 'var(--acc)';
     document.getElementById('dashboard-content').innerHTML=`
       <div class="card" style="padding:32px 28px;border:2px dashed var(--brd)">
         <div style="text-align:center;margin-bottom:24px">
@@ -3349,7 +3349,7 @@ function renderDashboard() {
           <p style="color:var(--tl);line-height:1.6;max-width:440px;margin:0 auto">Votre espace va être personnalisé selon votre profil d'activité.</p>
         </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px">
-          <span style="font-size:12px;font-weight:700;color:var(--tl)">${stepsOk}/3 étapes complétées</span>
+          <span style="font-size:12px;font-weight:700;color:var(--tl)">${stepsOk}/4 étapes complétées</span>
           <div style="width:140px;height:7px;background:var(--brd);border-radius:4px;overflow:hidden">
             <div style="width:${progPct}%;height:100%;background:${progCol};border-radius:4px;transition:width .5s"></div>
           </div>
