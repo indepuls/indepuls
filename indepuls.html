@@ -2095,6 +2095,7 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Offres & missions',
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
+    coutDirectLabel:'Fournitures & matériaux',
     defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre']
   },
   chantier: {
@@ -2112,6 +2113,7 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Offres & chantiers',
     catTitle:'Mes offres & catégories de chantiers',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
+    coutDirectLabel:'Fournitures & matériaux',
     defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre']
   },
   fabrication: {
@@ -2129,6 +2131,7 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Produits & commandes',
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
+    coutDirectLabel:'Matières premières & fournitures',
     defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre']
   },
   achat_revente: {
@@ -2146,6 +2149,7 @@ const VOCABULARY_FAMILIES = {
     tabCategories:'Produits & ventes',
     catTitle:'Mes catégories de ventes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de ventes. Vous pouvez y renseigner vos types de produits ou catégories.',
+    coutDirectLabel:'Coût d\'achat',
     defaultCategories:['Vêtements','Accessoires','Décoration','Électronique','Livres & média','Loisirs & sport','Autre']
   }
 };
@@ -7843,7 +7847,7 @@ function calcDevis() {
   const marge=montant-fournitures-frais;
   const hTotal=hChantier+hTtrajet;
   const thEst=hTotal>0?marge/hTotal:null;
-  const thMin=getThMinimum();
+  const thMin=getTauxHoraireMinCible();
   const thEstJour=thEst!==null&&p.heuresParJour>0?thEst*p.heuresParJour:null;
   const thMinJour=thMin>0&&p.heuresParJour>0?thMin*p.heuresParJour:null;
   const _urssafTaux=(p.tauxURSSAF||0)+(p.tauxCFP||0);
@@ -8131,7 +8135,7 @@ document.addEventListener('keydown', function(e) {
 (function() {
   var SUPABASE_URL = 'https://jhlmduxpvtplvidgabbi.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobG1kdXhwdnRwbHZpZGdhYmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTc2NDAsImV4cCI6MjA5NjczMzY0MH0.xdxYnOS1T6QYG6RUsmWP7C8Nle1u3BxfHraXMqQ3rvo';
-  var APP_TYPE = 'freelance';
+  var APP_TYPE = 'indepuls';
 
   var sb;
   try {
