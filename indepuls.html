@@ -4050,8 +4050,8 @@ function wRepartitionCA(d) {
   const mc=Math.max(getMoisActifsAnnee().length,1);
   function rep(isAn) {
     const ca=isAn?d.caBrut:getCaFromMissions(curMk)+getPonctuelsCA(curMk);
-    const urssaf=isSASU()?0:isAn?Math.round(ca*(p.tauxURSSAF+p.tauxCFP)/100):Math.round(getUrssafProvisionMensuelle());
-    const impots=Math.round(ca*getImpotsTaux());
+    const urssaf=isSASU()?0:isAn?Math.round(getUrssafAnnuelBrut()):Math.round(getUrssafProvisionMensuelle());
+    const impots=isSASU()?Math.round(ca*getImpotsTaux()):getImpotEstimeMicro(ca,0);
     const dep=isAn?months.reduce((s,mk)=>s+getDepensesMois(mk),0):getDepensesMois(curMk);
     const disponible=Math.max(0,ca-urssaf-impots-dep);
     return {ca,urssaf,impots,dep,disponible};
@@ -7768,20 +7768,20 @@ function calcSimulateur() {
   const _urssafTaux=(p.tauxURSSAF||0)+(p.tauxCFP||0);
   const _impotTaux=p.impotsTaux||0;
   const _isMicro=!isSASU();
-  // URSSAF : toujours sur le CA / marge brute
-  const provUrssaf=marge>0?Math.round(marge*_urssafTaux/100):0;
-  // Impôts : abattement micro appliqué si applicable (BNC 34%, BIC 50%, achat-vente 71%)
+  // URSSAF et impôts : toujours sur le CA brut (jamais sur la marge après frais)
+  const provUrssaf=ca>0?Math.round(ca*_urssafTaux/100):0;
   let provImpots=0, _impotAbattPct=0;
-  if(_impotTaux>0&&marge>0){
+  if(_impotTaux>0&&ca>0){
     if(_isMicro){
-      const baseImposable=getRevenuImposableMicro(marge,0);
-      _impotAbattPct=Math.round((1-baseImposable/marge)*100);
+      const baseImposable=getRevenuImposableMicro(ca,0);
+      _impotAbattPct=Math.round((1-baseImposable/ca)*100);
       provImpots=Math.round(baseImposable*_impotTaux/100);
     } else {
-      provImpots=Math.round(marge*_impotTaux/100);
+      provImpots=Math.round(ca*_impotTaux/100);
     }
   }
-  const margeNette=marge>0?Math.max(0,marge-provUrssaf-provImpots):0;
+  // Net = CA - frais éventuels - URSSAF - impôts
+  const margeNette=ca>0?Math.max(0,marge-provUrssaf-provImpots):0;
   const thNet=tempsTotal>0?Math.round(margeNette/tempsTotal):0;
   // TH net cible (pour coloration) — même logique abattement
   const thNetCible=(()=>{
@@ -7811,8 +7811,8 @@ function calcSimulateur() {
   </div>`:'' ;
   // Conseils personnalisés
   const advLines=[];
-  if(_urssafTaux>0&&marge>0) advLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % de la marge)`);
-  if(_impotTaux>0&&marge>0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro&&_impotAbattPct>0?` (${_impotTaux} % après abattement ${_impotAbattPct} %)`:` (${_impotTaux} %)`}`);
+  if(_urssafTaux>0&&ca>0) advLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
+  if(_impotTaux>0&&ca>0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro&&_impotAbattPct>0?` (${_impotTaux} % après abattement ${_impotAbattPct} % · micro)`:` (${_impotTaux} % du CA)`}`);
   if(thCible>0&&tempsTotal>0&&th<thCible){
     const prixMinCible=type==='collectif'&&participants>0?Math.ceil(prixPartMin/10)*10:Math.ceil((thCible*tempsTotal)/10)*10;
     const prixLabel=type==='collectif'?`<strong>${fmtE(prixMinCible)}/pers.</strong> (soit ${fmtE(prixMinCible*participants)} total)`:`<strong>${fmtE(prixMinCible)}</strong>`;
@@ -7874,11 +7874,23 @@ function calcDevis() {
   const thMinJour=thMin>0&&p.heuresParJour>0?thMin*p.heuresParJour:null;
   const _urssafTaux=(p.tauxURSSAF||0)+(p.tauxCFP||0);
   const _impotTaux=p.impotsTaux||0;
-  const _tauxC=_urssafTaux/100+_impotTaux/100;
-  const chargesAbsolues=Math.round(montant*_tauxC);
+  const _isMicro=!isSASU();
+  const _provUrssafDv=Math.round(montant*_urssafTaux/100);
+  let _provImpotsDv=0, _impotAbattPctDv=0;
+  if(_impotTaux>0&&montant>0){
+    if(_isMicro){
+      const bi=getRevenuImposableMicro(montant,0);
+      _impotAbattPctDv=Math.round((1-bi/montant)*100);
+      _provImpotsDv=Math.round(bi*_impotTaux/100);
+    } else {
+      _provImpotsDv=Math.round(montant*_impotTaux/100);
+    }
+  }
+  const chargesAbsolues=_provUrssafDv+_provImpotsDv;
   const margeNette=Math.max(0,marge-chargesAbsolues);
   const thEstJourNet=hTotal>0&&thEstJour!==null?Math.round(margeNette/hTotal*(p.heuresParJour||7)):null;
-  const thMinJourNet=thMinJour!==null&&_tauxC>0?Math.round(thMinJour*(1-_tauxC)):null;
+  const _tauxCApprox=_urssafTaux/100+(_isMicro?(1-_impotAbattPctDv/100)*_impotTaux/100:_impotTaux/100);
+  const thMinJourNet=thMinJour!==null&&_tauxCApprox>0?Math.round(thMinJour*(1-_tauxCApprox)):null;
   let verdict, verdictCl, verdictIcon, borderColor;
   if(thEst===null){
     verdict='Renseignez le temps estimé pour calculer le taux horaire.';
@@ -7931,7 +7943,7 @@ function calcDevis() {
           <div style="margin-top:8px;padding:10px 14px;background:rgba(45,122,79,.08);border-radius:8px;border-left:3px solid var(--ok)">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans votre poche</div>
             <div style="font-size:22px;font-weight:700;color:var(--ok);line-height:1">${fmtE(thEstJourNet,0)} €<span style="font-size:13px;font-weight:400"> / jour</span></div>
-            <div style="font-size:11px;color:var(--tl);margin-top:3px">après URSSAF ${_urssafTaux}%${_impotTaux>0?` + impôts ${_impotTaux}%`:''}${p.tva?' · hors TVA collectée':''}</div>
+            <div style="font-size:11px;color:var(--tl);margin-top:3px">après URSSAF ${_urssafTaux}%${_impotTaux>0?(_isMicro&&_impotAbattPctDv>0?` + impôts ${_impotTaux}% (abatt. ${_impotAbattPctDv}%)`:` + impôts ${_impotTaux}%`):''}${p.tva?' · hors TVA collectée':''}</div>
           </div>`:''}
           ${thMinJourNet!==null?`<div class="kpi-sub mt8">Votre objectif net : ${fmtE(thMinJourNet,0)} €/j — brut requis : ${fmtE(thMinJour,0)} €/j</div>`
             :thMinJour!==null?`<div class="kpi-sub mt8">Brut requis / journée : ${fmtE(thMinJour,0)} €</div>`:''}
@@ -7963,14 +7975,10 @@ function calcDevis() {
       </div>`:''}
       ${(()=>{
         const advLines=[];
-        if(_urssafTaux>0&&montant>0){
-          const provUrssaf=Math.round(montant*_urssafTaux/100);
-          advLines.push(`💼 URSSAF à mettre de côté sur ce devis : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-        }
-        if(_impotTaux>0&&montant>0){
-          const provImp=Math.round(montant*_impotTaux/100);
-          advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImp)}</strong> (${_impotTaux} % du CA)`);
-        }
+        if(_urssafTaux>0&&montant>0)
+          advLines.push(`💼 URSSAF à mettre de côté sur ce devis : <strong>${fmtE(_provUrssafDv)}</strong> (${_urssafTaux} % du CA)`);
+        if(_impotTaux>0&&montant>0)
+          advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(_provImpotsDv)}</strong>${_isMicro&&_impotAbattPctDv>0?` (${_impotTaux} % après abattement ${_impotAbattPctDv} % · micro)`:` (${_impotTaux} % du CA)`}`);
         if(thMin>0&&hTotal>0&&thEst!==null&&thEst<thMin){
           const prixMinCible=Math.ceil((thMin*hTotal+fournitures+frais)/10)*10;
           advLines.push(`🎯 Pour atteindre votre objectif net, facturez cette ${tVocab('item').toLowerCase()} au minimum <strong>${fmtE(prixMinCible)}</strong>`);
