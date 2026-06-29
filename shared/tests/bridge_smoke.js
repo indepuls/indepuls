@@ -67,6 +67,9 @@ function argsFor(name) {
     || name === 'isMonthBeforeOpening' || name === 'getRevenuNetMois') return ['2026-03'];
   if (name === 'getMissionVenteRatio' || name === 'getMissionTotalMs' || name === 'getMissionHeures'
     || name === 'getResteAEncaisser' || name === 'getTotalEncaisse') return [DATA_MIN.missions[0]];
+  if (name === 'getMargeAffaire' || name === 'getTHReelAffaire' || name === 'getPctCoutAffaire') return [DATA_MIN.missions[0]];
+  if (name === 'getAffairesAvecCouts' || name === 'getMargeMoyennePortefeuille') return [DATA_MIN.missions];
+  if (name === 'excludeDepensesLiees') return [DATA_MIN.depenses];
   if (name === 'setData') return [DATA_MIN];
   if (name === 'getTVAZone') return [1000, 37500, 41250];
   if (name === 'tvaZoneFill' || name === 'tvaZoneKpi') return ['tolerance'];

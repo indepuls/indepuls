@@ -10,7 +10,10 @@ const { pathToFileURL } = require('url');
 
 // ── Extraction du bloc JS principal ──────────────────────────
 const html = fs.readFileSync(path.join(__dirname, 'indepuls_freelance.html'), 'utf8');
-const firstScript = html.match(/<script>([\s\S]*?)<\/script>/);
+// Prend le plus grand bloc <script> sans attribut type — c'est le bloc principal de l'app.
+// Le match lazy (?) capturerait le premier petit bloc inline (ligne ~537), pas le bon.
+const allScripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+const firstScript = allScripts.reduce((a, b) => (a[1].length >= b[1].length ? a : b));
 if (!firstScript) { console.error('Bloc <script> introuvable'); process.exit(1); }
 
 // Rend DATA contrôlable depuis les tests (let → global)

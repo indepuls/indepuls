@@ -413,13 +413,15 @@ Depuis v29, les flags comportementaux sont regroupés dans `DATA.params.modules`
 DATA.params.modules = {
   planning:        'estime' | 'calendrier' | 'aucun',
   uniteTemps:      'heures' | 'jours',
-  objectif:        'th' | 'tjm' | 'marge_commande',
+  objectif:        'th' | 'tjm' | 'marge_commande',  // réservé — pilotera les futurs KPI
   devis:           true | false,
   simulateurOffre: true | false,   // ajouté en v30
 }
 ```
 Defaults par profil via `getDefaultModules(metier)`. `applyDefaults()` l'injecte si absent.
 Migration : `params.modePlanning` → `params.modules.planning` (effectuée dans `migrate()`).
+
+**`modules.objectif`** est intentionnellement conservé même si aucune condition ne le consomme encore. Il pilotera les futurs KPI différenciés : TH cible (service), TJM cible (artisan_batiment), marge par commande (fabricant/achat_revente). Ne pas le supprimer.
 
 **`applyProfile(metier)`** — à appeler à chaque changement de profil (select paramètres + select onboarding). Réinitialise `DATA.params.modules` aux défauts du nouveau profil via `getDefaultModules(metier)`. Ne pas appeler `saveParam('metier', ...)` directement — `applyProfile` gère tout.
 
@@ -441,6 +443,21 @@ Dans les fichiers archivés, `window.isActiviteMixte` est absent du bridge artis
 
 ### `sync()` avant chaque appel bridgé
 Le module ESM maintient sa propre variable `DATA` en mémoire. Si le script principal mute `DATA` (ex : l'utilisateur change un paramètre, on appelle `saveData()`), le module ne le sait pas. Le `sync()` en tête de chaque wrapper du bridge corrige ça en appelant `Mode.setData(DATA)`. **Ne jamais appeler une fonction bridgée sans sync préalable**, sinon les calculs portent sur des données obsolètes.
+
+### Règle URSSAF / impôts — base de calcul obligatoire
+
+**URSSAF et impôts sont TOUJOURS calculés sur le CA brut encaissé, jamais sur la marge.**
+
+Les dépenses liées (fournitures, frais de chantier, coûts directs) ne réduisent pas l'assiette sociale ou fiscale des micro-entrepreneurs.
+
+Fonctions correctes à utiliser :
+- URSSAF : `getUrssafAnnuelBrut()` / `getUrssafProvisionMensuelle()` (via bridge)
+- Impôts micro : `getImpotEstimeMicro(caP, caV)` ou `getRevenuImposableMicro(caP, caV)` (avec abattement forfaitaire)
+- Impôts SASU : `Math.round(caBrut * getImpotsTaux())`
+
+Ne jamais passer `marge`, `margeAffaire` ou `montant - dépenses` comme base à ces fonctions.
+
+Dans les simulateurs (`calcSimulateur`, `calcDevis`) : base = montant HT total du devis ou du CA de l'offre, avant déduction de tout coût direct.
 
 ### Fonctions les plus complexes du dashboard
 - `wKPIs()` : gère 3 cas (micro, impôts, SASU) avec des branches TVA — facile d'introduire des régressions
