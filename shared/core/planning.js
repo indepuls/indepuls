@@ -109,7 +109,7 @@ export function scorerRemplissage(pct) {
 // Mode 'aucun' ou modePlanning absent → details: null, score neutre 12.
 
 export function getPilierRemplissage(DATA) {
-  const mode = DATA.params.modePlanning || 'aucun';
+  const mode = DATA.params.modules?.planning || DATA.params.modePlanning || 'aucun';
   const fmt1 = v => Math.round(v * 10) / 10; // 1 décimale
 
   if (mode === 'estime') {

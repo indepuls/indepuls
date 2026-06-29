@@ -40,8 +40,9 @@ Toujours privilégier une phrase compréhensible, une recommandation claire, une
 - Les indicateurs doivent être orientés action
 - **Mobile first** — aucun scroll horizontal autorisé
 - Les conseils doivent être compréhensibles par quelqu'un qui ne connaît rien à la comptabilité
-- Les modes Freelance et Artisan doivent rester très proches techniquement
+- **Interface unifiée** : `indepuls.html` est le seul point d'entrée. `indepuls_freelance.html` et `indepuls_artisan.html` sont conservés en archive mais ne sont plus maintenus
 - La SASU doit afficher des informations orientées rémunération et trésorerie plutôt que revenu net
+- **CA = encaissements réels pour tous les profils**, sans exception. Ne jamais proposer un "CA au devis signé" comme option — les alertes tableau de bord couvrent le cas des factures non encaissées
 
 ## Idées volontairement exclues
 
@@ -62,9 +63,13 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 
 | Fichier / Dossier | Rôle |
 |---|---|
-| `index.html` | Page d'accueil + sélection du mode (freelance / artisan) |
-| `indepuls_freelance.html` | App complète mode freelance (~7 000 lignes, SCHEMA_VERSION 29) |
-| `indepuls_artisan.html` | App complète mode artisan (~7 500 lignes, SCHEMA_VERSION 29) |
+| `indepuls.html` | **Point d'entrée unique** — app complète tous profils (SCHEMA_VERSION 30) |
+| `index.html` | Redirection automatique vers `indepuls.html` (portail dual-session supprimé) |
+| `indepuls_freelance.html` | Archive mode freelance (SCHEMA_VERSION 29) — ne plus maintenir |
+| `indepuls_artisan.html` | Archive mode artisan (SCHEMA_VERSION 29) — ne plus maintenir |
+| `shared/modes/unified.js` | Pont ESM pour `indepuls.html` — STORAGE_KEY='indepuls', SCHEMA_VERSION=30 |
+| `shared/modes/freelance.js` | Pont ESM Freelance (conservé pour `indepuls_freelance.html`) |
+| `shared/modes/artisan.js` | Pont ESM Artisan (conservé pour `indepuls_artisan.html`) |
 | `vercel.json` | Config déploiement Vercel |
 | `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
@@ -73,8 +78,6 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | `shared/core/planning.js` | Moteur Planning : capacité, remplissage, score — voir section dédiée ci-dessous |
 | `shared/core/taux.js` | Référentiel fiscal 2026 (TVA, URSSAF, abattements, plafonds micro) |
 | `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` |
-| `shared/modes/freelance.js` | Pont ESM Freelance → window.* |
-| `shared/modes/artisan.js` | Pont ESM Artisan → window.* (shape `getCaBreakdownMois` différente) |
 | `shared/tests/abattement_micro.test.js` | 44 tests ESM — abattements, plafonds micro, prorata |
 | `shared/tests/planning.test.js` | 61 tests ESM — moteur Planning, tous modes, valeurs limites |
 | `shared/tests/bridge_smoke.js` | 102 tests — vérifie que chaque window.* appelé par le HTML existe |
@@ -201,25 +204,26 @@ fmtE(val, dec)              // formatage €
 saveData()                  // persist DATA en localStorage
 ```
 
-## Divergences Artisan / Freelance
+## Divergences archives Artisan / Freelance
 
-Ces différences doivent être maintenues à jour — elles ont causé des bugs en prod.
+Ces divergences existent dans les fichiers archivés (`indepuls_freelance.html` / `indepuls_artisan.html`). Dans `indepuls.html`, elles sont résolues.
 
-| Point | Freelance | Artisan |
-|---|---|---|
-| Shape de `getCaBreakdownMois` | `{presta, vente}` | `{prestation, vente, total}` — traduit dans `shared/modes/artisan.js` |
-| `window.isActiviteMixte` | Disponible dans le bridge | **Absent du bridge artisan** — utiliser `DATA.params.activiteMixte` directement dans le HTML |
-| CA mensuel | Calculé depuis les missions | Calculé depuis les encaissements réels (`getCaEncaisseAnnuel`) |
-| Bilan mensuel | Non | Oui (`DATA.bilanDismissed`) |
+| Point | Freelance (archive) | Artisan (archive) | indepuls.html (unifié) |
+|---|---|---|---|
+| Shape de `getCaBreakdownMois` | `{presta, vente}` | `{prestation, vente, total}` | Logique freelance (`{presta, vente}`) via `unified.js` |
+| `window.isActiviteMixte` | Disponible dans le bridge | **Absent** — utiliser `DATA.params.activiteMixte` | Disponible via `unified.js` |
+| CA mensuel | Encaissements réels | Encaissements réels | Encaissements réels (identique) |
+| Bilan mensuel | Non | Oui (`DATA.bilanDismissed`) | Non (logique freelance) |
 
 **Bug historique** (juin 2026) : `isActiviteMixte()` appelé dans `wProvisionsSide` du HTML artisan → dashboard blanc. Corrigé en remplaçant l'appel par `DATA.params.activiteMixte`.
 
 ## SCHEMA_VERSION
 
-- Les deux HTML sont à `SCHEMA_VERSION = 29` (juin 2026 — migration `modePlanning → modules.planning`)
-- `shared/modes/artisan.js` et `shared/modes/freelance.js` portent aussi cette version
+- `indepuls.html` est à `SCHEMA_VERSION = 30` (juin 2026 — fusion interfaces, clé localStorage unifiée `indepuls`)
+- `shared/modes/unified.js` porte aussi la version 30
+- Les archives (`indepuls_freelance.html`, `indepuls_artisan.html`, `shared/modes/freelance.js`, `shared/modes/artisan.js`) restent à 29 — ne pas les modifier
 - `migrate()` dans `storage.js` est **idempotent** (pas de blocs conditionnels par version) — incrémenter la constante ne cause pas de migration risquée, mais reste nécessaire pour marquer un changement de structure `DATA`
-- À incrémenter dans les 4 endroits : les 2 HTML + les 2 fichiers modes
+- À incrémenter dans **2 endroits** : `indepuls.html` + `shared/modes/unified.js`
 
 ## Suites de tests (Node.js)
 
@@ -264,6 +268,7 @@ renderDashboard()
 | `modal-lr-manuelle` | Ajout/édition d'une recette manuelle (livre des recettes) |
 | `modal-lr-historique` | Historique des modifications d'une recette (lecture seule, ouvert via badge "Modifiée") |
 | `modal-lr-edition` | Formulaire de modification d'une recette — montant, mode règlement, référence (ouvert via bouton "Modifier") |
+| `modal-migration` | Choix entre deux jeux de données détectés au lancement (migration depuis anciens localStorage) |
 | `modal-ref-motif` | Popup saisie du motif de refus quand un devis passe au statut "Refusé" (facultatif) |
 | `modal-ponctuel` | Artisan : ajout d'un revenu ponctuel (avec champs LR si type ≠ hors_ca) |
 | `modal-ponctuels` | Freelance : liste des revenus ponctuels du mois (add form + édition) |
@@ -351,11 +356,16 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Phase 5 — TH/TJM artisan** : `isJours()` helper ; `calcDevis()` convertit jours→heures ; labels TJM/€j dans devis, recalcObjectifs, KPI, alertes objectif pour les profils `uniteTemps='jours'` (ex: artisan_batiment)
 - **Phase 6 — planning conditionnel artisan** : nav Planning masqué si `modules.planning==='aucun'` ; guard navigate('planning') ; `#m-planning-zone` dans la modale mission masqué si aucun ou management ; widget Remplissage retourne '' si planning=aucun
 - **Phase 7 — calendrier planning freelance** : page Planning complète dans freelance (navigation mois, rendu calendrier HTML, sessions par mission, taux de remplissage) ; nav Planning visible uniquement si `modules.planning==='calendrier'` (profil evenementiel) ; `initEditingSessions()`, `addSessionToEdit()`, `removeSessionFromEdit()` pour la gestion des sessions dans la modale ; `getTauxRemplissageMois` et `getTauxRemplissageAnnee` exportés dans `shared/modes/freelance.js`
+- **Fusion interfaces v30 (2026-06)** : `indepuls.html` remplace les deux HTML séparés. `shared/modes/unified.js` (copie de freelance.js, STORAGE_KEY='indepuls', SCHEMA_VERSION=30). 7 profils dans les selects (`getDefaultModules` étendu avec `simulateurOffre`). `applyProfile(metier)` réinitialise `modules` aux défauts du profil — remplace `saveParam('metier',...)` partout. Migration localStorage 4 cas : clé unifiée / freelance seul / artisan seul / conflit → modale `modal-migration`. `index.html` redirige vers `indepuls.html`. Modal-mission : collectif conditionnel (famille service), charge estimée conditionnelle (planning estime).
+- **Bug planning.js `modePlanning` (2026-06)** : `getPilierRemplissage()` lisait l'ancien champ `DATA.params.modePlanning` au lieu de `DATA.params.modules.planning`. Fix ligne 112 : `modules?.planning || modePlanning || 'aucun'` (fallback rétrocompat). Affectait tous les profils v30 — pilier Remplissage et widget Calendrier retournaient toujours `methode:'aucun'`.
+- **Demo mode cloud sync guard (2026-06)** : `loadFromCloud()` écrasait `DATA` même en mode démo. Fix : guard `&& !DATA.isExample` dans le callback Supabase. Sans ce fix, les données cloud remplaçaient les données démo au chargement.
+- **Données démo + sessions chantier (2026-06)** : `getExampleData()` peuple `demoSessions` (map id mission → sessions) pour les familles `chantier` et `fabrication`. Les missions ex-rec à ex-cours reçoivent des sessions réparties sur 5 mois. Widget Calendrier et pilier Remplissage affichent des données réalistes en mode démo artisan.
+- **Bandeau contextuel démo toutes pages (2026-06)** : `renderDemoContextBar(page)` remplace `#example-banner` (visible seulement sur le dashboard). `<div id="demo-context-bar">` persistant après la topbar. Message adapté : données fictives + bouton "Commencer" sur les pages data, "paramètres conservés" en vert sur la page params. `navigate()` appelle `updateDemoUI()` à chaque changement de page.
 
 ## Points d'attention
 
-### Synchronisation Freelance ↔ Artisan
-Les deux HTML partagent exactement la même logique métier via `shared/core/`. Toute modification d'une fonction dans `calculs.js`, `planning.js` ou `taux.js` se répercute automatiquement sur les deux modes. **En revanche, les widgets et le HTML lui-même sont dupliqués** — un bug corrigé dans `wKPIs()` du freelance doit être reporté manuellement dans l'artisan. Vérifier systématiquement les deux fichiers avant de committer.
+### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
+`indepuls_freelance.html` et `indepuls_artisan.html` sont des archives. Ne plus les modifier. Tout bug ou feature va dans `indepuls.html` + `shared/core/` uniquement.
 
 ### Module Affaires — `shared/core/affaires.js`
 
@@ -390,39 +400,44 @@ Le domaine Planning est **séparé de `calculs.js`** (qui reste centré sur les 
 
 `DATA.params.modules.planning` valeurs valides : `'estime'` | `'calendrier'` | `'aucun'`. Anciennement `DATA.params.modePlanning` (migré en v29 → `modules.planning`). Toute valeur inconnue est remplacée par la valeur de `getDefaultModules(metier)`.
 
-### `SCHEMA_VERSION` — 4 endroits à synchroniser
+### `SCHEMA_VERSION` — 2 endroits à synchroniser
 Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, etc.) :
-1. `indepuls_freelance.html` — constante en haut du script principal
-2. `indepuls_artisan.html` — idem
-3. `shared/modes/freelance.js` — constante `SCHEMA_VERSION`
-4. `shared/modes/artisan.js` — idem
+1. `indepuls.html` — constante en haut du script principal
+2. `shared/modes/unified.js` — constante `SCHEMA_VERSION`
+
+Ne pas modifier les archives (`indepuls_freelance.html`, `indepuls_artisan.html`, `freelance.js`, `artisan.js`).
 
 ### `DATA.params.modules` — objet de comportement par profil
 Depuis v29, les flags comportementaux sont regroupés dans `DATA.params.modules` :
 ```js
 DATA.params.modules = {
-  planning:    'estime' | 'calendrier' | 'aucun',
-  uniteTemps:  'heures' | 'jours',
-  objectif:    'th' | 'tjm' | 'marge_commande',
-  devis:       true | false,
+  planning:        'estime' | 'calendrier' | 'aucun',
+  uniteTemps:      'heures' | 'jours',
+  objectif:        'th' | 'tjm' | 'marge_commande',
+  devis:           true | false,
+  simulateurOffre: true | false,   // ajouté en v30
 }
 ```
 Defaults par profil via `getDefaultModules(metier)`. `applyDefaults()` l'injecte si absent.
 Migration : `params.modePlanning` → `params.modules.planning` (effectuée dans `migrate()`).
 
+**`applyProfile(metier)`** — à appeler à chaque changement de profil (select paramètres + select onboarding). Réinitialise `DATA.params.modules` aux défauts du nouveau profil via `getDefaultModules(metier)`. Ne pas appeler `saveParam('metier', ...)` directement — `applyProfile` gère tout.
+
 **Règles d'affichage liées aux modules :**
 - `modules.planning === 'aucun'` → nav Planning masqué, guard `navigate('planning')`, `#m-planning-zone` masqué, widget Remplissage vide
-- `modules.planning === 'calendrier'` → planning calendrier actif avec sessions, widget Remplissage affiché
-- `modules.planning === 'estime'` → planning par estimation (charge en h/sem), widget Capacité
+- `modules.planning === 'calendrier'` → planning calendrier actif avec sessions, `#m-charge-zone` masqué dans modal-mission
+- `modules.planning === 'estime'` → planning par estimation (charge en h/sem), widget Capacité, `#m-charge-zone` visible
 - `modules.uniteTemps === 'jours'` → labels TJM au lieu de TH, `calcDevis()` convertit jours×heuresParJour
-- `modules.devis === false'` → onglet Devis masqué (fabricant_serie, achat_revente)
-- `isJours()` helper disponible dans les deux HTML : `DATA.params?.modules?.uniteTemps === 'jours'`
-- `updateNavPlanning()` : dans freelance, visible si `==='calendrier'` ; dans artisan, visible si `!=='aucun'`
+- `modules.devis === false` → onglet "Tester un devis" masqué (fabricant_serie, achat_revente)
+- `modules.simulateurOffre === false` → onglet "Tester une offre" masqué (artisan_batiment, artisan_commande)
+- `isJours()` helper : `DATA.params?.modules?.uniteTemps === 'jours'`
+- `updateNavPlanning()`, `updateNavDevis()`, `updateNavSimulateur()` : appelés dans `applyVocabUI()`
+- Modal-mission : "Type de mission" (collectif) visible seulement si `BUSINESS_PROFILE_MAP[metier] === 'service'`
 
 La fonction `migrate()` dans `storage.js` est idempotente — elle n'a pas de blocs conditionnels par numéro de version. Incrémenter la constante est donc sans risque, mais reste nécessaire pour que les données importées (backup JSON) soient reconnues comme compatibles.
 
-### Bridge artisan : `isActiviteMixte` manquant
-`window.isActiviteMixte` est exposé dans le bridge Freelance mais **absent du bridge Artisan**. Si du code HTML artisan appelle `isActiviteMixte()` comme une fonction, il plantera silencieusement (dashboard blanc). Toujours utiliser `DATA.params.activiteMixte` (booléen) directement dans le HTML artisan. Ne pas ajouter `isActiviteMixte` au bridge artisan sans vérifier tous les endroits où `DATA.params.activiteMixte` est déjà utilisé.
+### Bridge artisan : `isActiviteMixte` manquant (archives uniquement)
+Dans les fichiers archivés, `window.isActiviteMixte` est absent du bridge artisan. Sans objet pour `indepuls.html` où `unified.js` l'expose correctement.
 
 ### `sync()` avant chaque appel bridgé
 Le module ESM maintient sa propre variable `DATA` en mémoire. Si le script principal mute `DATA` (ex : l'utilisateur change un paramètre, on appelle `saveData()`), le module ne le sait pas. Le `sync()` en tête de chaque wrapper du bridge corrige ça en appelant `Mode.setData(DATA)`. **Ne jamais appeler une fonction bridgée sans sync préalable**, sinon les calculs portent sur des données obsolètes.
@@ -472,7 +487,7 @@ function tVocab(key) {
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
 }
 ```
-`DEFAULT_FAMILY = 'service'` dans freelance, `'chantier'` dans artisan.
+`DEFAULT_FAMILY = 'service'` dans `indepuls.html` et `indepuls_freelance.html`, `'chantier'` dans `indepuls_artisan.html`.
 
 ### Migration automatique
 `migrateMetierParam()` convertit les anciennes valeurs affichées (ex : `"Coach"`, `"Maçon"`) en clés normalisées (`"coach"`, `"macon"`) au premier chargement, sans perte de données.
