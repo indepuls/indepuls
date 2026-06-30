@@ -9069,7 +9069,23 @@ document.addEventListener('keydown', function(e) {
           Se connecter
         </button>
         <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#e55;min-height:18px"></div>
+        <button onclick="authForgotPassword()" style="background:none;border:none;color:#9a9aaa;font-size:12px;cursor:pointer;font-family:inherit;margin-top:8px;text-decoration:underline;padding:0">
+          Mot de passe oublié ?
+        </button>
       </div>`;
+    window.authForgotPassword = async function() {
+      var email = (document.getElementById('auth-email')?.value||'').trim();
+      var msg = document.getElementById('auth-msg');
+      if (!email) { if(msg){ msg.style.color='#e55'; msg.textContent='Entrez votre email ci-dessus pour recevoir le lien.'; } return; }
+      if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Envoi en cours…'; }
+      try {
+        var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+        if(res.error) throw res.error;
+        if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Email envoyé ! Vérifiez votre boîte mail.'; }
+      } catch(e) {
+        if(msg){ msg.style.color='#e55'; msg.textContent = e.message||'Erreur, réessayez.'; }
+      }
+    };
     window.authLogin = async function() {
       var email = (document.getElementById('auth-email')?.value||'').trim();
       var pwd   = (document.getElementById('auth-pwd')?.value||'');
