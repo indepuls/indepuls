@@ -564,7 +564,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
   <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
-  <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> Tester une offre</div>
+  <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> Simulateur</div>
   <div class="nav-item" id="nav-devis" onclick="navigate('devis')"><span class="nav-icon">🧮</span> Tester un devis</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="Activez le livre des recettes dans les Paramètres"><span class="nav-icon">📒</span> Livre des recettes</div>
   <div class="nav-section">Réglages</div>
@@ -1077,52 +1077,120 @@ html,body{overflow-x:hidden;}
   <div class="page" id="page-simulateur">
     <div class="g2" style="align-items:start">
       <div class="card">
-        <div class="card-title mb4">🧮 Tester une offre</div>
-        <div class="card-sub mb16">Estimez la rentabilité avant de vendre</div>
-        <div class="frow mb12">
-          <div class="fgroup" style="margin:0">
-            <label class="flabel">Type d'offre</label>
-            <select id="sim-type" onchange="renderSimulateur()">
-              <option value="individuelle">Offre individuelle</option>
-              <option value="collectif">Programme collectif</option>
-            </select>
+        <div class="card-title mb4">🧮 Simulateur de rentabilité</div>
+        <div class="card-sub mb16" id="sim-subtitle">Vérifiez si ce que vous allez vendre est rentable avant de le proposer.</div>
+
+        <!-- Prix / CA — toujours visible -->
+        <div class="fgroup" id="sim-row-ca">
+          <label class="flabel" id="sim-label-ca">Prix envisagé (€ HT)</label>
+          <input type="number" id="sim-ca-val" step="50" min="0" placeholder="Ex : 1 200" oninput="calcRentabilite()">
+        </div>
+
+        <!-- Mode collectif — service uniquement -->
+        <div id="sim-row-collectif" style="display:none">
+          <div class="sw-wrap mt4 mb8">
+            <label class="sw"><input type="checkbox" id="sim-collectif-sw" onchange="renderSimulateurPage()"><span class="sw-sl"></span></label>
+            <span style="font-size:13px">Programme collectif (plusieurs participants)</span>
           </div>
         </div>
-        <!-- Individuelle -->
-        <div id="sim-ind-zone">
-          <div class="fgroup"><label class="flabel">Prix envisagé (€ HT)</label><input type="number" id="sim-prix" step="50" min="0" placeholder="Ex : 2 000" oninput="calcSimulateur()"></div>
-          <div class="fgroup" style="margin-bottom:8px">
-            <label class="flabel">Saisie du temps</label>
-            <div style="display:flex;gap:6px;margin-top:6px">
-              <button type="button" id="sim-time-mode-total" onclick="simSetTimeMode('total')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Temps total</button>
-              <button type="button" id="sim-time-mode-sem" onclick="simSetTimeMode('sem')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Par semaine</button>
-            </div>
+
+        <!-- Collectif détail -->
+        <div id="sim-row-collectif-detail" style="display:none">
+          <div class="frow">
+            <div class="fgroup"><label class="flabel">Participants prévus</label><input type="number" id="sim-participants-val" min="1" step="1" placeholder="Ex : 8" oninput="calcRentabilite()"></div>
+            <div class="fgroup"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
           </div>
-          <div id="sim-total-zone">
-            <div class="fgroup"><label class="flabel">Temps total estimé (h)</label><input type="number" id="sim-temps-h" step="0.5" min="0" placeholder="Ex : 15" oninput="calcSimulateur()"></div>
-          </div>
-          <div id="sim-sem-zone" style="display:none">
-            <div class="frow">
-              <div class="fgroup"><label class="flabel">h / semaine</label><input type="number" id="sim-h-sem" step="0.5" min="0" placeholder="Ex : 3" oninput="calcSimulateur()"></div>
-              <div class="fgroup"><label class="flabel">Durée (semaines)</label><input type="number" id="sim-duree" step="1" min="0" placeholder="Ex : 6" oninput="calcSimulateur()"></div>
-            </div>
+          <div class="ts mb10" id="sim-ca-collectif" style="font-weight:700;color:var(--pri)"></div>
+          <div class="frow">
+            <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="sim-creation-val" step="0.5" min="0" placeholder="0" oninput="calcRentabilite()"></div>
+            <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="sim-animation-val" step="0.5" min="0" placeholder="0" oninput="calcRentabilite()"></div>
+            <div class="fgroup"><label class="flabel">Suivi / échanges (h)</label><input type="number" id="sim-support-val" step="0.5" min="0" placeholder="0" oninput="calcRentabilite()"></div>
           </div>
         </div>
-        <!-- Collectif -->
-        <div id="sim-col-zone" style="display:none">
-          <div class="frow">
-            <div class="fgroup"><label class="flabel">Participants prévus</label><input type="number" id="sim-participants" min="1" step="1" placeholder="Ex : 8" oninput="calcSimulateur()"></div>
-            <div class="fgroup"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prix-part" step="50" min="0" placeholder="Ex : 1 500" oninput="calcSimulateur()"></div>
+
+        <!-- Temps de travail -->
+        <div id="sim-row-temps">
+          <div class="fgroup">
+            <label class="flabel" id="sim-label-temps">Temps total estimé (h)</label>
+            <input type="number" id="sim-temps-val" step="0.5" min="0" placeholder="Ex : 8" oninput="calcRentabilite()">
           </div>
-          <div class="ts mb10" id="sim-ca-total" style="font-weight:700;color:var(--pri)"></div>
-          <div class="frow">
-            <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="sim-creation" step="0.5" min="0" placeholder="0" oninput="calcSimulateur()"></div>
-            <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="sim-animation" step="0.5" min="0" placeholder="0" oninput="calcSimulateur()"></div>
-            <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="sim-support" step="0.5" min="0" placeholder="Réponses, feedback…" oninput="calcSimulateur()"></div>
+        </div>
+
+        <!-- Trajet -->
+        <div id="sim-row-trajet" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Temps de déplacement estimé (h)</label>
+            <input type="number" id="sim-trajet-val" step="0.5" min="0" placeholder="Ex : 1.5" oninput="calcRentabilite()">
           </div>
-          <div class="fgroup"><label class="flabel">Autres frais (€) — optionnel</label><input type="number" id="sim-frais" step="10" min="0" placeholder="0" oninput="calcSimulateur()"></div>
+        </div>
+
+        <!-- Coût d'achat -->
+        <div id="sim-row-achat" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Coût d'achat (€ HT)</label>
+            <input type="number" id="sim-achat-val" step="10" min="0" placeholder="Ex : 80" oninput="calcRentabilite()">
+          </div>
+        </div>
+
+        <!-- Matières / fournitures -->
+        <div id="sim-row-matieres" style="display:none">
+          <div class="fgroup">
+            <label class="flabel" id="sim-label-matieres">Fournitures & matériaux (€)</label>
+            <input type="number" id="sim-matieres-val" step="10" min="0" placeholder="Ex : 200" oninput="calcRentabilite()">
+          </div>
+        </div>
+
+        <!-- Emballages -->
+        <div id="sim-row-emballages" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Emballages & consommables (€)</label>
+            <input type="number" id="sim-emballages-val" step="5" min="0" placeholder="Ex : 15" oninput="calcRentabilite()">
+          </div>
+        </div>
+
+        <!-- Sous-traitance -->
+        <div id="sim-row-soustraitance" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Sous-traitance (€)</label>
+            <input type="number" id="sim-soustraitance-val" step="50" min="0" placeholder="Ex : 300" oninput="calcRentabilite()">
+          </div>
+        </div>
+
+        <!-- Frais plateforme -->
+        <div id="sim-row-plateforme" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Frais de plateforme (%)</label>
+            <input type="number" id="sim-plateforme-val" step="0.5" min="0" max="30" placeholder="Ex : 5" oninput="calcRentabilite()">
+          </div>
+        </div>
+
+        <!-- Autres frais -->
+        <div id="sim-row-autresfrais">
+          <div class="fgroup">
+            <label class="flabel">Autres frais (€)</label>
+            <input type="number" id="sim-autresfrais-val" step="10" min="0" placeholder="Ex : 50" oninput="calcRentabilite()">
+          </div>
+        </div>
+
+        <!-- Personnaliser -->
+        <div class="divider mt12 mb10"></div>
+        <button type="button" onclick="toggleSimPerso()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--tl);padding:0;font-family:inherit">⚙ Personnaliser ce simulateur <span id="sim-perso-arrow">▾</span></button>
+        <div id="sim-perso-zone" style="display:none;margin-top:12px">
+          <div class="ts mb10" style="color:var(--tl)">Je souhaite prendre en compte…</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-temps" onchange="applySimPerso()"> Mon temps de travail</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-trajet" onchange="applySimPerso()"> Mes déplacements</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-achat" onchange="applySimPerso()"> Mes achats de marchandises</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-matieres" onchange="applySimPerso()"> Mes matières premières & fournitures</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-emballages" onchange="applySimPerso()"> Mes emballages & consommables</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-soustraitance" onchange="applySimPerso()"> La sous-traitance</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-plateforme" onchange="applySimPerso()"> Les frais de plateforme</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-autresfrais" onchange="applySimPerso()"> Les autres frais divers</label>
+            <label id="sim-chk-collectif-label" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-collectif" onchange="applySimPerso()"> Le mode collectif / groupe</label>
+          </div>
         </div>
       </div>
+
       <!-- Résultats -->
       <div id="sim-results-zone">
         <div class="card" style="background:var(--bg)">
@@ -3726,7 +3794,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Tester une offre',devis:'Tester un devis',recettes:'Livre des recettes'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',devis:'Tester un devis',recettes:'Livre des recettes'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -3751,12 +3819,11 @@ function updateNavDevis() {
 function updateNavSimulateur() {
   const el = document.getElementById('nav-simulateur');
   if (!el) return;
-  el.style.display = DATA.params.modules?.simulateurOffre !== false ? '' : 'none';
+  el.style.display = '';
 }
 function navigate(page) {
   if (page === 'planning' && DATA.params.modules?.planning !== 'calendrier') { navigate('dashboard'); return; }
   if (page === 'devis' && DATA.params.modules?.devis === false) { navigate('dashboard'); return; }
-  if (page === 'simulateur' && DATA.params.modules?.simulateurOffre === false) { navigate('dashboard'); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -3788,7 +3855,7 @@ function renderPage(page) {
     case 'depenses': renderDepenses(); break;
     case 'archives': renderArchives(); break;
     case 'params': renderParams(); break;
-    case 'simulateur': renderSimulateur(); break;
+    case 'simulateur': _simUserFields = null; renderSimulateurPage(); break;
     case 'recettes': renderRecettes(); break;
   }
 }
@@ -7779,140 +7846,276 @@ async function confirmReset() {
 }
 
 // ── SIMULATEUR "TESTER UNE OFFRE" ────────────────────────────
-function renderSimulateur() {
-  const type=document.getElementById('sim-type').value;
-  document.getElementById('sim-ind-zone').style.display=type==='individuelle'?'':'none';
-  document.getElementById('sim-col-zone').style.display=type==='collectif'?'':'none';
-  document.getElementById('sim-create-zone').style.display='none';
-  document.getElementById('sim-results-zone').innerHTML=`<div class="card" style="background:var(--bg)"><div class="ts" style="color:var(--tl);padding:20px;text-align:center">Renseignez les champs à gauche pour voir les résultats.</div></div>`;
-  calcSimulateur();
+// ── SIMULATEUR DE RENTABILITÉ — remplace calcSimulateur + renderSimulateur ──
+
+const SIM_PRESETS = {
+  service: {
+    subtitle: 'Estimez si votre prestation ou programme est rentable avant de le proposer.',
+    labelCa: 'Prix envisagé (€ HT)',
+    labelTemps: 'Temps total estimé (h)',
+    labelMatieres: 'Fournitures (€)',
+    fields: { temps:true, trajet:false, achat:false, matieres:false, emballages:false, soustraitance:false, plateforme:false, autresfrais:false, collectif:true },
+  },
+  chantier: {
+    subtitle: 'Vérifiez si votre devis reste rentable avant de l\'envoyer.',
+    labelCa: 'Montant du devis (€ HT)',
+    labelTemps: 'Temps chantier estimé (h)',
+    labelMatieres: 'Fournitures & matériaux (€)',
+    fields: { temps:true, trajet:true, achat:false, matieres:true, emballages:false, soustraitance:true, plateforme:false, autresfrais:true, collectif:false },
+  },
+  fabrication: {
+    subtitle: 'Vérifiez si votre commande ou fabrication est rentable.',
+    labelCa: 'Prix de vente (€ HT)',
+    labelTemps: 'Temps de fabrication estimé (h)',
+    labelMatieres: 'Matières premières (€)',
+    fields: { temps:true, trajet:false, achat:false, matieres:true, emballages:true, soustraitance:true, plateforme:false, autresfrais:true, collectif:false },
+  },
+  achat_revente: {
+    subtitle: 'Vérifiez si cette vente vaut vraiment le temps passé.',
+    labelCa: 'Prix de vente (€ HT)',
+    labelTemps: 'Temps passé estimé (h) — achat, tri, mise en ligne, expédition…',
+    labelMatieres: 'Matières / fournitures (€)',
+    fields: { temps:true, trajet:false, achat:true, matieres:false, emballages:true, soustraitance:false, plateforme:true, autresfrais:true, collectif:false },
+  },
+};
+
+function getSimulateurPreset() {
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
+  const map = { service:'service', chantier:'chantier', fabrication:'fabrication', achat_revente:'achat_revente' };
+  return map[family] || 'service';
 }
-function simSetTimeMode(mode) {
-  const isSem = mode === 'sem';
-  document.getElementById('sim-total-zone').style.display = isSem ? 'none' : 'block';
-  document.getElementById('sim-sem-zone').style.display   = isSem ? 'block' : 'none';
-  if (isSem) { document.getElementById('sim-temps-h').value = ''; }
-  else { document.getElementById('sim-h-sem').value = ''; document.getElementById('sim-duree').value = ''; }
-  const bT = document.getElementById('sim-time-mode-total');
-  const bS = document.getElementById('sim-time-mode-sem');
-  const on  = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
-  const off = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
-  bT.style.cssText = isSem ? off : on;
-  bS.style.cssText = isSem ? on  : off;
-  calcSimulateur();
+
+// Overrides utilisateur pour la session courante (non persistés)
+let _simUserFields = null;
+
+function getSimFields() {
+  const preset = getSimulateurPreset();
+  const defaults = {...SIM_PRESETS[preset].fields};
+  return _simUserFields ? {...defaults, ..._simUserFields} : defaults;
 }
-function calcSimulateur() {
-  const type=document.getElementById('sim-type').value;
-  const thCible=getTauxHoraireMinCible();
-  let ca=0, marge=0, tempsTotal=0, prixMinInd=0, prixPartMin=0, participants=0;
-  if(type==='individuelle'){
-    ca=parseFloat(document.getElementById('sim-prix').value)||0;
-    const tH=parseFloat(document.getElementById('sim-temps-h').value)||0;
-    const hSem=parseFloat(document.getElementById('sim-h-sem').value)||0;
-    const dur=parseFloat(document.getElementById('sim-duree').value)||0;
-    tempsTotal=tH>0?tH:(hSem>0&&dur>0?hSem*dur:0);
-    marge=ca; prixMinInd=thCible*tempsTotal;
-    if(ca<=0&&tempsTotal<=0) return;
+
+function renderSimulateurPage() {
+  const preset = getSimulateurPreset();
+  const cfg = SIM_PRESETS[preset];
+  const fields = getSimFields();
+  const el = id => document.getElementById(id);
+
+  if (el('sim-subtitle')) el('sim-subtitle').textContent = cfg.subtitle;
+  if (el('sim-label-ca')) el('sim-label-ca').textContent = cfg.labelCa;
+  if (el('sim-label-temps')) el('sim-label-temps').textContent = cfg.labelTemps;
+  if (el('sim-label-matieres')) el('sim-label-matieres').textContent = cfg.labelMatieres;
+
+  const isCollectif = fields.collectif && el('sim-collectif-sw')?.checked;
+
+  const rows = {
+    'sim-row-ca': !isCollectif,
+    'sim-row-collectif': fields.collectif,
+    'sim-row-collectif-detail': isCollectif,
+    'sim-row-temps': fields.temps && !isCollectif,
+    'sim-row-trajet': fields.trajet && !isCollectif,
+    'sim-row-achat': fields.achat,
+    'sim-row-matieres': fields.matieres,
+    'sim-row-emballages': fields.emballages,
+    'sim-row-soustraitance': fields.soustraitance,
+    'sim-row-plateforme': fields.plateforme,
+    'sim-row-autresfrais': fields.autresfrais,
+  };
+  Object.entries(rows).forEach(([id, show]) => { const r=el(id); if(r) r.style.display=show?'':'none'; });
+
+  // Sync checkboxes personnaliser
+  ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','collectif'].forEach(f => {
+    const chk = el('sim-chk-'+f);
+    if (chk) chk.checked = !!fields[f];
+  });
+  const colLabel = el('sim-chk-collectif-label');
+  if (colLabel) colLabel.style.display = preset === 'service' ? '' : 'none';
+
+  el('sim-results-zone').innerHTML = `<div class="card" style="background:var(--bg)"><div class="ts" style="color:var(--tl);padding:20px;text-align:center">Renseignez les champs à gauche pour voir les résultats.</div></div>`;
+  el('sim-create-zone').style.display = 'none';
+
+  calcRentabilite();
+}
+
+function toggleSimPerso() {
+  const zone = document.getElementById('sim-perso-zone');
+  const arrow = document.getElementById('sim-perso-arrow');
+  const open = !zone.style.display || zone.style.display === 'none';
+  zone.style.display = open ? '' : 'none';
+  if (arrow) arrow.textContent = open ? '▴' : '▾';
+}
+
+function applySimPerso() {
+  const chks = ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','collectif'];
+  _simUserFields = {};
+  chks.forEach(f => {
+    const chk = document.getElementById('sim-chk-'+f);
+    if (chk) _simUserFields[f] = chk.checked;
+  });
+  renderSimulateurPage();
+}
+
+function prepareSimInputs() {
+  const fields = getSimFields();
+  const el = id => parseFloat(document.getElementById(id)?.value)||0;
+  const isCollectif = fields.collectif && document.getElementById('sim-collectif-sw')?.checked;
+
+  let ca = 0, heures = 0, coutsDirects = 0, participants = 1;
+
+  if (isCollectif) {
+    participants = Math.max(1, el('sim-participants-val'));
+    const prixPart = el('sim-prixpart-val');
+    ca = participants * prixPart;
+    const tC = el('sim-creation-val'), tA = el('sim-animation-val'), tS = el('sim-support-val');
+    heures = tC + tA + tS;
+    coutsDirects = el('sim-autresfrais-val');
+    const caEl = document.getElementById('sim-ca-collectif');
+    if (caEl) caEl.textContent = ca > 0 ? `CA total : ${fmtE(ca)} (${participants} × ${fmtE(prixPart)})` : '';
   } else {
-    participants=parseFloat(document.getElementById('sim-participants').value)||0;
-    const prixPart=parseFloat(document.getElementById('sim-prix-part').value)||0;
-    ca=participants*prixPart;
-    const frais=parseFloat(document.getElementById('sim-frais').value)||0;
-    const tC=parseFloat(document.getElementById('sim-creation').value)||0;
-    const tA=parseFloat(document.getElementById('sim-animation').value)||0;
-    const tS=parseFloat(document.getElementById('sim-support').value)||0;
-    tempsTotal=tC+tA+tS; marge=ca-frais;
-    const prixTotMin=thCible*tempsTotal+frais;
-    prixPartMin=participants>0?prixTotMin/participants:0;
-    const el=document.getElementById('sim-ca-total');
-    if(el) el.textContent=ca>0?`CA total : ${fmtE(ca)} (${participants} × ${fmtE(prixPart)})`:'' ;
-    if(ca<=0&&tempsTotal<=0) return;
+    ca = el('sim-ca-val');
+    const hTravail = fields.temps ? el('sim-temps-val') : 0;
+    const hTrajet  = fields.trajet ? el('sim-trajet-val') : 0;
+    heures = hTravail + hTrajet;
+    const coutAchat     = fields.achat         ? el('sim-achat-val')         : 0;
+    const matieres      = fields.matieres      ? el('sim-matieres-val')      : 0;
+    const emballages    = fields.emballages    ? el('sim-emballages-val')    : 0;
+    const soustraitance = fields.soustraitance ? el('sim-soustraitance-val') : 0;
+    const plateforme    = fields.plateforme    ? Math.round(ca * el('sim-plateforme-val') / 100) : 0;
+    const autresFrais   = fields.autresfrais   ? el('sim-autresfrais-val')   : 0;
+    coutsDirects = coutAchat + matieres + emballages + soustraitance + plateforme + autresFrais;
   }
-  const th=tempsTotal>0?marge/tempsTotal:0;
-  const cl=th>=thCible*1.1?'tok':th>=thCible?'twn':'terr';
-  const verdict=th>=thCible*1.1?'✅ Rentable':th>=thCible?'⚠️ Limite':'❌ Sous objectif';
-  // Calculs nets — ce qui reste dans la poche après URSSAF + impôts
-  const p=DATA.params;
-  const _urssafTaux=(p.tauxURSSAF||0)+(p.tauxCFP||0);
-  const _impotTaux=p.impotsTaux||0;
-  const _isMicro=!isSASU();
-  // URSSAF et impôts : toujours sur le CA brut (jamais sur la marge après frais)
-  const provUrssaf=ca>0?Math.round(ca*_urssafTaux/100):0;
-  let provImpots=0, _impotAbattPct=0;
-  if(_impotTaux>0&&ca>0){
-    if(_isMicro){
-      const baseImposable=getRevenuImposableMicro(ca,0);
-      _impotAbattPct=Math.round((1-baseImposable/ca)*100);
-      provImpots=Math.round(baseImposable*_impotTaux/100);
+
+  if (ca <= 0 && heures <= 0) return null;
+  return { ca, heures, coutsDirects, participants, isCollectif };
+}
+
+function calcRentabilite() {
+  const inputs = prepareSimInputs();
+  if (!inputs) { document.getElementById('sim-create-zone').style.display = 'none'; return; }
+
+  const { ca, heures, coutsDirects, participants, isCollectif } = inputs;
+  const p = DATA.params;
+  const _urssafTaux = (p.tauxURSSAF||0) + (p.tauxCFP||0);
+  const _impotTaux  = p.impotsTaux||0;
+  const _isMicro    = !isSASU();
+  const _hj         = p.heuresParJour||7;
+  const _isJ        = isJours();
+
+  const margeBrute = ca - coutsDirects;
+  const provUrssaf = ca > 0 ? Math.round(ca * _urssafTaux / 100) : 0;
+  let provImpots = 0, abattPct = 0;
+  if (_impotTaux > 0 && ca > 0) {
+    if (_isMicro) {
+      const bi = getRevenuImposableMicro(ca, 0);
+      abattPct = Math.round((1 - bi/ca)*100);
+      provImpots = Math.round(bi * _impotTaux / 100);
     } else {
-      provImpots=Math.round(ca*_impotTaux/100);
+      provImpots = Math.round(ca * _impotTaux / 100);
     }
   }
-  // Net = CA - frais éventuels - URSSAF - impôts
-  const margeNette=ca>0?Math.max(0,marge-provUrssaf-provImpots):0;
-  const thNet=tempsTotal>0?Math.round(margeNette/tempsTotal):0;
-  // TH net cible (pour coloration) — même logique abattement
-  const thNetCible=(()=>{
-    if(!thCible||!tempsTotal)return 0;
-    const uUrssaf=Math.round(thCible*_urssafTaux/100);
-    const uImpot=_isMicro?Math.round(thCible*(1-_impotAbattPct/100)*_impotTaux/100):Math.round(thCible*_impotTaux/100);
-    return Math.max(0,thCible-uUrssaf-uImpot);
-  })();
-  const _hasCharges=_urssafTaux>0||_impotTaux>0;
-  const clNet=thNet>0&&thNetCible>0?(thNet>=Math.round(thNetCible*1.1)?'tok':thNet>=thNetCible?'twn':'terr'):'';
-  const rows=[
-    ['CA total estimé', fmtE(ca)],
-    type==='collectif'?['Marge (après frais)', fmtE(marge)]:null,
-    ['Temps total estimé', tempsTotal>0?fmt(tempsTotal,1)+' h':'—'],
-    ['Taux horaire brut estimé', th>0?`<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(th,0)}/h</span><span class="ts"> avant URSSAF</span>`:'—'],
-    _hasCharges&&th>0?['💰 Taux horaire net estimé', `<span class="${clNet}" style="font-weight:700;font-size:15px">${fmtE(thNet,0)}/h</span><span class="ts"> dans votre poche</span>`]:null,
-    ['Taux horaire cible (brut)', thCible>0?fmtE(thCible,0)+'/h':'Non configuré'],
-    type==='individuelle'?['Prix minimum recommandé', thCible>0&&tempsTotal>0?fmtE(prixMinInd,0):'—']:null,
-    type==='collectif'?['Prix/participant minimum', thCible>0&&tempsTotal>0&&participants>0?fmtE(prixPartMin,0)+'/pers.':'—']:null,
-  ].filter(Boolean);
-  // Box NET proéminente
-  const _impotSub=_impotTaux>0?(_isMicro&&_impotAbattPct>0?` + impôts ${_impotTaux}% (après abattement ${_impotAbattPct}%)`:` + impôts ${_impotTaux}%`):'';
-  const netBox=_hasCharges&&marge>0?`<div style="margin-top:14px;padding:12px 16px;background:rgba(45,122,79,.08);border-radius:8px;border-left:3px solid var(--ok)">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans votre poche sur cette offre</div>
-    <div style="font-size:24px;font-weight:700;color:var(--ok);line-height:1">${fmtE(margeNette)}</div>
-    <div style="font-size:11px;color:var(--tl);margin-top:3px">après URSSAF ${_urssafTaux}%${_impotSub} · sur la marge brute de ${fmtE(marge)}</div>
-  </div>`:'' ;
-  // Conseils personnalisés
-  const advLines=[];
-  if(_urssafTaux>0&&ca>0) advLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-  if(_impotTaux>0&&ca>0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro&&_impotAbattPct>0?` (${_impotTaux} % après abattement ${_impotAbattPct} % · micro)`:` (${_impotTaux} % du CA)`}`);
-  if(thCible>0&&tempsTotal>0&&th<thCible){
-    const prixMinCible=type==='collectif'&&participants>0?Math.ceil(prixPartMin/10)*10:Math.ceil((thCible*tempsTotal)/10)*10;
-    const prixLabel=type==='collectif'?`<strong>${fmtE(prixMinCible)}/pers.</strong> (soit ${fmtE(prixMinCible*participants)} total)`:`<strong>${fmtE(prixMinCible)}</strong>`;
-    advLines.push(`🎯 Pour atteindre votre objectif net, facturez au minimum ${prixLabel}`);
-  }
-  const advHtml=advLines.length?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Conseils</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>`:'';
+  const revenuNet = Math.max(0, margeBrute - provUrssaf - provImpots);
+  const thBrut   = heures > 0 ? margeBrute / heures : null;
+  const thNet    = heures > 0 ? Math.round(revenuNet / heures) : null;
+  const tjmBrut  = thBrut !== null ? Math.round(thBrut * _hj) : null;
+  const thCible  = getTauxHoraireMinCible();
+  const pctMarge = ca > 0 ? Math.round(margeBrute / ca * 100) : 0;
 
-  document.getElementById('sim-results-zone').innerHTML=`<div class="card">
-    <div class="card-title mb12">${verdict}</div>
+  renderSimOutputs({ ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
+    revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
+    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ });
+}
+function renderSimOutputs(r) {
+  const { ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
+    revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
+    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ } = r;
+
+  // Verdict
+  const thRef = _isJ ? thCible * _hj : thCible;
+  const thComp = _isJ ? tjmBrut : (thBrut !== null ? Math.round(thBrut) : null);
+  let verdictTxt, verdictIcon, borderCol;
+  if (thComp === null || thCible <= 0) {
+    verdictTxt = thCible <= 0
+      ? 'Configurez votre objectif dans Paramètres pour voir la rentabilité.'
+      : 'Renseignez le temps estimé pour calculer votre gain horaire réel.';
+    verdictIcon = 'ℹ️'; borderCol = 'var(--sec)';
+  } else if (thComp >= thRef * 1.1) {
+    verdictTxt = 'Rentable — marge de sécurité ≥ 10 % incluse.';
+    verdictIcon = '✅'; borderCol = 'var(--ok)';
+  } else if (thComp >= thRef) {
+    verdictTxt = 'Couvre votre objectif, mais laisse peu de marge pour les imprévus.';
+    verdictIcon = '⚠️'; borderCol = 'var(--warn)';
+  } else {
+    verdictTxt = `Sous votre ${_isJ ? 'TJM' : 'taux horaire'} cible.`;
+    verdictIcon = '⛔'; borderCol = 'var(--err)';
+  }
+
+  const cl = thComp !== null && thCible > 0 ? (thComp >= thRef*1.1 ? 'tok' : thComp >= thRef ? 'twn' : 'terr') : '';
+
+  const rows = [
+    ['CA total', fmtE(ca)],
+    coutsDirects > 0 ? ['Coûts déduits', `− ${fmtE(coutsDirects)}`] : null,
+    coutsDirects > 0 ? [`Marge brute (${pctMarge} %)`, fmtE(margeBrute)] : null,
+    isCollectif && participants > 1 ? ['Participants', participants] : null,
+    heures > 0 ? ['Temps estimé', `${fmt(heures,1)} h`] : null,
+    !_isJ && thBrut !== null ? ['TH brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(Math.round(thBrut),0)}/h</span><span class="ts"> avant URSSAF</span>`] : null,
+    _isJ && tjmBrut !== null ? ['TJM brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(tjmBrut,0)}/j</span><span class="ts"> avant URSSAF</span>`] : null,
+    thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['Net / heure estimé', `<strong>${fmtE(thNet,0)}/h</strong><span class="ts"> dans votre poche</span>`] : null,
+    thCible > 0 ? (_isJ
+      ? ['TJM cible (brut)', `${fmtE(Math.round(thCible*_hj),0)}/j · confort ${fmtE(Math.round(thCible*_hj*1.1),0)}/j`]
+      : ['TH cible (brut)', `${fmtE(thCible,0)}/h · confort ${fmtE(Math.round(thCible*1.1),0)}/h`]) : null,
+  ].filter(Boolean);
+
+  // Box net
+  const _impotSub = _impotTaux > 0 ? (_isMicro && abattPct > 0
+    ? ` + impôts ${_impotTaux}% (abatt. ${abattPct}%)`
+    : ` + impôts ${_impotTaux}%`) : '';
+  const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
+  const netBox = _hasCharges && margeBrute > 0 ? `<div style="margin-top:14px;padding:12px 16px;background:rgba(45,122,79,.08);border-radius:8px;border-left:3px solid var(--ok)">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans votre poche</div>
+    <div style="font-size:24px;font-weight:700;color:var(--ok);line-height:1">${fmtE(revenuNet)}</div>
+    <div style="font-size:11px;color:var(--tl);margin-top:3px">après URSSAF ${_urssafTaux}%${_impotSub}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>
+  </div>` : '';
+
+  // Conseils
+  const advLines = [];
+  if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
+  if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ` (${_impotTaux} % du CA)`}`);
+  if (thCible > 0 && heures > 0 && thBrut !== null && thBrut < thCible) {
+    const prixMin = Math.ceil((thCible * heures + coutsDirects) / 10) * 10;
+    if (isCollectif && participants > 1) {
+      advLines.push(`🎯 Prix minimum par participant pour atteindre l'objectif : <strong>${fmtE(Math.ceil(prixMin/participants/10)*10)}/pers.</strong>`);
+    } else {
+      advLines.push(`🎯 Prix minimum pour atteindre votre objectif : <strong>${fmtE(prixMin)}</strong>`);
+    }
+  }
+  const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Conseils</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
+
+  document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${borderCol}">
+    <div class="card-title mb12">${verdictIcon} ${verdictTxt}</div>
     ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)"><span class="ts">${l}</span><span>${v}</span></div>`).join('')}
     ${netBox}
     ${advHtml}
   </div>`;
-  document.getElementById('sim-create-zone').style.display = (ca>0||tempsTotal>0)?'':'none';
+  document.getElementById('sim-create-zone').style.display = ca > 0 ? '' : 'none';
 }
+
 function createMissionFromSim() {
-  const type=document.getElementById('sim-type').value;
+  const isCollectif = getSimFields().collectif && document.getElementById('sim-collectif-sw')?.checked;
   openMissionModal(null);
-  setTimeout(()=>{
-    document.getElementById('m-type-mission').value=type==='collectif'?'collectif':'individuelle';
-    toggleMissionType(type==='collectif'?'collectif':'individuelle');
-    if(type==='collectif'){
-      document.getElementById('m-participants').value=document.getElementById('sim-participants').value||'';
-      document.getElementById('m-prix-part').value=document.getElementById('sim-prix-part').value||'';
-      document.getElementById('m-temps-creation').value=document.getElementById('sim-creation').value||'';
-      document.getElementById('m-temps-animation').value=document.getElementById('sim-animation').value||'';
-      document.getElementById('m-temps-support').value=document.getElementById('sim-support').value||'';
+  setTimeout(() => {
+    const type = isCollectif ? 'collectif' : 'individuelle';
+    document.getElementById('m-type-mission').value = type;
+    toggleMissionType(type);
+    if (isCollectif) {
+      document.getElementById('m-participants').value = document.getElementById('sim-participants-val')?.value || '';
+      document.getElementById('m-prix-part').value    = document.getElementById('sim-prixpart-val')?.value || '';
+      document.getElementById('m-temps-creation').value  = document.getElementById('sim-creation-val')?.value || '';
+      document.getElementById('m-temps-animation').value = document.getElementById('sim-animation-val')?.value || '';
+      document.getElementById('m-temps-support').value   = document.getElementById('sim-support-val')?.value || '';
       updateCollectifCA(); updateCollectifTemps();
     } else {
-      document.getElementById('m-montant').value=document.getElementById('sim-prix').value||'';
+      document.getElementById('m-montant').value = document.getElementById('sim-ca-val')?.value || '';
     }
-  },50);
+  }, 50);
 }
 
 // ── SIMULATEUR DE DEVIS ──────────────────────────────────────
