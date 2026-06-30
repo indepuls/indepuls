@@ -8157,8 +8157,25 @@ function renderModulesUI() {
   });
 }
 function saveActiviteType(type) {
-  const mixte = type === 'lesdeux';
-  saveParam('activiteMixte', mixte);
+  if (type === 'lesdeux') {
+    saveParam('activiteMixte', true);
+  } else if (type === 'produits') {
+    saveParam('activiteMixte', false);
+    // "Uniquement des produits" → statut micro-achat (taux vente)
+    if (!isSASU() && DATA.params.statut !== 'micro-achat') {
+      onStatutChange('micro-achat');
+      const el = document.getElementById('p-statut');
+      if (el) el.value = 'micro-achat';
+    }
+  } else { // 'prestations'
+    saveParam('activiteMixte', false);
+    // Si on revient aux prestations depuis micro-achat, on passe micro-bnc par défaut
+    if (DATA.params.statut === 'micro-achat') {
+      onStatutChange('micro-bnc');
+      const el = document.getElementById('p-statut');
+      if (el) el.value = 'micro-bnc';
+    }
+  }
   renderActiviteTypeUI();
   renderAll();
 }
