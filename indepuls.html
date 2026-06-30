@@ -1130,6 +1130,23 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
 
+        <!-- Mode par semaine — service uniquement -->
+        <div id="sim-row-temps-mode" style="display:none">
+          <div class="fgroup" style="margin-bottom:8px">
+            <label class="flabel">Mode de saisie du temps</label>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button type="button" id="sim-tmode-total" onclick="switchSimTempsMode('total')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Temps total</button>
+              <button type="button" id="sim-tmode-sem" onclick="switchSimTempsMode('sem')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Par semaine</button>
+            </div>
+          </div>
+        </div>
+        <div id="sim-row-temps-sem" style="display:none">
+          <div class="frow">
+            <div class="fgroup"><label class="flabel">Heures / semaine</label><input type="number" id="sim-h-sem" step="0.5" min="0" placeholder="Ex : 3" oninput="calcRentabilite()"></div>
+            <div class="fgroup"><label class="flabel">Durée (semaines)</label><input type="number" id="sim-duree" step="1" min="0" placeholder="Ex : 6" oninput="calcRentabilite()"></div>
+          </div>
+        </div>
+
         <!-- Coût d'achat -->
         <div id="sim-row-achat" style="display:none">
           <div class="fgroup">
@@ -1178,6 +1195,20 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
 
+        <!-- Commande en série — fabrication uniquement -->
+        <div id="sim-row-serie" style="display:none">
+          <div class="sw-wrap mt4 mb8">
+            <label class="sw"><input type="checkbox" id="sim-serie-sw" onchange="renderSimulateurPage()"><span class="sw-sl"></span></label>
+            <span style="font-size:13px">Commande en série (plusieurs pièces identiques)</span>
+          </div>
+        </div>
+        <div id="sim-row-serie-detail" style="display:none">
+          <div class="fgroup mb4">
+            <label class="flabel">Nombre de pièces</label>
+            <input type="number" id="sim-serie-nb" min="2" step="1" placeholder="Ex : 10" oninput="calcRentabilite()">
+          </div>
+        </div>
+
         <!-- Vente en lot — achat_revente uniquement -->
         <div id="sim-row-lot" style="display:none">
           <div class="sw-wrap mt4 mb8">
@@ -1206,6 +1237,7 @@ html,body{overflow-x:hidden;}
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-soustraitance" onchange="applySimPerso()"> La sous-traitance</label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-plateforme" onchange="applySimPerso()"> Les frais de plateforme</label>
             <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-autresfrais" onchange="applySimPerso()"> Les autres frais divers</label>
+            <label id="sim-chk-serie-label" style="display:none;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-serie" onchange="applySimPerso()"> La commande en série (plusieurs pièces)</label>
             <label id="sim-chk-lot-label" style="display:none;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-lot" onchange="applySimPerso()"> La vente en lot (plusieurs articles)</label>
             <label id="sim-chk-collectif-label" style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="sim-chk-collectif" onchange="applySimPerso()"> Le mode collectif / groupe</label>
           </div>
@@ -3876,7 +3908,7 @@ function renderPage(page) {
     case 'depenses': renderDepenses(); break;
     case 'archives': renderArchives(); break;
     case 'params': renderParams(); break;
-    case 'simulateur': _simUserFields = null; _simMode = 'verifier'; renderSimulateurPage(); break;
+    case 'simulateur': _simUserFields = null; _simMode = 'verifier'; _simTempsMode = 'total'; renderSimulateurPage(); break;
     case 'recettes': renderRecettes(); break;
   }
 }
@@ -7882,14 +7914,15 @@ const SIM_PRESETS = {
     labelCa: 'Montant du devis (€ HT)',
     labelTemps: 'Temps chantier estimé (h)',
     labelMatieres: 'Fournitures & matériaux (€)',
-    fields: { temps:true, trajet:true, achat:false, matieres:true, emballages:false, soustraitance:true, plateforme:false, autresfrais:true, collectif:false },
+    fields: { temps:true, trajet:true, achat:false, matieres:true, emballages:false, soustraitance:false, plateforme:false, autresfrais:true, collectif:false },
   },
   fabrication: {
-    subtitle: 'Vérifiez si votre commande ou fabrication est rentable.',
-    labelCa: 'Prix de vente (€ HT)',
+    subtitle: 'Cette commande est-elle suffisamment rentable pour être acceptée ?',
+    subtitleCalculer: 'Entrez les coûts et le temps — le simulateur calcule le prix de vente minimum à facturer.',
+    labelCa: 'Prix de vente / Montant de la commande (€ HT)',
     labelTemps: 'Temps de fabrication estimé (h)',
     labelMatieres: 'Matières premières (€)',
-    fields: { temps:true, trajet:false, achat:false, matieres:true, emballages:true, soustraitance:true, plateforme:false, autresfrais:true, collectif:false },
+    fields: { temps:true, trajet:false, achat:false, matieres:true, emballages:true, soustraitance:true, plateforme:false, autresfrais:true, collectif:false, serie:false },
   },
   achat_revente: {
     subtitle: 'Est-ce que cette vente vaut vraiment le temps que vous allez y consacrer ?',
@@ -7909,7 +7942,8 @@ function getSimulateurPreset() {
 
 // State session (non persisté — reset à chaque navigate)
 let _simUserFields = null;
-let _simMode = 'verifier'; // 'verifier' | 'calculer'
+let _simMode = 'verifier';      // 'verifier' | 'calculer'
+let _simTempsMode = 'total';    // 'total' | 'sem' (service uniquement)
 
 function switchSimMode(mode) {
   _simMode = mode;
@@ -7919,6 +7953,11 @@ function switchSimMode(mode) {
   const bC = document.getElementById('sim-mode-btn-calculer');
   if (bV) bV.style.cssText = mode === 'verifier' ? onStyle : offStyle;
   if (bC) bC.style.cssText = mode === 'calculer' ? onStyle : offStyle;
+  renderSimulateurPage();
+}
+
+function switchSimTempsMode(mode) {
+  _simTempsMode = mode;
   renderSimulateurPage();
 }
 
@@ -7955,35 +7994,52 @@ function renderSimulateurPage() {
   if (el('sim-label-temps')) el('sim-label-temps').textContent = cfg.labelTemps;
   if (el('sim-label-matieres')) el('sim-label-matieres').textContent = cfg.labelMatieres;
 
-  const isCollectif = fields.collectif && el('sim-collectif-sw')?.checked;
-  const isLot = fields.lot && el('sim-lot-sw')?.checked;
+  const isService     = preset === 'service';
+  const isFabrication = preset === 'fabrication';
+  const isCollectif   = fields.collectif && el('sim-collectif-sw')?.checked;
+  const isLot         = fields.lot   && el('sim-lot-sw')?.checked;
+  const isSerie       = fields.serie && el('sim-serie-sw')?.checked;
+  const isTempsSem    = isService && !isCollectif && fields.temps && _simTempsMode === 'sem';
 
   const rows = {
-    'sim-row-ca': !isCollectif && (!isCalculer || isAchatMax), // visible en mode achat max
-    'sim-row-collectif': fields.collectif,
+    'sim-row-ca':             !isCollectif && (!isCalculer || isAchatMax),
+    'sim-row-collectif':      fields.collectif,
     'sim-row-collectif-detail': isCollectif,
-    'sim-row-temps': fields.temps && !isCollectif,
-    'sim-row-trajet': fields.trajet && !isCollectif,
-    'sim-row-achat': fields.achat && !isAchatMax, // masqué quand c'est l'inconnue
-    'sim-row-matieres': fields.matieres,
-    'sim-row-emballages': fields.emballages,
-    'sim-row-soustraitance': fields.soustraitance,
-    'sim-row-plateforme': fields.plateforme,
-    'sim-row-autresfrais': fields.autresfrais,
-    'sim-row-lot': fields.lot,
-    'sim-row-lot-detail': fields.lot && isLot,
+    'sim-row-temps':          fields.temps && !isCollectif && !isTempsSem,
+    'sim-row-temps-mode':     isService && !isCollectif && fields.temps,
+    'sim-row-temps-sem':      isTempsSem,
+    'sim-row-trajet':         fields.trajet && !isCollectif,
+    'sim-row-achat':          fields.achat && !isAchatMax,
+    'sim-row-matieres':       fields.matieres,
+    'sim-row-emballages':     fields.emballages,
+    'sim-row-soustraitance':  fields.soustraitance,
+    'sim-row-plateforme':     fields.plateforme,
+    'sim-row-autresfrais':    fields.autresfrais,
+    'sim-row-serie':          fields.serie,
+    'sim-row-serie-detail':   fields.serie && isSerie,
+    'sim-row-lot':            fields.lot,
+    'sim-row-lot-detail':     fields.lot && isLot,
   };
   Object.entries(rows).forEach(([id, show]) => { const r=el(id); if(r) r.style.display=show?'':'none'; });
 
+  // Sync boutons mode temps
+  const _tOn  = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  const _tOff = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  const _bTot = el('sim-tmode-total'), _bSem = el('sim-tmode-sem');
+  if (_bTot) _bTot.style.cssText = isTempsSem ? _tOff : _tOn;
+  if (_bSem) _bSem.style.cssText = isTempsSem ? _tOn  : _tOff;
+
   // Sync checkboxes personnaliser
-  ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','lot','collectif'].forEach(f => {
+  ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','serie','lot','collectif'].forEach(f => {
     const chk = el('sim-chk-'+f);
     if (chk) chk.checked = !!fields[f];
   });
+  const serieLabel = el('sim-chk-serie-label');
+  if (serieLabel) serieLabel.style.display = isFabrication ? 'flex' : 'none';
   const lotLabel = el('sim-chk-lot-label');
   if (lotLabel) lotLabel.style.display = isAchatRevente ? 'flex' : 'none';
   const colLabel = el('sim-chk-collectif-label');
-  if (colLabel) colLabel.style.display = preset === 'service' ? '' : 'none';
+  if (colLabel) colLabel.style.display = isService ? '' : 'none';
 
   el('sim-results-zone').innerHTML = `<div class="card" style="background:var(--bg)"><div class="ts" style="color:var(--tl);padding:20px;text-align:center">Renseignez les champs à gauche pour voir les résultats.</div></div>`;
   el('sim-create-zone').style.display = 'none';
@@ -7994,13 +8050,13 @@ function renderSimulateurPage() {
 function toggleSimPerso() {
   const zone = document.getElementById('sim-perso-zone');
   const arrow = document.getElementById('sim-perso-arrow');
-  const open = !zone.style.display || zone.style.display === 'none';
+  const open = zone.style.display === 'none';
   zone.style.display = open ? '' : 'none';
   if (arrow) arrow.textContent = open ? '▴' : '▾';
 }
 
 function applySimPerso() {
-  const chks = ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','lot','collectif'];
+  const chks = ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','serie','lot','collectif'];
   _simUserFields = {};
   chks.forEach(f => {
     const chk = document.getElementById('sim-chk-'+f);
@@ -8027,7 +8083,13 @@ function prepareSimInputs() {
     if (caEl) caEl.textContent = ca > 0 ? `CA total : ${fmtE(ca)} (${participants} × ${fmtE(prixPart)})` : '';
   } else {
     ca = el('sim-ca-val');
-    const hTravail = fields.temps ? el('sim-temps-val') : 0;
+    let hTravail = fields.temps ? el('sim-temps-val') : 0;
+    // Service par semaine
+    const _preset0 = getSimulateurPreset();
+    if (_preset0 === 'service' && _simTempsMode === 'sem' && fields.temps) {
+      const hSem = el('sim-h-sem'), dur = el('sim-duree');
+      hTravail = hSem > 0 && dur > 0 ? hSem * dur : 0;
+    }
     const hTrajet  = fields.trajet ? el('sim-trajet-val') : 0;
     heures = hTravail + hTrajet;
     const coutAchat     = fields.achat         ? el('sim-achat-val')         : 0;
@@ -8040,8 +8102,10 @@ function prepareSimInputs() {
   }
 
   const preset = getSimulateurPreset();
-  const isLot = fields.lot && document.getElementById('sim-lot-sw')?.checked;
-  const lotNb = isLot ? Math.max(2, parseFloat(document.getElementById('sim-lot-nb')?.value)||2) : 1;
+  const isLot   = fields.lot   && document.getElementById('sim-lot-sw')?.checked;
+  const isSerie = fields.serie && document.getElementById('sim-serie-sw')?.checked;
+  const lotNb   = isLot   ? Math.max(2, parseFloat(document.getElementById('sim-lot-nb')?.value)||2)   : 1;
+  const serieNb = isSerie ? Math.max(2, parseFloat(document.getElementById('sim-serie-nb')?.value)||2) : 1;
 
   if (_simMode === 'calculer') {
     const thCible = getTauxHoraireMinCible();
@@ -8056,23 +8120,23 @@ function prepareSimInputs() {
                            + (fields.autresfrais ? el('sim-autresfrais-val') : 0);
       const achatMax = prixVente - fraisHorsAchat - thCible * heures;
       return { ca: prixVente, heures, coutsDirects: fraisHorsAchat, participants: 1, isCollectif: false,
-               _isCalculer: true, _isAchatMax: true, _achatMax: achatMax, preset, lotNb };
+               _isCalculer: true, _isAchatMax: true, _achatMax: achatMax, preset, lotNb, serieNb };
     }
 
     // Autres presets : CA est l'inconnue
     ca = thCible * heures + coutsDirects;
-    return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: true, preset, lotNb };
+    return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: true, preset, lotNb, serieNb };
   }
 
   if (ca <= 0 && heures <= 0) return null;
-  return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: false, preset, lotNb };
+  return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: false, preset, lotNb, serieNb };
 }
 
 function calcRentabilite() {
   const inputs = prepareSimInputs();
   if (!inputs) { document.getElementById('sim-create-zone').style.display = 'none'; return; }
 
-  const { ca, heures, coutsDirects, participants, isCollectif, _isCalculer = false, _isAchatMax = false, _achatMax, preset = 'service', lotNb = 1 } = inputs;
+  const { ca, heures, coutsDirects, participants, isCollectif, _isCalculer = false, _isAchatMax = false, _achatMax, preset = 'service', lotNb = 1, serieNb = 1 } = inputs;
   const p = DATA.params;
   const _urssafTaux = (p.tauxURSSAF||0) + (p.tauxCFP||0);
   const _impotTaux  = p.impotsTaux||0;
@@ -8101,13 +8165,13 @@ function calcRentabilite() {
 
   renderSimOutputs({ ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb });
+    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
 }
 function renderSimOutputs(r) {
   const { ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
     _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
-    preset = 'service', lotNb = 1 } = r;
+    preset = 'service', lotNb = 1, serieNb = 1 } = r;
 
   // ── Mode "Calculer mon tarif" ──────────────────────────────
   if (_isCalculer) {
@@ -8166,6 +8230,76 @@ function renderSimOutputs(r) {
       ${advHtml}
     </div>`;
     document.getElementById('sim-create-zone').style.display = 'none';
+    return;
+  }
+
+  // ── Preset fabrication — Vérifier un prix ──────────────────
+  if (preset === 'fabrication') {
+    const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
+
+    // Diagnostic (TH brut vs objectif)
+    let diagTxt, diagIcon, diagBorder;
+    if (!thCible || heures <= 0 || thBrut === null) {
+      diagTxt = thCible <= 0
+        ? 'Configurez votre objectif dans Paramètres pour évaluer cette commande.'
+        : 'Renseignez le temps de fabrication pour évaluer la rentabilité.';
+      diagIcon = 'ℹ️'; diagBorder = 'var(--sec)';
+    } else if (thBrut >= thCible * 1.2) {
+      diagTxt = 'Très bonne commande — excellente marge.';
+      diagIcon = '🟢'; diagBorder = 'var(--ok)';
+    } else if (thBrut >= thCible * 0.8) {
+      diagTxt = 'Commande rentable, mais marge limitée si des imprévus surviennent.';
+      diagIcon = '🟡'; diagBorder = 'var(--warn)';
+    } else {
+      diagTxt = 'Commande peu rentable compte tenu du temps et des coûts engagés.';
+      diagIcon = '🔴'; diagBorder = 'var(--err)';
+    }
+
+    // Objectif + conseil prix
+    const objLines = [];
+    if (thCible > 0) {
+      objLines.push(`Votre objectif : gagner au moins <strong>${fmtE(thCible, 0)}/h</strong> brut.`);
+      if (heures > 0 && thBrut !== null && thBrut < thCible) {
+        const prixMin = Math.ceil((thCible * heures + coutsDirects) / 10) * 10;
+        objLines.push(`Pour atteindre votre objectif, cette commande devrait être vendue <strong>${fmtE(prixMin)}</strong>.`);
+      }
+    }
+
+    // Provisions
+    const provLines = [];
+    if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
+    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
+    const conseilLines = [...provLines, ...objLines];
+    const conseilHtml = conseilLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Provisions & objectif</div>${conseilLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
+
+    // Série
+    const serieHtml = serieNb > 1 ? `<div style="margin-top:10px;padding:10px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--brd)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">🔁 Série de ${serieNb} pièces</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div><div class="ts">Gain net / pièce</div><div style="font-weight:700">${fmtE(Math.round(revenuNet/serieNb))}</div></div>
+        <div><div class="ts">Marge brute / pièce</div><div style="font-weight:700">${fmtE(Math.round(margeBrute/serieNb))}</div></div>
+        <div><div class="ts">Coût de revient / pièce</div><div style="font-weight:700">${fmtE(Math.round(coutsDirects/serieNb))}</div></div>
+        ${heures > 0 ? `<div><div class="ts">Temps / pièce</div><div style="font-weight:700">${fmt(heures/serieNb,2)} h</div></div>` : ''}
+      </div>
+    </div>` : '';
+
+    const rows = [
+      ['💰 Gain net estimé',   `<strong style="font-size:18px;color:var(--ok)">${fmtE(revenuNet)}</strong>`],
+      coutsDirects > 0 ? ['📦 Coût de revient total', fmtE(coutsDirects)] : null,
+      ['📈 Marge brute',       `${fmtE(margeBrute)} <span class="ts">(${pctMarge} %)</span>`],
+      heures > 0 ? ['⏱ Temps de fabrication', `${fmt(heures,1)} h`] : null,
+      thBrut !== null ? ['💵 Gain brut / heure', `<strong>${fmtE(Math.round(thBrut), 0)}/h</strong>`] : null,
+      thNet !== null && _hasCharges ? ['💵 Gain net / heure', `<strong>${fmtE(thNet, 0)}/h</strong> <span class="ts">dans votre poche</span>`] : null,
+    ].filter(Boolean);
+
+    document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${diagBorder}">
+      <div class="ts mb12" style="font-size:14px;font-weight:700">${diagIcon} ${diagTxt}</div>
+      ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)"><span class="ts">${l}</span><span>${v}</span></div>`).join('')}
+      ${_hasCharges && revenuNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_isMicro && abattPct > 0 ? ` (abatt. ${abattPct}%)` : ''}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
+      ${serieHtml}
+      ${conseilHtml}
+    </div>`;
+    document.getElementById('sim-create-zone').style.display = ca > 0 ? '' : 'none';
     return;
   }
 
