@@ -750,19 +750,123 @@ html,body{overflow-x:hidden;}
   <!-- PARAMÈTRES -->
   <div class="page" id="page-params">
     <div class="tab-hd">
-      <button class="tab-btn active" onclick="switchParamTab('profil',this)">Mon profil</button>
-      <button class="tab-btn" onclick="switchParamTab('objectifs',this)">Objectifs</button>
-      <button class="tab-btn" id="tab-btn-categories" onclick="switchParamTab('categories',this)">Offres & missions</button>
-      <button class="tab-btn" onclick="switchParamTab('themes',this)">Thème</button>
-      <button class="tab-btn" onclick="switchParamTab('donnees',this)">Données</button>
+      <button class="tab-btn active" onclick="switchParamTab('activite',this)">Mon activité</button>
+      <button class="tab-btn" onclick="switchParamTab('fonctionnement',this)">Comment je travaille</button>
+      <button class="tab-btn" onclick="switchParamTab('fiscalite',this)">Fiscalité & charges</button>
+      <button class="tab-btn" onclick="switchParamTab('objectifs',this)">Mes objectifs</button>
+      <button class="tab-btn" id="tab-btn-categories" onclick="switchParamTab('offres',this)">Mes offres</button>
+      <button class="tab-btn" onclick="switchParamTab('perso',this)">Personnalisation</button>
     </div>
 
-    <!-- PROFIL -->
-    <div class="tab-pane active" id="tab-profil">
+    <!-- MON ACTIVITÉ -->
+    <div class="tab-pane active" id="tab-activite">
       <div class="card">
-        <div class="card-title mb16">Mon profil</div>
+        <div class="card-title mb16">Mon activité</div>
         <div class="frow">
           <div class="fgroup"><label class="flabel">Votre prénom</label><input type="text" id="p-nom" oninput="saveParam('nom',this.value);updateDashboardTitle()" placeholder="Ex : Faustine, Marie, Alex…"></div>
+          <div class="fgroup">
+            <label class="flabel">Quand avez-vous lancé votre activité ?</label>
+            <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
+            <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
+          </div>
+        </div>
+        <div class="fgroup mt12">
+          <label class="flabel">Quel est votre cœur de métier ? <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
+          <select id="p-metier" onchange="onProfilChange(this.value)">
+            <option value="">— Sélectionner —</option>
+            <optgroup label="Prestation de services">
+              <option value="prestataire_services">Prestataire de services</option>
+              <option value="creatif_com">Créatif / Communication</option>
+              <option value="evenementiel">Prestataire événementiel</option>
+            </optgroup>
+            <optgroup label="Artisan">
+              <option value="artisan_batiment">Artisan bâtiment</option>
+              <option value="artisan_commande">Fabricant sur commande</option>
+            </optgroup>
+            <optgroup label="Fabrication">
+              <option value="fabricant_serie">Fabricant série</option>
+            </optgroup>
+            <optgroup label="Achat / Revente">
+              <option value="achat_revente">Achat / Revente</option>
+            </optgroup>
+          </select>
+          <div id="p-metier-desc" class="ts mt4" style="color:var(--tl)"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="fgroup">
+          <label class="flabel">Que vendez-vous ?</label>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
+            <label class="tva-regime-opt" id="act-type-presta"><input type="radio" name="activite-type" value="prestations" onchange="saveActiviteType('prestations')"><div><strong>Uniquement des prestations de services</strong><div class="ts mt1">Coaching, conseil, formation, communication, artisanat intellectuel…</div></div></label>
+            <label class="tva-regime-opt" id="act-type-produits"><input type="radio" name="activite-type" value="produits" onchange="saveActiviteType('produits')"><div><strong>Uniquement des produits ou marchandises</strong><div class="ts mt1">Achat-revente, commerce, vente de créations en série…</div></div></label>
+            <label class="tva-regime-opt" id="act-type-mixte"><input type="radio" name="activite-type" value="lesdeux" onchange="saveActiviteType('lesdeux')"><div><strong>Des prestations et des produits</strong><div class="ts mt1">Suivi séparé des seuils TVA et des taux URSSAF selon la nature de chaque vente</div></div></label>
+          </div>
+        </div>
+        <div id="micro-achat-mixte-warn" style="display:none;margin-top:10px" class="alert al-info">ℹ️ Vous avez sélectionné une activité principale de vente. Les ventes seront calculées au taux commerce (12,3 % + 0,1 % CFP), et les prestations au taux prestation BNC (25,6 % + 0,2 % CFP) — adapté aux activités de conseil, coaching, accompagnement, formation ou OBM.</div>
+        <div id="micro-charges-mixte-info" style="display:none;margin-top:10px;background:var(--bg);border-radius:8px;padding:12px 14px;border:1px solid var(--brd);font-size:12px;line-height:1.8"></div>
+        <div class="divider"></div>
+        <div class="sw-wrap">
+          <label class="sw"><input type="checkbox" id="p-salaries-sw" onchange="toggleSalaries(this.checked)"><span class="sw-sl"></span></label>
+          <span style="font-weight:600">J'emploie des salariés</span>
+          <span class="info-tip" title="Si vous employez des salariés, renseignez le coût total mensuel employeur (salaires bruts + cotisations patronales). Ce montant sera déduit de votre revenu net chaque mois et intégré dans le calcul de votre taux horaire minimum.">?</span>
+        </div>
+        <div id="salaries-detail" style="display:none;margin-top:12px">
+          <div class="fgroup">
+            <label class="flabel">Coût employeur mensuel total (€)</label>
+            <input type="number" id="p-charges-salariales" step="100" min="0" placeholder="Ex : 2 500" oninput="saveParam('chargesSalariales',+this.value);recalcObjectifs()">
+            <div class="ts mt4" style="color:var(--tl)">Salaires bruts + charges patronales + charges salariales, tous salariés confondus.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMENT JE TRAVAILLE -->
+    <div class="tab-pane" id="tab-fonctionnement">
+      <div class="alert al-info mb12" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
+      <div class="card">
+        <div class="card-title mb4">Suivi du temps</div>
+        <div class="ts mb12" style="color:var(--tl)">Comment suivez-vous le temps passé sur vos affaires ?</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <label class="tva-regime-opt" id="mod-planning-estime"><input type="radio" name="mod-planning" value="estime" onchange="saveModuleParam('planning','estime')"><div><strong>J'estime le temps nécessaire pour chaque affaire</strong><div class="ts mt1">Saisissez le temps prévu — Indépuls calcule votre taux horaire réel</div></div></label>
+          <label class="tva-regime-opt" id="mod-planning-calendrier"><input type="radio" name="mod-planning" value="calendrier" onchange="saveModuleParam('planning','calendrier')"><div><strong>Je planifie mes affaires dans un calendrier</strong><div class="ts mt1">Organisation par dates, créneaux et jalons</div></div></label>
+          <label class="tva-regime-opt" id="mod-planning-aucun"><input type="radio" name="mod-planning" value="aucun" onchange="saveModuleParam('planning','aucun')"><div><strong>Je ne souhaite pas suivre mon temps</strong><div class="ts mt1">Uniquement le suivi des montants facturés</div></div></label>
+        </div>
+        <div id="mod-unite-zone" class="mt16">
+          <div class="divider mb12"></div>
+          <div class="ts mb8" style="color:var(--tl)">Je compte mon temps en…</div>
+          <div style="display:flex;gap:8px">
+            <button type="button" id="mod-unite-heures" onclick="saveModuleParam('uniteTemps','heures')" style="padding:6px 18px;border-radius:20px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s">Heures</button>
+            <button type="button" id="mod-unite-jours" onclick="saveModuleParam('uniteTemps','jours')" style="padding:6px 18px;border-radius:20px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s">Journées</button>
+          </div>
+        </div>
+      </div>
+      <div class="card mt16">
+        <div class="card-title mb12">Devis & tarification</div>
+        <div class="sw-wrap">
+          <label class="sw"><input type="checkbox" id="mod-devis" onchange="saveModuleParam('devis',this.checked)"><span class="sw-sl"></span></label>
+          <span style="font-weight:600">Je réalise des devis avant de commencer mes affaires</span>
+        </div>
+        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Active le simulateur de devis sur chaque affaire — estimez votre rentabilité avant d'envoyer une proposition.</div>
+        <div class="divider mt12 mb12"></div>
+        <div class="sw-wrap">
+          <label class="sw"><input type="checkbox" id="mod-sim" onchange="saveModuleParam('simulateurOffre',this.checked)"><span class="sw-sl"></span></label>
+          <span style="font-weight:600">J'utilise le simulateur d'offre</span>
+        </div>
+        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Estimez la rentabilité d'une offre avant de la proposer à un client.</div>
+        <div class="divider mt12 mb12"></div>
+        <div class="ts mb8" style="color:var(--tl)">Ce que je veux piloter en priorité :</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <label class="tva-regime-opt" id="mod-obj-th"><input type="radio" name="mod-objectif" value="th" onchange="saveModuleParam('objectif','th')"><div><strong>Mon taux horaire (€/h)</strong><div class="ts mt1">Idéal pour les prestations vendues au temps passé</div></div></label>
+          <label class="tva-regime-opt" id="mod-obj-tjm"><input type="radio" name="mod-objectif" value="tjm" onchange="saveModuleParam('objectif','tjm')"><div><strong>Mon taux journalier (€/jour)</strong><div class="ts mt1">Idéal pour les missions facturées à la journée</div></div></label>
+          <label class="tva-regime-opt" id="mod-obj-marge"><input type="radio" name="mod-objectif" value="marge_commande" onchange="saveModuleParam('objectif','marge_commande')"><div><strong>La marge de chaque commande ou vente</strong><div class="ts mt1">Idéal pour les artisans, fabricants et revendeurs</div></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- FISCALITÉ & CHARGES -->
+    <div class="tab-pane" id="tab-fiscalite">
+      <div class="card">
+        <div class="card-title mb16">Statut & charges sociales</div>
+        <div class="frow">
           <div class="fgroup">
             <label class="flabel">Statut juridique <span class="info-tip" title="Vos taux URSSAF et CFP sont pré-remplis selon le statut choisi. Vous pouvez les ajuster manuellement dans la section ci-dessous si nécessaire.">?</span></label>
             <select id="p-statut" onchange="onStatutChange(this.value)">
@@ -773,78 +877,16 @@ html,body{overflow-x:hidden;}
             </select>
             <div class="ts mt8">Le choix du statut met automatiquement à jour vos taux de charges.</div>
           </div>
-        </div>
-        <div class="frow mt12">
-          <div class="fgroup">
-            <label class="flabel">Date d'ouverture de la société</label>
-            <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
-            <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
-          </div>
-          <div class="fgroup">
-            <label class="flabel">Profil d'activité <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
-            <select id="p-metier" onchange="applyProfile(this.value);renderDashboard()">
-              <option value="">— Sélectionner —</option>
-              <optgroup label="Prestation de services">
-                <option value="prestataire_services">Prestataire de services</option>
-                <option value="creatif_com">Créatif / Communication</option>
-                <option value="evenementiel">Prestataire événementiel</option>
-              </optgroup>
-              <optgroup label="Artisan">
-                <option value="artisan_batiment">Artisan bâtiment</option>
-                <option value="artisan_commande">Fabricant sur commande</option>
-              </optgroup>
-              <optgroup label="Fabrication">
-                <option value="fabricant_serie">Fabricant série</option>
-              </optgroup>
-              <optgroup label="Achat / Revente">
-                <option value="achat_revente">Achat / Revente</option>
-              </optgroup>
-            </select>
-            <div id="p-metier-desc" class="ts mt4" style="color:var(--tl)"></div>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="sw-wrap">
-          <label class="sw"><input type="checkbox" id="p-activite-mixte" onchange="saveParam('activiteMixte',this.checked);renderAll()"><span class="sw-sl"></span></label>
-          <span style="font-weight:600">Activité mixte : prestations + ventes de produits</span>
-          <span class="info-tip" title="Si vous facturez à la fois des prestations (coaching, formation, services…) et des ventes de produits (templates, ressources…), activez cette option. Les taux de cotisations URSSAF ne sont pas les mêmes selon la nature de l'activité, et les seuils TVA non plus. L'outil les suit séparément pour vous.">?</span>
-        </div>
-        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Cochez cette option si vous facturez à la fois des prestations de services et des ventes de produits, templates, formations, supports, marchandises ou ressources. Cela permet de suivre séparément vos seuils TVA.</div>
-        <div id="micro-achat-mixte-warn" style="display:none;margin-top:10px" class="alert al-info">ℹ️ Vous avez sélectionné une activité principale de vente. Les ventes seront calculées au taux commerce (12,3 % + 0,1 % CFP), et les prestations au taux prestation BNC (25,6 % + 0,2 % CFP) — adapté aux activités de conseil, coaching, accompagnement, formation ou OBM.</div>
-        <div class="divider"></div>
-        <div class="card-sub mb10" style="font-weight:700">Livre des recettes</div>
-        <div class="sw-wrap">
-          <label class="sw"><input type="checkbox" id="p-livre-recettes" onchange="saveParam('livreRecettesActif',this.checked);updateNavRecettes();renderAll()"><span class="sw-sl"></span></label>
-          <span>Activer le livre des recettes</span>
-          <span class="info-tip" title="Le livre des recettes liste tous vos encaissements dans l'ordre chronologique. Obligatoire pour les micro-entreprises. Les données sont conservées même si vous désactivez l'option.">?</span>
-        </div>
-        <div class="ts mt6" style="color:var(--tl);line-height:1.6">
-          Recommandé pour les micro-entreprises. Une fois activé, chaque encaissement peut être complété avec le mode de règlement et la référence de facture.
-        </div>
-        <div id="micro-charges-mixte-info" style="display:none;margin-top:10px;background:var(--bg);border-radius:8px;padding:12px 14px;border:1px solid var(--brd);font-size:12px;line-height:1.8"></div>
-        <div id="micro-charges-block">
-          <div class="divider"></div>
-          <div class="card-sub mb12">Taux de charges — pré-remplis selon votre statut, ajustables si besoin</div>
-          <div class="frow">
-            <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Cotisations sociales prélevées sur votre CA. Pré-rempli selon votre statut (ex : 22,2% pour une prestation de service en BNC). Modifiez uniquement si votre taux réel est différent.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
-            <div class="fgroup"><label class="flabel">Taux CFP (%) <span class="info-tip" title="Contribution à la Formation Professionnelle. Obligatoire pour les micro-entrepreneurs (0,1% en BNC, 0,2% en BIC prestation). Pré-rempli automatiquement selon votre statut.">?</span></label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
-          </div>
-          <div class="fgroup" style="margin-top:12px">
-            <label class="flabel">Fréquence de paiement URSSAF <span class="info-tip" title="Choisissez la fréquence indiquée sur votre espace URSSAF (autoentrepreneur.urssaf.fr). En mensuel, la provision affichée correspond au CA du mois. En trimestriel, elle est lissée sur l'année pour une mise de côté régulière.">?</span></label>
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-              <label class="tva-regime-opt" id="urssaf-r-mensuel"><input type="radio" name="urssaf-regime" value="mensuel" onchange="saveUrssafRegime('mensuel')"><div><strong>Mensuelle</strong><div class="ts mt1">Déclaration chaque mois</div></div></label>
-              <label class="tva-regime-opt" id="urssaf-r-trimestriel"><input type="radio" name="urssaf-regime" value="trimestriel" onchange="saveUrssafRegime('trimestriel')"><div><strong>Trimestrielle</strong><div class="ts mt1">Déclaration chaque trimestre</div></div></label>
-            </div>
-          </div>
+          <div class="fgroup"></div>
         </div>
         <div id="sasu-params-block" style="display:none">
           <div class="divider"></div>
           <div class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">🏢 Pilotage SASU</div>
           <div class="frow">
             <div class="fgroup">
-              <label class="flabel">Trésorerie de départ <span id="sasu-treso-year-label"></span> (€)</label>
+              <label class="flabel">Solde du compte pro au 1er janvier <span id="sasu-treso-year-label"></span> (€)</label>
               <input type="number" id="p-treso-depart" step="100" min="0" placeholder="Ex : 15 000" oninput="saveSasuParam('tresorerieDepart',+this.value)">
-              <div class="ts mt4" style="color:var(--tl)">Solde du compte pro en début d'année.</div>
+              <div class="ts mt4" style="color:var(--tl)">Trésorerie de départ en début d'année.</div>
             </div>
             <div class="fgroup">
               <label class="flabel">Rémunération nette / mois (€)</label>
@@ -852,11 +894,27 @@ html,body{overflow-x:hidden;}
             </div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Charges estimées sur la rémunération (%) <span class="info-tip" title="Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.">?</span></label>
+            <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" title="Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.">?</span></label>
             <input type="number" id="p-cout-remu-pct" step="5" min="0" max="200" placeholder="Ex : 80" oninput="saveSasuParam('coutRemunerationPct',+this.value);updateSasuPreview()">
             <div class="ts mt4" id="sasu-remu-preview" style="color:var(--tl)"></div>
           </div>
           <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimations simplifiées — IS, dividendes, DSN et amortissements non inclus. Ne remplace pas un expert-comptable.</div>
+        </div>
+        <div id="micro-charges-block">
+          <div class="divider"></div>
+          <div class="card-sub mb4">Cotisations sociales</div>
+          <div class="ts mb12" style="color:var(--tl)">Pré-remplies selon votre statut — ajustez uniquement si votre situation est différente.</div>
+          <div class="frow">
+            <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Cotisations sociales prélevées sur votre CA. Pré-rempli selon votre statut (ex : 22,2% pour une prestation de service en BNC). Modifiez uniquement si votre taux réel est différent.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
+            <div class="fgroup"><label class="flabel">Taux CFP (%) <span class="info-tip" title="Contribution à la Formation Professionnelle. Obligatoire pour les micro-entrepreneurs (0,1% en BNC, 0,2% en BIC prestation). Pré-rempli automatiquement selon votre statut.">?</span></label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
+          </div>
+          <div class="fgroup" style="margin-top:12px">
+            <label class="flabel">Je déclare mon CA à l'URSSAF <span class="info-tip" title="Choisissez la fréquence indiquée sur votre espace URSSAF (autoentrepreneur.urssaf.fr). En mensuel, la provision affichée correspond au CA du mois. En trimestriel, elle est lissée sur l'année pour une mise de côté régulière.">?</span></label>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <label class="tva-regime-opt" id="urssaf-r-mensuel"><input type="radio" name="urssaf-regime" value="mensuel" onchange="saveUrssafRegime('mensuel')"><div><strong>Chaque mois</strong><div class="ts mt1">Déclaration mensuelle</div></div></label>
+              <label class="tva-regime-opt" id="urssaf-r-trimestriel"><input type="radio" name="urssaf-regime" value="trimestriel" onchange="saveUrssafRegime('trimestriel')"><div><strong>Chaque trimestre</strong><div class="ts mt1">Déclaration trimestrielle</div></div></label>
+            </div>
+          </div>
         </div>
       </div>
       <div class="card mt16">
@@ -892,21 +950,14 @@ html,body{overflow-x:hidden;}
           <div class="ts mt4" style="color:var(--tl);line-height:1.5">Renseignez ici le taux que vous souhaitez provisionner : prélèvement à la source estimé, versement libératoire ou estimation personnelle. Si vous laissez 0 %, aucun impôt n'est déduit des calculs.</div>
         </div>
       </div>
-      <div class="card mt16" id="card-salaries">
-        <div class="card-title mb12">Salariés</div>
-        <div class="fgroup">
-          <label class="flabel">Avez-vous des salariés ? <span class="info-tip" title="Si vous employez des salariés, renseignez le coût total mensuel employeur (salaires bruts + cotisations patronales). Ce montant sera déduit de votre revenu net chaque mois et intégré dans le calcul de votre taux horaire minimum.">?</span></label>
-          <div style="display:flex;gap:12px;margin-top:6px">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="radio" name="has-salaries" value="non" onchange="toggleSalaries(false)" style="cursor:pointer"> Non</label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="radio" name="has-salaries" value="oui" onchange="toggleSalaries(true)" style="cursor:pointer"> Oui</label>
-          </div>
+      <div class="card mt16">
+        <div class="card-title mb8">Livre des recettes</div>
+        <div class="sw-wrap">
+          <label class="sw"><input type="checkbox" id="p-livre-recettes" onchange="saveParam('livreRecettesActif',this.checked);updateNavRecettes();renderAll()"><span class="sw-sl"></span></label>
+          <span style="font-weight:600">J'utilise le livre des recettes</span>
+          <span class="info-tip" title="Le livre des recettes liste tous vos encaissements dans l'ordre chronologique. Obligatoire pour les micro-entreprises. Les données sont conservées même si vous désactivez l'option.">?</span>
         </div>
-        <div id="salaries-detail" style="display:none;margin-top:12px">
-          <div class="fgroup">
-            <label class="flabel">Charges salariales mensuelles totales (€) <span class="info-tip" title="Coût employeur total : salaires bruts + cotisations patronales + cotisations salariales, pour l'ensemble de vos salariés. Ce montant est déduit chaque mois de votre revenu net disponible.">?</span></label>
-            <input type="number" id="p-charges-salariales" step="100" min="0" placeholder="Ex : 2 500" oninput="saveParam('chargesSalariales',+this.value);recalcObjectifs()">
-          </div>
-        </div>
+        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Recommandé pour les micro-entreprises. Une fois activé, chaque encaissement peut être complété avec le mode de règlement et la référence de facture.</div>
       </div>
     </div>
 
@@ -942,8 +993,8 @@ html,body{overflow-x:hidden;}
       </div>
     </div>
 
-    <!-- CATÉGORIES -->
-    <div class="tab-pane" id="tab-categories">
+    <!-- MES OFFRES -->
+    <div class="tab-pane" id="tab-offres">
       <div class="card">
         <div class="card-header"><div class="card-title" id="cat-section-title">Mes offres & catégories de missions</div></div>
         <div class="ts mb12" id="cat-section-desc">Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.</div>
@@ -955,38 +1006,9 @@ html,body{overflow-x:hidden;}
       </div>
     </div>
 
-    <!-- DONNÉES -->
-    <div class="tab-pane" id="tab-donnees">
+    <!-- PERSONNALISATION -->
+    <div class="tab-pane" id="tab-perso">
       <div class="card mb16">
-        <div class="card-header">
-          <div><div class="card-title">Sauvegarde cloud</div><div class="card-sub">Vos données sont synchronisées sur votre compte Indépuls</div></div>
-        </div>
-        <p class="ts mb16" style="line-height:1.7">Indépuls sauvegarde automatiquement vos données sur votre compte à chaque modification. Vous pouvez vous connecter depuis n'importe quel appareil et retrouver vos données à jour. En complément, vous pouvez exporter une sauvegarde locale.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter une sauvegarde</span></button>
-          <button class="btn btn-out" onclick="importData()" style="display:inline-flex;justify-content:center">⬆ <span>Importer une sauvegarde</span></button>
-        </div>
-      </div>
-      <div class="reset-zone">
-        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
-          <div style="font-size:22px;flex-shrink:0;margin-top:1px">⚠️</div>
-          <div>
-            <div style="font-weight:700;font-size:14px;color:var(--err);margin-bottom:5px">Zone de danger</div>
-            <div class="ts" style="line-height:1.65">Les actions ci-dessous sont <strong>irréversibles</strong>. Assurez-vous d'avoir exporté une sauvegarde avant de continuer.</div>
-          </div>
-        </div>
-        <div class="divider"></div>
-        <div class="mt16">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px">Réinitialiser complètement l'application</div>
-          <p class="ts mb14" style="line-height:1.6">Efface l'intégralité de vos données : missions, revenus, dépenses, paramètres, temps suivi, archives. L'application redémarrera comme au premier lancement.</p>
-          <button class="btn btn-reset btn-sm" onclick="openResetModal()">🗑 Réinitialiser l'application</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- THÈMES -->
-    <div class="tab-pane" id="tab-themes">
-      <div class="card">
         <div class="card-title mb16">Choisir un thème</div>
         <div class="theme-grid">
           <div class="theme-opt" data-theme-val="obm" onclick="setTheme('obm')">
@@ -1021,6 +1043,31 @@ html,body{overflow-x:hidden;}
             <div class="theme-swatches"><div class="swatch" style="background:#284030"></div><div class="swatch" style="background:#3D6448"></div><div class="swatch" style="background:#F3F6F0"></div><div class="swatch" style="background:#8AAA90"></div></div>
             <div class="theme-name">Eucalyptus</div>
           </div>
+        </div>
+      </div>
+      <div class="card mb16">
+        <div class="card-header">
+          <div><div class="card-title">Sauvegarde cloud</div><div class="card-sub">Vos données sont synchronisées sur votre compte Indépuls</div></div>
+        </div>
+        <p class="ts mb16" style="line-height:1.7">Indépuls sauvegarde automatiquement vos données sur votre compte à chaque modification. Vous pouvez vous connecter depuis n'importe quel appareil et retrouver vos données à jour. En complément, vous pouvez exporter une sauvegarde locale.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter une sauvegarde</span></button>
+          <button class="btn btn-out" onclick="importData()" style="display:inline-flex;justify-content:center">⬆ <span>Importer une sauvegarde</span></button>
+        </div>
+      </div>
+      <div class="reset-zone">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:16px">
+          <div style="font-size:22px;flex-shrink:0;margin-top:1px">⚠️</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--err);margin-bottom:5px">Zone de danger</div>
+            <div class="ts" style="line-height:1.65">Les actions ci-dessous sont <strong>irréversibles</strong>. Assurez-vous d'avoir exporté une sauvegarde avant de continuer.</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="mt16">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px">Réinitialiser complètement l'application</div>
+          <p class="ts mb14" style="line-height:1.6">Efface l'intégralité de vos données : missions, revenus, dépenses, paramètres, temps suivi, archives. L'application redémarrera comme au premier lancement.</p>
+          <button class="btn btn-reset btn-sm" onclick="openResetModal()">🗑 Réinitialiser l'application</button>
         </div>
       </div>
     </div>
@@ -2026,6 +2073,25 @@ html,body{overflow-x:hidden;}
     <div class="modal-foot" style="gap:12px;padding-top:12px">
       <button class="btn btn-out" style="flex:1;justify-content:center" onclick="closeModal('modal-reset')">Annuler</button>
       <button class="btn btn-danger" id="btn-confirm-reset" style="flex:1;justify-content:center" onclick="confirmReset()" disabled>Oui, tout supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHANGEMENT DE PROFIL -->
+<div class="modal-ov hidden" id="modal-profil-change">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title mb4">Changer de profil</div>
+    <input type="hidden" id="profil-change-target">
+    <input type="hidden" id="profil-change-prev">
+    <div class="ts mb2">Vous avez sélectionné : <strong id="profil-change-label"></strong></div>
+    <div class="ts mb14" style="color:var(--tl)" id="profil-change-desc"></div>
+    <div style="background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:16px;font-size:13px;line-height:1.7">
+      Voulez-vous appliquer les réglages recommandés pour ce profil <em>(suivi du temps, devis, objectif de tarification)</em> ou conserver vos réglages actuels ?
+    </div>
+    <div class="modal-foot" style="flex-direction:column;gap:8px">
+      <button class="btn btn-acc" style="width:100%;justify-content:center" onclick="confirmProfilChange(true)">Appliquer les réglages recommandés</button>
+      <button class="btn btn-out" style="width:100%;justify-content:center" onclick="confirmProfilChange(false)">Conserver mes réglages actuels</button>
+      <button class="btn" style="width:100%;justify-content:center;color:var(--tl);background:transparent;border:none" onclick="cancelProfilChange()">Annuler — revenir au profil précédent</button>
     </div>
   </div>
 </div>
@@ -6636,7 +6702,7 @@ function renderDepenses() {
 }
 
 // ── PARAMÈTRES ───────────────────────────────────────────────
-let currentParamTab='profil';
+let currentParamTab='activite';
 function switchParamTab(tab, btn) {
   document.querySelectorAll('#page-params .tab-pane').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('#page-params .tab-btn').forEach(b=>b.classList.remove('active'));
@@ -6644,9 +6710,10 @@ function switchParamTab(tab, btn) {
   if(btn) btn.classList.add('active');
   currentParamTab=tab;
   if(tab==='objectifs') renderObjectifsResult();
-  if(tab==='categories') renderCategoriesList();
-  if(tab==='profil'||tab==='avance') renderTvaParams();
-  if(tab==='themes') renderThemes();
+  if(tab==='offres') renderCategoriesList();
+  if(tab==='fiscalite'||tab==='avance') renderTvaParams();
+  if(tab==='perso') renderThemes();
+  if(tab==='fonctionnement') renderModulesUI();
 }
 function toggleSalaries(val) {
   saveParam('chargesSalariales', val ? (DATA.params.chargesSalariales||0) : 0);
@@ -6661,11 +6728,10 @@ function renderParams() {
   document.getElementById('p-statut').value=p.statut||'micro-bnc';
   document.getElementById('p-date-ouverture').value=p.dateOuverture||'';
   document.getElementById('p-metier').value=p.metier||'';
-  document.getElementById('p-activite-mixte').checked=!!p.activiteMixte;
   const cbLivre=document.getElementById('p-livre-recettes');
   if(cbLivre) cbLivre.checked=!!(p.livreRecettesActif);
-  const warnEl=document.getElementById('micro-achat-mixte-warn');
-  if(warnEl) warnEl.style.display=(p.statut==='micro-achat')?'':'none';
+  // "Que vendez-vous ?" radio
+  renderActiviteTypeUI();
   updateMixteChargesInfo();
   document.getElementById('p-urssaf').value=p.tauxURSSAF;
   document.getElementById('p-cfp').value=p.tauxCFP;
@@ -6684,7 +6750,8 @@ function renderParams() {
   if(pComplEl) pComplEl.value=p.chargesAnnuellesCompl||0;
   // Salariés
   const hasSal=!!(p.chargesSalariales>0);
-  document.querySelectorAll('input[name="has-salaries"]').forEach(r=>r.checked=(r.value==='oui')===hasSal);
+  const salSw=document.getElementById('p-salaries-sw');
+  if(salSw) salSw.checked=hasSal;
   const salDet=document.getElementById('salaries-detail');
   if(salDet) salDet.style.display=hasSal?'':'none';
   const pSalEl=document.getElementById('p-charges-salariales');
@@ -6699,10 +6766,12 @@ function renderParams() {
     document.getElementById('p-cout-remu-pct').value=p.coutRemunerationPct||80;
     updateSasuPreview();
   }
+  // Modules
+  renderModulesUI();
   if(currentParamTab==='objectifs') renderObjectifsResult();
-  if(currentParamTab==='categories') renderCategoriesList();
-  if(currentParamTab==='profil'||currentParamTab==='avance') renderTvaParams();
-  if(currentParamTab==='themes') renderThemes();
+  if(currentParamTab==='offres') renderCategoriesList();
+  if(currentParamTab==='fiscalite'||currentParamTab==='avance') renderTvaParams();
+  if(currentParamTab==='perso') renderThemes();
 }
 function renderTvaParams() {
   const p=DATA.params, sasu=isSASU(), mixte=isActiviteMixte();
@@ -8018,14 +8087,96 @@ function devisVersMission() {
 }
 
 // ── PROFIL ───────────────────────────────────────────────────
-function applyProfile(metier) {
+function applyProfile(metier, applyModules=true) {
   DATA.params.metier = metier;
-  // Réinitialise les modules aux valeurs par défaut du nouveau profil.
-  // Un changement de profil explicite repart des défauts — les surcharges
-  // manuelles de l'ancien profil ne doivent pas persister.
-  DATA.params.modules = getDefaultModules(metier);
+  if (applyModules) DATA.params.modules = getDefaultModules(metier);
   applyVocabUI();
   saveData();
+}
+function onProfilChange(metier) {
+  const prev = DATA.params.metier;
+  if (prev && prev !== metier) {
+    document.getElementById('profil-change-label').textContent = PROFIL_LABELS[metier] || metier;
+    document.getElementById('profil-change-desc').textContent = PROFIL_DESCRIPTIONS[metier] || '';
+    document.getElementById('profil-change-target').value = metier;
+    document.getElementById('profil-change-prev').value = prev;
+    document.getElementById('modal-profil-change').classList.remove('hidden');
+  } else {
+    applyProfile(metier);
+    renderDashboard();
+    renderModulesUI();
+  }
+}
+function confirmProfilChange(withModules) {
+  const metier = document.getElementById('profil-change-target').value;
+  applyProfile(metier, withModules);
+  renderDashboard();
+  renderModulesUI();
+  closeModal('modal-profil-change');
+}
+function cancelProfilChange() {
+  const prev = document.getElementById('profil-change-prev').value;
+  document.getElementById('p-metier').value = prev;
+  closeModal('modal-profil-change');
+}
+function saveModuleParam(key, val) {
+  if (!DATA.params.modules) DATA.params.modules = {};
+  DATA.params.modules[key] = val;
+  saveData();
+  renderModulesUI();
+  renderAll();
+}
+function renderModulesUI() {
+  const m = DATA.params.modules || {};
+  // planning radios
+  ['estime','calendrier','aucun'].forEach(v => {
+    const lbl = document.getElementById('mod-planning-'+v);
+    const inp = lbl ? lbl.querySelector('input') : null;
+    if (lbl) lbl.classList.toggle('selected', m.planning === v);
+    if (inp) inp.checked = (m.planning === v);
+  });
+  // uniteTemps chips — masqués si planning=aucun
+  const uniteZone = document.getElementById('mod-unite-zone');
+  if (uniteZone) uniteZone.style.display = m.planning === 'aucun' ? 'none' : '';
+  const isJ = m.uniteTemps === 'jours';
+  const btnH = document.getElementById('mod-unite-heures');
+  const btnJ = document.getElementById('mod-unite-jours');
+  if (btnH) { btnH.style.background=isJ?'transparent':'var(--pri)'; btnH.style.color=isJ?'var(--tl)':'#fff'; btnH.style.borderColor=isJ?'var(--brd)':'var(--pri)'; }
+  if (btnJ) { btnJ.style.background=isJ?'var(--pri)':'transparent'; btnJ.style.color=isJ?'#fff':'var(--tl)'; btnJ.style.borderColor=isJ?'var(--pri)':'var(--brd)'; }
+  // devis + simulateurOffre switches
+  const modDevis = document.getElementById('mod-devis');
+  if (modDevis) modDevis.checked = !!m.devis;
+  const modSim = document.getElementById('mod-sim');
+  if (modSim) modSim.checked = !!m.simulateurOffre;
+  // objectif radios
+  const objMap = {th:'th', tjm:'tjm', marge_commande:'marge'};
+  ['th','tjm','marge_commande'].forEach(v => {
+    const lbl = document.getElementById('mod-obj-'+objMap[v]);
+    const inp = lbl ? lbl.querySelector('input') : null;
+    if (lbl) lbl.classList.toggle('selected', m.objectif === v);
+    if (inp) inp.checked = (m.objectif === v);
+  });
+}
+function saveActiviteType(type) {
+  const mixte = type === 'lesdeux';
+  saveParam('activiteMixte', mixte);
+  renderActiviteTypeUI();
+  renderAll();
+}
+function renderActiviteTypeUI() {
+  const p = DATA.params;
+  let type = 'prestations';
+  if (p.activiteMixte) type = 'lesdeux';
+  else if (p.statut === 'micro-achat') type = 'produits';
+  const idMap = {prestations:'presta', produits:'produits', lesdeux:'mixte'};
+  ['prestations','produits','lesdeux'].forEach(v => {
+    const lbl = document.getElementById('act-type-'+idMap[v]);
+    const inp = lbl ? lbl.querySelector('input') : null;
+    if (lbl) lbl.classList.toggle('selected', v === type);
+    if (inp) inp.checked = (v === type);
+  });
+  const warn = document.getElementById('micro-achat-mixte-warn');
+  if (warn) warn.style.display = (p.statut === 'micro-achat') ? '' : 'none';
 }
 
 // ── INIT ─────────────────────────────────────────────────────
