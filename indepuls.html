@@ -1078,9 +1078,15 @@ html,body{overflow-x:hidden;}
     <div class="g2" style="align-items:start">
       <div class="card">
         <div class="card-title mb4">🧮 Simulateur de rentabilité</div>
+
+        <!-- Toggle mode -->
+        <div style="display:flex;gap:6px;margin-bottom:16px" id="sim-mode-toggle">
+          <button type="button" id="sim-mode-btn-verifier" onclick="switchSimMode('verifier')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Vérifier un prix</button>
+          <button type="button" id="sim-mode-btn-calculer" onclick="switchSimMode('calculer')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Calculer mon tarif</button>
+        </div>
         <div class="card-sub mb16" id="sim-subtitle">Vérifiez si ce que vous allez vendre est rentable avant de le proposer.</div>
 
-        <!-- Prix / CA — toujours visible -->
+        <!-- Prix / CA — visible en mode vérifier -->
         <div class="fgroup" id="sim-row-ca">
           <label class="flabel" id="sim-label-ca">Prix envisagé (€ HT)</label>
           <input type="number" id="sim-ca-val" step="50" min="0" placeholder="Ex : 1 200" oninput="calcRentabilite()">
@@ -3855,7 +3861,7 @@ function renderPage(page) {
     case 'depenses': renderDepenses(); break;
     case 'archives': renderArchives(); break;
     case 'params': renderParams(); break;
-    case 'simulateur': _simUserFields = null; renderSimulateurPage(); break;
+    case 'simulateur': _simUserFields = null; _simMode = 'verifier'; renderSimulateurPage(); break;
     case 'recettes': renderRecettes(); break;
   }
 }
@@ -7885,8 +7891,20 @@ function getSimulateurPreset() {
   return map[family] || 'service';
 }
 
-// Overrides utilisateur pour la session courante (non persistés)
+// State session (non persisté — reset à chaque navigate)
 let _simUserFields = null;
+let _simMode = 'verifier'; // 'verifier' | 'calculer'
+
+function switchSimMode(mode) {
+  _simMode = mode;
+  const onStyle  = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  const offStyle = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  const bV = document.getElementById('sim-mode-btn-verifier');
+  const bC = document.getElementById('sim-mode-btn-calculer');
+  if (bV) bV.style.cssText = mode === 'verifier' ? onStyle : offStyle;
+  if (bC) bC.style.cssText = mode === 'calculer' ? onStyle : offStyle;
+  renderSimulateurPage();
+}
 
 function getSimFields() {
   const preset = getSimulateurPreset();
@@ -7900,7 +7918,18 @@ function renderSimulateurPage() {
   const fields = getSimFields();
   const el = id => document.getElementById(id);
 
-  if (el('sim-subtitle')) el('sim-subtitle').textContent = cfg.subtitle;
+  const isCalculer = _simMode === 'calculer';
+  // Sync toggle buttons
+  const _onStyle  = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  const _offStyle = 'padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit';
+  const _bV = el('sim-mode-btn-verifier'), _bC = el('sim-mode-btn-calculer');
+  if (_bV) _bV.style.cssText = isCalculer ? _offStyle : _onStyle;
+  if (_bC) _bC.style.cssText = isCalculer ? _onStyle : _offStyle;
+  const subtitles = {
+    verifier: cfg.subtitle,
+    calculer: 'Indiquez le temps et les coûts — le simulateur calcule le prix minimum à facturer.',
+  };
+  if (el('sim-subtitle')) el('sim-subtitle').textContent = subtitles[_simMode] || cfg.subtitle;
   if (el('sim-label-ca')) el('sim-label-ca').textContent = cfg.labelCa;
   if (el('sim-label-temps')) el('sim-label-temps').textContent = cfg.labelTemps;
   if (el('sim-label-matieres')) el('sim-label-matieres').textContent = cfg.labelMatieres;
@@ -7908,7 +7937,7 @@ function renderSimulateurPage() {
   const isCollectif = fields.collectif && el('sim-collectif-sw')?.checked;
 
   const rows = {
-    'sim-row-ca': !isCollectif,
+    'sim-row-ca': !isCollectif && !isCalculer,
     'sim-row-collectif': fields.collectif,
     'sim-row-collectif-detail': isCollectif,
     'sim-row-temps': fields.temps && !isCollectif,
@@ -7984,15 +8013,23 @@ function prepareSimInputs() {
     coutsDirects = coutAchat + matieres + emballages + soustraitance + plateforme + autresFrais;
   }
 
+  if (_simMode === 'calculer') {
+    // En mode calcul : le CA est l'inconnue, on le dérive du TH cible
+    const thCible = getTauxHoraireMinCible();
+    if (!thCible || heures <= 0) return null;
+    ca = thCible * heures + coutsDirects; // prix exact pour atteindre l'objectif brut
+    return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: true, _thCible: thCible };
+  }
+
   if (ca <= 0 && heures <= 0) return null;
-  return { ca, heures, coutsDirects, participants, isCollectif };
+  return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: false };
 }
 
 function calcRentabilite() {
   const inputs = prepareSimInputs();
   if (!inputs) { document.getElementById('sim-create-zone').style.display = 'none'; return; }
 
-  const { ca, heures, coutsDirects, participants, isCollectif } = inputs;
+  const { ca, heures, coutsDirects, participants, isCollectif, _isCalculer = false, _thCible: _thCibleInput } = inputs;
   const p = DATA.params;
   const _urssafTaux = (p.tauxURSSAF||0) + (p.tauxCFP||0);
   const _impotTaux  = p.impotsTaux||0;
@@ -8021,13 +8058,46 @@ function calcRentabilite() {
 
   renderSimOutputs({ ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ });
+    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer });
 }
 function renderSimOutputs(r) {
   const { ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ } = r;
+    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer } = r;
 
+  // ── Mode "Calculer mon tarif" ──────────────────────────────
+  if (_isCalculer) {
+    const prixMin    = Math.ceil(ca / 10) * 10;
+    const prixConfort = Math.ceil(ca * 1.1 / 10) * 10;
+    // Provisions sur le prix minimum
+    const _impotSub = _impotTaux > 0 ? (_isMicro && abattPct > 0
+      ? ` + impôts ${_impotTaux}% (abatt. ${abattPct}%)`
+      : ` + impôts ${_impotTaux}%`) : '';
+    const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
+    const advLines = [];
+    if (_urssafTaux > 0) advLines.push(`💼 URSSAF à prévoir sur ce prix : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
+    if (_impotTaux > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
+    if (coutsDirects > 0) advLines.push(`📦 Coûts inclus dans le calcul : <strong>${fmtE(coutsDirects)}</strong>`);
+    const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Détail</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
+    const netConfort = Math.max(0, Math.round(prixConfort - coutsDirects - prixConfort*(_urssafTaux/100) - (_isMicro ? Math.round(getRevenuImposableMicro(prixConfort,0)*_impotTaux/100) : Math.round(prixConfort*_impotTaux/100))));
+    const partLabel = isCollectif && participants > 1 ? ` / ${participants} participants` : '';
+    document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid var(--pri)">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">💶 Prix minimum à facturer</div>
+      <div style="font-size:32px;font-weight:700;color:var(--pri);line-height:1;margin-bottom:4px">${fmtE(prixMin)}${partLabel ? `<span style="font-size:14px;font-weight:400;color:var(--tl)"> HT</span>` : ' <span style="font-size:14px;font-weight:400;color:var(--tl)">HT</span>'}</div>
+      <div class="ts mb16">Pour atteindre exactement votre objectif${heures > 0 ? ` sur ${fmt(heures,1)} h` : ''}</div>
+      <div style="padding:12px 16px;background:rgba(99,90,255,.07);border-radius:8px;border-left:3px solid var(--pri)">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">✨ Avec marge de sécurité (10 %)</div>
+        <div style="font-size:22px;font-weight:700;color:var(--text)">${fmtE(prixConfort)} HT</div>
+        ${_hasCharges ? `<div class="ts" style="margin-top:3px">Net estimé : <strong>${fmtE(netConfort)}</strong> dans votre poche</div>` : ''}
+      </div>
+      ${isCollectif && participants > 1 ? `<div style="margin-top:10px;padding:10px 14px;background:var(--bg);border-radius:8px"><div class="ts">Par participant : <strong>${fmtE(Math.ceil(prixMin/participants/10)*10)}</strong> min · <strong>${fmtE(Math.ceil(prixConfort/participants/10)*10)}</strong> avec marge</div></div>` : ''}
+      ${advHtml}
+    </div>`;
+    document.getElementById('sim-create-zone').style.display = 'none';
+    return;
+  }
+
+  // ── Mode "Vérifier un prix" ────────────────────────────────
   // Verdict
   const thRef = _isJ ? thCible * _hj : thCible;
   const thComp = _isJ ? tjmBrut : (thBrut !== null ? Math.round(thBrut) : null);
