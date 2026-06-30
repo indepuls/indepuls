@@ -8937,7 +8937,7 @@ document.addEventListener('keydown', function(e) {
       if (!confirm('Se déconnecter ?')) return;
       window.trackEvent('logout');
       await sb.auth.signOut();
-      window.parent.location.href = '/';
+      // onAuthStateChange(SIGNED_OUT) prend le relais — pas de redirect
     };
     sbBottom.insertBefore(btn, sbBottom.firstChild);
   }
@@ -9049,6 +9049,47 @@ document.addEventListener('keydown', function(e) {
   }, 0);
   // ────────────────────────────────────────────────────────────
 
+  function showLoginForm() {
+    var overlay = document.getElementById('auth-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+    overlay.innerHTML = `
+      <div style="text-align:center;font-family:'Lato',system-ui,sans-serif;max-width:320px;padding:0 16px">
+        <div style="font-size:24px;font-weight:900;color:#141538;margin-bottom:4px;letter-spacing:-0.5px">Indépuls</div>
+        <div style="font-size:13px;color:#9a9aaa;margin-bottom:28px">Connectez-vous pour accéder à votre espace</div>
+        <input type="email" id="auth-email" placeholder="Adresse email"
+          style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff"
+          onkeydown="if(event.key==='Enter')document.getElementById('auth-pwd').focus()">
+        <input type="password" id="auth-pwd" placeholder="Mot de passe"
+          style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:16px;font-family:inherit;outline:none;background:#fff"
+          onkeydown="if(event.key==='Enter')authLogin()">
+        <button id="auth-login-btn" onclick="authLogin()"
+          style="width:100%;background:#141538;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
+          Se connecter
+        </button>
+        <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#e55;min-height:18px"></div>
+      </div>`;
+    window.authLogin = async function() {
+      var email = (document.getElementById('auth-email')?.value||'').trim();
+      var pwd   = (document.getElementById('auth-pwd')?.value||'');
+      var msg   = document.getElementById('auth-msg');
+      var btn   = document.getElementById('auth-login-btn');
+      if (!email || !pwd) { if(msg) msg.textContent='Veuillez remplir tous les champs.'; return; }
+      if(btn){ btn.disabled=true; btn.textContent='Connexion…'; }
+      if(msg) msg.textContent='';
+      try {
+        var res = await sb.auth.signInWithPassword({ email, password: pwd });
+        if(res.error) throw res.error;
+        // onAuthStateChange(SIGNED_IN) prend le relais
+      } catch(e) {
+        if(msg) msg.textContent = e.message === 'Invalid login credentials'
+          ? 'Email ou mot de passe incorrect.' : (e.message||'Erreur de connexion.');
+        if(btn){ btn.disabled=false; btn.textContent='Se connecter'; }
+      }
+    };
+  }
+
   sb.auth.onAuthStateChange(async function(event, session) {
     if (event === 'INITIAL_SESSION') {
       if (session) {
@@ -9056,38 +9097,18 @@ document.addEventListener('keydown', function(e) {
         hideOverlay();
         setTimeout(addLogoutButton, 200);
       } else {
-        // Pas de session — afficher le formulaire de connexion
-        var overlay = document.getElementById('auth-overlay');
-        if (overlay) overlay.innerHTML = `
-          <div style="text-align:center;font-family:'Lato',system-ui,sans-serif;max-width:340px;padding:0 16px">
-            <div style="font-size:22px;font-weight:700;color:#141538;margin-bottom:6px">Indépuls</div>
-            <div style="font-size:13px;color:#7a7a8a;margin-bottom:24px">Entrez votre adresse email pour recevoir votre lien de connexion.</div>
-            <input type="email" id="auth-email-input" placeholder="votre@email.com"
-              style="width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px;font-family:inherit;outline:none"
-              onkeydown="if(event.key==='Enter')authSendMagicLink()">
-            <button id="auth-submit-btn" onclick="authSendMagicLink()"
-              style="width:100%;background:#141538;color:#fff;padding:12px 24px;border-radius:8px;border:none;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">
-              Recevoir le lien de connexion
-            </button>
-            <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#7a7a8a;min-height:20px"></div>
-          </div>`;
-        window.authSendMagicLink = async function() {
-          var email = (document.getElementById('auth-email-input')?.value||'').trim();
-          var msg = document.getElementById('auth-msg');
-          var btn = document.getElementById('auth-submit-btn');
-          if (!email) { if(msg) msg.textContent='Veuillez entrer votre adresse email.'; return; }
-          if(btn){ btn.disabled=true; btn.textContent='Envoi en cours…'; }
-          try {
-            var res = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href } });
-            if(res.error) throw res.error;
-            if(msg) msg.innerHTML='✅ Lien envoyé ! Vérifiez votre boîte mail (et les spams).';
-            if(btn){ btn.textContent='Lien envoyé ✓'; }
-          } catch(e) {
-            if(msg) msg.textContent='Erreur : '+(e.message||'Veuillez réessayer.');
-            if(btn){ btn.disabled=false; btn.textContent='Recevoir le lien de connexion'; }
-          }
-        };
+        showLoginForm();
       }
+    }
+    if (event === 'SIGNED_IN') {
+      await loadFromCloud(session.user);
+      hideOverlay();
+      setTimeout(addLogoutButton, 200);
+    }
+    if (event === 'SIGNED_OUT') {
+      var lb = document.getElementById('logout-btn');
+      if (lb) lb.remove();
+      showLoginForm();
     }
   });
 })();
