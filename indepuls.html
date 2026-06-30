@@ -9056,9 +9056,37 @@ document.addEventListener('keydown', function(e) {
         hideOverlay();
         setTimeout(addLogoutButton, 200);
       } else {
-        // Pas de session — afficher un lien de retour sans rediriger automatiquement
+        // Pas de session — afficher le formulaire de connexion
         var overlay = document.getElementById('auth-overlay');
-        if (overlay) overlay.innerHTML = '<div style="text-align:center;font-family:\'Lato\',sans-serif;color:#7a7a8a"><p style="margin-bottom:16px">Session expirée.</p><a href="/" style="background:#141538;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">← Retour à l\'accueil</a></div>';
+        if (overlay) overlay.innerHTML = `
+          <div style="text-align:center;font-family:'Lato',system-ui,sans-serif;max-width:340px;padding:0 16px">
+            <div style="font-size:22px;font-weight:700;color:#141538;margin-bottom:6px">Indépuls</div>
+            <div style="font-size:13px;color:#7a7a8a;margin-bottom:24px">Entrez votre adresse email pour recevoir votre lien de connexion.</div>
+            <input type="email" id="auth-email-input" placeholder="votre@email.com"
+              style="width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px;font-family:inherit;outline:none"
+              onkeydown="if(event.key==='Enter')authSendMagicLink()">
+            <button id="auth-submit-btn" onclick="authSendMagicLink()"
+              style="width:100%;background:#141538;color:#fff;padding:12px 24px;border-radius:8px;border:none;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">
+              Recevoir le lien de connexion
+            </button>
+            <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#7a7a8a;min-height:20px"></div>
+          </div>`;
+        window.authSendMagicLink = async function() {
+          var email = (document.getElementById('auth-email-input')?.value||'').trim();
+          var msg = document.getElementById('auth-msg');
+          var btn = document.getElementById('auth-submit-btn');
+          if (!email) { if(msg) msg.textContent='Veuillez entrer votre adresse email.'; return; }
+          if(btn){ btn.disabled=true; btn.textContent='Envoi en cours…'; }
+          try {
+            var res = await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.href } });
+            if(res.error) throw res.error;
+            if(msg) msg.innerHTML='✅ Lien envoyé ! Vérifiez votre boîte mail (et les spams).';
+            if(btn){ btn.textContent='Lien envoyé ✓'; }
+          } catch(e) {
+            if(msg) msg.textContent='Erreur : '+(e.message||'Veuillez réessayer.');
+            if(btn){ btn.disabled=false; btn.textContent='Recevoir le lien de connexion'; }
+          }
+        };
       }
     }
   });
