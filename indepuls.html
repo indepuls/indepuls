@@ -9200,8 +9200,12 @@ document.addEventListener('keydown', function(e) {
           parsed = applyDefaults(parsed);
           DATA = parsed;
         }
-        if (typeof renderAll === 'function') renderAll();
-        document.body.setAttribute('data-theme', DATA.theme || 'obm');
+        var _doRender = function() {
+          if (typeof getCurrentYearMonths !== 'function') { setTimeout(_doRender, 80); return; }
+          if (typeof renderAll === 'function') renderAll();
+          document.body.setAttribute('data-theme', DATA.theme || 'obm');
+        };
+        _doRender();
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
     _cloudLoaded = true;
