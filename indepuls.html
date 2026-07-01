@@ -9362,7 +9362,7 @@ document.addEventListener('keydown', function(e) {
       if(btn){ btn.disabled=true; btn.textContent='Création…'; }
       if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Création en cours…'; }
       try {
-        var res = await sb.auth.signUp({ email, password: pwd });
+        var res = await sb.auth.signUp({ email, password: pwd, options: { emailRedirectTo: window.location.origin } });
         if(res.error) throw res.error;
         if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Compte créé ! Vérifiez votre email pour confirmer.'; }
         if(btn){ btn.disabled=true; btn.textContent='Email envoyé'; }
