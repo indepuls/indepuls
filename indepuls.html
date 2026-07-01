@@ -2934,12 +2934,12 @@ function getExampleData(metier) {
       nom:'Sophie Atelier',
       categories:['Commande sur mesure','Série','Prototype','Stock atelier','Autre'],
       rec:  {client:'Boutique Lumière',            cat:'Série',              desc:'Réassort mensuel bijoux — contrat partenariat boutique'},
-      m1:   {client:'Boutique Ambre',              cat:'Commande sur mesure',desc:'Lot colliers argent — collection automne'},
-      m2:   {client:'Mme Hébert',                  cat:'Commande sur mesure',desc:'Alliance et bague assortie — commande personnalisée'},
-      m3:   {client:'Pop-up store Marais',         cat:'Série',              desc:'Série boucles d\'oreilles printemps — 40 pièces'},
-      m4:   {client:'M. et Mme Vidal',             cat:'Commande sur mesure',desc:'Parure mariage — 6 pièces bijoux assortis'},
-      m5:   {client:'Boutique Ambre',              cat:'Série',              desc:'Lot bracelets dorés — collection été'},
-      m6:   {client:'Entreprise Nexia',            cat:'Commande sur mesure',desc:'Gravures sur pendentifs — cadeaux clients (12 pièces)'},
+      m1:   {client:'Boutique Ambre',              cat:'Commande sur mesure',desc:'Lot colliers argent — collection automne', quantite:8,  prixAchat:null},
+      m2:   {client:'Mme Hébert',                  cat:'Commande sur mesure',desc:'Alliance et bague assortie — commande personnalisée', quantite:2,  prixAchat:null},
+      m3:   {client:'Pop-up store Marais',         cat:'Série',              desc:'Série boucles d\'oreilles printemps — 40 pièces', quantite:40, prixAchat:null},
+      m4:   {client:'M. et Mme Vidal',             cat:'Commande sur mesure',desc:'Parure mariage — 6 pièces bijoux assortis', quantite:6,  prixAchat:null},
+      m5:   {client:'Boutique Ambre',              cat:'Série',              desc:'Lot bracelets dorés — collection été', quantite:20, prixAchat:null},
+      m6:   {client:'Entreprise Nexia',            cat:'Commande sur mesure',desc:'Gravures sur pendentifs — cadeaux clients (12 pièces)', quantite:12, prixAchat:null},
       col:  null,
       mc:   {client:'Boutique Lumière',            cat:'Série',              desc:'Collection été — 20 pièces en cours de fabrication'},
       att:  {client:'Mme Rossi',                   cat:'Commande sur mesure',desc:'Bague solitaire diamant — devis en attente de confirmation'},
@@ -2949,19 +2949,25 @@ function getExampleData(metier) {
         {id:'ex-d2',libelle:'Outillage et petit matériel atelier',montant:65,recurrence:'mensuelle',tva:true,tvaM:13},
         {id:'ex-d3',libelle:'Mutuelle TNS',montant:95,recurrence:'mensuelle',tva:false,tvaM:0},
         {id:'ex-d4',libelle:'Comptable — honoraires annuels',montant:900,recurrence:'annuelle',tva:false,tvaM:0},
-        {id:'ex-d5',libelle:'Stand foire artisanale printemps',montant:390,recurrence:'ponctuelle',tva:false,tvaM:0}
+        {id:'ex-d5',libelle:'Stand foire artisanale printemps',montant:390,recurrence:'ponctuelle',tva:false,tvaM:0},
+        {id:'ex-dc1',libelle:'Matières — argent lot colliers',montant:560,recurrence:'ponctuelle',tva:true,tvaM:112,chantierId:'ex-jan'},
+        {id:'ex-dc2',libelle:'Matières — or blanc alliance',montant:280,recurrence:'ponctuelle',tva:true,tvaM:56,chantierId:'ex-fev'},
+        {id:'ex-dc3',libelle:'Matières — lot boucles série',montant:820,recurrence:'ponctuelle',tva:true,tvaM:164,chantierId:'ex-mar'},
+        {id:'ex-dc4',libelle:'Matières — parure mariage',montant:480,recurrence:'ponctuelle',tva:true,tvaM:96,chantierId:'ex-avr'},
+        {id:'ex-dc5',libelle:'Matières — bracelets dorés',montant:620,recurrence:'ponctuelle',tva:true,tvaM:124,chantierId:'ex-mai'},
+        {id:'ex-dc6',libelle:'Matières — pendentifs gravés',montant:390,recurrence:'ponctuelle',tva:true,tvaM:78,chantierId:'ex-juin'}
       ]
     },
     achat_revente: {
       nom:'Thomas Auger',
       categories:['Lot fournisseur','Stock saisonnier','Commande spéciale','Liquidation','Autre'],
       rec:  {client:'Boutique Déco Maison',        cat:'Lot fournisseur',    desc:'Approvisionnement mensuel — luminaires et accessoires'},
-      m1:   {client:'Boutique Déco Maison',        cat:'Lot fournisseur',    desc:'Lot luminaires design — fournisseur Italie'},
-      m2:   {client:'Concept Store Nord',          cat:'Stock saisonnier',   desc:'Collection printemps — 35 références'},
-      m3:   {client:'Boutique Lifestyle',          cat:'Lot fournisseur',    desc:'Lot accessoires cuisine — fournisseur Portugal'},
-      m4:   {client:'Boutique Déco Maison',        cat:'Stock saisonnier',   desc:'Stock fête des mères — 50 références cadeaux'},
-      m5:   {client:'Concept Store Nord',          cat:'Lot fournisseur',    desc:'Lot coussins et plaids — fin de saison'},
-      m6:   {client:'Pop-up store Bordeaux',       cat:'Commande spéciale',  desc:'Sélection capsule été — 28 références exclusives'},
+      m1:   {client:'Boutique Déco Maison',        cat:'Lot fournisseur',    desc:'Lot luminaires design — fournisseur Italie', quantite:12, prixAchat:95},
+      m2:   {client:'Concept Store Nord',          cat:'Stock saisonnier',   desc:'Collection printemps — 35 références', quantite:35, prixAchat:18},
+      m3:   {client:'Boutique Lifestyle',          cat:'Lot fournisseur',    desc:'Lot accessoires cuisine — fournisseur Portugal', quantite:28, prixAchat:32},
+      m4:   {client:'Boutique Déco Maison',        cat:'Stock saisonnier',   desc:'Stock fête des mères — 50 références cadeaux', quantite:50, prixAchat:14},
+      m5:   {client:'Concept Store Nord',          cat:'Lot fournisseur',    desc:'Lot coussins et plaids — fin de saison', quantite:22, prixAchat:28},
+      m6:   {client:'Pop-up store Bordeaux',       cat:'Commande spéciale',  desc:'Sélection capsule été — 28 références exclusives', quantite:28, prixAchat:42},
       col:  null,
       mc:   {client:'Boutique Lifestyle',          cat:'Stock saisonnier',   desc:'Approvisionnement été — commande en cours de livraison'},
       att:  {client:'Nouveau client — Galerie Est',cat:'Commande spéciale',  desc:'Proposition lot décoration murale — devis en attente'},
@@ -2971,7 +2977,13 @@ function getExampleData(metier) {
         {id:'ex-d2',libelle:'Location espace de stockage',montant:320,recurrence:'mensuelle',tva:true,tvaM:64},
         {id:'ex-d3',libelle:'Mutuelle TNS',montant:95,recurrence:'mensuelle',tva:false,tvaM:0},
         {id:'ex-d4',libelle:'Comptable — honoraires annuels',montant:900,recurrence:'annuelle',tva:false,tvaM:0},
-        {id:'ex-d5',libelle:'Salon professionnel — badge acheteur',montant:450,recurrence:'ponctuelle',tva:false,tvaM:0}
+        {id:'ex-d5',libelle:'Salon professionnel — badge acheteur',montant:450,recurrence:'ponctuelle',tva:false,tvaM:0},
+        {id:'ex-dc1',libelle:'Achat lot luminaires — fournisseur Italie',montant:1140,recurrence:'ponctuelle',tva:true,tvaM:228,chantierId:'ex-jan'},
+        {id:'ex-dc2',libelle:'Achat collection printemps',montant:630,recurrence:'ponctuelle',tva:true,tvaM:126,chantierId:'ex-fev'},
+        {id:'ex-dc3',libelle:'Achat lot accessoires cuisine',montant:896,recurrence:'ponctuelle',tva:true,tvaM:179,chantierId:'ex-mar'},
+        {id:'ex-dc4',libelle:'Achat stock fête des mères',montant:700,recurrence:'ponctuelle',tva:true,tvaM:140,chantierId:'ex-avr'},
+        {id:'ex-dc5',libelle:'Achat coussins et plaids',montant:616,recurrence:'ponctuelle',tva:true,tvaM:123,chantierId:'ex-mai'},
+        {id:'ex-dc6',libelle:'Achat capsule été — exclusif',montant:1176,recurrence:'ponctuelle',tva:true,tvaM:235,chantierId:'ex-juin'}
       ]
     }
   };
@@ -3001,12 +3013,12 @@ function getExampleData(metier) {
   const missions = [
     {id:'mgmt-interne',client:'Mon entreprise',categorie:'Gestion interne',description:'Gestion de mon activité',montantDevis:0,montantPrestation:0,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:true,encaissements:[],sessions:[]},
     {id:'ex-rec', sessions:demoSessions['ex-rec']||[], client:c.rec.client,categorie:c.rec.cat,description:c.rec.desc,montantDevis:18000,montantPrestation:18000,montantVente:0,statut:'cours',dateFact:null,isRecurring:true,montantMensuel:1500,nbMoisRec:12,dateDebutRec:mk4,heuresSaisies:0,timerAccumulated:162000000,timerRunning:false,timerStart:null,notes:'Contrat annuel renouvelable',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'client_existant',chargeEstimee:5,chargeUnit:'h_sem'},
-    {id:'ex-jan', sessions:demoSessions['ex-jan']||[], client:c.m1.client,categorie:c.m1.cat,description:c.m1.desc,montantDevis:1800,montantPrestation:1800,montantVente:0,statut:'fact',dateFact:mk4+'-22',heuresSaisies:0,timerAccumulated:43200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-j1',date:mk4+'-22',montant:1800,note:'',modeReglement:'virement',refJustificative:'FAC-'+y+'-001',dateModif:y+'-01-25'}],sourceAcquisition:'recommandation'},
-    {id:'ex-fev', sessions:demoSessions['ex-fev']||[], client:c.m2.client,categorie:c.m2.cat,description:c.m2.desc,montantDevis:980,montantPrestation:980,montantVente:0,statut:'fact',dateFact:mk3+'-18',heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-f1',date:mk3+'-18',montant:980,note:''}],sourceAcquisition:'reseau'},
-    {id:'ex-mar', sessions:demoSessions['ex-mar']||[], client:c.m3.client,categorie:c.m3.cat,description:c.m3.desc,montantDevis:2400,montantPrestation:2400,montantVente:0,statut:'fact',dateFact:mk2+'-20',heuresSaisies:0,timerAccumulated:57600000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-m1',date:mk2+'-20',montant:2400,note:'',modeReglement:'virement',refJustificative:'FAC-'+y+'-002',dateModif:y+'-03-22'}],sourceAcquisition:'recommandation'},
-    {id:'ex-avr', sessions:demoSessions['ex-avr']||[], client:c.m4.client,categorie:c.m4.cat,description:c.m4.desc,montantDevis:1600,montantPrestation:1600,montantVente:0,statut:'fact',dateFact:mk1+'-17',heuresSaisies:0,timerAccumulated:39600000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-a1',date:mk1+'-17',montant:800,note:'Acompte 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-18'},{id:'enc-a2',date:mk1+'-28',montant:800,note:'Solde 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-28'}],sourceAcquisition:'client_existant'},
-    {id:'ex-mai', sessions:demoSessions['ex-mai']||[], client:c.m5.client,categorie:c.m5.cat,description:c.m5.desc,montantDevis:2000,montantPrestation:2000,montantVente:0,statut:'fact',dateFact:mk1+'-20',heuresSaisies:0,timerAccumulated:50400000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-mai1',date:mk1+'-20',montant:2000,note:''}],sourceAcquisition:'client_existant'},
-    {id:'ex-juin',sessions:demoSessions['ex-juin']||[], client:c.m6.client,categorie:c.m6.cat,description:c.m6.desc,montantDevis:1900,montantPrestation:1900,montantVente:0,statut:'fact',dateFact:mk0+'-12',heuresSaisies:0,timerAccumulated:32400000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-juin1',date:mk0+'-12',montant:1900,note:''}],sourceAcquisition:'client_existant'},
+    {id:'ex-jan', sessions:demoSessions['ex-jan']||[], client:c.m1.client,categorie:c.m1.cat,description:c.m1.desc,montantDevis:1800,montantPrestation:1800,montantVente:0,statut:'fact',dateFact:mk4+'-22',heuresSaisies:0,timerAccumulated:43200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-j1',date:mk4+'-22',montant:1800,note:'',modeReglement:'virement',refJustificative:'FAC-'+y+'-001',dateModif:y+'-01-25'}],sourceAcquisition:'recommandation',...(c.m1.quantite!=null?{quantite:c.m1.quantite}:{}),...(c.m1.prixAchat!=null?{prixAchat:c.m1.prixAchat}:{})},
+    {id:'ex-fev', sessions:demoSessions['ex-fev']||[], client:c.m2.client,categorie:c.m2.cat,description:c.m2.desc,montantDevis:980,montantPrestation:980,montantVente:0,statut:'fact',dateFact:mk3+'-18',heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-f1',date:mk3+'-18',montant:980,note:''}],sourceAcquisition:'reseau',...(c.m2.quantite!=null?{quantite:c.m2.quantite}:{}),...(c.m2.prixAchat!=null?{prixAchat:c.m2.prixAchat}:{})},
+    {id:'ex-mar', sessions:demoSessions['ex-mar']||[], client:c.m3.client,categorie:c.m3.cat,description:c.m3.desc,montantDevis:2400,montantPrestation:2400,montantVente:0,statut:'fact',dateFact:mk2+'-20',heuresSaisies:0,timerAccumulated:57600000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-m1',date:mk2+'-20',montant:2400,note:'',modeReglement:'virement',refJustificative:'FAC-'+y+'-002',dateModif:y+'-03-22'}],sourceAcquisition:'recommandation',...(c.m3.quantite!=null?{quantite:c.m3.quantite}:{}),...(c.m3.prixAchat!=null?{prixAchat:c.m3.prixAchat}:{})},
+    {id:'ex-avr', sessions:demoSessions['ex-avr']||[], client:c.m4.client,categorie:c.m4.cat,description:c.m4.desc,montantDevis:1600,montantPrestation:1600,montantVente:0,statut:'fact',dateFact:mk1+'-17',heuresSaisies:0,timerAccumulated:39600000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-a1',date:mk1+'-17',montant:800,note:'Acompte 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-18'},{id:'enc-a2',date:mk1+'-28',montant:800,note:'Solde 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-28'}],sourceAcquisition:'client_existant',...(c.m4.quantite!=null?{quantite:c.m4.quantite}:{}),...(c.m4.prixAchat!=null?{prixAchat:c.m4.prixAchat}:{})},
+    {id:'ex-mai', sessions:demoSessions['ex-mai']||[], client:c.m5.client,categorie:c.m5.cat,description:c.m5.desc,montantDevis:2000,montantPrestation:2000,montantVente:0,statut:'fact',dateFact:mk1+'-20',heuresSaisies:0,timerAccumulated:50400000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-mai1',date:mk1+'-20',montant:2000,note:''}],sourceAcquisition:'client_existant',...(c.m5.quantite!=null?{quantite:c.m5.quantite}:{}),...(c.m5.prixAchat!=null?{prixAchat:c.m5.prixAchat}:{})},
+    {id:'ex-juin',sessions:demoSessions['ex-juin']||[], client:c.m6.client,categorie:c.m6.cat,description:c.m6.desc,montantDevis:1900,montantPrestation:1900,montantVente:0,statut:'fact',dateFact:mk0+'-12',heuresSaisies:0,timerAccumulated:32400000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[{id:'enc-juin1',date:mk0+'-12',montant:1900,note:''}],sourceAcquisition:'client_existant',...(c.m6.quantite!=null?{quantite:c.m6.quantite}:{}),...(c.m6.prixAchat!=null?{prixAchat:c.m6.prixAchat}:{})},
     ...(c.col ? [{id:'ex-collectif',sessions:[],client:c.col.client,categorie:c.col.cat,description:c.col.desc,montantDevis:7200,montantPrestation:7200,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'6 séances de 2h — démarré ce mois',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],typeMission:'collectif',nbParticipants:6,prixParParticipant:1200,tempsCreation:8,tempsAnimation:12,tempsSupport:6,sourceAcquisition:'social'}] : []),
     {id:'ex-cours',sessions:demoSessions['ex-cours']||[], client:c.mc.client,categorie:c.mc.cat,description:c.mc.desc,montantDevis:650,montantPrestation:650,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:7200000,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'social',chargeEstimee:4,chargeUnit:'h_sem'},
     {id:'ex-att', sessions:[], client:c.att.client,categorie:c.att.cat,description:c.att.desc,montantDevis:2200,montantPrestation:2200,montantVente:0,statut:'att',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'Devis envoyé le '+mk0+'-22, en attente de validation',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'reseau',chargeEstimee:10,chargeUnit:'h_sem'},
@@ -3016,7 +3028,8 @@ function getExampleData(metier) {
   const depenses = c.depenses.map(d => ({
     id:d.id, date:y+'-01-01', libelle:d.libelle, montant:d.montant,
     recurrence:d.recurrence, dateDebut:d.recurrence==='annuelle'?'always':d.recurrence==='ponctuelle'?'':y+'-01-01',
-    tvaDeductible:d.tva, montantTVA:d.tvaM, isExample:true
+    tvaDeductible:d.tva, montantTVA:d.tvaM, isExample:true,
+    ...(d.chantierId?{chantierId:d.chantierId}:{})
   }));
 
   return {
@@ -4320,12 +4333,38 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const pctObj=objNet>0?Math.min(caNetMoy/objNet*100,100):0;
   const delta=objNet>caNetMoy?objNet-caNetMoy:0;
   const objColor=pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)';
-  const thColor=thMin>0?(thR>=thMin?'var(--ok)':thR>=thMin*.8?'var(--warn)':hT>0?'var(--err)':'var(--tl)'):(thR>=60?'var(--ok)':thR>=40?'var(--warn)':hT>0?'var(--err)':'var(--tl)');
   const cap=getCapaciteHSem(), charge=getChargeEstimeeTotal();
   const capPct=cap>0?Math.round(charge/cap*100):0;
   const capEmoji=capPct>100?'🔴':capPct>80?'🟠':charge>0?'🟢':'○';
   const capColor=capPct>100?'var(--err)':capPct>80?'var(--warn)':charge>0?'var(--ok)':'var(--tl)';
   const capSub=cap>0?(charge>0?`${fmt(Math.max(0,cap-charge),1)} h libres / sem`:'Aucune charge estimée'):`${fmt(cap,0)} h/sem max`;
+  // ── KPI 3 conditionnel par famille ───────────────────────────
+  const _synFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const _synIsChantier=_synFamily==='chantier';
+  const _synIsMarge=_synFamily==='fabrication'||_synFamily==='achat_revente';
+  const _synHj=DATA.params.heuresParJour||7;
+  const _synTjm=Math.round(thR*_synHj), _synTjmMin=Math.round(thMin*_synHj);
+  const _synNbM=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(String(DATA.currentYear)))).length;
+  const _synCaNet=getCaNetAnnuel();
+  const _synGain=_synNbM>0?Math.round(_synCaNet/_synNbM):0;
+  let _synLbl,_synVal,_synSub,_synColor;
+  if(_synIsChantier){
+    _synLbl='TJM réel';
+    _synVal=hT>0?fmtE(_synTjm,0)+'/j':'—';
+    _synColor=thMin>0?(_synTjm>=_synTjmMin?'var(--ok)':_synTjm>=_synTjmMin*.8?'var(--warn)':hT>0?'var(--err)':'var(--tl)'):'var(--text)';
+    _synSub=thMin>0?'obj. min. '+fmtE(_synTjmMin,0)+'/j':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie';
+  } else if(_synIsMarge){
+    const _itemLbl=_synFamily==='achat_revente'?'vente':'commande';
+    _synLbl='Gain / '+_itemLbl;
+    _synVal=_synGain>0?fmtE(_synGain,0):'—';
+    _synColor=_synGain>0?'var(--text)':'var(--tl)';
+    _synSub=_synNbM>0?_synNbM+' '+_itemLbl+(_synNbM>1?'s':'')+' encaissé'+(_synNbM>1?'s':''):hT>0?fmt(hT,0)+' h travaillées':'Aucune donnée';
+  } else {
+    _synLbl='TH réel';
+    _synVal=hT>0?fmtE(thR,0)+'/h':'—';
+    _synColor=thMin>0?(thR>=thMin?'var(--ok)':thR>=thMin*.8?'var(--warn)':hT>0?'var(--err)':'var(--tl)'):'var(--text)';
+    _synSub=thMin>0?'obj. min. '+fmtE(thMin,0)+'/h':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie';
+  }
   return `<div class="g4" style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px 20px;border-left:4px solid var(--pri);gap:0">
     <div style="padding-right:16px;border-right:1px solid var(--brd)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">CA ${DATA.currentYear}</div>
@@ -4339,9 +4378,9 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
       <div style="font-size:11px;color:var(--tl)">${pctObj>=100?'✓ Objectif atteint':'manque '+fmtE(delta)+' / mois'}</div>
     </div>
     <div style="padding:0 16px;border-right:1px solid var(--brd)">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">TH réel</div>
-      <div style="font-size:20px;font-weight:700;color:${thColor};line-height:1">${hT>0?fmtE(thR,0)+'/h':'—'}</div>
-      <div style="font-size:11px;color:var(--tl);margin-top:4px">${thMin>0?'obj. min. '+fmtE(thMin,0)+'/h':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie'}</div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">${_synLbl}</div>
+      <div style="font-size:20px;font-weight:700;color:${_synColor};line-height:1">${_synVal}</div>
+      <div style="font-size:11px;color:var(--tl);margin-top:4px">${_synSub}</div>
     </div>
     <div style="padding-left:16px">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Capacité</div>
@@ -4384,8 +4423,9 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
       alerts.push({pr:2,cl:'al-info',txt:`⏱ Gain horaire insuffisant : ${fmtE(thR,0)}/h${_thMinAlert>0?` (obj. min. ${fmtE(_thMinAlert,0)}/h)`:''} — comparez le temps passé par ${_familyAlert==='achat_revente'?'vente':'commande'}.`});
     // Marge faible (coûts directs vs CA)
+    const _coutMapAlert=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
     const _cAgg=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
-      const co=(m.coutsDirects||[]).reduce((a,c)=>a+(parseFloat(c.montant)||0),0);
+      const co=_coutMapAlert[m.id]||0;
       const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
       return {ca:s.ca+en,couts:s.couts+co};
     },{ca:0,couts:0});
@@ -4908,8 +4948,9 @@ function wScoreSante(d) {
   const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
   const gapTjm=tjmMin-tjmBrut;
   // ── Marge brute % (fabrication / achat_revente)
+  const _rentCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   const _rentCouts=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
-    const co=(m.coutsDirects||[]).reduce((a,c)=>a+(parseFloat(c.montant)||0),0);
+    const co=_rentCoutMap[m.id]||0;
     const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
