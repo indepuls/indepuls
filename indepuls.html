@@ -3092,6 +3092,8 @@ function loadDemoWithCurrentParams() {
   // Fusionner : structure démo + params réels de l'utilisateur
   DATA = demoData;
   DATA.params = { ...demoData.params, ...savedParams };
+  // Ne pas laisser les valeurs vierges (false/null) écraser les valeurs de la démo
+  if (!savedParams.livreRecettesActif) DATA.params.livreRecettesActif = demoData.params.livreRecettesActif;
   DATA.theme = theme;
   DATA.isExample = true;
   saveData();
