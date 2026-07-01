@@ -564,8 +564,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
   <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
-  <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> Simulateur</div>
-  <div class="nav-item" id="nav-devis" onclick="navigate('devis')"><span class="nav-icon">🧮</span> Tester un devis</div>
+  <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="Activez le livre des recettes dans les Paramètres"><span class="nav-icon">📒</span> Livre des recettes</div>
   <div class="nav-section">Réglages</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
@@ -845,13 +844,8 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div class="card mt16">
-        <div class="card-title mb12">Devis & tarification</div>
-        <div class="sw-wrap">
-          <label class="sw"><input type="checkbox" id="mod-devis" onchange="saveModuleParam('devis',this.checked)"><span class="sw-sl"></span></label>
-          <span style="font-weight:600">Je réalise des devis avant de commencer mes affaires</span>
-        </div>
-        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Active le simulateur de devis sur chaque affaire — estimez votre rentabilité avant d'envoyer une proposition.</div>
-        <div class="divider mt12 mb12"></div>
+        <div class="card-title mb12">Tarification & objectif</div>
+        <div class="divider mt4 mb12"></div>
         <div class="ts mb8" style="color:var(--tl)">Ce que je veux piloter en priorité :</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <label class="tva-regime-opt" id="mod-obj-th"><input type="radio" name="mod-objectif" value="th" onchange="saveModuleParam('objectif','th')"><div><strong>Mon taux horaire (€/h)</strong><div class="ts mt1">Idéal pour les prestations vendues au temps passé</div></div></label>
@@ -1076,7 +1070,7 @@ html,body{overflow-x:hidden;}
   <div class="page" id="page-simulateur">
     <div class="g2" style="align-items:start">
       <div class="card">
-        <div class="card-title mb4">🧮 Simulateur de rentabilité</div>
+        <div class="card-title mb4" id="sim-page-title">🧮 Simulateur de rentabilité</div>
 
         <!-- Toggle mode -->
         <div style="display:flex;gap:6px;margin-bottom:16px" id="sim-mode-toggle">
@@ -1252,6 +1246,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div id="sim-create-zone" style="display:none;margin-top:12px">
       <button class="btn btn-acc" id="sim-create-btn" onclick="createMissionFromSim()">+ Créer une mission depuis ce test</button>
+
       <span class="ts ml8" style="color:var(--tl)">Pré-remplit le formulaire mission avec ces données.</span>
     </div>
   </div>
@@ -1354,63 +1349,6 @@ html,body{overflow-x:hidden;}
     </div>
   </div>
 
-  <!-- SIMULATEUR DE DEVIS (profils artisan/fabricant) -->
-  <div class="page" id="page-devis">
-    <div class="g2" style="align-items:start">
-      <!-- Gauche : formulaire -->
-      <div class="card">
-        <div class="card-title mb16">Paramètres du devis</div>
-
-        <div class="fgroup">
-          <label class="flabel">Montant du devis HT (€)</label>
-          <input type="number" id="dv-montant" min="0" step="10" placeholder="0" oninput="calcDevis()" style="font-size:18px;font-weight:700">
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="mb12" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Temps estimé</div>
-        <div class="frow">
-          <div class="fgroup">
-            <label class="flabel" id="dv-label-temps">Temps chantier (h)</label>
-            <input type="number" id="dv-h-chantier" min="0" step="0.5" placeholder="0" oninput="calcDevis()">
-          </div>
-          <div class="fgroup">
-            <label class="flabel">Temps de trajet (h)</label>
-            <input type="number" id="dv-h-trajet" min="0" step="0.5" placeholder="0" oninput="calcDevis()">
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="mb12" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Coûts estimés</div>
-        <div class="frow">
-          <div class="fgroup">
-            <label class="flabel" id="dv-label-coutdirect">Fournitures / Matériaux (€)</label>
-            <input type="number" id="dv-fournitures" min="0" step="10" placeholder="0" oninput="calcDevis()">
-          </div>
-          <div class="fgroup">
-            <label class="flabel">Autres frais (€) <span class="info-tip" title="Carburant, location, sous-traitance, déplacements…">?</span></label>
-            <input type="number" id="dv-frais" min="0" step="10" placeholder="0" oninput="calcDevis()">
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-out btn-sm" onclick="resetDevis()">Réinitialiser</button>
-          <button class="btn btn-acc btn-sm" id="dv-btn-creer" style="display:none" onclick="devisVersMission()">+ <span id="dv-label-creer">Créer un chantier à partir de ce test</span></button>
-        </div>
-      </div>
-
-      <!-- Droite : résultat -->
-      <div id="devis-result">
-        <div class="card" style="text-align:center;padding:48px 24px;border:2px dashed var(--brd)">
-          <div style="font-size:44px;margin-bottom:16px">🧮</div>
-          <div style="font-size:14px;color:var(--tl);line-height:1.8">Renseignez les champs à gauche<br>pour voir l'analyse de rentabilité.</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- LIVRE DES RECETTES -->
   <div class="page" id="page-recettes">
@@ -2504,7 +2442,6 @@ function applyVocabUI() {
   const dvCout = document.getElementById('dv-label-coutdirect');
   if (dvCout) dvCout.textContent = tVocab('coutDirectLabel') + ' (€)';
   updateNavPlanning();
-  updateNavDevis();
   updateNavSimulateur();
   // sb-profil-label géré par updateDemoUI()
   // Planning : label sessions dans la modale + visibilité de la zone
@@ -3849,11 +3786,15 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',devis:'Tester un devis',recettes:'Livre des recettes'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
   if(page==='missions') return tVocab('pageTitle');
+  if(page==='simulateur') {
+    const fam = BUSINESS_PROFILE_MAP[DATA.params?.metier];
+    return (fam==='chantier'||fam==='fabrication') ? 'Tester un devis' : 'Simulateur de rentabilité';
+  }
   return PAGE_TITLES[page]||page;
 }
 function updateDashboardTitle() {
@@ -3866,19 +3807,18 @@ function updateNavPlanning() {
   if (!el) return;
   el.style.display = DATA.params.modules?.planning === 'calendrier' ? '' : 'none';
 }
-function updateNavDevis() {
-  const el = document.getElementById('nav-devis');
-  if (!el) return;
-  el.style.display = DATA.params.modules?.devis !== false ? '' : 'none';
-}
 function updateNavSimulateur() {
   const el = document.getElementById('nav-simulateur');
   if (!el) return;
   el.style.display = '';
+  const lbl = document.getElementById('nav-simulateur-label');
+  if (lbl) {
+    const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
+    lbl.textContent = (family === 'chantier' || family === 'fabrication') ? 'Tester un devis' : 'Simulateur';
+  }
 }
 function navigate(page) {
   if (page === 'planning' && DATA.params.modules?.planning !== 'calendrier') { navigate('dashboard'); return; }
-  if (page === 'devis' && DATA.params.modules?.devis === false) { navigate('dashboard'); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -8315,6 +8255,17 @@ function renderSimulateurPage() {
   const colLabel = el('sim-chk-collectif-label');
   if (colLabel) colLabel.style.display = isService ? '' : 'none';
 
+  const _titleEl = el('sim-page-title');
+  if (_titleEl) {
+    _titleEl.textContent = (preset === 'chantier' || preset === 'fabrication') ? '🧮 Tester un devis' : '🧮 Simulateur de rentabilité';
+  }
+  const _btnCreate = el('sim-create-btn');
+  if (_btnCreate) {
+    _btnCreate.textContent = (preset === 'chantier') ? '+ Créer un chantier depuis ce test'
+      : (preset === 'fabrication') ? '+ Créer une commande depuis ce test'
+      : '+ Créer une mission depuis ce test';
+  }
+
   el('sim-results-zone').innerHTML = `<div class="card" style="background:var(--bg)"><div class="ts" style="color:var(--tl);padding:20px;text-align:center">Renseignez les champs à gauche pour voir les résultats.</div></div>`;
   el('sim-create-zone').style.display = 'none';
 
@@ -8719,6 +8670,8 @@ function renderSimOutputs(r) {
 
 function createMissionFromSim() {
   const isCollectif = getSimFields().collectif && document.getElementById('sim-collectif-sw')?.checked;
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
+  const isChantier = family === 'chantier' || family === 'fabrication';
   openMissionModal(null);
   setTimeout(() => {
     const type = isCollectif ? 'collectif' : 'individuelle';
@@ -8733,6 +8686,21 @@ function createMissionFromSim() {
       updateCollectifCA(); updateCollectifTemps();
     } else {
       document.getElementById('m-montant').value = document.getElementById('sim-ca-val')?.value || '';
+      if (isChantier) {
+        const hTemps = document.getElementById('sim-temps-val')?.value || '';
+        const hTrajet = document.getElementById('sim-trajet-val')?.value || '';
+        const matieres = document.getElementById('sim-matieres-val')?.value || '';
+        const autresfrais = document.getElementById('sim-autresfrais-val')?.value || '';
+        const parts = [];
+        if (hTemps) parts.push((isJours() ? `Temps : ${hTemps}j` : `Temps : ${hTemps}h`));
+        if (hTrajet) parts.push(`Trajet : ${hTrajet}h`);
+        if (matieres) parts.push(`${tVocab('coutDirectLabel')} : ${fmtE(parseFloat(matieres))}`);
+        if (autresfrais) parts.push(`Autres frais : ${fmtE(parseFloat(autresfrais))}`);
+        if (parts.length) {
+          const noteEl = document.getElementById('m-notes');
+          if (noteEl) noteEl.value = 'Depuis simulateur — ' + parts.join(' · ');
+        }
+      }
     }
   }, 50);
 }
