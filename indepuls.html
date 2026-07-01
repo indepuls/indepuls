@@ -3198,7 +3198,12 @@ function applyDefaults(data) {
   const def = getDefaultData();
   if (!data.params) data.params = def.params;
   Object.keys(def.params).forEach(k => { if (data.params[k] === undefined) data.params[k] = def.params[k]; });
-  if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
+  if (!data.params.modules) {
+    data.params.modules = getDefaultModules(data.params.metier);
+  } else {
+    const defMods = getDefaultModules(data.params.metier);
+    Object.keys(defMods).forEach(k => { if (data.params.modules[k] === undefined) data.params.modules[k] = defMods[k]; });
+  }
   if (!data.categories) data.categories = def.categories;
   if (!data.missions) data.missions = def.missions;
   if (!data.revenus) data.revenus = {};
@@ -3277,9 +3282,22 @@ function loadData() {
     let parsed = JSON.parse(raw);
     // Mode démo : recharger getExampleData() depuis le code avec le métier sauvegardé
     // (garantit que les mises à jour du contenu démo sont immédiatement visibles)
+    // On préserve les params de l'utilisateur (modules.objectif, etc.) par-dessus les données fraîches.
     if (parsed.isExample) {
       const savedMetier = parsed.params?.metier;
-      DATA = getExampleData(savedMetier);
+      const savedParams = parsed.params;
+      const demoData = getExampleData(savedMetier);
+      DATA = demoData;
+      if (savedParams) {
+        DATA.params = { ...demoData.params, ...savedParams };
+        // Garantir que modules est un objet avec toutes les clés requises
+        if (!DATA.params.modules || typeof DATA.params.modules !== 'object') {
+          DATA.params.modules = getDefaultModules(savedMetier);
+        } else {
+          const defMods = getDefaultModules(savedMetier);
+          Object.keys(defMods).forEach(k => { if (DATA.params.modules[k] === undefined) DATA.params.modules[k] = defMods[k]; });
+        }
+      }
       return;
     }
     parsed = migrate(parsed);
@@ -4025,10 +4043,12 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const prevH=(()=>{let h=0;DATA.missions.filter(m=>!m.isManagement).forEach(m=>{(m.tempsManuel||[]).forEach(t=>{if((t.date||'').startsWith(prevMk))h+=t.heures||0;});});return h;})();
     const prevTH=prevH>0?Math.round(prevNet/prevH):null;
     const _prevFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+    const _prevObjectif=DATA.params.modules?.objectif||'th';
     const _prevHj=DATA.params.heuresParJour||7;
     const _prevNbM=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(prevMk))).length;
-    const _prevBilanLbl=_prevFamily==='chantier'?'TJM réel':(_prevFamily==='fabrication'||_prevFamily==='achat_revente')?'Gain moyen':'TH réel';
-    const _prevBilanVal=_prevFamily==='chantier'?(prevTH!==null?fmtE(prevTH*_prevHj,0)+'/j':'—'):(_prevFamily==='fabrication'||_prevFamily==='achat_revente')?(_prevNbM>0?fmtE(Math.round(prevNet/_prevNbM)):'—'):(prevTH!==null?fmtE(prevTH,0)+'/h':'—');
+    const _prevItemLbl=_prevFamily==='achat_revente'?'vente':'commande';
+    const _prevBilanLbl=_prevObjectif==='tjm'?'TJM réel':_prevObjectif==='marge_commande'?`Gain / ${_prevItemLbl}`:'TH réel';
+    const _prevBilanVal=_prevObjectif==='tjm'?(prevTH!==null?fmtE(prevTH*_prevHj,0)+'/j':'—'):_prevObjectif==='marge_commande'?(_prevNbM>0?fmtE(Math.round(prevNet/_prevNbM)):'—'):(prevTH!==null?fmtE(prevTH,0)+'/h':'—');
     const prevPrevMo=prevMo===1?12:prevMo-1, prevPrevY=prevMo===1?prevY-1:prevY;
     const prevPrevMk=`${prevPrevY}-${String(prevPrevMo).padStart(2,'0')}`;
     const ppBrut=getCaBreakdownMois(prevPrevMk).prestation+(getCaBreakdownMois(prevPrevMk).vente||0)+getPonctuelsCA(prevPrevMk);
@@ -4370,16 +4390,16 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Revenu net en dessous de l'objectif — ${fmtE(caNetMoy)} vs ${fmtE(p.objectifNetMensuel)} visés.`});
   const _thMinAlert=getTauxHoraireMinCible();
   const _familyAlert=BUSINESS_PROFILE_MAP[p.metier]||'service';
-  const _isChantierAlert=_familyAlert==='chantier';
-  const _isMargeAlert=_familyAlert==='fabrication'||_familyAlert==='achat_revente';
+  const _objectifAlert=p.modules?.objectif||'th';
+  const _itemLblAlert=_familyAlert==='achat_revente'?'vente':'commande';
   const _hjAlert=p.heuresParJour||7;
   const _tjmRAlert=Math.round(thR*_hjAlert), _tjmMinAlert=Math.round(_thMinAlert*_hjAlert);
-  if(_isChantierAlert){
+  if(_objectifAlert==='tjm'){
     if(thR>0&&((_thMinAlert>0&&_tjmRAlert<_tjmMinAlert)||(_thMinAlert===0&&_tjmRAlert<280)))
-      alerts.push({pr:1,cl:'al-warn',txt:`📅 TJM réel bas : ${fmtE(_tjmRAlert,0)}/j${_tjmMinAlert>0?` (objectif minimum : ${fmtE(_tjmMinAlert,0)}/j)`:''} — vérifiez la rentabilité de vos chantiers.`});
-  } else if(_isMargeAlert){
+      alerts.push({pr:1,cl:'al-warn',txt:`📅 TJM réel bas : ${fmtE(_tjmRAlert,0)}/j${_tjmMinAlert>0?` (objectif minimum : ${fmtE(_tjmMinAlert,0)}/j)`:''} — vérifiez la rentabilité de vos journées.`});
+  } else if(_objectifAlert==='marge_commande'){
     if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
-      alerts.push({pr:2,cl:'al-info',txt:`⏱ Gain horaire insuffisant : ${fmtE(thR,0)}/h${_thMinAlert>0?` (obj. min. ${fmtE(_thMinAlert,0)}/h)`:''} — comparez le temps passé par ${_familyAlert==='achat_revente'?'vente':'commande'}.`});
+      alerts.push({pr:2,cl:'al-info',txt:`⏱ Gain horaire insuffisant : ${fmtE(thR,0)}/h${_thMinAlert>0?` (obj. min. ${fmtE(_thMinAlert,0)}/h)`:''} — comparez le temps passé par ${_itemLblAlert}.`});
     // Marge faible (coûts directs vs CA)
     const _coutMapAlert=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
     const _cAgg=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
@@ -4470,8 +4490,7 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const p=DATA.params;
   // ── Famille & KPI conditionnel ────────────────────────────────
   const _family=BUSINESS_PROFILE_MAP[p.metier]||'service';
-  const _isChantier=_family==='chantier';
-  const _isMarge=_family==='fabrication'||_family==='achat_revente';
+  const _objectif=p.modules?.objectif||'th';
   const _hj=p.heuresParJour||7;
   const _thMin=getTauxHoraireMinCible();
   const _tjmR=Math.round(thR*_hj), _tjmMin=Math.round(_thMin*_hj);
@@ -4555,7 +4574,7 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     </div>
     ${isSASU()
       ?wTresorerieKPI()
-      :_isMarge
+      :_objectif==='marge_commande'
         ?`<div class="kpi neu">
             <div class="kpi-ico">${_family==='achat_revente'?'🛍️':'📦'}</div>
             <div class="kpi-label">Gain moyen par ${_itemLbl}</div>
@@ -4563,7 +4582,7 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
             <div class="kpi-sub mt4">${_nbMissions>0?`sur ${_nbMissions} ${_itemLbl}${_nbMissions>1?'s':''} encaissé${_nbMissions>1?'s':''}`:phraseNet}</div>
             <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">Revenu net : <strong>${fmtE(caNet,0)}</strong>${objNet>0?` · ${pctObj}% de l'objectif mensuel`:''}. ${phraseNet}</div>
           </div>`
-        :_isChantier
+        :_objectif==='tjm'
           ?`<div class="kpi ${_tjmMin>0?(_tjmR>=_tjmMin?'good':_tjmR>=Math.round(_tjmMin*.75)?'warn':'bad'):'neu'}">
               <div class="kpi-ico">📅</div>
               <div class="kpi-label">TJM réel — ${DATA.currentYear}</div>
@@ -7662,21 +7681,21 @@ function archSmartPct(curr,prev){
 function buildArchInterpretation(curr,ref){
   if(!ref||(!ref.caBrut&&!ref.caNet&&!ref.heures)) return '';
   const _fam=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
-  const _isChantier=_fam==='chantier', _isMarge=_fam==='fabrication'||_fam==='achat_revente';
+  const _archObjectif=DATA.params?.modules?.objectif||'th';
   const _itemLbl=_fam==='achat_revente'?'vente':'commande';
   const kpiTrend=curr.kpi>0&&ref.kpi>0?(curr.kpi-ref.kpi)/ref.kpi:null;
   const hTrend=ref.heures>0?(curr.heures-ref.heures)/ref.heures:null;
   const mTrend=ref.missions>0?(curr.missions-ref.missions)/ref.missions:null;
   const caTrend=ref.caBrut>0?(curr.caBrut-ref.caBrut)/ref.caBrut:null;
   const netTrend=ref.caNet>0?(curr.caNet-ref.caNet)/ref.caNet:null;
-  if(_isChantier){
+  if(_archObjectif==='tjm'){
     if(kpiTrend!==null&&kpiTrend>0.1&&hTrend!==null&&hTrend<-0.05)
       return "Votre TJM moyen progresse et vous travaillez moins de jours — excellente rentabilité.";
     if(kpiTrend!==null&&kpiTrend<-0.1)
       return "Votre TJM moyen baisse — vérifiez la tarification de vos chantiers.";
     if(kpiTrend!==null&&kpiTrend>0.15)
       return "Votre TJM moyen est en forte hausse — vous valorisez mieux vos journées.";
-  } else if(_isMarge){
+  } else if(_archObjectif==='marge_commande'){
     if(kpiTrend!==null&&kpiTrend>0.1&&mTrend!==null&&mTrend>0.05)
       return `Gain moyen par ${_itemLbl} et volume en hausse — votre activité se développe efficacement.`;
     if(kpiTrend!==null&&kpiTrend>0.15)
