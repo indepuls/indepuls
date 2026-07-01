@@ -9351,14 +9351,31 @@ document.addEventListener('keydown', function(e) {
       var btn   = document.getElementById('auth-login-btn');
       if (!email || !pwd) { if(msg) msg.textContent='Veuillez remplir tous les champs.'; return; }
       if(btn){ btn.disabled=true; btn.textContent='Connexion…'; }
-      if(msg) msg.textContent='';
+      if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Connexion en cours…'; }
+      console.log('[AUTH] signInWithPassword →', email);
+      var loginTimeout = setTimeout(function() {
+        if(msg){ msg.style.color='#e55'; msg.textContent='⏱ Délai dépassé — Supabase ne répond pas. Vérifie ta connexion internet.'; }
+        if(btn){ btn.disabled=false; btn.textContent='Se connecter'; }
+        console.warn('[AUTH] signInWithPassword timeout (10s)');
+      }, 10000);
       try {
         var res = await sb.auth.signInWithPassword({ email, password: pwd });
+        clearTimeout(loginTimeout);
+        console.log('[AUTH] signInWithPassword result →', JSON.stringify({ error: res.error, hasSession: !!res.data?.session }));
         if(res.error) throw res.error;
+        if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Connecté ! Chargement…'; }
         // onAuthStateChange(SIGNED_IN) prend le relais
       } catch(e) {
-        if(msg) msg.textContent = e.message === 'Invalid login credentials'
-          ? 'Email ou mot de passe incorrect.' : (e.message||'Erreur de connexion.');
+        clearTimeout(loginTimeout);
+        console.error('[AUTH] signInWithPassword error →', e.message, e);
+        var errMsg = e.message === 'Invalid login credentials' || e.message === 'invalid_credentials'
+          ? 'Email ou mot de passe incorrect.'
+          : e.message === 'Email not confirmed'
+          ? 'Email non confirmé — vérifie ta boîte mail.'
+          : e.message === 'Failed to fetch' || e.name === 'TypeError'
+          ? '❌ Impossible de joindre Supabase (réseau ou CORS). Ouvre la console F12 pour les détails.'
+          : (e.message || 'Erreur de connexion.');
+        if(msg){ msg.style.color='#e55'; msg.textContent=errMsg; }
         if(btn){ btn.disabled=false; btn.textContent='Se connecter'; }
       }
     };
@@ -9371,21 +9388,25 @@ document.addEventListener('keydown', function(e) {
   }, 6000);
 
   sb.auth.onAuthStateChange(async function(event, session) {
+    console.log('[AUTH] onAuthStateChange →', event, session ? 'session OK user='+session.user?.email : 'no session');
     if (event === 'INITIAL_SESSION') {
       _authFired = true;
       clearTimeout(_authTimeout);
       if (session) {
-        await loadFromCloud(session.user);
+        console.log('[AUTH] INITIAL_SESSION with session → hideOverlay + loadFromCloud');
         hideOverlay();
         setTimeout(addLogoutButton, 200);
+        await loadFromCloud(session.user);
       } else {
+        console.log('[AUTH] INITIAL_SESSION no session → showLoginForm');
         showLoginForm();
       }
     }
     if (event === 'SIGNED_IN') {
-      await loadFromCloud(session.user);
+      console.log('[AUTH] SIGNED_IN → hideOverlay + loadFromCloud');
       hideOverlay();
       setTimeout(addLogoutButton, 200);
+      await loadFromCloud(session.user);
     }
     if (event === 'SIGNED_OUT') {
       var lb = document.getElementById('logout-btn');
