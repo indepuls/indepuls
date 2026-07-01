@@ -7577,19 +7577,33 @@ function renderArchives() {
   const caBD=years.map(y=>y===cy?caBrutC:(DATA.archives[y]||{}).caBrut||0);
   const caNd=years.map(y=>y===cy?caNetC:(DATA.archives[y]||{}).caNet||0);
   requestAnimationFrame(()=>{ drawBarChart('chart-archives',years.map(String),[{label:'CA brut',data:caBD,color:themeColor('--acc')||'#5B2C4A'},{label:'Revenu net',data:caNd,color:themeColor('--sec')||'#BB9E81'}],{height:260}); });
+  const _archFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const _archIsChantier=_archFamily==='chantier';
+  const _archIsMarge=_archFamily==='fabrication'||_archFamily==='achat_revente';
+  const _archHj=DATA.params.heuresParJour||7;
+  const _archItemLbl=_archFamily==='achat_revente'?'vente':'commande';
+  const _archKpiLbl=_archIsChantier?'TJM moyen':_archIsMarge?`Gain / ${_archItemLbl}`:'TH réel';
+  const _archKpiUnit=_archIsChantier?'/j':_archIsMarge?'':'/h';
+  function _archKpiVal(d){
+    if(!d||(!d.caNet&&!d.heures&&!d.missions)) return 0;
+    if(_archIsChantier) return d.heures>0?Math.round(d.caNet/d.heures*_archHj):0;
+    if(_archIsMarge) return d.missions>0?Math.round(d.caNet/d.missions):0;
+    return d.heures>0?d.caNet/d.heures:0;
+  }
+  function _archKpiFmt(v){ return v>0?(fmtE(Math.round(v),0)+_archKpiUnit):'—'; }
   const rows=years.map(y=>{
     const isCurrent=y===cy, isArchived=!!DATA.archives[y];
     const isEmpty=!isCurrent&&!isArchived;
     const d=isCurrent?{caBrut:caBrutC,caNet:caNetC,heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length}:(DATA.archives[y]||{});
-    const th=d.heures>0?d.caNet/d.heures:0;
+    const kpi=_archKpiVal(d);
     const rowStyle=isCurrent?'style="font-weight:700"':isEmpty?'style="opacity:.45"':'';
     const yrCell=`${y}${isCurrent?' <span class="chip">En cours</span>':isEmpty?' <span class="ts">— à compléter</span>':d.manual?' <span class="ts">(manuel)</span>':''}`;
     const delCell=isCurrent?'<td></td>':isEmpty?'<td></td>':`<td style="display:flex;gap:4px"><button class="btn btn-out btn-xs" onclick="openEditArchiveModal(${y})">✏️</button><button class="btn btn-del btn-xs" onclick="deleteArchive(${y})">🗑</button></td>`;
-    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="${tVocab('items')}">${isEmpty?'—':d.missions||'—'}</td><td data-label="TH réel">${isEmpty?'—':th>0?fmtE(th,0)+'/h':'—'}</td>${delCell}</tr>`;
+    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="${tVocab('items')}">${isEmpty?'—':d.missions||'—'}</td><td data-label="${_archKpiLbl}">${isEmpty?'—':_archKpiFmt(kpi)}</td>${delCell}</tr>`;
   }).join('');
-  document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>${tVocab('items')}</th><th>TH réel</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  const thD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne()}:(DATA.archives[y]||{}); return d.heures>0?d.caNet/d.heures:0; });
-  requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:'TH réel (€/h)',data:thD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
+  document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>${tVocab('items')}</th><th>${_archKpiLbl}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const kpiD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length}:(DATA.archives[y]||{}); return _archKpiVal(d); });
+  requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:`${_archKpiLbl} (€${_archKpiUnit})`,data:kpiD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
   renderArchCompare(); renderArchProgress();
   const bilanKeys=Object.keys(DATA.bilans||{}).sort().reverse();
   let retroHTML='';
@@ -7610,13 +7624,18 @@ function renderArchives() {
 // ── Archives : helpers comparaison annuelle ───────────────────
 function getArchYearData(y){
   const cy=DATA.currentYear;
+  const _fam=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const _hj=DATA.params.heuresParJour||7;
+  function _kpi(caNet,h,m){ if(_fam==='chantier') return h>0?caNet/h*_hj:0; if(_fam==='fabrication'||_fam==='achat_revente') return m>0?caNet/m:0; return h>0?caNet/h:0; }
   if(y===cy){
     const h=getHeuresFact()+getHeuresInterne();
     const caNet=getCaNetAnnuel(), caBrut=getCaAnnuelBrut();
-    return {caBrut,caNet,heures:h,missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length,th:h>0?caNet/h:0};
+    const missions=DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length;
+    return {caBrut,caNet,heures:h,missions,th:h>0?caNet/h:0,kpi:_kpi(caNet,h,missions)};
   }
   const d=DATA.archives[y]||{};
-  return {caBrut:d.caBrut||0,caNet:d.caNet||0,heures:d.heures||0,missions:d.missions||0,th:(d.heures||0)>0?(d.caNet||0)/(d.heures||1):0};
+  const h=d.heures||0, caNet=d.caNet||0, missions=d.missions||0;
+  return {caBrut:d.caBrut||0,caNet,heures:h,missions,th:h>0?caNet/h:0,kpi:_kpi(caNet,h,missions)};
 }
 function archSmartPct(curr,prev){
   if(prev===0&&curr===0) return null;
@@ -7633,14 +7652,39 @@ function archSmartPct(curr,prev){
 }
 function buildArchInterpretation(curr,ref){
   if(!ref||(!ref.caBrut&&!ref.caNet&&!ref.heures)) return '';
-  const thTrend=curr.th>0&&ref.th>0?(curr.th-ref.th)/ref.th:null;
+  const _fam=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const _isChantier=_fam==='chantier', _isMarge=_fam==='fabrication'||_fam==='achat_revente';
+  const _itemLbl=_fam==='achat_revente'?'vente':'commande';
+  const kpiTrend=curr.kpi>0&&ref.kpi>0?(curr.kpi-ref.kpi)/ref.kpi:null;
   const hTrend=ref.heures>0?(curr.heures-ref.heures)/ref.heures:null;
+  const mTrend=ref.missions>0?(curr.missions-ref.missions)/ref.missions:null;
   const caTrend=ref.caBrut>0?(curr.caBrut-ref.caBrut)/ref.caBrut:null;
   const netTrend=ref.caNet>0?(curr.caNet-ref.caNet)/ref.caNet:null;
-  if(hTrend!==null&&hTrend<-0.1&&thTrend!==null&&thTrend>0.1)
-    return "Vous facturez moins d'heures mais à un meilleur taux — votre rentabilité progresse.";
-  if(hTrend!==null&&hTrend>0.1&&thTrend!==null&&thTrend<-0.1)
-    return "Vous facturez plus d'heures mais votre taux horaire baisse — attention à la rentabilité.";
+  if(_isChantier){
+    if(kpiTrend!==null&&kpiTrend>0.1&&hTrend!==null&&hTrend<-0.05)
+      return "Votre TJM moyen progresse et vous travaillez moins de jours — excellente rentabilité.";
+    if(kpiTrend!==null&&kpiTrend<-0.1)
+      return "Votre TJM moyen baisse — vérifiez la tarification de vos chantiers.";
+    if(kpiTrend!==null&&kpiTrend>0.15)
+      return "Votre TJM moyen est en forte hausse — vous valorisez mieux vos journées.";
+  } else if(_isMarge){
+    if(kpiTrend!==null&&kpiTrend>0.1&&mTrend!==null&&mTrend>0.05)
+      return `Gain moyen par ${_itemLbl} et volume en hausse — votre activité se développe efficacement.`;
+    if(kpiTrend!==null&&kpiTrend>0.15)
+      return `Votre gain moyen par ${_itemLbl} est en forte hausse — votre rentabilité s'améliore.`;
+    if(kpiTrend!==null&&kpiTrend<-0.1)
+      return `Votre gain moyen par ${_itemLbl} baisse — vérifiez vos coûts d'achat et vos tarifs.`;
+    if(mTrend!==null&&mTrend>0.2&&kpiTrend!==null&&Math.abs(kpiTrend)<0.05)
+      return `Vous traitez plus de ${_itemLbl}s mais le gain unitaire reste stable — croissance par le volume.`;
+  } else {
+    const thTrend=curr.th>0&&ref.th>0?(curr.th-ref.th)/ref.th:null;
+    if(hTrend!==null&&hTrend<-0.1&&thTrend!==null&&thTrend>0.1)
+      return "Vous facturez moins d'heures mais à un meilleur taux — votre rentabilité progresse.";
+    if(hTrend!==null&&hTrend>0.1&&thTrend!==null&&thTrend<-0.1)
+      return "Vous facturez plus d'heures mais votre taux horaire baisse — attention à la rentabilité.";
+    if(thTrend!==null&&thTrend>0.2)
+      return "Votre taux horaire réel est en forte hausse — vous valorisez mieux votre temps.";
+  }
   if(caTrend!==null&&caTrend>0.05&&netTrend!==null&&netTrend>0.05)
     return "Bonne dynamique : CA et rentabilité progressent ensemble.";
   if(caTrend!==null&&caTrend>0.1&&netTrend!==null&&Math.abs(netTrend)<0.05)
@@ -7649,8 +7693,6 @@ function buildArchInterpretation(curr,ref){
     return "Votre activité est en recul — vérifiez votre remplissage et vos sources d'acquisition.";
   if(caTrend!==null&&caTrend<-0.1)
     return "Votre CA est en baisse — vérifiez votre remplissage et vos tarifs.";
-  if(thTrend!==null&&thTrend>0.2)
-    return "Votre taux horaire réel est en forte hausse — vous valorisez mieux votre temps.";
   if(netTrend!==null&&netTrend>0.1)
     return "Votre revenu net progresse — bonne maîtrise des charges.";
   if(caTrend!==null&&Math.abs(caTrend)<0.05&&netTrend!==null&&Math.abs(netTrend)<0.05)
