@@ -14,6 +14,12 @@
 >
 > **Après chaque commit, faire automatiquement un `git push` sur `main` sans demander confirmation.** Le déploiement Vercel est automatique à chaque push.
 
+## Architecture produit & Matrice fonctionnelle
+
+> **Lire `ARCHITECTURE_PRODUIT.md` avant toute modification des KPIs, widgets, alertes ou comportements conditionnels par profil.**
+> Ce fichier est la référence fonctionnelle : il indique quel KPI afficher pour quel profil sur quel écran.
+> Ne jamais afficher "TH" comme KPI principal pour fabrication/achat_revente. Ne jamais afficher "/h" comme unité principale pour artisan_batiment.
+
 ## Vision produit
 
 Indépuls est un **copilote de rentabilité pour indépendants**.
