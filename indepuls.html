@@ -8932,6 +8932,11 @@ function cancelProfilChange() {
 function saveModuleParam(key, val) {
   if (!DATA.params.modules) DATA.params.modules = {};
   DATA.params.modules[key] = val;
+  // Couplage objectif → uniteTemps : TH implique heures, TJM implique jours
+  if (key === 'objectif') {
+    if (val === 'th')  DATA.params.modules.uniteTemps = 'heures';
+    if (val === 'tjm') DATA.params.modules.uniteTemps = 'jours';
+  }
   saveData();
   renderModulesUI();
   renderAll();
@@ -8950,6 +8955,9 @@ function renderModulesUI() {
   const btnJ = document.getElementById('mod-unite-jours');
   if (btnH) { btnH.style.background=isJ?'transparent':'var(--pri)'; btnH.style.color=isJ?'var(--tl)':'#fff'; btnH.style.borderColor=isJ?'var(--brd)':'var(--pri)'; }
   if (btnJ) { btnJ.style.background=isJ?'var(--pri)':'transparent'; btnJ.style.color=isJ?'#fff':'var(--tl)'; btnJ.style.borderColor=isJ?'var(--pri)':'var(--brd)'; }
+  // Toggle uniteTemps visible seulement en mode Marge (sinon implicite via objectif)
+  const uniteZone = document.getElementById('mod-unite-zone');
+  if (uniteZone) uniteZone.style.display = m.objectif === 'marge_commande' ? '' : 'none';
   // devis switch
   const modDevis = document.getElementById('mod-devis');
   if (modDevis) modDevis.checked = !!m.devis;
