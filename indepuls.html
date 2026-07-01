@@ -3084,7 +3084,7 @@ function closeWelcomeModal(dest) {
 }
 
 // Charge les données fictives en injectant les params déjà configurés
-function loadDemoWithCurrentParams() {
+function loadDemoWithCurrentParams(skipWelcome) {
   const savedParams = JSON.parse(JSON.stringify(DATA.params));
   const theme = DATA.theme || 'obm';
   // Construire la démo pour ce métier
@@ -3101,7 +3101,7 @@ function loadDemoWithCurrentParams() {
   document.body.setAttribute('data-theme', theme);
   renderAll();
   applyVocabUI();
-  openModal('modal-welcome');
+  if (!skipWelcome) openModal('modal-welcome');
 }
 
 function openClearExampleModal() {
@@ -5693,9 +5693,10 @@ function renderRecettes() {
   if(!cont) return;
 
   if(recettes.length===0){
+    const _dbg = DATA.isExample ? ` [debug: ${DATA.missions?.length} missions, ${getRecettesData().length} enc brutes, actif=${DATA.params.livreRecettesActif}, annee=${DATA.currentYear}]` : '';
     cont.innerHTML=`<div class="card" style="text-align:center;padding:40px 24px;border:2px dashed var(--brd)">
       <div style="font-size:40px;margin-bottom:12px">📒</div>
-      <div style="color:var(--tl);font-size:14px;line-height:1.8">Aucune recette pour ce filtre.<br>Les encaissements enregistrés sur vos missions<br>apparaissent ici automatiquement.</div>
+      <div style="color:var(--tl);font-size:14px;line-height:1.8">Aucune recette pour ce filtre.<br>Les encaissements enregistrés sur vos missions<br>apparaissent ici automatiquement.${_dbg}</div>
     </div>`;
     return;
   }
@@ -8887,7 +8888,7 @@ function applyProfile(metier, applyModules=true) {
   if (applyModules) DATA.params.modules = getDefaultModules(metier);
   applyVocabUI();
   saveData();
-  if (DATA.isExample) { loadDemoWithCurrentParams(); renderAll(); return; }
+  if (DATA.isExample) { loadDemoWithCurrentParams(true); return; }
 }
 function onProfilChange(metier) {
   const prev = DATA.params.metier;
