@@ -4885,22 +4885,62 @@ function wScoreSante(d) {
   const curMk=getCurrentMk();
 
   // ── PILIER 1 : RENTABILITÉ (25 pts) ──────────────────────────
-  // Comparaison brut vs brut : thBrut (CA brut / heures) vs thMin (TH cible brut à facturer)
+  const _rentFamily=BUSINESS_PROFILE_MAP[DATA.params.metier]||'service';
+  const _rentIsChantier=_rentFamily==='chantier';
+  const _rentIsMarge=_rentFamily==='fabrication'||_rentFamily==='achat_revente';
   let sRent=0;
   const thBrut=hT>0?caBrut/hT:0;
   const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
   const gapTjm=tjmMin-tjmBrut;
-  if(hT>0){const ref=thMin>0?thMin:60;const r=thBrut/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
+  // ── Marge brute % (fabrication / achat_revente)
+  const _rentCouts=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
+    const co=(m.coutsDirects||[]).reduce((a,c)=>a+(parseFloat(c.montant)||0),0);
+    const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
+    return {ca:s.ca+en,couts:s.couts+co};
+  },{ca:0,couts:0});
+  const _margePct=_rentCouts.ca>0?Math.round((_rentCouts.ca-_rentCouts.couts)/_rentCouts.ca*100):null;
+  const _seuilMargePct=_rentFamily==='achat_revente'?20:30;
   const pctObj=objNet>0?caNetMoy/objNet*100:null;
-  if(pctObj!==null&&hT>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
-  const vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
-  const subRent=thMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
-  let diagRent,advRent;
-  if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
-  else if(sRent>=20){diagRent=`🟢 TJM brut ${thMin>0?`supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
-  else if(sRent>=14){diagRent=`🟠 TJM brut proche de la cible${thMin>0&&gapTjm>0?` — il manque encore ${fmtE(gapTjm,0)}/j`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
-  else if(sRent>=7){diagRent=`🔴 TJM brut inférieur${thMin>0?` de ${fmtE(gapTjm,0)}/j à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
-  else{diagRent=`🔴 TJM brut très faible${thMin>0?` — ${tjmBrut>0?fmtE(tjmBrut,0)+'/j pour ':''} objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+  // ── Score
+  if(_rentIsMarge){
+    if(_margePct===null){sRent=12;}
+    else{sRent=_margePct>=40?25:_margePct>=25?19:_margePct>=15?11:4;}
+    if(pctObj!==null) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+  } else if(_rentIsChantier){
+    if(hT>0){const ref=tjmMin>0?tjmMin:280;const r=tjmBrut/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
+    if(pctObj!==null&&hT>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+  } else {
+    if(hT>0){const ref=thMin>0?thMin:60;const r=thBrut/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
+    if(pctObj!==null&&hT>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+  }
+  // ── Valeur & sous-titre affichés
+  let vRent,subRent,diagRent,advRent;
+  if(_rentIsMarge){
+    vRent=_margePct!==null?_margePct+'%':'—';
+    subRent=`seuil recommandé ≥${_seuilMargePct}%`;
+    if(_margePct===null){diagRent='○ Aucun coût direct saisi — ajoutez vos coûts sur vos affaires.';advRent='';}
+    else if(sRent>=20){diagRent=`🟢 Marge brute de ${_margePct}% — au-dessus du seuil recommandé (${_seuilMargePct}%).`;advRent='Votre structure de coûts est saine. Continuez à suivre vos coûts directs.';}
+    else if(sRent>=14){diagRent=`🟠 Marge brute de ${_margePct}% — proche du seuil (${_seuilMargePct}%).`;advRent='Optimisez vos coûts d\'achat ou augmentez légèrement vos prix de vente.';}
+    else if(sRent>=7){diagRent=`🔴 Marge brute de ${_margePct}% — en dessous du seuil recommandé (${_seuilMargePct}%).`;advRent='Revoyez votre politique de prix ou réduisez vos coûts directs.';}
+    else{diagRent=`🔴 Marge brute très faible (${_margePct}%) — risque sur la viabilité de l'activité.`;advRent='Action urgente : analysez les affaires les moins rentables et réévaluez vos prix.';}
+  } else if(_rentIsChantier){
+    vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
+    subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
+    if(!hT){diagRent='○ Aucune heure saisie — renseignez vos chantiers.';advRent='';}
+    else if(sRent>=20){diagRent=`🟢 TJM réel ${tjmMin>0?`supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Vos chantiers sont rentables. Continuez ainsi.';}
+    else if(sRent>=14){diagRent=`🟠 TJM réel proche de la cible${tjmMin>0&&gapTjm>0?` — il manque encore ${fmtE(gapTjm,0)}/j`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=7){diagRent=`🔴 TJM réel inférieur${tjmMin>0?` de ${fmtE(gapTjm,0)}/j à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos chantiers.';}
+    else{diagRent=`🔴 TJM réel très faible${tjmMin>0?` — objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les chantiers les moins rentables.';}
+  } else {
+    vRent=hT>0?fmtE(thBrut,0)+'/h':'—';
+    subRent=thMin>0?`obj. min. ${fmtE(thMin,0)}/h`:'Cible non définie';
+    const gapTh=thMin-thBrut;
+    if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
+    else if(sRent>=20){diagRent=`🟢 TH réel ${thMin>0?`supérieur de ${fmtE(-gapTh,0)}/h à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
+    else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible${thMin>0&&gapTh>0?` — il manque encore ${fmtE(gapTh,0)}/h`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=7){diagRent=`🔴 TH réel inférieur${thMin>0?` de ${fmtE(gapTh,0)}/h à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
+    else{diagRent=`🔴 TH réel très faible${thMin>0?` — objectif minimum ${fmtE(thMin,0)}/h`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+  }
 
   // ── PILIER 2 : REMPLISSAGE / CAPACITÉ (25 pts) ───────────────
   const pilRemp=getPilierRemplissage();
@@ -5026,8 +5066,13 @@ function wScoreSante(d) {
     const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
     const relanceHint=attPipe>0?` Pensez à relancer vos <strong>${attPipe} devis en attente</strong>.`:' Pensez à relancer votre prospection ou vos devis en attente.';
     priorite=`Remplir environ <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> pour sécuriser votre objectif de revenu.`+relanceHint;
-  } else if(worst.n==='rentabilité'&&thMin>0&&hT>0&&gapTjm>0){
-    priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
+  } else if(worst.n==='rentabilité'&&hT>0){
+    if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
+      priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
+    else if(_rentIsChantier&&tjmMin>0&&gapTjm>0)
+      priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
+    else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&thBrut<thMin)
+      priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
   } else if(score>=85){
     priorite='Continuez sur cette lancée — votre activité est en excellente santé. 🎉';
   } else {
@@ -5077,13 +5122,22 @@ function wScoreSante(d) {
   // ── DONNÉES DÉTAILLÉES PAR PILIER ────────────────────────────
   // Rentabilité
   const rentC=hT>0?(sRent>=20?'var(--ok)':sRent>=14?'var(--warn)':'var(--err)'):'var(--tl)';
-  const rowsRent=[
-    {lbl:'TJM brut réel',       val:hT>0?fmtE(tjmBrut,0)+'/j':'—',           c:rentC},
-    {lbl:'TH brut réel',        val:hT>0?fmtE(thBrut,0)+'/h':'—',             c:rentC},
-    {lbl:'Seuil min. TJM',      val:thMin>0?fmtE(tjmMin,0)+'/j':'Non défini',  c:'var(--tl)'},
-    {lbl:'Seuil min. TH',       val:thMin>0?fmtE(thMin,0)+'/h':'Non défini',   c:'var(--tl)'},
-    {lbl:'Écart TJM',           val:hT>0&&thMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&thMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
-    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                c:'var(--tl)'},
+  const rowsRent=_rentIsMarge?[
+    {lbl:'Marge brute',         val:_margePct!==null?_margePct+'%':'—',                  c:_margePct!==null?rentC:'var(--tl)'},
+    {lbl:'Seuil recommandé',    val:'≥'+_seuilMargePct+'%',                               c:'var(--tl)'},
+    {lbl:'CA total',            val:_rentCouts.ca>0?fmtE(_rentCouts.ca):'—',             c:'var(--tl)'},
+    {lbl:'Coûts directs',       val:_rentCouts.couts>0?fmtE(_rentCouts.couts):'—',       c:'var(--tl)'},
+    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
+  ]:_rentIsChantier?[
+    {lbl:'TJM réel',            val:hT>0?fmtE(tjmBrut,0)+'/j':'—',                      c:rentC},
+    {lbl:'Seuil min. TJM',      val:tjmMin>0?fmtE(tjmMin,0)+'/j':'Non défini',           c:'var(--tl)'},
+    {lbl:'Écart TJM',           val:hT>0&&tjmMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&tjmMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
+  ]:[
+    {lbl:'TH réel',             val:hT>0?fmtE(thBrut,0)+'/h':'—',                       c:rentC},
+    {lbl:'Seuil min. TH',       val:thMin>0?fmtE(thMin,0)+'/h':'Non défini',             c:'var(--tl)'},
+    {lbl:'Écart TH',            val:hT>0&&thMin>0?((thMin-thBrut)<=0?'+'+fmtE(thBrut-thMin,0)+'/h':fmtE(thMin-thBrut,0)+'/h manquants'):'—', c:hT>0&&thMin>0?((thMin-thBrut)<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
   ];
   if(pctObj!==null) rowsRent.push({lbl:'Objectif de revenu net mensuel atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
@@ -5116,7 +5170,11 @@ function wScoreSante(d) {
   ];
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
-  const methRent=`<strong>Données ·</strong> TJM brut réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM brut vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
+  const methRent=_rentIsMarge
+    ?`<strong>Données ·</strong> Marge brute % = (CA encaissé − coûts directs) ÷ CA encaissé<br><strong>Comparaison ·</strong> Marge brute vs seuil recommandé (${_seuilMargePct}% pour ${_rentFamily==='achat_revente'?'achat/revente':'fabrication'})<br><strong>Barème ·</strong> ≥ 40 % → 25/25 &nbsp;·&nbsp; ≥ 25 % → 19/25 &nbsp;·&nbsp; ≥ 15 % → 11/25 &nbsp;·&nbsp; &lt; 15 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
+    :_rentIsChantier
+      ?`<strong>Données ·</strong> TJM réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
+      :`<strong>Données ·</strong> TH réel = CA brut annuel ÷ heures travaillées<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
   const methRemp=`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
   const methComm=`<strong>Données ·</strong> Missions actives = ponctuelles en cours/en attente + récurrentes encore dans leur période<br><strong>Barème ·</strong> ≥ 3 actives OU ≥ 2 actives + 1 devis → 25/25 &nbsp;·&nbsp; 2 actives OU 1 active + 1 devis → 18/25<br>&nbsp;&nbsp;1 active sans devis → 10/25 &nbsp;·&nbsp; 0 active → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin de la récurrente active la plus longue`;
