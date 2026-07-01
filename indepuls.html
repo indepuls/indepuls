@@ -6459,7 +6459,7 @@ function renderMissionsSummary(all) {
     <div style="padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--tl);font-weight:600;white-space:nowrap">📅 ${DATA.currentYear}</span>
-        ${sep}${st('🔄','En cours',enCours.length+' mission'+(enCours.length>1?'s':'')+' · '+fmtE(caEnCours),'')}
+        ${sep}${st('🔄','En cours',enCours.length+' '+(enCours.length>1?tVocab('items').toLowerCase():tVocab('item').toLowerCase())+' · '+fmtE(caEnCours),'')}
         ${sep}${st('📩','En attente',enAtt.length+' devis'+(caEnAtt?' · '+fmtE(caEnAtt):''),'')}
         ${sep}${st('💰','À encaisser',encVal,encCol)}
         ${sep}${st('✅','Facturé',fmtE(caFacture),'var(--ok)')}
@@ -6470,7 +6470,7 @@ function renderMissionsSummary(all) {
     </div>
     <div id="msn-stats-panel" style="display:none;border-top:1px solid var(--brd);padding:14px 16px" data-hf="${_hF}" data-hi="${_hI}" data-href="${_hRef}">
       <div class="g3" style="gap:10px">
-        ${card('🔄','En cours',enCours.length+' mission'+(enCours.length>1?'s':''),fmtE(caEnCours)+' de CA en cours','')}
+        ${card('🔄','En cours',enCours.length+' '+(enCours.length>1?tVocab('items').toLowerCase():tVocab('item').toLowerCase()),fmtE(caEnCours)+' de CA en cours','')}
         ${card('📩','En attente',enAtt.length+' devis',enAtt.length>0?fmtE(caEnAtt)+' potentiels':'Aucun devis en attente','')}
         ${card('💰','À encaisser',aEncaisser.length>0?fmtE(totalReste):'Tout encaissé',aEncaisser.length>0?(aEncaisser.length+' mission'+(aEncaisser.length>1?'s':'')+' · '+(enRetard>0?enRetard+' en retard':'À jour')):aEncaisser.length===0&&facturees.length>0?'✓ Aucun impayé':'—',aEncaisser.length>0&&enRetard>0?'var(--warn)':aEncaisser.length>0?'var(--warn)':'var(--ok)')}
         ${card('✅','CA facturé',fmtE(caFacture),facturees.length+' mission'+(facturees.length>1?'s':'')+(facturees.length>0?' terminée'+(facturees.length>1?'s':''):''),'var(--ok)')}
