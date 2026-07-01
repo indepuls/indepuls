@@ -4907,11 +4907,13 @@ function wScoreSante(d) {
     else{sRent=_margePct>=40?25:_margePct>=25?19:_margePct>=15?11:4;}
     if(pctObj!==null) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
   } else if(_rentIsChantier){
-    if(hT>0){const ref=tjmMin>0?tjmMin:280;const r=tjmBrut/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
-    if(pctObj!==null&&hT>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+    if(!hT||!tjmMin){sRent=12;}
+    else{const r=tjmBrut/tjmMin;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}
+    if(pctObj!==null&&hT>0&&tjmMin>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
   } else {
-    if(hT>0){const ref=thMin>0?thMin:60;const r=thBrut/ref;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}else{sRent=12;}
-    if(pctObj!==null&&hT>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+    if(!hT||!thMin){sRent=12;}
+    else{const r=thBrut/thMin;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}
+    if(pctObj!==null&&hT>0&&thMin>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
   }
   // ── Valeur & sous-titre affichés
   let vRent,subRent,diagRent,advRent;
@@ -4927,19 +4929,21 @@ function wScoreSante(d) {
     vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
     subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos chantiers.';advRent='';}
-    else if(sRent>=20){diagRent=`🟢 TJM réel ${tjmMin>0?`supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Vos chantiers sont rentables. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`🟠 TJM réel proche de la cible${tjmMin>0&&gapTjm>0?` — il manque encore ${fmtE(gapTjm,0)}/j`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
-    else if(sRent>=7){diagRent=`🔴 TJM réel inférieur${tjmMin>0?` de ${fmtE(gapTjm,0)}/j à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos chantiers.';}
-    else{diagRent=`🔴 TJM réel très faible${tjmMin>0?` — objectif minimum ${fmtE(tjmMin,0)}/j`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les chantiers les moins rentables.';}
+    else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
+    else if(sRent>=20){diagRent=`🟢 TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum.`;advRent='Vos chantiers sont rentables. Continuez ainsi.';}
+    else if(sRent>=14){diagRent=`🟠 TJM réel proche de la cible — il manque encore ${fmtE(gapTjm,0)}/j.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=7){diagRent=`🔴 TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos chantiers.';}
+    else{diagRent=`🔴 TJM réel très faible — objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les chantiers les moins rentables.';}
   } else {
     vRent=hT>0?fmtE(thBrut,0)+'/h':'—';
     subRent=thMin>0?`obj. min. ${fmtE(thMin,0)}/h`:'Cible non définie';
     const gapTh=thMin-thBrut;
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
-    else if(sRent>=20){diagRent=`🟢 TH réel ${thMin>0?`supérieur de ${fmtE(-gapTh,0)}/h à votre seuil minimum`:'au-dessus de votre cible'}.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible${thMin>0&&gapTh>0?` — il manque encore ${fmtE(gapTh,0)}/h`:''}.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
-    else if(sRent>=7){diagRent=`🔴 TH réel inférieur${thMin>0?` de ${fmtE(gapTh,0)}/h à votre seuil minimum`:' à votre cible'}.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
-    else{diagRent=`🔴 TH réel très faible${thMin>0?` — objectif minimum ${fmtE(thMin,0)}/h`:''}. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+    else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
+    else if(sRent>=20){diagRent=`🟢 TH réel supérieur de ${fmtE(-gapTh,0)}/h à votre seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
+    else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible — il manque encore ${fmtE(gapTh,0)}/h.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=7){diagRent=`🔴 TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
+    else{diagRent=`🔴 TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
   }
 
   // ── PILIER 2 : REMPLISSAGE / CAPACITÉ (25 pts) ───────────────
