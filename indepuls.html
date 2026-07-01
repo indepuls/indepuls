@@ -3387,6 +3387,9 @@ function confirmMigration(source) {
 function saveData() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    if (DATA.isExample && currentPage !== 'params') {
+      showToast('✨ Vous modifiez une donnée de démonstration — elle sera supprimée lorsque vous créerez votre espace de travail.', 'var(--acc)');
+    }
   } catch(e) {
     showToast('⚠️ Sauvegarde impossible — exportez vos données maintenant.', 'var(--err)');
   }
@@ -3507,10 +3510,6 @@ function heuresMs(ms) { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.
 // getTauxHoraireMinCible → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function saveParam(key,val) {
   DATA.params[key]=val;
-  if (DATA.isExample && !DATA._demoModToastShown) {
-    DATA._demoModToastShown = true;
-    showToast('✨ Vous modifiez une donnée de démonstration. Elle sera supprimée lorsque vous créerez votre espace de travail.', 'var(--acc)');
-  }
   saveData();
 }
 function themeColor(v) { return getComputedStyle(document.body).getPropertyValue(v).trim(); }
@@ -3926,7 +3925,7 @@ function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function showToast(msg, color) {
   const t=document.createElement('div');
   t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;`;
-  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+  t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),6000);
 }
 function markInvalid(...ids) {
   ids.forEach(id=>{
