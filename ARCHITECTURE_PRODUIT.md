@@ -12,6 +12,21 @@ Ce qui change entre les profils : **ce qu'on met en avant**, pas le moteur de ca
 
 Le moteur reste unique. Ce sont les indicateurs, le vocabulaire et les conseils qui s'adaptent.
 
+### Règle de priorité : profil → modules → comportement
+
+```
+profil = vocabulaire + valeurs par défaut des modules
+modules = comportement réel (choisi ou personnalisé par l'utilisateur)
+dashboard/widgets = lit modules.*, jamais la famille directement
+```
+
+- **`modules.objectif`** pilote le KPI principal affiché (`'th'` · `'tjm'` · `'marge_commande'`)
+- **`modules.uniteTemps`** pilote l'affichage heures vs journées partout
+- **`modules.planning`** pilote les champs temps et widgets remplissage
+- La **famille** détermine le vocabulaire (Mission/Chantier/Commande) et les défauts des modules — jamais le comportement final
+- Un prestataire peut choisir `objectif='tjm'` s'il facture à la journée
+- Un artisan peut choisir `objectif='th'` s'il préfère piloter son taux horaire
+
 ---
 
 ## Les 7 profils — 4 familles
@@ -54,12 +69,24 @@ Pour fabrication et achat_revente, le temps est un **indicateur secondaire** : "
 
 ### DASHBOARD — wKPIs
 
-| Élément | service | chantier | fabrication | achat_revente |
-|---|---|---|---|---|
-| KPI 1 | CA annuel HT | CA annuel HT | CA annuel HT | CA annuel HT |
-| **KPI 2 (principal)** | **TH réel X/h** | **TJM réel X/j** | **Gain moyen par commande X€** | **Gain moyen par vente X€** |
-| KPI 3 | Revenu net vs objectif | Revenu net vs objectif | Nb commandes + Revenu net | Nb ventes + Revenu net |
-| Phrase KPI 2 | "TH réel : X/h — objectif min. X/h" | "TJM réel : X/j — objectif min. X/j" | "Gain moyen par commande : X€" | "Gain moyen par vente : X€" |
+> Le **KPI 2** est déterminé par `modules.objectif`, pas par la famille.
+> La matrice ci-dessous montre les défauts par profil — l'utilisateur peut les changer dans Paramètres.
+
+| Élément | `objectif='th'` | `objectif='tjm'` | `objectif='marge_commande'` |
+|---|---|---|---|
+| **KPI 2 (principal)** | **TH réel X/h** | **TJM réel X/j** | **Gain moyen par commande/vente X€** |
+| Phrase KPI 2 | "TH réel : X/h — objectif min. X/h" | "TJM réel : X/j — objectif min. X/j" | "Gain moyen : X€ par commande" |
+
+**Défauts par profil :**
+| Profil | `modules.objectif` par défaut | Peut changer ? |
+|---|---|---|
+| Prestataire de services | `th` | ✅ Oui |
+| Créatif / Communication | `th` | ✅ Oui |
+| Prestataire événementiel | `th` | ✅ Oui |
+| Artisan bâtiment | `tjm` | ✅ Oui |
+| Fabricant série | `marge_commande` | ✅ Oui |
+| Artisan sur commande | `marge_commande` | ✅ Oui |
+| Achat / Revente | `marge_commande` | ✅ Oui |
 
 ### DASHBOARD — Bilan mensuel
 
@@ -159,29 +186,29 @@ Pour fabrication et achat_revente, le temps est un **indicateur secondaire** : "
 
 ## Plan d'implémentation
 
-### Phase 1 — Dashboard + Alertes
-1. Bilan mensuel : colonne "TH réel" → conditionnel (TH/h · TJM/j · Gain moyen)
-2. wKPIs KPI 2 : conditionnel par famille
-3. wKPIs KPI 3 : ajouter Nb commandes/ventes pour fabrication/achat_revente
-4. Alerte masse salariale dans `buildAlerts`
-5. Alerte "TH bas" → adaptée par famille (TJM · gain horaire secondaire)
-6. Alerte marge faible pour fabrication/achat_revente
+> **Principe** : toutes les bifurcations utilisent `modules.*`, jamais la famille directement.
 
-### Phase 2 — Objectifs (Paramètres)
-1. `renderObjectifsResult` : TJM pour chantier, "gain horaire minimum" pour marge_commande
-2. Supprimer le switch `simulateurOffre` dans l'UI Paramètres
-3. Supprimer l'option `planning = 'aucun'` dans l'UI + migration existants vers `'estime'`
+### Phase 1 — `modules.objectif` pilote le KPI principal *(en cours)*
+1. `wKPIs()` KPI 2 : conditionnel sur `modules.objectif` (`th` · `tjm` · `marge_commande`)
+2. `buildAlerts()` : alertes "TH bas" / "TJM bas" / "marge faible" selon `modules.objectif`
+3. Bilan mensuel : colonne rentabilité conditionnelle selon `modules.objectif`
 
-### Phase 3 — Score Santé
-1. Pilier Rentabilité : bifurquer selon famille (TJM · Marge%)
-2. Retirer le cas `planning = 'aucun'` du pilier Remplissage
+### Phase 2 — `modules.uniteTemps` pilote h vs j partout
+1. Dashboard KPIs : affichage `/h` vs `/j` selon `uniteTemps` (déjà dans simulateur/missions)
+2. Lier `objectif==='tjm'` ↔ `uniteTemps==='jours'` automatiquement (sans bloquer la personnalisation)
+3. Labels modale mission adaptés
 
-### Phase 4 — Modale Missions
+### Phase 3 — `modules.planning` contrôle complet
+1. Supprimer `planning = 'aucun'` partout + migration existants → `'estime'`
+2. Widget Remplissage / Pilier masqué si `'aucun'` → retirer ce cas, toujours afficher
+3. Modale mission : `#m-charge-zone` visible si `'estime'`, sessions si `'calendrier'`
+
+### Phase 4 — Modale Missions enrichie
 1. achat_revente : champ "Prix d'achat unitaire" + marge temps réel
 2. fabrication : champ "Quantité produite"
 
 ### Phase 5 — Archives
-1. Métrique principale conditionnelle selon famille
+1. Métrique principale conditionnelle selon `modules.objectif`
 2. Phrase interprétation adaptée
 
 ---

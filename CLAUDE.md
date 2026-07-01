@@ -17,8 +17,15 @@
 ## Architecture produit & Matrice fonctionnelle
 
 > **Lire `ARCHITECTURE_PRODUIT.md` avant toute modification des KPIs, widgets, alertes ou comportements conditionnels par profil.**
-> Ce fichier est la référence fonctionnelle : il indique quel KPI afficher pour quel profil sur quel écran.
-> Ne jamais afficher "TH" comme KPI principal pour fabrication/achat_revente. Ne jamais afficher "/h" comme unité principale pour artisan_batiment.
+> Ce fichier est la référence fonctionnelle.
+>
+> **Principe clé :** `modules.objectif` (pas la famille) détermine quel KPI principal afficher.
+> La famille détermine le vocabulaire et les valeurs par défaut des modules — jamais le comportement final.
+> - `modules.objectif === 'th'` → KPI "Taux horaire réel (€/h)"
+> - `modules.objectif === 'tjm'` → KPI "TJM réel (€/j)"
+> - `modules.objectif === 'marge_commande'` → KPI "Gain moyen par commande/vente"
+>
+> Ne jamais utiliser `family === 'chantier'` ou `_isChantier` pour décider du KPI à afficher — utiliser `DATA.params.modules.objectif`.
 
 ## Vision produit
 
@@ -360,7 +367,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
 - **Modules comportementaux v29 (2026-06)** : `DATA.params.modePlanning` → `DATA.params.modules` (objet avec `planning`, `uniteTemps`, `objectif`, `devis`). `getDefaultModules(metier)` retourne les valeurs par défaut selon le profil. `applyDefaults()` injecte l'objet si absent. `migrate()` assure la rétrocompatibilité v28→v29. Architecture `family` (vocabulaire) reste découplée de `modules` (comportement).
 - **Phase 5 — TH/TJM artisan** : `isJours()` helper ; `calcDevis()` convertit jours→heures ; labels TJM/€j dans devis, recalcObjectifs, KPI, alertes objectif pour les profils `uniteTemps='jours'` (ex: artisan_batiment)
-- **Phase 6 — planning conditionnel artisan** : nav Planning masqué si `modules.planning==='aucun'` ; guard navigate('planning') ; `#m-planning-zone` dans la modale mission masqué si aucun ou management ; widget Remplissage retourne '' si planning=aucun
+- **Phase 6 — planning conditionnel** : nav Planning visible seulement si `modules.planning==='calendrier'` ; guard `navigate('planning')` ; `#m-planning-zone` dans la modale mission masqué si aucun ou management ; widget Remplissage retourne '' si planning=aucun (valeur supprimée depuis)
 - **Phase 7 — calendrier planning freelance** : page Planning complète dans freelance (navigation mois, rendu calendrier HTML, sessions par mission, taux de remplissage) ; nav Planning visible uniquement si `modules.planning==='calendrier'` (profil evenementiel) ; `initEditingSessions()`, `addSessionToEdit()`, `removeSessionFromEdit()` pour la gestion des sessions dans la modale ; `getTauxRemplissageMois` et `getTauxRemplissageAnnee` exportés dans `shared/modes/freelance.js`
 - **Fusion interfaces v30 (2026-06)** : `indepuls.html` remplace les deux HTML séparés. `shared/modes/unified.js` (copie de freelance.js, STORAGE_KEY='indepuls', SCHEMA_VERSION=30). 7 profils dans les selects (`getDefaultModules` étendu avec `simulateurOffre`). `applyProfile(metier)` réinitialise `modules` aux défauts du profil — remplace `saveParam('metier',...)` partout. Migration localStorage 4 cas : clé unifiée / freelance seul / artisan seul / conflit → modale `modal-migration`. `index.html` redirige vers `indepuls.html`. Modal-mission : collectif conditionnel (famille service), charge estimée conditionnelle (planning estime).
 - **Bug planning.js `modePlanning` (2026-06)** : `getPilierRemplissage()` lisait l'ancien champ `DATA.params.modePlanning` au lieu de `DATA.params.modules.planning`. Fix ligne 112 : `modules?.planning || modePlanning || 'aucun'` (fallback rétrocompat). Affectait tous les profils v30 — pilier Remplissage et widget Calendrier retournaient toujours `methode:'aucun'`.
@@ -421,11 +428,11 @@ Ne pas modifier les archives (`indepuls_freelance.html`, `indepuls_artisan.html`
 Depuis v29, les flags comportementaux sont regroupés dans `DATA.params.modules` :
 ```js
 DATA.params.modules = {
-  planning:        'estime' | 'calendrier' | 'aucun',
+  planning:        'estime' | 'calendrier',   // 'aucun' supprimé — le temps est toujours suivi
   uniteTemps:      'heures' | 'jours',
-  objectif:        'th' | 'tjm' | 'marge_commande',  // réservé — pilotera les futurs KPI
-  devis:           true | false,
-  simulateurOffre: true | false,   // ajouté en v30
+  objectif:        'th' | 'tjm' | 'marge_commande',  // pilote le KPI principal (Phase 1 implémentée)
+  devis:           true | false,              // conservé pour rétrocompat DATA, plus utilisé pour gater la nav
+  simulateurOffre: true | false,              // conservé pour rétrocompat DATA, plus utilisé pour gater la nav
 }
 ```
 Defaults par profil via `getDefaultModules(metier)`. `applyDefaults()` l'injecte si absent.
@@ -436,14 +443,14 @@ Migration : `params.modePlanning` → `params.modules.planning` (effectuée dans
 **`applyProfile(metier)`** — à appeler à chaque changement de profil (select paramètres + select onboarding). Réinitialise `DATA.params.modules` aux défauts du nouveau profil via `getDefaultModules(metier)`. Ne pas appeler `saveParam('metier', ...)` directement — `applyProfile` gère tout.
 
 **Règles d'affichage liées aux modules :**
-- `modules.planning === 'aucun'` → nav Planning masqué, guard `navigate('planning')`, `#m-planning-zone` masqué, widget Remplissage vide
-- `modules.planning === 'calendrier'` → planning calendrier actif avec sessions, `#m-charge-zone` masqué dans modal-mission
-- `modules.planning === 'estime'` → planning par estimation (charge en h/sem), widget Capacité, `#m-charge-zone` visible
-- `modules.uniteTemps === 'jours'` → labels TJM au lieu de TH, `calcDevis()` convertit jours×heuresParJour
-- `modules.devis === false` → onglet "Tester un devis" masqué (fabricant_serie, achat_revente)
-- `modules.simulateurOffre` → **plus utilisé pour gater la nav** depuis la refonte simulateur (2026-06). Le champ reste dans `DATA.params.modules` (rétrocompat + switch Params "Comment je travaille"), mais `updateNavSimulateur()` affiche toujours l'item nav, et `navigate('simulateur')` n'a plus de guard.
+- `modules.planning === 'calendrier'` → page Planning active avec sessions, nav-planning visible, `#m-charge-zone` masqué dans modal-mission
+- `modules.planning === 'estime'` → planning par estimation (charge h/sem), widget Capacité, `#m-charge-zone` visible ; nav-planning masqué
+- `modules.planning === 'aucun'` → **SUPPRIMÉ**. Toutes les valeurs existantes migrées vers `'estime'`. Le temps est toujours suivi.
+- `modules.objectif` → pilote le KPI principal du dashboard (`'th'` · `'tjm'` · `'marge_commande'`). Phase 1 implémentée.
+- `modules.uniteTemps === 'jours'` → labels TJM au lieu de TH, simulateur en journées. Phase 2 à venir.
+- `modules.devis` / `modules.simulateurOffre` → conservés dans DATA pour rétrocompat, mais **plus utilisés pour gater la nav**. Le simulateur est toujours visible (`updateNavSimulateur()` affiche toujours l'item). `page-devis` et `nav-devis` supprimés (fusionnés dans le simulateur).
 - `isJours()` helper : `DATA.params?.modules?.uniteTemps === 'jours'`
-- `updateNavPlanning()`, `updateNavDevis()`, `updateNavSimulateur()` : appelés dans `applyVocabUI()`
+- `updateNavPlanning()`, `updateNavSimulateur()` : appelés dans `applyVocabUI()`. `updateNavDevis()` supprimé.
 - Modal-mission : "Type de mission" (collectif) visible seulement si `BUSINESS_PROFILE_MAP[metier] === 'service'`
 
 La fonction `migrate()` dans `storage.js` est idempotente — elle n'a pas de blocs conditionnels par numéro de version. Incrémenter la constante est donc sans risque, mais reste nécessaire pour que les données importées (backup JSON) soient reconnues comme compatibles.
@@ -541,6 +548,31 @@ function tVocab(key) {
 ---
 
 ## Prochains chantiers identifiés
+
+### 0. Branchement des modules comportementaux *(en cours — priorité critique)*
+
+Principe : **profil = défauts, modules = comportement réel, dashboard = lit les modules**.
+Ne jamais utiliser la famille pour décider du comportement — utiliser `modules.*`.
+
+**Phase 1 — `modules.objectif` pilote le KPI principal** ✅ *validée, à implémenter*
+- Remplacer `_isChantier`/`_isMarge` dans `renderDashboard()` et `buildAlerts()` par `modules.objectif`
+- `'th'` → KPI TH réel (€/h) · `'tjm'` → KPI TJM réel (€/j) · `'marge_commande'` → Gain moyen par commande
+- Points d'impact : `wKPIs()`, `buildAlerts()`, bilan mensuel (colonne rentabilité)
+
+**Phase 2 — `modules.uniteTemps` pilote h vs j partout** *(à faire après Phase 1)*
+- `isJours()` déjà utilisé dans missions + simulateur — étendre au dashboard
+- Lier automatiquement `objectif==='tjm'` ↔ `uniteTemps==='jours'` (sans bloquer la personnalisation)
+
+**Phase 3 — `modules.planning` contrôle complet** *(après Phase 2)*
+- Supprimer toutes les références à `planning==='aucun'` (valeur supprimée)
+- Migration existants `'aucun'` → `'estime'` dans `migrate()`
+- Widget Remplissage / Pilier masqué si `planning==='aucun'` → remplacer par logique `'estime'`
+- Modale mission : `#m-charge-zone` visible si `'estime'`, sessions si `'calendrier'`
+
+**Évolution future : suivi du temps par affaire** *(post-bêta)*
+- Chaque affaire pourrait choisir son mode : estimation heures/jours, sessions calendrier, aucun suivi détaillé
+- Particulièrement utile pour les profils hybrides (photographe, traiteur, événementiel)
+- À ne pas confondre avec le mode global `modules.planning`
 
 ### 1. Suivi des déclarations URSSAF *(priorité haute)*
 Les micro-entrepreneurs déclarent leur CA et paient leurs cotisations chaque trimestre (ou mois s'ils ont opté pour le mensuel). Aujourd'hui Indépuls calcule les provisions mais n'indique pas *quand* déclarer ni combien exactement. Une page ou un widget "Prochaine déclaration URSSAF" avec le CA cumulé de la période et le montant à payer aurait une forte valeur pratique. À implémenter dans `calculs.js` (les données sont déjà disponibles).
