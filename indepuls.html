@@ -828,7 +828,6 @@ html,body{overflow-x:hidden;}
         <div style="display:flex;flex-direction:column;gap:7px">
           <label class="tva-regime-opt" id="mod-planning-estime"><input type="radio" name="mod-planning" value="estime" onchange="saveModuleParam('planning','estime')"><div><strong>J'estime le temps nécessaire pour chaque affaire</strong><div class="ts mt1">Saisissez le temps prévu — Indépuls calcule votre taux horaire réel</div></div></label>
           <label class="tva-regime-opt" id="mod-planning-calendrier"><input type="radio" name="mod-planning" value="calendrier" onchange="saveModuleParam('planning','calendrier')"><div><strong>Je planifie mes affaires dans un calendrier</strong><div class="ts mt1">Organisation par dates, créneaux et jalons</div></div></label>
-          <label class="tva-regime-opt" id="mod-planning-aucun"><input type="radio" name="mod-planning" value="aucun" onchange="saveModuleParam('planning','aucun')"><div><strong>Je ne souhaite pas suivre mon temps</strong><div class="ts mt1">Uniquement le suivi des montants facturés</div></div></label>
         </div>
         <div id="mod-unite-zone" class="mt16">
           <div class="divider mb12"></div>
@@ -846,12 +845,6 @@ html,body{overflow-x:hidden;}
           <span style="font-weight:600">Je réalise des devis avant de commencer mes affaires</span>
         </div>
         <div class="ts mt6" style="color:var(--tl);line-height:1.6">Active le simulateur de devis sur chaque affaire — estimez votre rentabilité avant d'envoyer une proposition.</div>
-        <div class="divider mt12 mb12"></div>
-        <div class="sw-wrap">
-          <label class="sw"><input type="checkbox" id="mod-sim" onchange="saveModuleParam('simulateurOffre',this.checked)"><span class="sw-sl"></span></label>
-          <span style="font-weight:600">J'utilise le simulateur d'offre</span>
-        </div>
-        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Estimez la rentabilité d'une offre avant de la proposer à un client.</div>
         <div class="divider mt12 mb12"></div>
         <div class="ts mb8" style="color:var(--tl)">Ce que je veux piloter en priorité :</div>
         <div style="display:flex;flex-direction:column;gap:7px">
@@ -2400,6 +2393,11 @@ function migrateMetierParam() {
   const m = DATA.params?.metier;
   if (m && METIER_MIGRATION_FL[m] !== undefined) {
     DATA.params.metier = METIER_MIGRATION_FL[m];
+    saveData();
+  }
+  // planning='aucun' supprimé → migrer vers 'estime'
+  if (DATA.params?.modules?.planning === 'aucun') {
+    DATA.params.modules.planning = 'estime';
     saveData();
   }
 }
@@ -7345,14 +7343,26 @@ function renderObjectifsResult() {
   }
   const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
   const caAn=caMens*12, thMin=hAn>0?caAn/hAn:0;
+  const _objFamily=BUSINESS_PROFILE_MAP[p.metier]||'service';
+  const _objIsChantier=_objFamily==='chantier';
+  const _objIsMarge=_objFamily==='fabrication'||_objFamily==='achat_revente';
+  const _objHj=p.heuresParJour||7;
+  const _tjmMin=Math.round(thMin*_objHj);
+  const _kpiRateLabel=_objIsChantier?'TJM minimum':_objIsMarge?'Gain horaire minimum':'Taux horaire minimum';
+  const _kpiRateVal=_objIsChantier?(thMin>0?fmtE(_tjmMin,0)+'/j':'—'):(thMin>0?fmtE(thMin,0)+'/h':'—');
+  const _kpiRateSub=_objIsChantier?`basé sur ${fmt(hAn/(_objHj||7),0)} j/an`:`basé sur ${fmt(hAn,0)} h/an`;
+  const _phraseRate=_objIsChantier?`→ TJM min. <strong>${fmtE(_tjmMin,0)}/j</strong>`:_objIsMarge?`→ gain horaire min. <strong>${fmtE(thMin,0)}/h</strong>`:`→ taux horaire min. <strong>${fmtE(thMin,0)}/h</strong>`;
+  const _uniteLbl=_objIsChantier?'Jours facturables/mois':'Heures facturables/mois';
+  const _uniteVal=_objIsChantier?`${fmt(hMens/_objHj,1)} j`:`${fmt(hMens,0)} h`;
+  const _uniteSub=_objIsChantier?`${p.joursParSemaine}j × ${p.semainesParAn}/52 sem.`:`${p.joursParSemaine}j × ${p.heuresParJour}h`;
   el.innerHTML=`
     <div class="g2">
       <div class="kpi neu"><div class="kpi-label">CA mensuel à atteindre</div><div class="kpi-val">${fmtE(caMens)}</div><div class="kpi-sub">= ${fmtE(caAn)} / an</div>${depTxtDetail}</div>
-      <div class="kpi neu"><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${fmtE(thMin,0)}/h</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
-      <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
+      <div class="kpi neu"><div class="kpi-label">${_kpiRateLabel}</div><div class="kpi-val">${_kpiRateVal}</div><div class="kpi-sub">${_kpiRateSub}</div></div>
+      <div class="kpi neu"><div class="kpi-label">${_uniteLbl}</div><div class="kpi-val">${_uniteVal}</div><div class="kpi-sub">${_uniteSub}</div></div>
       <div class="kpi neu"><div class="kpi-label">Charges + impôts</div><div class="kpi-val">${fmt((getTauxChargesPresta()+getImpotsTaux())*100,1)} %</div><div class="kpi-sub">URSSAF+CFP+impôts</div></div>
     </div>
-    <div class="alert al-info mt12">💡 Pour ${fmtE(p.objectifNetMensuel)}/mois nets, facturez <strong>${fmtE(caMens)}/mois</strong> → taux horaire min. <strong>${fmtE(thMin,0)}/h</strong>.</div>`;
+    <div class="alert al-info mt12">💡 Pour ${fmtE(p.objectifNetMensuel)}/mois nets, facturez <strong>${fmtE(caMens)}/mois</strong> ${_phraseRate}.</div>`;
 }
 
 // ── CATÉGORIES ───────────────────────────────────────────────
@@ -8714,19 +8724,14 @@ function renderModulesUI() {
     if (lbl) lbl.classList.toggle('selected', m.planning === v);
     if (inp) inp.checked = (m.planning === v);
   });
-  // uniteTemps chips — masqués si planning=aucun
-  const uniteZone = document.getElementById('mod-unite-zone');
-  if (uniteZone) uniteZone.style.display = m.planning === 'aucun' ? 'none' : '';
   const isJ = m.uniteTemps === 'jours';
   const btnH = document.getElementById('mod-unite-heures');
   const btnJ = document.getElementById('mod-unite-jours');
   if (btnH) { btnH.style.background=isJ?'transparent':'var(--pri)'; btnH.style.color=isJ?'var(--tl)':'#fff'; btnH.style.borderColor=isJ?'var(--brd)':'var(--pri)'; }
   if (btnJ) { btnJ.style.background=isJ?'var(--pri)':'transparent'; btnJ.style.color=isJ?'#fff':'var(--tl)'; btnJ.style.borderColor=isJ?'var(--pri)':'var(--brd)'; }
-  // devis + simulateurOffre switches
+  // devis switch
   const modDevis = document.getElementById('mod-devis');
   if (modDevis) modDevis.checked = !!m.devis;
-  const modSim = document.getElementById('mod-sim');
-  if (modSim) modSim.checked = !!m.simulateurOffre;
   // objectif radios
   const objMap = {th:'th', tjm:'tjm', marge_commande:'marge'};
   ['th','tjm','marge_commande'].forEach(v => {
