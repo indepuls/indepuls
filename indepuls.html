@@ -3092,8 +3092,8 @@ function loadDemoWithCurrentParams() {
   // Fusionner : structure démo + params réels de l'utilisateur
   DATA = demoData;
   DATA.params = { ...demoData.params, ...savedParams };
-  // Ne pas laisser les valeurs vierges (false/null) écraser les valeurs de la démo
-  if (!savedParams.livreRecettesActif) DATA.params.livreRecettesActif = demoData.params.livreRecettesActif;
+  // En mode démo, toujours activer le livre des recettes (les params vierges ne doivent pas écraser la démo)
+  DATA.params.livreRecettesActif = true;
   DATA.theme = theme;
   DATA.isExample = true;
   saveData();
@@ -8887,6 +8887,7 @@ function applyProfile(metier, applyModules=true) {
   if (applyModules) DATA.params.modules = getDefaultModules(metier);
   applyVocabUI();
   saveData();
+  if (DATA.isExample) { loadDemoWithCurrentParams(); renderAll(); return; }
 }
 function onProfilChange(metier) {
   const prev = DATA.params.metier;
