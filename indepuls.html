@@ -3393,8 +3393,12 @@ function confirmMigration(source) {
 function saveData() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
-    if (DATA.isExample && currentPage !== 'params') {
-      showToast('✨ Vous modifiez une donnée de démonstration — elle sera supprimée lorsque vous créerez votre espace de travail.', 'var(--acc)');
+    if (DATA.isExample) {
+      if (currentPage === 'params') {
+        showToast('✅ Ces modifications seront conservées.', 'var(--ok)');
+      } else {
+        showToast('⚠️ Vous modifiez des données d\'exemple — elles ne seront pas conservées lorsque vous créerez votre espace de travail.', 'var(--acc)');
+      }
     }
   } catch(e) {
     showToast('⚠️ Sauvegarde impossible — exportez vos données maintenant.', 'var(--err)');
@@ -3929,9 +3933,15 @@ function renderAll() {
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function showToast(msg, color) {
+  document.querySelectorAll('.app-toast').forEach(el=>el.remove());
   const t=document.createElement('div');
-  t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;`;
+  t.className='app-toast';
+  t.style.cssText=`position:fixed;bottom:70px;right:20px;background:${color||'var(--ok)'};color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;z-index:600;font-size:13px;max-width:340px;line-height:1.4;`;
   t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),6000);
+}
+function showToastIfReal(msg, color) {
+  if(DATA && DATA.isExample) return;
+  showToast(msg, color);
 }
 function markInvalid(...ids) {
   ids.forEach(id=>{
@@ -5862,7 +5872,7 @@ function saveRecetteManuelle() {
   }
   saveData();
   closeModal('modal-lr-manuelle');
-  showToast('✅ Recette enregistrée.');
+  showToastIfReal('✅ Recette enregistrée.');
   if(currentPage==='recettes') renderRecettes();
 }
 
@@ -6262,7 +6272,7 @@ function saveMission() {
   }
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
-  saveData(); closeModal('modal-mission'); showToast('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 
 function duplicateMission(id) {
@@ -6273,7 +6283,7 @@ function duplicateMission(id) {
   const idx=DATA.missions.findIndex(x=>x.id===id);
   DATA.missions.splice(idx+1,0,copy);
   saveData(); renderMissions();
-  showToast('✅ Mission dupliquée.');
+  showToastIfReal('✅ Mission dupliquée.');
 }
 function deleteMission(id) {
   const m=DATA.missions.find(x=>x.id===id);
@@ -6826,7 +6836,7 @@ function saveDepense(force) {
   if(chantierId) obj.chantierId = chantierId; else delete obj.chantierId;
   if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d){ Object.assign(d,obj); if(!chantierId) delete d.chantierId; } }
   else { addDepense(obj); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
-  saveData(); closeModal('modal-dep'); showToast('✅ Dépense enregistrée.'); renderDepenses();
+  saveData(); closeModal('modal-dep'); showToastIfReal('✅ Dépense enregistrée.'); renderDepenses();
   if(_pendingMissionReopen){const _pmr=_pendingMissionReopen;_pendingMissionReopen=null;openMissionModal(_pmr);}
 }
 function toggleDepTVA(checked) {
@@ -7368,7 +7378,7 @@ function saveCorrectTime() {
   }
   saveData(); closeModal('modal-correct-time'); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
-  showToast('✅ Temps corrigé.');
+  showToastIfReal('✅ Temps corrigé.');
 }
 
 // ── AJOUT TEMPS MANUEL ───────────────────────────────────────
@@ -7464,7 +7474,7 @@ function saveTiRow(mk) {
   if(mgmt&&mgmt.timerRunning){ commitTimer(mgmt); }
   saveData(); renderTempsInterneModal(); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
-  showToast('✅ Temps corrigé — '+monthLabelFull(mk));
+  showToastIfReal('✅ Temps corrigé — '+monthLabelFull(mk));
 }
 function saveTempsInterneManuel() {
   const mk=document.getElementById('ti-mois').value;
