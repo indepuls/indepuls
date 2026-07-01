@@ -9297,30 +9297,84 @@ document.addEventListener('keydown', function(e) {
     overlay.style.opacity = '1';
     overlay.innerHTML = `
       <div style="text-align:center;font-family:'Lato',system-ui,sans-serif;max-width:320px;padding:0 16px">
-        <div style="font-size:24px;font-weight:900;color:#141538;margin-bottom:4px;letter-spacing:-0.5px">Indépuls</div>
-        <div style="font-size:13px;color:#9a9aaa;margin-bottom:28px">Connectez-vous pour accéder à votre espace</div>
-        <input type="email" id="auth-email" placeholder="Adresse email"
-          style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff"
-          onkeydown="if(event.key==='Enter')document.getElementById('auth-pwd').focus()">
-        <input type="password" id="auth-pwd" placeholder="Mot de passe"
-          style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:16px;font-family:inherit;outline:none;background:#fff"
-          onkeydown="if(event.key==='Enter')authLogin()">
-        <button id="auth-login-btn" onclick="authLogin()"
-          style="width:100%;background:#141538;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
-          Se connecter
-        </button>
-        <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#e55;min-height:18px"></div>
-        <button onclick="authForgotPassword()" style="background:none;border:none;color:#9a9aaa;font-size:12px;cursor:pointer;font-family:inherit;margin-top:8px;text-decoration:underline;padding:0">
-          Mot de passe oublié ?
-        </button>
-        ${(location.hostname==='localhost'||location.hostname==='127.0.0.1')?`
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e0ddd8">
-          <div style="font-size:11px;color:#b0aaa0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Développement local</div>
-          <button onclick="authLoadDemo()" style="width:100%;background:#F1EFEA;color:#141538;padding:11px 24px;border-radius:9px;border:1.5px solid #e0ddd8;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit">
-            Continuer en mode démo
+        <img id="auth-logo-img" src="" alt="Indépuls" style="height:64px;width:auto;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto">
+        <div id="auth-login-panel">
+          <div style="font-size:13px;color:#9a9aaa;margin-bottom:24px">Connectez-vous pour accéder à votre espace</div>
+          <input type="email" id="auth-email" placeholder="Adresse email"
+            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff"
+            onkeydown="if(event.key==='Enter')document.getElementById('auth-pwd').focus()">
+          <input type="password" id="auth-pwd" placeholder="Mot de passe"
+            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:16px;font-family:inherit;outline:none;background:#fff"
+            onkeydown="if(event.key==='Enter')authLogin()">
+          <button id="auth-login-btn" onclick="authLogin()"
+            style="width:100%;background:#5B2C4A;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
+            Se connecter
           </button>
-        </div>`:''}
+          <div id="auth-msg" style="margin-top:14px;font-size:13px;color:#e55;min-height:18px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+            <button onclick="authForgotPassword()" style="background:none;border:none;color:#9a9aaa;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0">
+              Mot de passe oublié ?
+            </button>
+            <button onclick="authShowSignup()" style="background:none;border:none;color:#5B2C4A;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;padding:0">
+              Créer son compte →
+            </button>
+          </div>
+          ${(location.hostname==='localhost'||location.hostname==='127.0.0.1')?`
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e0ddd8">
+            <div style="font-size:11px;color:#b0aaa0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Développement local</div>
+            <button onclick="authLoadDemo()" style="width:100%;background:#F1EFEA;color:#141538;padding:11px 24px;border-radius:9px;border:1.5px solid #e0ddd8;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit">
+              Continuer en mode démo
+            </button>
+          </div>`:''}
+        </div>
+        <div id="auth-signup-panel" style="display:none">
+          <div style="font-size:13px;color:#9a9aaa;margin-bottom:24px">Créez votre compte Indépuls</div>
+          <input type="email" id="auth-signup-email" placeholder="Adresse email"
+            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff">
+          <input type="password" id="auth-signup-pwd" placeholder="Mot de passe (8 caractères min.)"
+            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:16px;font-family:inherit;outline:none;background:#fff">
+          <button id="auth-signup-btn" onclick="authSignUp()"
+            style="width:100%;background:#5B2C4A;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
+            Créer mon compte
+          </button>
+          <div id="auth-signup-msg" style="margin-top:14px;font-size:13px;color:#e55;min-height:18px"></div>
+          <button onclick="authShowLogin()" style="background:none;border:none;color:#9a9aaa;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0;margin-top:8px">
+            ← J'ai déjà un compte
+          </button>
+        </div>
       </div>`;
+    var logoEl = document.querySelector('.sb-logo img');
+    if (logoEl) document.getElementById('auth-logo-img').src = logoEl.src;
+    window.authShowSignup = function() {
+      document.getElementById('auth-login-panel').style.display = 'none';
+      document.getElementById('auth-signup-panel').style.display = '';
+    };
+    window.authShowLogin = function() {
+      document.getElementById('auth-signup-panel').style.display = 'none';
+      document.getElementById('auth-login-panel').style.display = '';
+    };
+    window.authSignUp = async function() {
+      var email = (document.getElementById('auth-signup-email')?.value||'').trim();
+      var pwd   = (document.getElementById('auth-signup-pwd')?.value||'');
+      var msg   = document.getElementById('auth-signup-msg');
+      var btn   = document.getElementById('auth-signup-btn');
+      if (!email || !pwd) { if(msg){ msg.style.color='#e55'; msg.textContent='Veuillez remplir tous les champs.'; } return; }
+      if (pwd.length < 8) { if(msg){ msg.style.color='#e55'; msg.textContent='Le mot de passe doit faire au moins 8 caractères.'; } return; }
+      if(btn){ btn.disabled=true; btn.textContent='Création…'; }
+      if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Création en cours…'; }
+      try {
+        var res = await sb.auth.signUp({ email, password: pwd });
+        if(res.error) throw res.error;
+        if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Compte créé ! Vérifiez votre email pour confirmer.'; }
+        if(btn){ btn.disabled=true; btn.textContent='Email envoyé'; }
+      } catch(e) {
+        var errMsg = e.message === 'User already registered'
+          ? 'Cet email est déjà utilisé.'
+          : (e.message || 'Erreur lors de la création du compte.');
+        if(msg){ msg.style.color='#e55'; msg.textContent=errMsg; }
+        if(btn){ btn.disabled=false; btn.textContent='Créer mon compte'; }
+      }
+    };
     window.authForgotPassword = async function() {
       var email = (document.getElementById('auth-email')?.value||'').trim();
       var msg = document.getElementById('auth-msg');
