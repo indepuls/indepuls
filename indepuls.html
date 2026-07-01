@@ -4040,6 +4040,11 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const prevDep=getDepensesMois(prevMk);
     const prevH=(()=>{let h=0;DATA.missions.filter(m=>!m.isManagement).forEach(m=>{(m.tempsManuel||[]).forEach(t=>{if((t.date||'').startsWith(prevMk))h+=t.heures||0;});});return h;})();
     const prevTH=prevH>0?Math.round(prevNet/prevH):null;
+    const _prevFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+    const _prevHj=DATA.params.heuresParJour||7;
+    const _prevNbM=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(prevMk))).length;
+    const _prevBilanLbl=_prevFamily==='chantier'?'TJM réel':(_prevFamily==='fabrication'||_prevFamily==='achat_revente')?'Gain moyen':'TH réel';
+    const _prevBilanVal=_prevFamily==='chantier'?(prevTH!==null?fmtE(prevTH*_prevHj,0)+'/j':'—'):(_prevFamily==='fabrication'||_prevFamily==='achat_revente')?(_prevNbM>0?fmtE(Math.round(prevNet/_prevNbM)):'—'):(prevTH!==null?fmtE(prevTH,0)+'/h':'—');
     const prevPrevMo=prevMo===1?12:prevMo-1, prevPrevY=prevMo===1?prevY-1:prevY;
     const prevPrevMk=`${prevPrevY}-${String(prevPrevMo).padStart(2,'0')}`;
     const ppBrut=getCaBreakdownMois(prevPrevMk).prestation+(getCaBreakdownMois(prevPrevMk).vente||0)+getPonctuelsCA(prevPrevMk);
@@ -4055,7 +4060,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">CA brut</div><div style="font-size:20px;font-weight:700;color:var(--pri)">${fmtE(prevBrut)}</div>${diffSign?`<div style="font-size:11px;margin-top:2px">${diffSign} vs mois préc.</div>`:''}</div>
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">Revenu net</div><div style="font-size:20px;font-weight:700;color:${prevNet>0?'var(--ok)':'var(--err)'}">${fmtE(prevNet)}</div><div style="font-size:11px;color:var(--tl);margin-top:2px">après charges</div></div>
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">Dépenses</div><div style="font-size:20px;font-weight:700;color:var(--text)">${fmtE(prevDep)}</div></div>
-        <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">TH réel</div><div style="font-size:20px;font-weight:700;color:var(--text)">${prevTH!==null?fmtE(prevTH,0)+'/h':'—'}</div></div>
+        <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">${_prevBilanLbl}</div><div style="font-size:20px;font-weight:700;color:var(--text)">${_prevBilanVal}</div></div>
       </div>
       <div style="margin-top:14px;border-top:1px solid var(--brd);padding-top:12px">
         <label style="font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Votre réflexion du mois <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0">(optionnel)</span></label>
@@ -4354,8 +4359,36 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   if((moisAge===null||moisAge>=3)&&caNetMoy<p.objectifNetMensuel*.75&&getMoisRealises().length>=3)
     alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Revenu net en dessous de l'objectif — ${fmtE(caNetMoy)} vs ${fmtE(p.objectifNetMensuel)} visés.`});
   const _thMinAlert=getTauxHoraireMinCible();
-  if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
-    alerts.push({pr:1,cl:'al-warn',txt:`⏱ Taux horaire réel bas : ${fmtE(thR,0)}/h${_thMinAlert>0?` (objectif minimum : ${fmtE(_thMinAlert,0)}/h)`:''}  — réévaluez vos tarifs.`});
+  const _familyAlert=BUSINESS_PROFILE_MAP[p.metier]||'service';
+  const _isChantierAlert=_familyAlert==='chantier';
+  const _isMargeAlert=_familyAlert==='fabrication'||_familyAlert==='achat_revente';
+  const _hjAlert=p.heuresParJour||7;
+  const _tjmRAlert=Math.round(thR*_hjAlert), _tjmMinAlert=Math.round(_thMinAlert*_hjAlert);
+  if(_isChantierAlert){
+    if(thR>0&&((_thMinAlert>0&&_tjmRAlert<_tjmMinAlert)||(_thMinAlert===0&&_tjmRAlert<280)))
+      alerts.push({pr:1,cl:'al-warn',txt:`📅 TJM réel bas : ${fmtE(_tjmRAlert,0)}/j${_tjmMinAlert>0?` (objectif minimum : ${fmtE(_tjmMinAlert,0)}/j)`:''} — vérifiez la rentabilité de vos chantiers.`});
+  } else if(_isMargeAlert){
+    if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
+      alerts.push({pr:2,cl:'al-info',txt:`⏱ Gain horaire insuffisant : ${fmtE(thR,0)}/h${_thMinAlert>0?` (obj. min. ${fmtE(_thMinAlert,0)}/h)`:''} — comparez le temps passé par ${_familyAlert==='achat_revente'?'vente':'commande'}.`});
+    // Marge faible (coûts directs vs CA)
+    const _cAgg=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
+      const co=(m.coutsDirects||[]).reduce((a,c)=>a+(parseFloat(c.montant)||0),0);
+      const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
+      return {ca:s.ca+en,couts:s.couts+co};
+    },{ca:0,couts:0});
+    if(_cAgg.ca>0){
+      const _mp=Math.round((_cAgg.ca-_cAgg.couts)/_cAgg.ca*100);
+      const _seuil=_familyAlert==='achat_revente'?20:30;
+      if(_mp<_seuil) alerts.push({pr:1,cl:'al-warn',txt:`📉 Marge brute faible : ${_mp}% (seuil recommandé ≥${_seuil}%) — vérifiez vos coûts d'achat et matières.`});
+    }
+  } else {
+    if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
+      alerts.push({pr:1,cl:'al-warn',txt:`⏱ Taux horaire réel bas : ${fmtE(thR,0)}/h${_thMinAlert>0?` (objectif minimum : ${fmtE(_thMinAlert,0)}/h)`:''} — réévaluez vos tarifs.`});
+  }
+  // Masse salariale élevée (tous profils)
+  const _chargesSal=parseFloat(p.chargesSalariales)||0;
+  if(_chargesSal>0&&caBrut>0&&_chargesSal*12>caBrut*.35)
+    alerts.push({pr:1,cl:'al-warn',txt:`👥 Masse salariale élevée : ${fmtE(_chargesSal*12,0)}/an (${Math.round(_chargesSal*12/caBrut*100)}% du CA) — au-delà de 35%, la trésorerie peut être fragilisée.`});
   getMissionsImpayees().forEach(({m,days,reste})=>{
     const pr=days>=60?0:days>=30?1:2;
     const cl=days>=60?'al-err':days>=30?'al-warn':'al-info';
@@ -4424,6 +4457,17 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const moisLabel=new Date(+cY,+cM-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const moisR=getMoisRealises(), mc=Math.max(moisR.length,1);
   const p=DATA.params;
+  // ── Famille & KPI conditionnel ────────────────────────────────
+  const _family=BUSINESS_PROFILE_MAP[p.metier]||'service';
+  const _isChantier=_family==='chantier';
+  const _isMarge=_family==='fabrication'||_family==='achat_revente';
+  const _hj=p.heuresParJour||7;
+  const _thMin=getTauxHoraireMinCible();
+  const _tjmR=Math.round(thR*_hj), _tjmMin=Math.round(_thMin*_hj);
+  const _nbMissions=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(String(DATA.currentYear)))).length;
+  const caNet=getCaNetAnnuel();
+  const _gainMoyen=_nbMissions>0?Math.round(caNet/_nbMissions):0;
+  const _itemLbl=_family==='achat_revente'?'vente':'commande';
 
   // ── KPI 1 : CA ANNUEL ─────────────────────────────────────────
   const netR=1-getTauxChargesPresta()-getImpotsTaux();
@@ -4500,14 +4544,37 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     </div>
     ${isSASU()
       ?wTresorerieKPI()
-      :`<div class="kpi ${pctObj>=100?'good':pctObj>=75?'warn':'bad'}">
-          <div class="kpi-ico">🎯</div>
-          <div class="kpi-label">Revenu net — ${moisLabel}</div>
-          <div class="kpi-val">${fmtE(caNetMois)}</div>
-          <div class="prog-bar mt8" style="height:8px"><div class="prog-fill ${pcObj}" style="width:${pctObj}%"></div></div>
-          <div class="kpi-sub mt4">${pctObj} %${objNet>0?` de l'objectif mensuel (${fmtE(objNet)})`:''}</div>
-          <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${phraseNet}</div>
-        </div>`
+      :_isMarge
+        ?`<div class="kpi neu">
+            <div class="kpi-ico">${_family==='achat_revente'?'🛍️':'📦'}</div>
+            <div class="kpi-label">Gain moyen par ${_itemLbl}</div>
+            <div class="kpi-val">${_gainMoyen>0?fmtE(_gainMoyen,0):'—'}</div>
+            <div class="kpi-sub mt4">${_nbMissions>0?`sur ${_nbMissions} ${_itemLbl}${_nbMissions>1?'s':''} encaissé${_nbMissions>1?'s':''}`:phraseNet}</div>
+            <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">Revenu net : <strong>${fmtE(caNet,0)}</strong>${objNet>0?` · ${pctObj}% de l'objectif mensuel`:''}. ${phraseNet}</div>
+          </div>`
+        :_isChantier
+          ?`<div class="kpi ${_tjmMin>0?(_tjmR>=_tjmMin?'good':_tjmR>=Math.round(_tjmMin*.75)?'warn':'bad'):'neu'}">
+              <div class="kpi-ico">📅</div>
+              <div class="kpi-label">TJM réel — ${DATA.currentYear}</div>
+              <div class="kpi-val">${thR>0?fmtE(_tjmR,0)+'/j':'—'}</div>
+              ${_tjmMin>0
+                ?`<div class="prog-bar mt8" style="height:8px"><div class="prog-fill ${_tjmR>=_tjmMin?'ok':_tjmR>=Math.round(_tjmMin*.75)?'wn':'bd'}" style="width:${Math.min(thR>0?Math.round(_tjmR/_tjmMin*100):0,100)}%"></div></div>
+                   <div class="kpi-sub mt4">${thR>0?Math.round(_tjmR/_tjmMin*100)+' % de l\'objectif min. '+fmtE(_tjmMin,0)+'/j':'Objectif min. '+fmtE(_tjmMin,0)+'/j'}</div>`
+                :`<div class="kpi-sub">Définissez un objectif pour suivre votre TJM</div>`
+              }
+              <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${phraseNet}</div>
+            </div>`
+          :`<div class="kpi ${_thMin>0?(thR>=_thMin?'good':thR>=_thMin*.75?'warn':'bad'):'neu'}">
+              <div class="kpi-ico">⏱</div>
+              <div class="kpi-label">TH réel — ${DATA.currentYear}</div>
+              <div class="kpi-val">${thR>0?fmtE(thR,0)+'/h':'—'}</div>
+              ${_thMin>0
+                ?`<div class="prog-bar mt8" style="height:8px"><div class="prog-fill ${thR>=_thMin?'ok':thR>=_thMin*.75?'wn':'bd'}" style="width:${Math.min(thR>0?Math.round(thR/_thMin*100):0,100)}%"></div></div>
+                   <div class="kpi-sub mt4">${thR>0?Math.round(thR/_thMin*100)+' % de l\'objectif min. '+fmtE(_thMin,0)+'/h':'Objectif min. '+fmtE(_thMin,0)+'/h'}</div>`
+                :`<div class="kpi-sub">Définissez un objectif pour suivre votre TH</div>`
+              }
+              <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${phraseNet}</div>
+            </div>`
     }
     <div class="kpi neu" onclick="navigate('revenus')" style="cursor:pointer">
       <div class="kpi-label">📈 Évolution CA — ${DATA.currentYear}</div>
