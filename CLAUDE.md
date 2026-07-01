@@ -561,6 +561,22 @@ Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions
 ### 5. Synchronisation bancaire *(long terme)*
 Connexion à un agrégateur bancaire (Bridge API, Powens…) pour réconcilier automatiquement les encaissements avec les missions. Impact fort sur la qualité des données artisan (aujourd'hui saisie manuelle des encaissements). Nécessite un backend — hors portée du vanilla actuel.
 
+### 7. Fréquence des missions récurrentes *(post-bêta)*
+Actuellement les missions récurrentes sont **mensuelles uniquement**. Ajouter : hebdomadaire, trimestriel, annuel.
+
+**Cas d'usage identifiés :**
+- Artisan entretien : passage toutes les semaines chez un client
+- Prestataire : audit trimestriel ou abonnement annuel
+
+**Complexité : modérée-haute.** Champs à ajouter : `frequence: 'hebdo'|'mensuel'|'trimestriel'|'annuel'` + `montantPeriode` (remplace `montantMensuel`).
+
+**Points d'attention avant de démarrer :**
+- Normaliser en équivalent mensuel pour tous les KPIs : hebdo × 4.33, trimestriel ÷ 3, annuel ÷ 12
+- `getCaBreakdownMois` et `getCaFromMissions` dans `core/calculs.js` utilisent `montantMensuel` directement → adapter
+- Encaissements : rester indexés par mois (on encaisse quand on veut), mais le label "0/12 mois encaissés" doit s'adapter (ex. "0/52 semaines")
+- Modale mission : afficher le bon label (€/semaine, €/trimestre…) et recalculer le total
+- Faire un test complet sur tous les profils avant de merger — risque de régression CA élevé
+
 ### 6. Accessibilité de base *(avant lancement commercial payant)*
 Le RGAA n'est pas légalement obligatoire pour une app privée, mais recommandé avant la mise en vente d'abonnements. Deux niveaux :
 - **Minimum (1-2h)** : associer chaque `<label>` à son `<input>` via `for="id"` ; ajouter une déclaration d'accessibilité sur le site ("accessibilité partielle, améliorations en cours")
