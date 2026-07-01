@@ -630,12 +630,18 @@ html,body{overflow-x:hidden;}
         </div>
         <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
       </div>
-      <div class="flex gap6 mb12" style="flex-wrap:wrap;" id="mission-filters">
+      <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
         <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
         <button class="btn btn-out btn-xs" onclick="filterMissions('att',this)">En attente</button>
         <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)">En cours</button>
         <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)">Refusées</button>
         <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)">Facturées</button>
+        <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
+          <option value="newest">↓ Plus récent</option>
+          <option value="oldest">↑ Plus ancien</option>
+          <option value="alpha">A → Z</option>
+          <option value="amount_desc">Montant ↓</option>
+        </select>
       </div>
       <div class="tbl-wrap">
         <table>
@@ -5421,7 +5427,7 @@ function wJalonFiscal() {
 
 
 // ── MISSIONS ─────────────────────────────────────────────────
-let missionFilter='all', pendingFactId=null, timerInterval=null;
+let missionFilter='all', missionSort='newest', pendingFactId=null, timerInterval=null;
 
 // ── REVENUS PONCTUELS UI ──────────────────────────────────────
 let _poncMk = null;
@@ -6493,7 +6499,13 @@ function renderMissions() {
   const bm={att:'b-att',cours:'b-cours',ref:'b-ref',fact:'b-fact'};
   const tvaOn=DATA.params.tva, tvaRate=DATA.params.tauxTVA/100;
   let filtered=DATA.missions.filter(m=>missionFilter==='all'||m.statut===missionFilter||(missionFilter==='cours'&&isRecurringStillActive(m)));
-  filtered.sort((a,b)=>(b.isManagement?1:0)-(a.isManagement?1:0));
+  filtered.sort((a,b)=>{
+    if(b.isManagement!==a.isManagement) return (b.isManagement?1:0)-(a.isManagement?1:0);
+    if(missionSort==='oldest') return (a.id||'').localeCompare(b.id||'');
+    if(missionSort==='alpha') return (a.client||'').localeCompare(b.client||'');
+    if(missionSort==='amount_desc') return (b.montantDevis||0)-(a.montantDevis||0);
+    return (b.id||'').localeCompare(a.id||''); // newest (default)
+  });
   if(!filtered.length){
     const isEmpty=missionFilter==='all';
     tbody.innerHTML=`<tr><td colspan="10"><div class="empty">
