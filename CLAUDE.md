@@ -476,10 +476,11 @@ Dans les simulateurs (`calcSimulateur`, `calcDevis`) : base = montant HT total d
 
 ### Bugs récurrents — à ne pas re-investiguer
 
-**1. "Chargement..." bloqué indéfiniment (overlay Supabase)**
-- **Cause** : le CDN `cdn.jsdelivr.net/@supabase/supabase-js@2` est lent → `onAuthStateChange(INITIAL_SESSION)` ne fire jamais → `hideOverlay()` jamais appelé.
-- **Fix en place** : timeout de 6s dans le bloc auth (ligne ~9350) — si `INITIAL_SESSION` ne fire pas, `showLoginForm()` est appelé automatiquement.
-- **En cas de re-régression** : chercher le `_authTimeout` et vérifier qu'il est bien déclenché. Ne pas chercher dans le JS métier — c'est purement auth/CDN.
+**1. Auth Supabase instable (overlay bloqué, déconnexion auto, logout cassé)**
+- **Cause racine** : Supabase fire `SIGNED_IN` AVANT `INITIAL_SESSION` (ordre contre-intuitif). Avec des `if` séparés, les deux handlers s'exécutaient, `loadFromCloud` était appelé deux fois, ce qui provoquait un `SIGNED_OUT` automatique.
+- **Fix en place** : machine d'état explicite (`_authState: 'init'|'app'|'login'`) avec `_enterApp()` / `_enterLogin()`. Le fallback CDN (8s) ne s'active que si `_authState === 'init'`.
+- **Ne jamais revenir** aux `if` séparés sur les événements Supabase — utiliser `if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')` avec garde sur `_authState`.
+- **En cas de re-régression** : chercher `_authState` dans le bloc auth et vérifier que `_enterApp` / `_enterLogin` sont les seuls points d'entrée des transitions.
 
 **2. Dashboard blanc + `getCurrentYearMonths is not defined` (modules ES sur file://)**
 - **Cause** : Chrome bloque les imports `<script type="module">` depuis `file://` → toutes les fonctions `window.*` (Mode bridge) restent `undefined`.
