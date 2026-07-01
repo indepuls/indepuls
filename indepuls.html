@@ -9347,8 +9347,16 @@ document.addEventListener('keydown', function(e) {
     };
   }
 
+  // Fallback : si INITIAL_SESSION ne fire pas dans 6s (CDN lent), on affiche le login
+  var _authFired = false;
+  var _authTimeout = setTimeout(function() {
+    if (!_authFired) showLoginForm();
+  }, 6000);
+
   sb.auth.onAuthStateChange(async function(event, session) {
     if (event === 'INITIAL_SESSION') {
+      _authFired = true;
+      clearTimeout(_authTimeout);
       if (session) {
         await loadFromCloud(session.user);
         hideOverlay();
