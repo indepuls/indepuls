@@ -9381,39 +9381,39 @@ document.addEventListener('keydown', function(e) {
     };
   }
 
-  // Fallback : si INITIAL_SESSION ne fire pas dans 6s (CDN lent), on affiche le login
-  var _authFired = false;
-  var _authTimeout = setTimeout(function() {
-    if (!_authFired) showLoginForm();
-  }, 6000);
+  // ── MACHINE D'ÉTAT AUTH ──────────────────────────────────────
+  // États : 'init' → 'app' (connecté) | 'login' (formulaire)
+  // Transitions : INITIAL_SESSION / SIGNED_IN / SIGNED_OUT
+  var _authState = 'init';
+  // Fallback si le CDN Supabase ne répond pas du tout (>8s depuis le chargement)
+  var _cdnFallback = setTimeout(function() {
+    if (_authState === 'init') { _authState = 'login'; showLoginForm(); }
+  }, 8000);
 
-  sb.auth.onAuthStateChange(async function(event, session) {
-    console.log('[AUTH] onAuthStateChange →', event, session ? 'session OK user='+session.user?.email : 'no session');
-    if (event === 'INITIAL_SESSION') {
-      _authFired = true;
-      clearTimeout(_authTimeout);
-      if (session) {
-        console.log('[AUTH] INITIAL_SESSION with session → hideOverlay + loadFromCloud');
-        hideOverlay();
-        setTimeout(addLogoutButton, 200);
-        await loadFromCloud(session.user);
-      } else {
-        console.log('[AUTH] INITIAL_SESSION no session → showLoginForm');
-        showLoginForm();
-      }
-    }
-    if (event === 'SIGNED_IN') {
-      _authFired = true;
-      clearTimeout(_authTimeout);
-      console.log('[AUTH] SIGNED_IN → hideOverlay + loadFromCloud');
-      hideOverlay();
-      setTimeout(addLogoutButton, 200);
-      await loadFromCloud(session.user);
+  function _enterApp(user) {
+    clearTimeout(_cdnFallback);
+    _authState = 'app';
+    hideOverlay();
+    setTimeout(addLogoutButton, 200);
+    loadFromCloud(user);
+  }
+
+  function _enterLogin() {
+    clearTimeout(_cdnFallback);
+    _authState = 'login';
+    var lb = document.getElementById('logout-btn');
+    if (lb) lb.remove();
+    showLoginForm();
+  }
+
+  sb.auth.onAuthStateChange(function(event, session) {
+    console.log('[AUTH]', event, session ? 'user='+session.user?.email : 'no session');
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      if (session) { _enterApp(session.user); }
+      else if (_authState !== 'login') { _enterLogin(); }
     }
     if (event === 'SIGNED_OUT') {
-      var lb = document.getElementById('logout-btn');
-      if (lb) lb.remove();
-      showLoginForm();
+      _enterLogin();
     }
   });
 })();
