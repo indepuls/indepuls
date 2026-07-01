@@ -9403,6 +9403,8 @@ document.addEventListener('keydown', function(e) {
       }
     }
     if (event === 'SIGNED_IN') {
+      _authFired = true;
+      clearTimeout(_authTimeout);
       console.log('[AUTH] SIGNED_IN → hideOverlay + loadFromCloud');
       hideOverlay();
       setTimeout(addLogoutButton, 200);
