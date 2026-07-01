@@ -4918,8 +4918,9 @@ function wScoreSante(d) {
 
   // ── PILIER 1 : RENTABILITÉ (25 pts) ──────────────────────────
   const _rentFamily=BUSINESS_PROFILE_MAP[DATA.params.metier]||'service';
-  const _rentIsChantier=_rentFamily==='chantier';
-  const _rentIsMarge=_rentFamily==='fabrication'||_rentFamily==='achat_revente';
+  const _rentObjectif=DATA.params.modules?.objectif||'th';
+  const _rentIsChantier=_rentObjectif==='tjm';
+  const _rentIsMarge=_rentObjectif==='marge_commande';
   let sRent=0;
   const thBrut=hT>0?caBrut/hT:0;
   const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
