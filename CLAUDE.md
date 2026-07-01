@@ -474,6 +474,18 @@ Dans les simulateurs (`calcSimulateur`, `calcDevis`) : base = montant HT total d
 - `renderSasuCard()` : dépend de `getSasuProjectionFinAnnee()` qui elle-même dépend de l'ancrage bancaire optionnel
 - `buildAlerts()` : try/catch autour de `getMicroPlafondInfo()` — les erreurs sont silencieuses en prod, vérifier les logs console
 
+### Bugs récurrents — à ne pas re-investiguer
+
+**1. "Chargement..." bloqué indéfiniment (overlay Supabase)**
+- **Cause** : le CDN `cdn.jsdelivr.net/@supabase/supabase-js@2` est lent → `onAuthStateChange(INITIAL_SESSION)` ne fire jamais → `hideOverlay()` jamais appelé.
+- **Fix en place** : timeout de 6s dans le bloc auth (ligne ~9350) — si `INITIAL_SESSION` ne fire pas, `showLoginForm()` est appelé automatiquement.
+- **En cas de re-régression** : chercher le `_authTimeout` et vérifier qu'il est bien déclenché. Ne pas chercher dans le JS métier — c'est purement auth/CDN.
+
+**2. Dashboard blanc + `getCurrentYearMonths is not defined` (modules ES sur file://)**
+- **Cause** : Chrome bloque les imports `<script type="module">` depuis `file://` → toutes les fonctions `window.*` (Mode bridge) restent `undefined`.
+- **Fix** : toujours tester via `http://localhost:5391/indepuls.html` (serveur HTTP dans `.claude/static-server.js`, port 5391).
+- **En cas de re-régression** : vérifier que le serveur tourne (`node .claude/static-server.js`) et utiliser l'URL HTTP, pas `file://`.
+
 ### CSS — pièges fréquents
 - `.kpi-ico` est en `position:absolute; right:14px; top:14px` — il chevauche les boutons dans ce coin. Ne pas mettre de bouton en haut à droite d'une `.kpi` card
 - `.g3` sur mobile ≤640px passe à 1 colonne — tester les ajouts de widgets en responsive
