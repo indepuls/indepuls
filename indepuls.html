@@ -1485,6 +1485,21 @@ html,body{overflow-x:hidden;}
       <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
     <div class="divider" style="margin:10px 0"></div>
+    <!-- Zone production — fabrication & achat_revente -->
+    <div id="m-production-zone" style="display:none;background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:12px">
+      <div class="ts mb10" style="font-weight:700;color:var(--pri)" id="m-production-title">Détails de la commande</div>
+      <div class="frow">
+        <div class="fgroup" id="m-quantite-zone">
+          <label class="flabel" id="m-quantite-label">Quantité produite</label>
+          <input type="number" id="m-quantite" min="1" step="1" placeholder="Ex : 10" oninput="updateMargeProduction()">
+        </div>
+        <div class="fgroup" id="m-prix-achat-zone" style="display:none">
+          <label class="flabel">Prix d'achat unitaire (€ HT)</label>
+          <input type="number" id="m-prix-achat" min="0" step="0.01" placeholder="Ex : 25" oninput="updateMargeProduction()">
+        </div>
+      </div>
+      <div id="m-marge-display" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;border-left:3px solid var(--ok);font-size:13px;line-height:1.5"></div>
+    </div>
     <div class="frow">
       <div class="fgroup">
         <label class="flabel">Type de mission <span class="info-tip" title="Programme collectif : adapté aux coachings de groupe, masterminds, ateliers, formations. Le formulaire ajoute : nombre de participants, prix par personne, et une répartition du temps en création / animation / suivi.">?</span></label>
@@ -6078,6 +6093,25 @@ function openMissionModal(id) {
       toggleMissionType('individuelle');
     }
   }
+  // Zone production (fabrication / achat_revente)
+  const _prodFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const _isFab=_prodFamily==='fabrication', _isAchat=_prodFamily==='achat_revente';
+  const prodZone=document.getElementById('m-production-zone');
+  if(prodZone) prodZone.style.display=(_isFab||_isAchat)?'':'none';
+  if(_isFab||_isAchat){
+    const titleEl=document.getElementById('m-production-title');
+    if(titleEl) titleEl.textContent=_isAchat?'Détails de la vente':'Détails de la commande';
+    const qLbl=document.getElementById('m-quantite-label');
+    if(qLbl) qLbl.textContent=_isAchat?'Quantité vendue':'Quantité produite';
+    const paZone=document.getElementById('m-prix-achat-zone');
+    if(paZone) paZone.style.display=_isAchat?'':'none';
+    document.getElementById('m-quantite').value=m?(m.quantite||''):'';
+    document.getElementById('m-prix-achat').value=m?(m.prixAchat||''):'';
+    // Déclencher updateMargeProduction quand le montant change
+    const montantInp=document.getElementById('m-montant');
+    if(montantInp) montantInp.oninput=(function(orig){return function(){if(orig)orig.call(this);updateMargeProduction();};})(montantInp.oninput||null);
+    updateMargeProduction();
+  }
   initEditingSessions(m);
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
@@ -6096,6 +6130,29 @@ function openMissionModal(id) {
   openModal('modal-mission');
 }
 
+function updateMargeProduction() {
+  const family=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const el=document.getElementById('m-marge-display'); if(!el) return;
+  const montant=parseFloat(document.getElementById('m-montant')?.value)||0;
+  const quantite=parseInt(document.getElementById('m-quantite')?.value)||0;
+  const prixAchat=parseFloat(document.getElementById('m-prix-achat')?.value)||0;
+  if(family==='achat_revente'){
+    if(montant>0&&quantite>0&&prixAchat>0){
+      const coutTotal=prixAchat*quantite;
+      const marge=montant-coutTotal;
+      const margePct=Math.round(marge/montant*100);
+      const cl=margePct>=20?'var(--ok)':margePct>=10?'var(--warn)':'var(--err)';
+      el.style.display='';el.style.borderLeftColor=cl;
+      el.innerHTML=`Marge brute : <strong style="color:${cl}">${fmtE(marge,0)} (${margePct}%)</strong> — coût total : ${fmtE(coutTotal,0)} pour ${quantite} article${quantite>1?'s':''}.`;
+    } else { el.style.display='none'; }
+  } else if(family==='fabrication'){
+    if(montant>0&&quantite>0){
+      const gain=Math.round(montant/quantite);
+      el.style.display='';el.style.borderLeftColor='var(--pri)';
+      el.innerHTML=`Gain moyen par pièce : <strong>${fmtE(gain,0)}</strong> — ${quantite} pièce${quantite>1?'s':''} à ${fmtE(montant,0)} total.`;
+    } else { el.style.display='none'; }
+  } else { el.style.display='none'; }
+}
 function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.display=v==='fact'?'':'none'; }
 function toggleRecurrenceFields(val) {
   const isRec=val==='mensuelle';
@@ -6146,6 +6203,8 @@ function saveMission() {
     tempsAnimation:parseFloat(document.getElementById('m-temps-animation').value)||0,
     tempsSupport:parseFloat(document.getElementById('m-temps-support').value)||0,
     sourceAcquisition:document.getElementById('m-source-acq').value||'',
+    quantite:parseInt(document.getElementById('m-quantite')?.value)||null,
+    prixAchat:parseFloat(document.getElementById('m-prix-achat')?.value)||null,
   };
   if(obj.typeMission==='collectif'&&obj.nbParticipants>0&&obj.prixParParticipant>0){
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
