@@ -3914,7 +3914,7 @@ function getPageTitle(page) {
   if(page==='missions') return tVocab('pageTitle');
   if(page==='simulateur') {
     const fam = BUSINESS_PROFILE_MAP[DATA.params?.metier];
-    return (fam==='chantier'||fam==='fabrication') ? 'Tester un devis' : 'Simulateur de rentabilité';
+    return 'Simulateur de rentabilité';
   }
   return PAGE_TITLES[page]||page;
 }
@@ -3935,7 +3935,7 @@ function updateNavSimulateur() {
   const lbl = document.getElementById('nav-simulateur-label');
   if (lbl) {
     const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
-    lbl.textContent = (family === 'chantier' || family === 'fabrication') ? 'Tester un devis' : 'Simulateur';
+    lbl.textContent = 'Simulateur';
   }
 }
 function navigate(page) {
@@ -8390,7 +8390,7 @@ function renderSimulateurPage() {
 
   const _titleEl = el('sim-page-title');
   if (_titleEl) {
-    _titleEl.textContent = (preset === 'chantier' || preset === 'fabrication') ? '🧮 Tester un devis' : '🧮 Simulateur de rentabilité';
+    _titleEl.textContent = '🧮 Simulateur de rentabilité';
   }
   const _btnCreate = el('sim-create-btn');
   if (_btnCreate) {
