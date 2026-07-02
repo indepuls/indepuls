@@ -835,6 +835,7 @@ html,body{overflow-x:hidden;}
             <div><strong>Je planifie certaines affaires dans un calendrier</strong><div class="ts mt1">Visualisez vos dates, taux de charge et remplissage mensuel</div></div>
           </label>
         </div>
+        <div id="mod-planning-info" class="ts mt10" style="color:var(--tl);padding:8px 10px;background:var(--bg);border-radius:6px;border:1px solid var(--brd);display:none"></div>
       </div>
       <div class="card mt16">
         <div class="card-title mb12">Tarification & objectif</div>
@@ -9070,6 +9071,24 @@ function renderModulesUI() {
   if (cbCal) cbCal.checked = !!m.calendrier;
   if (lblEst) lblEst.classList.toggle('selected', !!m.estimation);
   if (lblCal) lblCal.classList.toggle('selected', !!m.calendrier);
+  const infoEl = document.getElementById('mod-planning-info');
+  if (infoEl) {
+    const both = m.estimation && m.calendrier;
+    const calOnly = m.calendrier && !m.estimation;
+    const estOnly = m.estimation && !m.calendrier;
+    if (both) {
+      infoEl.style.display = '';
+      infoEl.textContent = '📅 Les deux modes sont actifs. Le taux de remplissage se base sur vos sessions planifiées (plus précis). L\'estimation h/sem sert uniquement au calcul de votre taux horaire réel.';
+    } else if (calOnly) {
+      infoEl.style.display = '';
+      infoEl.textContent = '📅 Taux de remplissage calculé à partir de vos sessions planifiées.';
+    } else if (estOnly) {
+      infoEl.style.display = '';
+      infoEl.textContent = '⏱ Taux de remplissage calculé à partir des charges estimées (h/sem) de vos affaires.';
+    } else {
+      infoEl.style.display = 'none';
+    }
+  }
   const isJ = m.uniteTemps === 'jours';
   const btnH = document.getElementById('mod-unite-heures');
   const btnJ = document.getElementById('mod-unite-jours');
