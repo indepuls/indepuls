@@ -50,18 +50,47 @@ Pour fabrication et achat_revente, le temps est un **indicateur secondaire** : "
 
 ## Modules comportementaux par défaut
 
-| Profil | planning | uniteTemps | objectif | devis |
-|---|---|---|---|---|
-| prestataire_services | estime | heures | th | false |
-| creatif_com | estime | heures | th | false |
-| evenementiel | calendrier | heures | th | false |
-| artisan_batiment | calendrier | jours | tjm | true |
-| fabricant_serie | estime | heures | marge_commande | false |
-| artisan_commande | estime | heures | marge_commande | true |
-| achat_revente | estime | heures | marge_commande | false |
+| Profil | calendrier | estimation | uniteTemps | objectif | devis |
+|---|---|---|---|---|---|
+| prestataire_services | false | true | heures | th | false |
+| creatif_com | false | true | heures | th | false |
+| evenementiel | **true** | **true** | heures | th | false |
+| artisan_batiment | **true** | false | jours | tjm | true |
+| fabricant_serie | false | true | heures | marge_commande | false |
+| artisan_commande | false | true | heures | marge_commande | true |
+| achat_revente | false | true | heures | marge_commande | false |
 
-> `planning = 'aucun'` supprimé : seules les valeurs `'estime'` et `'calendrier'` sont valides.
-> `modules.simulateurOffre` supprimé : le simulateur est toujours visible, adapté au preset du profil.
+> `modules.planning` (string) **supprimé** → remplacé par deux booléens indépendants `calendrier` + `estimation`.
+> Les deux peuvent être actifs simultanément (ex: evenementiel).
+> `modules.simulateurOffre` supprimé : le simulateur est toujours visible.
+> Migration automatique depuis `planning='estime'/'calendrier'` et `modePlanning`.
+
+---
+
+## Source de vérité du temps
+
+```
+Temps prévu (planning)          Temps réel (finances)
+──────────────────────          ─────────────────────
+session.heures                  timerAccumulated
+chargeEstimee + chargeUnit      tempsManuel[]
+                                confirmFacturation()  ← seule écriture finale
+```
+
+**Règle absolue :** ces deux domaines ne sont jamais additionnés automatiquement.
+- `getMissionHeures()` lit uniquement le temps réel — jamais `session.heures`
+- `session.heures` alimente le taux de remplissage et peut pré-remplir la suggestion de clôture
+- `modal-fact-confirm` est la seule porte d'entrée du temps réel final
+
+### Modèle session (depuis 2026-07)
+
+```js
+{ debut: 'YYYY-MM-DD', fin: 'YYYY-MM-DD', heures?: number, heuresAuto?: boolean }
+```
+
+- `heures` absent → rétrocompat totale (taux de remplissage en jours)
+- `heures > 0` → taux en heures si **toutes** les sessions du mois en ont
+- `heuresAuto` → distingue valeur auto (joursOuvrés × heuresParJour) vs personnalisée
 
 ---
 

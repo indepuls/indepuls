@@ -377,6 +377,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Simulateur de rentabilité unifié (2026-06)** : fusion "Tester une offre" + "Tester un devis" en une seule page `page-simulateur` toujours visible (plus de gate `modules.simulateurOffre`). Architecture pipeline : `prepareSimInputs() → calcRentabilite() → renderSimOutputs()`. 4 presets auto-détectés via `getSimulateurPreset()` → BUSINESS_PROFILE_MAP : `service` (checkbox collectif, pas de coûts par défaut), `chantier` (trajet + fournitures + sous-traitance + autres frais), `fabrication` (matières + emballages + sous-traitance), `achat_revente` (coût achat + emballages + frais plateforme %). Champs unifiés (`sim-ca-val`, `sim-temps-val`, `sim-trajet-val`, `sim-matieres-val`, `sim-achat-val`, `sim-emballages-val`, `sim-soustraitance-val`, `sim-plateforme-val`, `sim-autresfrais-val`). Accordéon "Personnaliser ce simulateur" avec checkboxes "Je souhaite prendre en compte…" overrident les defaults du preset (state session `_simUserFields`, reset à chaque navigate). `updateNavSimulateur()` → toujours visible. `createMissionFromSim()` lit les nouveaux IDs. `calcDevis()` dans la modale mission reste inchangé.
 - **Onboarding refonte (2026-06)** : suppression de l'étape 2 (formulaire statut/objectif/TVA). Le parcours est désormais : choix du profil → "Découvrir Indépuls →" → démo chargée directement → `#modal-welcome` s'affiche. Le modal explique le mode démo et propose deux boutons : "Explorer la démonstration →" (`closeWelcomeModal('dashboard')`) ou "⚙️ Personnaliser mes paramètres d'abord" (`closeWelcomeModal('params')`). `pickerStep1Next()` appelle directement `applyProfile()` + `loadDemoWithCurrentParams()`. `pickerStep2Confirm()` et `pickerBackToStep1()` supprimés. `loadDemoWithCurrentParams()` ouvre `modal-welcome` au lieu d'un toast.
 - **Auth — formulaire email + mot de passe (2026-06)** : après `signOut()` ou sans session au chargement, l'overlay affiche un formulaire email + mot de passe (`sb.auth.signInWithPassword`). `onAuthStateChange(SIGNED_OUT)` réaffiche l'overlay en place (plus de redirect vers `/`). `onAuthStateChange(SIGNED_IN)` masque l'overlay et charge les données. Le bouton "Déconnexion" ne redirige plus — la transition est gérée entièrement par `onAuthStateChange`. `showLoginForm()` est la fonction centrale : réinitialise l'overlay et expose `window.authLogin()`.
+- **Sessions heures + modules calendrier/estimation (2026-07)** : `modules.planning` (string) remplacé par deux booléens indépendants `modules.calendrier` et `modules.estimation` — les deux peuvent être actifs simultanément. UI Paramètres : 2 checkboxes "Je planifie certaines affaires dans un calendrier" / "J'estime le temps nécessaire sur mes affaires". Sessions : champ `heures` optionnel auto-calculé (`joursOuvrésSemaine × heuresParJour`), affichage `~Xh` (auto) vs `Xh` (perso). Taux de remplissage passe en mode heures si toutes les sessions ont `heures > 0`. Barres de charge journalières dans le calendrier (vert/orange/rouge). KPI planning adapté : "Heures planifiées" vs "Jours planifiés". Helpers `joursOuvrésSemaine`, `getChargeJour` dans planning.js et unified.js. Migration automatique depuis l'ancienne clé `modules.planning`. **Règle architecturale préservée** : session.heures = temps prévu uniquement — jamais additionnée au temps réel (`getMissionHeures` inchangé, `confirmFacturation` seule écriture du réel).
 - **Refonte UX Paramètres — "Je décris mon activité" (2026-06)** : page Params refondée de 5 onglets techniques en 6 onglets narratifs. (1) **Mon activité** : prénom, date de lancement, profil "Quel est votre cœur de métier ?", radio 3 choix "Que vendez-vous ?" (prestations/produits/les deux → remplace le switch `activiteMixte`), switch salariés. (2) **Comment je travaille** (nouveau) : expose `modules.*` jusque là invisibles — `planning` radio 3 choix, `uniteTemps` chips heures/journées, `devis` switch, `simulateurOffre` switch, `objectif` radio 3 choix. (3) **Fiscalité & charges** : statut, SASU, URSSAF (label "Je déclare mon CA à l'URSSAF" mensuel/trimestriel), TVA, impôt, livre des recettes. (4) **Mes objectifs** inchangé. (5) **Mes offres** (ex-Offres & missions). (6) **Personnalisation** (themes + données fusionnés). Nouvelles fonctions : `saveModuleParam(key,val)`, `renderModulesUI()`, `saveActiviteType(type)`, `renderActiviteTypeUI()`, `onProfilChange(metier)`, `confirmProfilChange(withModules)`, `cancelProfilChange()`. Modale `modal-profil-change` : à chaque changement de profil, propose "Appliquer les réglages recommandés" (reset modules) ou "Conserver mes réglages actuels" (garde modules). `applyProfile(metier, applyModules=true)` — `applyModules=false` ne touche pas `DATA.params.modules`. Aucune modification de DATA ni des calculs.
 
 ## Points d'attention
@@ -428,23 +429,66 @@ Ne pas modifier les archives (`indepuls_freelance.html`, `indepuls_artisan.html`
 Depuis v29, les flags comportementaux sont regroupés dans `DATA.params.modules` :
 ```js
 DATA.params.modules = {
-  planning:        'estime' | 'calendrier',   // 'aucun' supprimé — le temps est toujours suivi
-  uniteTemps:      'heures' | 'jours',
-  objectif:        'th' | 'tjm' | 'marge_commande',  // pilote le KPI principal (Phase 1 implémentée)
-  devis:           true | false,              // conservé pour rétrocompat DATA, plus utilisé pour gater la nav
-  simulateurOffre: true | false,              // conservé pour rétrocompat DATA, plus utilisé pour gater la nav
+  // Deux booléens indépendants depuis 2026-07 (remplacent l'ancienne string 'planning')
+  calendrier:  true | false,   // page Planning visible + sessions activées dans modal-mission
+  estimation:  true | false,   // champ charge estimée visible dans modal-mission
+  // Les deux peuvent être true simultanément (ex: evenementiel)
+  // Migration automatique : modules.planning (string) → calendrier + estimation (booléens)
+
+  uniteTemps:  'heures' | 'jours',            // couplé à objectif : TH→heures, TJM→jours
+  objectif:    'th' | 'tjm' | 'marge_commande', // pilote le KPI principal
+  devis:       true | false,
 }
 ```
 Defaults par profil via `getDefaultModules(metier)`. `applyDefaults()` l'injecte si absent.
-Migration : `params.modePlanning` → `params.modules.planning` (effectuée dans `migrate()`).
-
-**`modules.objectif`** est intentionnellement conservé même si aucune condition ne le consomme encore. Il pilotera les futurs KPI différenciés : TH cible (service), TJM cible (artisan_batiment), marge par commande (fabricant/achat_revente). Ne pas le supprimer.
-
-**`applyProfile(metier)`** — à appeler à chaque changement de profil (select paramètres + select onboarding). Réinitialise `DATA.params.modules` aux défauts du nouveau profil via `getDefaultModules(metier)`. Ne pas appeler `saveParam('metier', ...)` directement — `applyProfile` gère tout.
+Migrations gérées automatiquement : `modePlanning` → booléens ; `modules.planning` → booléens.
 
 **Règles d'affichage liées aux modules :**
-- `modules.planning === 'calendrier'` → page Planning active avec sessions, nav-planning visible, `#m-charge-zone` masqué dans modal-mission
-- `modules.planning === 'estime'` → planning par estimation (charge h/sem), widget Capacité, `#m-charge-zone` visible ; nav-planning masqué
+- `modules.calendrier === true` → page Planning active, nav-planning visible, zone sessions dans modal-mission visible
+- `modules.estimation === true` → `#m-charge-zone` (charge h/sem) visible dans modal-mission
+- `modules.objectif === 'tjm'` → couplé automatiquement à `uniteTemps='jours'` par `saveModuleParam`
+- `modules.objectif === 'th'` → couplé automatiquement à `uniteTemps='heures'`
+- `modules.uniteTemps` toggle visible dans Paramètres uniquement si `objectif === 'marge_commande'`
+
+**Ne jamais utiliser `modules.planning` (supprimé) — utiliser `modules.calendrier` et `modules.estimation`.**
+
+### Modèle session calendrier
+
+```js
+// Structure session dans mission.sessions[]
+{ debut: 'YYYY-MM-DD', fin: 'YYYY-MM-DD', heures?: number, heuresAuto?: boolean }
+// heures    = durée totale estimée de la session (optionnel, rétrocompat totale)
+// heuresAuto = true si calculée automatiquement (joursOuvrés × heuresParJour), false si personnalisée
+// Anciennes sessions sans heures → comportement identique (taux de remplissage en jours)
+```
+
+**Source de vérité du temps — hiérarchie stricte :**
+
+| Source | Usage | Ne jamais mélanger avec |
+|---|---|---|
+| `session.heures` | Temps prévu / planning / taux de remplissage | Jamais additionnée au temps réel |
+| `chargeEstimee` + `chargeUnit` | Charge prévue hebdomadaire | Idem |
+| `timerAccumulated` + `tempsManuel[]` | Temps réel (chrono) | Séparé du planning |
+| `confirmFacturation()` | Seule écriture du temps réel final | Source autoritaire |
+
+`getMissionHeures()` utilise uniquement : timerAccumulated + tempsManuel + heuresSaisies. **Jamais session.heures.**
+
+**Taux de remplissage :**
+- Mode `'heures'` : si **toutes** les sessions du mois ont `session.heures > 0` → taux = occupiedH / capaciteH
+- Mode `'jours'` : comportement historique — jours avec ≥1 session / jours ouvrables
+- Retour de `getTauxRemplissageMois` : `{mode:'heures'|'jours', taux, ouvrables, ...}`
+
+**Helpers planning :**
+```js
+_joursOuvrésSemaine(debut, fin)   // inline HTML — compte lun–ven entre deux dates
+joursOuvrésSemaine(debut, fin)    // export planning.js + unified.js
+getChargeJour(DATA, dateStr)      // charge prévisionnelle (h) pour un jour donné
+updateSessHeuresAuto()            // recalcule le champ heures dans la modale session
+```
+
+**Barres de charge journalières :** visibles dans la page Planning si sessions ont heures. Barre 3px sous chaque case : vert ≤80%, orange ≤100%, rouge >100%.
+
+**`applyProfile(metier)`** — à appeler à chaque changement de profil. Réinitialise `DATA.params.modules` via `getDefaultModules(metier)`. Ne pas appeler `saveParam('metier', ...)` directement.
 - `modules.planning === 'aucun'` → **SUPPRIMÉ**. Toutes les valeurs existantes migrées vers `'estime'`. Le temps est toujours suivi.
 - `modules.objectif` → pilote le KPI principal du dashboard (`'th'` · `'tjm'` · `'marge_commande'`). Phase 1 implémentée.
 - `modules.uniteTemps === 'jours'` → labels TJM au lieu de TH, simulateur en journées. Phase 2 à venir.
