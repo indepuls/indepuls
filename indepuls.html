@@ -828,11 +828,17 @@ html,body{overflow-x:hidden;}
     <div class="tab-pane" id="tab-fonctionnement">
       <div class="alert al-info mb12" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
       <div class="card">
-        <div class="card-title mb4">Suivi du temps</div>
-        <div class="ts mb12" style="color:var(--tl)">Comment suivez-vous le temps passé sur vos affaires ?</div>
+        <div class="card-title mb4">Organisation de l'activité</div>
+        <div class="ts mb12" style="color:var(--tl)">Comment souhaitez-vous organiser votre activité ?</div>
         <div style="display:flex;flex-direction:column;gap:7px">
-          <label class="tva-regime-opt" id="mod-planning-estime"><input type="radio" name="mod-planning" value="estime" onchange="saveModuleParam('planning','estime')"><div><strong>J'estime le temps nécessaire pour chaque affaire</strong><div class="ts mt1">Saisissez le temps prévu — Indépuls calcule votre taux horaire réel</div></div></label>
-          <label class="tva-regime-opt" id="mod-planning-calendrier"><input type="radio" name="mod-planning" value="calendrier" onchange="saveModuleParam('planning','calendrier')"><div><strong>Je planifie mes affaires dans un calendrier</strong><div class="ts mt1">Organisation par dates, créneaux et jalons</div></div></label>
+          <label class="tva-regime-opt" id="mod-planning-estimation" style="cursor:pointer">
+            <input type="checkbox" id="mod-cb-estimation" onchange="saveModuleParam('estimation',this.checked)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
+            <div><strong>J'estime le temps nécessaire sur mes affaires</strong><div class="ts mt1">Saisissez le temps prévu — Indépuls calcule votre taux horaire réel</div></div>
+          </label>
+          <label class="tva-regime-opt" id="mod-planning-calendrier" style="cursor:pointer">
+            <input type="checkbox" id="mod-cb-calendrier" onchange="saveModuleParam('calendrier',this.checked)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
+            <div><strong>Je planifie certaines affaires dans un calendrier</strong><div class="ts mt1">Visualisez vos dates, taux de charge et remplissage mensuel</div></div>
+          </label>
         </div>
         <div id="mod-unite-zone" class="mt16">
           <div class="divider mb12"></div>
@@ -1530,10 +1536,17 @@ html,body{overflow-x:hidden;}
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
       <div id="m-sessions-list" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div class="fgroup" style="flex:1;min-width:120px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut"></div>
-        <div class="fgroup" style="flex:1;min-width:120px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin"></div>
+        <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
+        <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
+        <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
+          <label class="flabel" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
+          <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
+            style="padding:6px 6px;text-align:center"
+            oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
+        </div>
         <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
       </div>
+      <div class="ts mt4" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
     </div>
     <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
     <div id="m-couts-directs-zone" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
@@ -2337,16 +2350,18 @@ function tVocab(key) {
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
 }
 function getDefaultModules(metier) {
+  // calendrier = page Planning + sessions visibles
+  // estimation = champ charge estimée visible dans la modale affaire
   const M = {
-    prestataire_services: { planning:'estime',     uniteTemps:'heures', objectif:'th',             devis:false, simulateurOffre:true  },
-    creatif_com:          { planning:'estime',     uniteTemps:'heures', objectif:'th',             devis:false, simulateurOffre:true  },
-    evenementiel:         { planning:'calendrier', uniteTemps:'heures', objectif:'th',             devis:false, simulateurOffre:true  },
-    artisan_batiment:     { planning:'calendrier', uniteTemps:'jours',  objectif:'tjm',            devis:true,  simulateurOffre:false },
-    fabricant_serie:      { planning:'estime',     uniteTemps:'heures', objectif:'marge_commande', devis:false, simulateurOffre:false },
-    artisan_commande:     { planning:'estime',     uniteTemps:'heures', objectif:'marge_commande', devis:true,  simulateurOffre:false },
-    achat_revente:        { planning:'estime',     uniteTemps:'heures', objectif:'marge_commande', devis:false, simulateurOffre:false },
+    prestataire_services: { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'th',             devis:false },
+    creatif_com:          { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'th',             devis:false },
+    evenementiel:         { calendrier:true,  estimation:true,  uniteTemps:'heures', objectif:'th',             devis:false },
+    artisan_batiment:     { calendrier:true,  estimation:false, uniteTemps:'jours',  objectif:'tjm',            devis:true  },
+    fabricant_serie:      { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande', devis:false },
+    artisan_commande:     { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande', devis:true  },
+    achat_revente:        { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande', devis:false },
   };
-  return M[metier] ? {...M[metier]} : { planning:'estime', uniteTemps:'heures', objectif:'th', devis:false, simulateurOffre:true };
+  return M[metier] ? {...M[metier]} : { calendrier:false, estimation:true, uniteTemps:'heures', objectif:'th', devis:false };
 }
 function migrateMetierParam() {
   const m = DATA.params?.metier;
@@ -2354,9 +2369,12 @@ function migrateMetierParam() {
     DATA.params.metier = METIER_MIGRATION_FL[m];
     saveData();
   }
-  // planning='aucun' supprimé → migrer vers 'estime'
-  if (DATA.params?.modules?.planning === 'aucun') {
-    DATA.params.modules.planning = 'estime';
+  // Migrer modules.planning (ancienne string) → calendrier + estimation (booléens)
+  if (DATA.params?.modules?.planning !== undefined) {
+    const p = DATA.params.modules.planning;
+    DATA.params.modules.calendrier = p === 'calendrier';
+    DATA.params.modules.estimation = p !== 'calendrier'; // estime ou aucun → estimation true
+    delete DATA.params.modules.planning;
     saveData();
   }
 }
@@ -2448,7 +2466,7 @@ function applyVocabUI() {
   const sessLabel = document.getElementById('modal-sessions-label');
   if (sessLabel) sessLabel.textContent = tVocab('sessions') || 'Sessions';
   const planZoneNav = document.getElementById('m-planning-zone');
-  if (planZoneNav) planZoneNav.style.display = DATA.params.modules?.planning === 'calendrier' ? '' : 'none';
+  if (planZoneNav) planZoneNav.style.display = DATA.params.modules?.calendrier ? '' : 'none';
 }
 
 // ── PLANNING — SESSIONS ──────────────────────────────────────
@@ -2474,21 +2492,47 @@ function renderEditSessions() {
     const range = s.debut === fin
       ? `${formatDateFR(s.debut)} <span class="ts">(1 jour)</span>`
       : `${formatDateFR(s.debut)} → ${formatDateFR(fin)}`;
+    const hLabel = s.heures > 0
+      ? `<span style="font-size:11px;color:var(--tl);white-space:nowrap">${s.heuresAuto ? '~' : ''}${s.heures}&thinsp;h</span>`
+      : '';
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
       <span style="flex:1;font-size:12px">${range}</span>
+      ${hLabel}
       <button class="btn btn-del btn-xs" onclick="removeSessionFromEdit(${i})">🗑</button>
     </div>`;
   }).join('');
 }
 
+function _joursOuvrésSemaine(debut, fin) {
+  const d = new Date((debut||fin)+'T00:00:00'), end = new Date((fin||debut)+'T00:00:00');
+  let n = 0;
+  while (d <= end) { const dow = d.getDay(); if (dow!==0&&dow!==6) n++; d.setDate(d.getDate()+1); }
+  return Math.max(1, n);
+}
+function updateSessHeuresAuto() {
+  const debut = document.getElementById('m-sess-debut').value;
+  const fin   = document.getElementById('m-sess-fin').value || debut;
+  if (!debut) return;
+  const hEl = document.getElementById('m-sess-heures');
+  if (!hEl || hEl.dataset.perso === 'true') return;
+  const auto = _joursOuvrésSemaine(debut, fin) * (DATA.params.heuresParJour || 7);
+  hEl.value = auto;
+  hEl.dataset.auto = auto;
+}
 function addSessionToEdit() {
   const debut = document.getElementById('m-sess-debut').value;
-  const fin = document.getElementById('m-sess-fin').value || debut;
+  const fin   = document.getElementById('m-sess-fin').value || debut;
   if (!debut) { alert('Date de début requise.'); return; }
-  editingSessions.push({debut, fin});
+  const hEl    = document.getElementById('m-sess-heures');
+  const hVal   = hEl ? parseFloat(hEl.value) || 0 : 0;
+  const hAuto  = hEl ? parseFloat(hEl.dataset.auto) || 0 : 0;
+  const heures = hVal > 0 ? hVal : 0;
+  const heuresAuto = heures > 0 && heures === hAuto;
+  editingSessions.push(heures > 0 ? {debut, fin, heures, heuresAuto} : {debut, fin});
   editingSessions.sort((a,b) => a.debut < b.debut ? -1 : 1);
   document.getElementById('m-sess-debut').value = '';
   document.getElementById('m-sess-fin').value = '';
+  if (hEl) { hEl.value = ''; hEl.dataset.perso = 'false'; hEl.dataset.auto = ''; }
   renderEditSessions();
 }
 
@@ -2511,6 +2555,35 @@ function getTauxRemplissageMois(mk) {
   const [year, month] = mk.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
   const pad = n => String(n).padStart(2,'0');
+  const mFirst = `${year}-${pad(month)}-01`, mLast = `${year}-${pad(month)}-${pad(daysInMonth)}`;
+  const joursParSem   = DATA.params.joursParSemaine || 5;
+  const heuresParJour = DATA.params.heuresParJour   || 7;
+  const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+
+  const sessMois = [];
+  DATA.missions.forEach(m => {
+    if (m.isManagement || !(m.sessions||[]).length) return;
+    m.sessions.forEach(s => { if (s.debut <= mLast && (s.fin||s.debut) >= mFirst) sessMois.push(s); });
+  });
+
+  const useHeures = sessMois.length > 0 && sessMois.every(s => s.heures > 0);
+  if (useHeures) {
+    let occupiedH = 0;
+    sessMois.forEach(s => {
+      const fin = s.fin || s.debut;
+      const clipDebut = s.debut < mFirst ? mFirst : s.debut;
+      const clipFin   = fin    > mLast  ? mLast  : fin;
+      const joursTotal = _joursOuvrésSemaine(s.debut, fin);
+      const joursClip  = _joursOuvrésSemaine(clipDebut, clipFin);
+      occupiedH += (s.heures / joursTotal) * joursClip;
+    });
+    occupiedH = Math.round(occupiedH * 10) / 10;
+    const capaciteH = ouvrables * heuresParJour;
+    return { mode:'heures', occupiedH, capaciteH, ouvrables,
+      occupied: Math.round(occupiedH / heuresParJour * 10) / 10,
+      taux: Math.min(100, Math.round(occupiedH / capaciteH * 100)) };
+  }
+
   let occupied = 0;
   for (let d=1; d<=daysInMonth; d++) {
     const ds = `${year}-${pad(month)}-${pad(d)}`;
@@ -2520,9 +2593,7 @@ function getTauxRemplissageMois(mk) {
     });
     if (hit) occupied++;
   }
-  const joursParSem = DATA.params.joursParSemaine || 5;
-  const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
-  return { occupied, ouvrables, taux: Math.min(100, Math.round(occupied / ouvrables * 100)) };
+  return { mode:'jours', occupied, ouvrables, taux: Math.min(100, Math.round(occupied / ouvrables * 100)) };
 }
 
 function getTauxRemplissageAnnee() {
@@ -2570,12 +2641,24 @@ function renderPlanning() {
     return m.sessions.some(s => ds >= s.debut && ds <= (s.fin||s.debut)) && colorMap[m.id];
   });
 
-  let occupiedDays = 0;
-  for (let d=1; d<=daysInMonth; d++) {
-    if (getMissionsDay(mkStr(d)).length > 0) occupiedDays++;
-  }
-  const joursParSem = DATA.params.joursParSemaine || 5;
-  const joursOuvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+  const heuresParJour = DATA.params.heuresParJour || 7;
+  // Charge prévisionnelle par jour (h) depuis session.heures
+  const getChargeJourLocal = ds => {
+    const dow = new Date(ds+'T00:00:00').getDay();
+    if (dow===0||dow===6) return 0;
+    let total = 0;
+    DATA.missions.forEach(m => {
+      if (m.isManagement) return;
+      (m.sessions||[]).forEach(s => {
+        const fin = s.fin||s.debut;
+        if (ds < s.debut || ds > fin || !s.heures || s.heures<=0) return;
+        total += s.heures / _joursOuvrésSemaine(s.debut, fin);
+      });
+    });
+    return Math.round(total*10)/10;
+  };
+  const rm = getTauxRemplissageMois(mk);
+  const modeHeures = rm.mode === 'heures';
 
   const wdH = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(w =>
     `<div style="text-align:center;font-size:10px;font-weight:700;color:var(--tl);text-transform:uppercase;padding:5px 2px">${w}</div>`
@@ -2600,9 +2683,19 @@ function renderPlanning() {
       const mk2 = {bg:c+'22',tx:c,bd:c};
       return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
     }).join('');
+    // Barre de charge journalière (visible seulement si sessions ont heures)
+    const charge = modeHeures ? getChargeJourLocal(ds) : 0;
+    const chargePct = modeHeures && !isWe ? Math.min(120, Math.round(charge / heuresParJour * 100)) : 0;
+    const chargeCol = chargePct > 100 ? '#ef4444' : chargePct > 80 ? '#f59e0b' : '#10b981';
+    const chargeBar = modeHeures && !isWe && missions.length > 0
+      ? `<div style="margin-top:3px;height:3px;border-radius:2px;background:var(--brd);overflow:hidden" title="${charge}h / ${heuresParJour}h capacité">
+           <div style="height:100%;width:${Math.min(100,chargePct)}%;background:${chargeCol};transition:.3s"></div>
+         </div>`
+      : '';
     return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);${bgToday}${opWe}">
       <div style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
       ${bars}
+      ${chargeBar}
     </div>`;
   }).join('');
 
@@ -2610,11 +2703,13 @@ function renderPlanning() {
     const c = colorMap[m.id];
     const sessThisMois = (m.sessions||[]).filter(s => s.debut <= mLast && (s.fin||s.debut) >= mFirst);
     let range;
+    const hMois = sessThisMois.reduce((s,x)=>s+(x.heures||0),0);
+    const hLabel = hMois > 0 ? ` · <strong>${hMois}h</strong>` : '';
     if (sessThisMois.length===0) range='Présent ce mois';
     else if (sessThisMois.length===1){
       const s=sessThisMois[0], fin=s.fin||s.debut;
-      range=s.debut===fin?`${formatDateFR(s.debut)} (1 jour)`:`${formatDateFR(s.debut)} → ${formatDateFR(fin)}`;
-    } else { range=`${sessThisMois.length} sessions`; }
+      range=(s.debut===fin?`${formatDateFR(s.debut)} (1 jour)`:`${formatDateFR(s.debut)} → ${formatDateFR(fin)}`)+hLabel;
+    } else { range=`${sessThisMois.length} sessions${hLabel}`; }
     return `<div class="widget-item" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openMissionModal('${m.id}')">
       <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
@@ -2644,13 +2739,13 @@ function renderPlanning() {
       <div class="kpi-val" style="font-size:20px">${missionsMois.length}</div>
     </div>
     <div class="kpi neu" style="flex:1;min-width:100px;padding:10px 14px;margin:0">
-      <div class="kpi-label">Jours planifiés</div>
-      <div class="kpi-val" style="font-size:20px">${occupiedDays}<span style="font-size:13px;font-weight:400;color:var(--tl)"> / ${joursOuvrables}</span></div>
-      <div class="kpi-sub" style="font-size:10px;color:var(--tl);margin-top:2px">${joursParSem}j / semaine</div>
+      <div class="kpi-label">${modeHeures?'Heures planifiées':'Jours planifiés'}</div>
+      <div class="kpi-val" style="font-size:20px">${modeHeures?rm.occupiedH:rm.occupied}<span style="font-size:13px;font-weight:400;color:var(--tl)"> / ${modeHeures?rm.capaciteH+'h':rm.ouvrables+'j'}</span></div>
+      <div class="kpi-sub" style="font-size:10px;color:var(--tl);margin-top:2px">${modeHeures?heuresParJour+'h / jour':(DATA.params.joursParSemaine||5)+'j / semaine'}</div>
     </div>
-    <div class="kpi ${occupiedDays/joursOuvrables>0.8?'warn':'neu'}" style="flex:1;min-width:100px;padding:10px 14px;margin:0">
+    <div class="kpi ${rm.taux>80?'warn':'neu'}" style="flex:1;min-width:100px;padding:10px 14px;margin:0">
       <div class="kpi-label">Taux de remplissage</div>
-      <div class="kpi-val" style="font-size:20px">${Math.min(100,Math.round(occupiedDays/joursOuvrables*100))} %</div>
+      <div class="kpi-val" style="font-size:20px">${rm.taux} %</div>
     </div>
   </div>`:''}
   <div class="card" style="margin-bottom:14px">
@@ -3183,12 +3278,20 @@ function migrate(data) {
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
-  // Migrer modePlanning → modules.planning
+  // Migrer modePlanning → modules.calendrier + modules.estimation
   if (data.params?.modePlanning) {
     if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
-    if (['estime','calendrier','aucun'].includes(data.params.modePlanning))
-      data.params.modules.planning = data.params.modePlanning;
+    const mp = data.params.modePlanning;
+    data.params.modules.calendrier = mp === 'calendrier';
+    data.params.modules.estimation = mp !== 'calendrier';
     delete data.params.modePlanning;
+  }
+  // Migrer modules.planning (string) → booléens
+  if (data.params?.modules?.planning !== undefined) {
+    const p = data.params.modules.planning;
+    data.params.modules.calendrier = p === 'calendrier';
+    data.params.modules.estimation = p !== 'calendrier';
+    delete data.params.modules.planning;
   }
   data.schemaVersion = SCHEMA_VERSION;
   return data;
@@ -3823,7 +3926,7 @@ function isJours() { return DATA.params?.modules?.uniteTemps === 'jours'; }
 function updateNavPlanning() {
   const el = document.getElementById('nav-planning');
   if (!el) return;
-  el.style.display = DATA.params.modules?.planning === 'calendrier' ? '' : 'none';
+  el.style.display = DATA.params.modules?.calendrier ? '' : 'none';
 }
 function updateNavSimulateur() {
   const el = document.getElementById('nav-simulateur');
@@ -3836,7 +3939,7 @@ function updateNavSimulateur() {
   }
 }
 function navigate(page) {
-  if (page === 'planning' && DATA.params.modules?.planning !== 'calendrier') { navigate('dashboard'); return; }
+  if (page === 'planning' && !DATA.params.modules?.calendrier) { navigate('dashboard'); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
@@ -4294,7 +4397,7 @@ function buildWidget(key,d) {
     case 'chart-temps':       return ''; // déplacé dans la page Missions (Vue d'ensemble)
     case 'rentab-clients':    return wRentabClients();
     case 'rentab-cat':        return wRentabCat();
-    case 'remplissage':        return DATA.params.modules?.planning==='calendrier' ? wRemplissage() : '';
+    case 'remplissage':        return DATA.params.modules?.calendrier ? wRemplissage() : '';
     case 'capacite':          return wCapacite();
     case 'missions-actives':  return wMissionsActives();
     case 'score-sante':       return ''; // zone fixe (en tête du dashboard)
@@ -6031,7 +6134,7 @@ function toggleMissionType(val) {
   document.getElementById('m-montant-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'none':'');
   document.getElementById('m-montant-mixte-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'':'none');
   document.getElementById('m-rec-zone').style.display = isRec?'':'none';
-  document.getElementById('m-charge-zone').style.display = (isCol||DATA.params.modules?.planning!=='estime')?'none':'';
+  document.getElementById('m-charge-zone').style.display = (isCol||!DATA.params.modules?.estimation)?'none':'';
   if(isCol) { updateCollectifCA(); updateCollectifTemps(); }
 }
 function updateCollectifCA() {
@@ -6099,10 +6202,10 @@ function openMissionModal(id) {
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
   // Sessions planning
   const planZone=document.getElementById('m-planning-zone');
-  if(planZone) planZone.style.display=DATA.params.modules?.planning==='calendrier'?'':'none';
-  // Charge estimée — visible seulement en mode planning "estimé"
+  if(planZone) planZone.style.display=DATA.params.modules?.calendrier?'':'none';
+  // Charge estimée — visible si module estimation actif
   const chargeZone=document.getElementById('m-charge-zone');
-  if(chargeZone) chargeZone.style.display=DATA.params.modules?.planning==='estime'?'':'none';
+  if(chargeZone) chargeZone.style.display=DATA.params.modules?.estimation?'':'none';
   // Type de mission (collectif) — réservé aux profils "service"
   const typeMissionRow=document.getElementById('m-type-mission')?.closest('.frow');
   if(typeMissionRow) {
@@ -8943,13 +9046,15 @@ function saveModuleParam(key, val) {
 }
 function renderModulesUI() {
   const m = DATA.params.modules || {};
-  // planning radios
-  ['estime','calendrier','aucun'].forEach(v => {
-    const lbl = document.getElementById('mod-planning-'+v);
-    const inp = lbl ? lbl.querySelector('input') : null;
-    if (lbl) lbl.classList.toggle('selected', m.planning === v);
-    if (inp) inp.checked = (m.planning === v);
-  });
+  // planning checkboxes
+  const cbEst = document.getElementById('mod-cb-estimation');
+  const cbCal = document.getElementById('mod-cb-calendrier');
+  const lblEst = document.getElementById('mod-planning-estimation');
+  const lblCal = document.getElementById('mod-planning-calendrier');
+  if (cbEst) cbEst.checked = !!m.estimation;
+  if (cbCal) cbCal.checked = !!m.calendrier;
+  if (lblEst) lblEst.classList.toggle('selected', !!m.estimation);
+  if (lblCal) lblCal.classList.toggle('selected', !!m.calendrier);
   const isJ = m.uniteTemps === 'jours';
   const btnH = document.getElementById('mod-unite-heures');
   const btnJ = document.getElementById('mod-unite-jours');
