@@ -6100,6 +6100,8 @@ function navRecettesClick() {
 function updateNavRecettes() {
   const el=document.getElementById('nav-recettes');
   if(!el) return;
+  if(isSASU()){ el.style.display='none'; return; }
+  el.style.display='';
   if(DATA.params.livreRecettesActif){ el.classList.remove('nav-locked'); el.title=''; }
   else { el.classList.add('nav-locked'); el.title='Activez le livre des recettes dans les Paramètres'; }
 }
