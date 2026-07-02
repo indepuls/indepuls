@@ -5084,14 +5084,6 @@ function wScoreSante(d) {
   const pilRemp=getPilierRemplissage();
   const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp}=pilRemp;
   let advRemp=pilRemp.conseil;
-  // Si le remplissage est bas mais le commercial est bon, adapter le conseil
-  if(sRemp<=12&&sComm>=18&&advRemp&&advRemp.toLowerCase().includes('prospection')){
-    const _items=tVocab('items'); // missions / chantiers / commandes / ventes
-    const _item=tVocab('item');
-    advRemp=nbActives>=3
-      ?`Vos ${_items} n'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des ${_items} complémentaires.`
-      :`Vous avez de la visibilité client, mais vos ${_items} actuels ne remplissent pas assez votre agenda. Cherchez à augmenter leur scope ou à en ajouter.`;
-  }
   const cap=pilRemp.details?.capacite??0,charge=pilRemp.details?.utilise??0,capPct=pilRemp.details?.taux??0;
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
@@ -5162,6 +5154,13 @@ function wScoreSante(d) {
   else if(nbActives===2||(nbActives===1&&nbDevis>=1)) sComm=18;
   else if(nbActives===1) sComm=10;
   else sComm=3;
+  // Si le remplissage est bas mais le commercial est bon, adapter le conseil (sComm doit être calculé avant)
+  if(sRemp<=12&&sComm>=18&&advRemp&&advRemp.toLowerCase().includes('prospection')){
+    const _items=tVocab('items');
+    advRemp=nbActives>=3
+      ?`Vos ${_items} n'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des ${_items} complémentaires.`
+      :`Vous avez de la visibilité client, mais vos ${_items} actuels ne remplissent pas assez votre agenda. Cherchez à augmenter leur scope ou à en ajouter.`;
+  }
   const vComm=nbActives>0?`${nbActives} active${nbActives>1?'s':''}`:'Aucune';
   const subComm=nbDevis>0?`${nbDevis} devis · ${fmtE(pipelineVal)}`:'Aucun devis actif';
   let diagComm,advComm;
