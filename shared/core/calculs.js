@@ -317,10 +317,35 @@ export function getTVASeuilsStatut(DATA) {
   return { franchise: p.seuilTVAPrestationBase || TVA_SEUILS.prestation.franchise, tolerance: p.seuilTVAPrestationMajore || TVA_SEUILS.prestation.tolerance };
 }
 
-export function getTVACollecteeMois(DATA, mk) {
-  if (!DATA.params.tva) return 0;
+// TVA mode encaissements : base = encaissements réellement reçus
+export function getTVACollecteeEncaissementsMois(DATA, mk) {
   const base = getCaFromMissions(DATA, mk) + getPonctuelsCA(DATA, mk);
   return base * (DATA.params.tauxTVA / 100);
+}
+
+// TVA mode débits : base = montant facturé dès emission de la facture (dateFact)
+export function getTVACollecteeDebitsMois(DATA, mk) {
+  let base = 0;
+  DATA.missions.filter(m => !m.isManagement).forEach(m => {
+    if (m.isRecurring) {
+      if (!m.dateDebutRec || m.statut === 'ref' || m.statut === 'att') return;
+      const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+      const [ty, tm] = mk.split('-').map(Number);
+      const diff = (ty - sy) * 12 + (tm - sm);
+      if (diff >= 0 && diff < (m.nbMoisRec || 9999)) base += m.montantMensuel || 0;
+    } else {
+      if (m.statut === 'fact' && m.dateFact && monthKeyOf(m.dateFact) === mk) base += m.montantDevis || 0;
+    }
+  });
+  base += getPonctuelsCA(DATA, mk);
+  return base * (DATA.params.tauxTVA / 100);
+}
+
+export function getTVACollecteeMois(DATA, mk) {
+  if (!DATA.params.tva) return 0;
+  return (DATA.params.tvaModeDeclaration || 'encaissements') === 'debits'
+    ? getTVACollecteeDebitsMois(DATA, mk)
+    : getTVACollecteeEncaissementsMois(DATA, mk);
 }
 
 export function getTVADeductibleMois(DATA, mk) {
