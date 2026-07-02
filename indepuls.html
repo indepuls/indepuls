@@ -1429,6 +1429,14 @@ html,body{overflow-x:hidden;}
       <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
       <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
+    <div id="m-couts-directs-zone" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--brd)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)">Coûts directs liés</span>
+        <span style="font-size:14px;font-weight:700;margin-left:12px" id="m-cout-direct-total">0 €</span>
+        <button class="btn btn-out btn-sm" onclick="addDepenseLinked()" style="margin-left:auto">+ Ajouter</button>
+      </div>
+      <div id="m-cout-direct-detail" style="font-size:12px;color:var(--tl)"></div>
+    </div>
     <div class="divider" style="margin:10px 0"></div>
     <!-- Zone production — fabrication & achat_revente -->
     <div id="m-production-zone" style="display:none;background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:12px">
@@ -1511,22 +1519,6 @@ html,body{overflow-x:hidden;}
       <label class="flabel">Date de facturation</label>
       <input type="date" id="m-date-fact">
     </div>
-    <div class="fgroup">
-      <label class="flabel">Comment ce client vous a trouvé ? <span class="ts" style="font-weight:400">(optionnel)</span></label>
-      <select id="m-source-acq">
-        <option value="">— Non renseigné —</option>
-        <option value="recommandation">Recommandation / bouche-à-oreille</option>
-        <option value="client_existant">Client existant</option>
-        <option value="reseau">Réseau professionnel</option>
-        <option value="social">Instagram / réseaux sociaux</option>
-        <option value="web">Site internet / Google</option>
-        <option value="publicite">Publicité payante</option>
-        <option value="prospection">Prospection directe</option>
-        <option value="plateforme">Plateforme / annuaire</option>
-        <option value="autre">Autre</option>
-      </select>
-      <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
-    </div>
     <div id="m-planning-zone">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
       <div id="m-sessions-list" style="margin-bottom:8px"></div>
@@ -1543,15 +1535,23 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="ts mt4" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
     </div>
-    <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
-    <div id="m-couts-directs-zone" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)">Coûts directs liés</span>
-        <span style="font-size:14px;font-weight:700;margin-left:12px" id="m-cout-direct-total">0 €</span>
-        <button class="btn btn-out btn-sm" onclick="addDepenseLinked()" style="margin-left:auto">+ Ajouter</button>
-      </div>
-      <div id="m-cout-direct-detail" style="font-size:12px;color:var(--tl)"></div>
+    <div class="fgroup">
+      <label class="flabel">Comment ce client vous a trouvé ? <span class="ts" style="font-weight:400">(optionnel)</span></label>
+      <select id="m-source-acq">
+        <option value="">— Non renseigné —</option>
+        <option value="recommandation">Recommandation / bouche-à-oreille</option>
+        <option value="client_existant">Client existant</option>
+        <option value="reseau">Réseau professionnel</option>
+        <option value="social">Instagram / réseaux sociaux</option>
+        <option value="web">Site internet / Google</option>
+        <option value="publicite">Publicité payante</option>
+        <option value="prospection">Prospection directe</option>
+        <option value="plateforme">Plateforme / annuaire</option>
+        <option value="autre">Autre</option>
+      </select>
+      <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
     </div>
+    <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
