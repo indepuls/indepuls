@@ -6317,7 +6317,11 @@ function saveMission() {
   if(!client){ markInvalid('m-client'); return; }
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
-  const sessions = editingSessions.map(s => ({debut:s.debut, fin:s.fin||s.debut}));
+  const sessions = editingSessions.map(s => {
+    const o = {debut:s.debut, fin:s.fin||s.debut};
+    if (s.heures > 0) { o.heures = s.heures; o.heuresAuto = !!s.heuresAuto; }
+    return o;
+  });
   const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit, sessions,
     typeMission:document.getElementById('m-type-mission').value||'individuelle',
     nbParticipants:parseInt(document.getElementById('m-participants').value)||0,
@@ -6406,10 +6410,16 @@ function setMissionStatut(id,val) {
     const h=getMissionHeures(m), chronoMs=getMissionTotalMs(m);
     const hEl=document.getElementById('fact-temps-h'), minEl=document.getElementById('fact-temps-min');
     const msgEl=document.getElementById('fact-temps-msg'), hintEl=document.getElementById('fact-temps-hint');
+    const hSessions = (m.sessions||[]).reduce((s,x)=>s+(x.heures||0),0);
     if(h>0){
       hEl.value=Math.floor(h); minEl.value=Math.round((h%1)*60)||'';
       if(msgEl) msgEl.textContent='Temps enregistré : '+fmt(h,1)+' h. Modifiez si nécessaire.';
       if(hintEl) hintEl.textContent=chronoMs>0?'⏱ Dont '+heuresMs(chronoMs)+' via chrono.':'';
+    } else if(hSessions>0){
+      // Suggestion basée sur les heures planifiées en sessions (jamais pré-cochée = jamais source de vérité)
+      hEl.value=Math.floor(hSessions); minEl.value=Math.round((hSessions%1)*60)||'';
+      if(msgEl) msgEl.textContent='Aucun chrono enregistré. Combien d\'heures avez-vous réellement passé ?';
+      if(hintEl) hintEl.textContent='📅 Suggestion basée sur vos sessions planifiées : '+fmt(hSessions,1)+' h — à confirmer.';
     } else {
       hEl.value=''; minEl.value='';
       const charge=m.chargeEstimee?fmt(getMissionChargeHSem(m),1)+' h/sem':'';
