@@ -832,11 +832,11 @@ html,body{overflow-x:hidden;}
         <div class="ts mb12" style="color:var(--tl)">Comment souhaitez-vous organiser votre activité ?</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <label class="tva-regime-opt" id="mod-planning-estimation" style="cursor:pointer">
-            <input type="checkbox" id="mod-cb-estimation" onchange="saveModuleParam('estimation',this.checked)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
+            <input type="checkbox" id="mod-cb-estimation" onchange="saveModulePlanning('estimation',this)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
             <div><strong>J'estime le temps nécessaire sur mes affaires</strong><div class="ts mt1">Saisissez le temps prévu — Indépuls calcule votre taux horaire réel</div></div>
           </label>
           <label class="tva-regime-opt" id="mod-planning-calendrier" style="cursor:pointer">
-            <input type="checkbox" id="mod-cb-calendrier" onchange="saveModuleParam('calendrier',this.checked)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
+            <input type="checkbox" id="mod-cb-calendrier" onchange="saveModulePlanning('calendrier',this)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
             <div><strong>Je planifie certaines affaires dans un calendrier</strong><div class="ts mt1">Visualisez vos dates, taux de charge et remplissage mensuel</div></div>
           </label>
         </div>
@@ -9041,6 +9041,17 @@ function cancelProfilChange() {
   const prev = document.getElementById('profil-change-prev').value;
   document.getElementById('p-metier').value = prev;
   closeModal('modal-profil-change');
+}
+function saveModulePlanning(key, checkbox) {
+  const m = DATA.params.modules || {};
+  const otherKey = key === 'estimation' ? 'calendrier' : 'estimation';
+  // Bloquer la décoche si l'autre est déjà décochée
+  if (!checkbox.checked && !m[otherKey]) {
+    checkbox.checked = true; // remettre la coche
+    showToast('Le suivi du temps est indispensable. Choisissez au moins une façon de comptabiliser vos affaires.', 4000);
+    return;
+  }
+  saveModuleParam(key, checkbox.checked);
 }
 function saveModuleParam(key, val) {
   if (!DATA.params.modules) DATA.params.modules = {};
