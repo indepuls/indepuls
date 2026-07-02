@@ -568,7 +568,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="Activez le livre des recettes dans les Paramètres"><span class="nav-icon">📒</span> Livre des recettes</div>
-  <div class="nav-section">Réglages</div>
+  <div class="nav-section">Paramètres</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
   <div class="nav-item" onclick="navigate('notice')"><span class="nav-icon">📖</span> Guide & glossaire</div>
   <!-- TIMER WIDGET -->
@@ -818,7 +818,7 @@ html,body{overflow-x:hidden;}
         <div id="salaries-detail" style="display:none;margin-top:12px">
           <div class="fgroup">
             <label class="flabel">Coût employeur mensuel total (€)</label>
-            <input type="number" id="p-charges-salariales" step="100" min="0" placeholder="Ex : 2 500" oninput="saveParam('chargesSalariales',+this.value);recalcObjectifs()">
+            <input type="number" id="p-charges-salariales" step="100" min="0" placeholder="Ex : 2 500" oninput="saveParam('chargesSalariales',+this.value);recalcObjectifsDebounced()">
             <div class="ts mt4" style="color:var(--tl)">Salaires bruts + charges patronales + charges salariales, tous salariés confondus.</div>
           </div>
         </div>
@@ -957,7 +957,7 @@ html,body{overflow-x:hidden;}
         <div class="card-title mb16">Impôt sur le revenu</div>
         <div class="fgroup">
           <label class="flabel">Taux d'impôt estimé ou versement libératoire (%) — facultatif</label>
-          <input type="number" id="p-impots-taux" step="1" min="0" max="60" placeholder="Ex : 11" oninput="saveParam('impotsTaux',+this.value);recalcObjectifs()">
+          <input type="number" id="p-impots-taux" step="1" min="0" max="60" placeholder="Ex : 11" oninput="saveParam('impotsTaux',+this.value);recalcObjectifsDebounced()">
           <div class="ts mt4" style="color:var(--tl);line-height:1.5">Renseignez ici le taux que vous souhaitez provisionner : prélèvement à la source estimé, versement libératoire ou estimation personnelle. Si vous laissez 0 %, aucun impôt n'est déduit des calculs.</div>
         </div>
       </div>
@@ -979,9 +979,9 @@ html,body{overflow-x:hidden;}
           <div><div class="card-title">Mon rythme de travail</div><div class="card-sub">Ces valeurs alimentent le calculateur ci-dessous</div></div>
         </div>
         <div class="frow3">
-          <div class="fgroup"><label class="flabel">Jours / semaine <span class="info-tip" title="Indiquez uniquement votre temps facturable client — excluez la gestion, l'admin, la prospection. Cette valeur sert à calculer votre taux horaire minimum et votre CA mensuel à atteindre.">?</span></label><input type="number" id="p-jours" step="0.5" min="1" max="7" oninput="saveParam('joursParSemaine',+this.value);recalcObjectifs()"></div>
-          <div class="fgroup"><label class="flabel">Heures / jour</label><input type="number" id="p-heures" step="0.5" min="1" max="12" oninput="saveParam('heuresParJour',+this.value);recalcObjectifs()"></div>
-          <div class="fgroup"><label class="flabel">Semaines / an <span class="info-tip" title="Déduisez vos congés — ex : 44 sem. pour 8 semaines de vacances">?</span></label><input type="number" id="p-semaines" step="1" min="1" max="52" oninput="saveParam('semainesParAn',+this.value);recalcObjectifs()"></div>
+          <div class="fgroup"><label class="flabel">Jours / semaine <span class="info-tip" title="Indiquez uniquement votre temps facturable client — excluez la gestion, l'admin, la prospection. Cette valeur sert à calculer votre taux horaire minimum et votre CA mensuel à atteindre.">?</span></label><input type="number" id="p-jours" step="0.5" min="1" max="7" oninput="saveParam('joursParSemaine',+this.value);recalcObjectifsDebounced()"></div>
+          <div class="fgroup"><label class="flabel">Heures / jour</label><input type="number" id="p-heures" step="0.5" min="1" max="12" oninput="saveParam('heuresParJour',+this.value);recalcObjectifsDebounced()"></div>
+          <div class="fgroup"><label class="flabel">Semaines / an <span class="info-tip" title="Déduisez vos congés — ex : 44 sem. pour 8 semaines de vacances">?</span></label><input type="number" id="p-semaines" step="1" min="1" max="52" oninput="saveParam('semainesParAn',+this.value);recalcObjectifsDebounced()"></div>
         </div>
         <div class="ts mt12" style="color:var(--tl);font-style:italic">Ce rythme correspond uniquement à votre temps facturable client ; il sert à calculer votre taux horaire minimum et votre CA mensuel brut à atteindre.</div>
         <div id="cap-facturable-display" class="mt8" style="display:none;background:rgba(91,44,74,.06);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--pri)"></div>
@@ -992,11 +992,11 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="fgroup">
           <label class="flabel" id="objectif-net-label">Revenu net mensuel souhaité (€)</label>
-          <input type="number" id="p-objectif-net" step="100" min="0" oninput="saveParam('objectifNetMensuel',+this.value);recalcObjectifs()" placeholder="Ex : 3 500">
+          <input type="number" id="p-objectif-net" step="100" min="0" oninput="saveParam('objectifNetMensuel',+this.value);recalcObjectifsDebounced()" placeholder="Ex : 3 500">
         </div>
         <div class="fgroup">
           <label class="flabel">Charges annuelles complémentaires estimées (€) <span class="info-tip" title="Montant lissé sur 12 mois et ajouté aux dépenses récurrentes dans le calcul du CA à atteindre.">?</span></label>
-          <input type="number" id="p-charges-compl" step="100" min="0" oninput="saveParam('chargesAnnuellesCompl',+this.value);recalcObjectifs()" placeholder="Ex : 1 200">
+          <input type="number" id="p-charges-compl" step="100" min="0" oninput="saveParam('chargesAnnuellesCompl',+this.value);recalcObjectifsDebounced()" placeholder="Ex : 1 200">
           <div class="ts mt4" style="color:var(--tl);line-height:1.6">Ajoutez ici une estimation annuelle de dépenses non récurrentes ou exceptionnelles qui ne sont pas rentrées dans l'onglet « Dépenses » : formation, matériel, ordinateur, séminaire, shooting photo, imprévus…</div>
         </div>
         <div class="alert al-info mb12">💡 Dépenses récurrentes déjà incluses : <strong><span id="dep-rec-display">—</span> / mois</strong> (depuis l'onglet Dépenses). Les charges complémentaires ci-dessus s'y ajoutent.</div>
@@ -1522,24 +1522,24 @@ html,body{overflow-x:hidden;}
       <label class="flabel">Date de facturation</label>
       <input type="date" id="m-date-fact">
     </div>
+    <div class="frow" id="m-charge-zone">
+      <div class="fgroup">
+        <label class="flabel">Charge / semaine <span class="info-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
+        <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Unité</label>
+        <select id="m-charge-unit">
+          <option value="h_sem">h / semaine</option>
+          <option value="j_mois">jours / mois</option>
+          <option value="h_mois">h / mois</option>
+        </select>
+      </div>
+    </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
       <span id="m-advanced-arrow">▶</span> Options avancées
     </button>
     <div id="m-advanced-zone" style="display:none">
-      <div class="frow" id="m-charge-zone">
-        <div class="fgroup">
-          <label class="flabel">Charge / semaine <span class="info-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
-          <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5">
-        </div>
-        <div class="fgroup">
-          <label class="flabel">Unité</label>
-          <select id="m-charge-unit">
-            <option value="h_sem">h / semaine</option>
-            <option value="j_mois">jours / mois</option>
-            <option value="h_mois">h / mois</option>
-          </select>
-        </div>
-      </div>
       <div id="m-planning-zone">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
         <div id="m-sessions-list" style="margin-bottom:8px"></div>
@@ -7677,6 +7677,8 @@ function saveTempsInterneManuel() {
 
 // ── OBJECTIFS ────────────────────────────────────────────────
 function recalcObjectifs() { renderObjectifsResult(); if(currentPage==='dashboard') renderDashboard(); if(currentPage==='revenus') renderRevenus(); }
+let _recalcTimer = null;
+function recalcObjectifsDebounced() { clearTimeout(_recalcTimer); _recalcTimer = setTimeout(recalcObjectifs, 350); }
 function renderObjectifsResult() {
   const el=document.getElementById('objectifs-result'); if(!el) return;
   const p=DATA.params, hAn=p.heuresParJour*p.joursParSemaine*p.semainesParAn;
