@@ -9719,9 +9719,8 @@ document.addEventListener('keydown', function(e) {
   function _enterApp(user) {
     clearTimeout(_cdnFallback);
     _authState = 'app';
-    hideOverlay();
     setTimeout(addLogoutButton, 200);
-    loadFromCloud(user);
+    loadFromCloud(user).then(hideOverlay);
   }
 
   function _enterLogin() {
