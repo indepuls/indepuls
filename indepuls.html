@@ -5210,8 +5210,8 @@ function wScoreSante(d) {
   } else if(worst.n==='remplissage'&&cap>0){
     const hManq=Math.max(1,Math.round((cap*0.6)-charge));
     const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
-    const relanceHint=attPipe>0?` Pensez à relancer vos <strong>${attPipe} devis en attente</strong>.`:' Pensez à relancer votre prospection ou vos devis en attente.';
-    priorite=`Remplir environ <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> pour sécuriser votre objectif de revenu.`+relanceHint;
+    const relanceHint=attPipe>0?` Commencez par relancer vos <strong>${attPipe} devis en attente</strong>.`:' Pensez à relancer votre prospection ou vos devis en attente.';
+    priorite=`Votre agenda a de la place — remplir <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
   } else if(worst.n==='rentabilité'&&hT>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
@@ -5247,7 +5247,7 @@ function wScoreSante(d) {
   if(objNet>0){
     const caNetMois=getRevenuNetMois(curMk);
     const pctOM=Math.round(caNetMois/objNet*100);
-    if(pctOM<80) alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver.</div>`);
+    if(pctOM<80){const _now=new Date(),_finMois=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_joursR=_finMois-_now.getDate()+1;alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver · encore <strong>${_joursR} jour${_joursR>1?'s':''}</strong> ce mois-ci.</div>`);}
   }
   // Prochaines échéances fiscales
   try {
@@ -5376,10 +5376,10 @@ function wScoreSante(d) {
       </div>
     </div>
     <div class="g4" style="gap:10px">
-      ${pilierCard('Rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
-      ${pilierCard('Remplissage',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
-      ${pilierCard('Trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso)}
-      ${pilierCard('Commercial',sComm,diagComm,advComm,'missions',rowsComm,methComm)}
+      ${pilierCard('Votre rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
+      ${pilierCard('Votre agenda',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
+      ${pilierCard('Votre trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso)}
+      ${pilierCard('Votre horizon',sComm,diagComm,advComm,'missions',rowsComm,methComm)}
     </div>
   </div>`;
 }
