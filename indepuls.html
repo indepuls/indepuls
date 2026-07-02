@@ -881,9 +881,9 @@ html,body{overflow-x:hidden;}
           <div id="sasu-pilotage-label" class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">🏢 Pilotage SASU</div>
           <div class="frow">
             <div class="fgroup">
-              <label class="flabel">Solde du compte pro au 1er janvier <span id="sasu-treso-year-label"></span> (€)</label>
+              <label class="flabel">Solde du compte pro <span id="sasu-treso-year-label"></span> (€)</label>
               <input type="number" id="p-treso-depart" step="100" min="0" placeholder="Ex : 15 000" oninput="saveSasuParam('tresorerieDepart',+this.value)">
-              <div class="ts mt4" style="color:var(--tl)">Trésorerie de départ en début d'année.</div>
+              <div class="ts mt4" style="color:var(--tl)" id="sasu-treso-hint">Point de départ pour les projections de trésorerie. Si vous démarrez en cours d'année, indiquez le solde à votre date de démarrage ou laissez vide.</div>
             </div>
             <div class="fgroup">
               <label class="flabel" id="sasu-remu-label">Rémunération nette / mois (€)</label>
@@ -7210,7 +7210,12 @@ function renderParams() {
         if(lbl){lbl.classList.toggle('selected',v===fiscal);lbl.querySelector('input').checked=(v===fiscal);}
       });
     }
-    document.getElementById('sasu-treso-year-label').textContent=DATA.currentYear;
+    const _ouv=DATA.params.dateOuverture;
+    const _ouvYear=_ouv?parseInt(_ouv.slice(0,4)):null;
+    const _ouvSameYear=_ouvYear===DATA.currentYear;
+    document.getElementById('sasu-treso-year-label').textContent=_ouvSameYear
+      ?`à l'ouverture (${new Date(_ouv+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})})`
+      :`au 1er janvier ${DATA.currentYear}`;
     document.getElementById('p-treso-depart').value=(p.tresorerieParAnnee||{})[DATA.currentYear]||'';
     document.getElementById('p-remu-nette').value=p.remunerationNette||'';
     document.getElementById('p-cout-remu-pct').value=p.coutRemunerationPct||defaultPct;
@@ -7339,6 +7344,8 @@ function onStatutChange(val) {
   if(val==='eurl'){
     // EURL : activité mixte non applicable, TVA libre (pas forcée)
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
+    // Forcer le taux de charges à 45 % par défaut en EURL (vs 80 % SASU)
+    if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===80) DATA.params.coutRemunerationPct=45;
   }
   saveData(); recalcObjectifs();
   renderParams();
