@@ -902,7 +902,7 @@ html,body{overflow-x:hidden;}
           <div class="card-sub mb4">Cotisations sociales</div>
           <div class="ts mb12" style="color:var(--tl)">Pré-remplies selon votre statut — ajustez uniquement si votre situation est différente.</div>
           <div class="frow">
-            <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Cotisations sociales prélevées sur votre CA. Pré-rempli selon votre statut (ex : 22,2% pour une prestation de service en BNC). Modifiez uniquement si votre taux réel est différent.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
+            <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Le taux proposé correspond au cas le plus courant pour votre activité. Certaines professions (ex. CIPAV ou situations particulières) peuvent avoir un taux différent. Si votre URSSAF ou votre expert-comptable vous a communiqué un autre taux, vous pouvez simplement le remplacer.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
             <div class="fgroup"><label class="flabel">Taux CFP (%) <span class="info-tip" title="Contribution à la Formation Professionnelle. Obligatoire pour les micro-entrepreneurs (0,1% en BNC, 0,2% en BIC prestation). Pré-rempli automatiquement selon votre statut.">?</span></label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
           </div>
           <div class="fgroup" style="margin-top:12px">
