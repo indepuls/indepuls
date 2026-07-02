@@ -5082,7 +5082,14 @@ function wScoreSante(d) {
 
   // ── PILIER 2 : REMPLISSAGE / CAPACITÉ (25 pts) ───────────────
   const pilRemp=getPilierRemplissage();
-  const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp,conseil:advRemp}=pilRemp;
+  const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp}=pilRemp;
+  let advRemp=pilRemp.conseil;
+  // Si le remplissage est bas mais le commercial est bon, adapter le conseil
+  if(sRemp<=12&&sComm>=18&&advRemp&&advRemp.toLowerCase().includes('prospection')){
+    advRemp=nbActives>=3
+      ?'Vos missions n\'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des missions complémentaires.'
+      :'Vous avez de la visibilité client, mais vos missions actuelles ne remplissent pas assez votre agenda. Cherchez à augmenter leur scope ou à en ajouter.';
+  }
   const cap=pilRemp.details?.capacite??0,charge=pilRemp.details?.utilise??0,capPct=pilRemp.details?.taux??0;
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
