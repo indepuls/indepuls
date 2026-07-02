@@ -7609,9 +7609,9 @@ function renderObjectifsResult() {
   }
   const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
   const caAn=caMens*12, thMin=hAn>0?caAn/hAn:0;
-  const _objFamily=BUSINESS_PROFILE_MAP[p.metier]||'service';
-  const _objIsChantier=_objFamily==='chantier';
-  const _objIsMarge=_objFamily==='fabrication'||_objFamily==='achat_revente';
+  const _objMod=(p.modules||{}).objectif||'th';
+  const _objIsChantier=_objMod==='tjm';
+  const _objIsMarge=_objMod==='marge_commande';
   const _objHj=p.heuresParJour||7;
   const _tjmMin=Math.round(thMin*_objHj);
   const _kpiRateLabel=_objIsChantier?'TJM minimum':_objIsMarge?'Gain horaire minimum':'Taux horaire minimum';
