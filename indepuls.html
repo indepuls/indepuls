@@ -9043,7 +9043,7 @@ function saveModulePlanning(key, checkbox) {
   // Bloquer la décoche si l'autre est déjà décochée
   if (!checkbox.checked && !m[otherKey]) {
     checkbox.checked = true; // remettre la coche
-    showToast('Le suivi du temps est indispensable. Choisissez au moins une façon de comptabiliser vos affaires.', 4000);
+    showToast('Le suivi du temps est indispensable. Choisissez au moins une façon de comptabiliser vos affaires.');
     return;
   }
   saveModuleParam(key, checkbox.checked);
