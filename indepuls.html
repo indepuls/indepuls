@@ -5075,7 +5075,7 @@ function wScoreSante(d) {
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
     else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`🟢 TH réel supérieur de ${fmtE(-gapTh,0)}/h à votre seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible — il manque encore ${fmtE(gapTh,0)}/h.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`🔴 TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
     else{diagRent=`🔴 TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
   }
@@ -5217,7 +5217,7 @@ function wScoreSante(d) {
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
     else if(_rentIsChantier&&tjmMin>0&&gapTjm>0)
       priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
-    else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&thBrut<thMin)
+    else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin)
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
   } else if(score>=85){
     priorite='Continuez sur cette lancée — votre activité est en excellente santé. 🎉';
