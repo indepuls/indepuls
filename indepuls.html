@@ -9069,6 +9069,7 @@ function saveModuleParam(key, val) {
   saveData();
   renderModulesUI();
   renderAll();
+  if (key === 'objectif') recalcObjectifs();
 }
 function renderModulesUI() {
   const m = DATA.params.modules || {};
