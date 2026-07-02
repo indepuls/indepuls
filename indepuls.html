@@ -954,7 +954,7 @@ html,body{overflow-x:hidden;}
           <div class="ts mt4" style="color:var(--tl);line-height:1.5">Renseignez ici le taux que vous souhaitez provisionner : prélèvement à la source estimé, versement libératoire ou estimation personnelle. Si vous laissez 0 %, aucun impôt n'est déduit des calculs.</div>
         </div>
       </div>
-      <div class="card mt16">
+      <div class="card mt16" id="livre-recettes-block">
         <div class="card-title mb8">Livre des recettes</div>
         <div class="sw-wrap">
           <label class="sw"><input type="checkbox" id="p-livre-recettes" onchange="saveParam('livreRecettesActif',this.checked);updateNavRecettes();renderAll()"><span class="sw-sl"></span></label>
@@ -7216,6 +7216,8 @@ function renderParams() {
     document.getElementById('p-cout-remu-pct').value=p.coutRemunerationPct||defaultPct;
     updateSasuPreview();
   }
+  const livreBlock=document.getElementById('livre-recettes-block');
+  if(livreBlock) livreBlock.style.display=sasu?'none':'';
   // Modules
   renderModulesUI();
   if(currentParamTab==='objectifs') renderObjectifsResult();
