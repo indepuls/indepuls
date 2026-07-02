@@ -4692,7 +4692,7 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
                    <div class="kpi-sub mt4">${thR>0?Math.round(_tjmR/_tjmMin*100)+' % de l\'objectif min. '+fmtE(_tjmMin,0)+'/j':'Objectif min. '+fmtE(_tjmMin,0)+'/j'}</div>`
                 :`<div class="kpi-sub">Définissez un objectif pour suivre votre TJM</div>`
               }
-              <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${phraseNet}</div>
+              <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${thR>0?phraseNet:'Saisissez des heures sur vos missions pour activer cet indicateur.'}</div>
             </div>`
           :`<div class="kpi ${_thMin>0?(thR>=_thMin?'good':thR>=_thMin*.75?'warn':'bad'):'neu'}">
               <div class="kpi-ico">⏱</div>
@@ -4703,7 +4703,7 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
                    <div class="kpi-sub mt4">${thR>0?Math.round(thR/_thMin*100)+' % de l\'objectif min. '+fmtE(_thMin,0)+'/h':'Objectif min. '+fmtE(_thMin,0)+'/h'}</div>`
                 :`<div class="kpi-sub">Définissez un objectif pour suivre votre TH</div>`
               }
-              <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${phraseNet}</div>
+              <div style="font-size:11px;color:var(--tl);margin-top:9px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.4">${thR>0?phraseNet:'Saisissez des heures sur vos missions pour activer cet indicateur.'}</div>
             </div>`
     }
     <div class="kpi neu" onclick="navigate('revenus')" style="cursor:pointer">
