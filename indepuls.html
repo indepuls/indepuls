@@ -4417,8 +4417,9 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const capSub=cap>0?(charge>0?`${fmt(Math.max(0,cap-charge),1)} h libres / sem`:'Aucune charge estimée'):`${fmt(cap,0)} h/sem max`;
   // ── KPI 3 conditionnel par famille ───────────────────────────
   const _synFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
-  const _synIsChantier=_synFamily==='chantier';
-  const _synIsMarge=_synFamily==='fabrication'||_synFamily==='achat_revente';
+  const _synObjectif=DATA.params.modules?.objectif||'th';
+  const _synIsChantier=_synObjectif==='tjm';
+  const _synIsMarge=_synObjectif==='marge_commande';
   const _synHj=DATA.params.heuresParJour||7;
   const _synTjm=Math.round(thR*_synHj), _synTjmMin=Math.round(thMin*_synHj);
   const _synNbM=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(String(DATA.currentYear)))).length;
