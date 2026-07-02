@@ -5183,14 +5183,14 @@ function wScoreSante(d) {
   const scoreColor=score>=80?'var(--ok)':score>=60?'#84cc16':score>=40?'var(--warn)':score>=20?'#f97316':'var(--err)';
 
   // ── DIAGNOSTIC GLOBAL ────────────────────────────────────────
-  const pilliers=[{n:'rentabilité',s:sRent},{n:'remplissage',s:sRemp},{n:'trésorerie',s:sTreso},{n:'commercial',s:sComm}];
+  const pilliers=[{n:'rentabilité',art:'la',s:sRent},{n:'remplissage',art:'le',s:sRemp},{n:'trésorerie',art:'la',s:sTreso},{n:'commercial',art:'le',s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
   let diagGlobal='';
   if(score>=85) diagGlobal='Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
-  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : la ${worst.n}.`;
-  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — la ${worst.n}.`;
-  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — la ${worst.n}.`;
-  else diagGlobal=`Votre activité demande une attention immédiate. Concentrez-vous sur un seul levier : la ${worst.n}.`;
+  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art} ${worst.n}.`;
+  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art} ${worst.n}.`;
+  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art} ${worst.n}.`;
+  else diagGlobal=`Votre activité demande une attention immédiate. Concentrez-vous sur un seul levier : ${worst.art} ${worst.n}.`;
 
   // ── PRIORITÉ DU MOMENT ───────────────────────────────────────
   let priorite='';
