@@ -4626,8 +4626,8 @@ function wKPIs({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   else if(objNet>0){
     const manque=objNet-caNetMois;
     if(pctObj>=100) phraseNet='🟢 Objectif du mois atteint — excellent !';
-    else if(pctObj>=75) phraseNet=`🟠 Encore ${fmtE(manque)} pour atteindre votre objectif du mois.`;
-    else if(pctObj>=50) phraseNet=`🟠 Il manque ${fmtE(manque)} — intensifiez votre activité.`;
+    else if(pctObj>=75) phraseNet=`🟠 Il reste ${fmtE(manque)} à trouver pour votre objectif du mois.`;
+    else if(pctObj>=50) phraseNet=`🟠 Il reste ${fmtE(manque)} à trouver — c'est le moment d'agir.`;
     else phraseNet=`🔴 Objectif atteint à seulement ${pctObj} % ce mois.`;
   } else {
     phraseNet='Définissez un objectif mensuel dans Paramètres pour suivre votre progression.';
@@ -5187,11 +5187,11 @@ function wScoreSante(d) {
   const pilliers=[{n:'rentabilité',s:sRent},{n:'remplissage',s:sRemp},{n:'trésorerie',s:sTreso},{n:'commercial',s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
   let diagGlobal='';
-  if(score>=85) diagGlobal='Activité en excellente santé. Vos indicateurs sont globalement au vert.';
-  else if(score>=70) diagGlobal=`Bonne dynamique. Un point à améliorer : la ${worst.n}.`;
-  else if(score>=50) diagGlobal=`Situation correcte. Le frein principal ce mois-ci : la ${worst.n}.`;
-  else if(score>=30) diagGlobal=`Situation à corriger. Votre ${worst.n} requiert une action rapide.`;
-  else diagGlobal=`Situation critique. Agissez en priorité sur : la ${worst.n}.`;
+  if(score>=85) diagGlobal='Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
+  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : la ${worst.n}.`;
+  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — la ${worst.n}.`;
+  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — la ${worst.n}.`;
+  else diagGlobal=`Votre activité demande une attention immédiate. Concentrez-vous sur un seul levier : la ${worst.n}.`;
 
   // ── PRIORITÉ DU MOMENT ───────────────────────────────────────
   let priorite='';
@@ -5248,7 +5248,7 @@ function wScoreSante(d) {
   if(objNet>0){
     const caNetMois=getRevenuNetMois(curMk);
     const pctOM=Math.round(caNetMois/objNet*100);
-    if(pctOM<80) alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il manque encore ${fmtE(objNet-caNetMois)}.</div>`);
+    if(pctOM<80) alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver.</div>`);
   }
   // Prochaines échéances fiscales
   try {
@@ -5370,8 +5370,9 @@ function wScoreSante(d) {
         <div style="font-size:12px;color:var(--text);line-height:1.5">${diagGlobal}</div>
       </div>
       <div class="card" style="padding:16px 18px">
-        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:9px">🎯 Priorité du moment</div>
-        <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}">${priorite}</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:4px">📋 Votre brief</div>
+        <div style="font-size:10px;color:var(--tl);margin-bottom:10px">Basé sur vos données du ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;display:block;margin-bottom:6px">👉 Action recommandée</span>${priorite}</div>
         ${alertsSection}
       </div>
     </div>
