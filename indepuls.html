@@ -870,6 +870,7 @@ html,body{overflow-x:hidden;}
               <option value="micro-bic">Micro prestation de service (BIC)</option>
               <option value="micro-achat">Micro achat-revente (BIC commerce)</option>
               <option value="sasu">SASU — Société par actions simplifiée</option>
+              <option value="eurl">EURL — Entreprise unipersonnelle à responsabilité limitée</option>
             </select>
             <div class="ts mt8">Le choix du statut met automatiquement à jour vos taux de charges.</div>
           </div>
@@ -877,7 +878,14 @@ html,body{overflow-x:hidden;}
         </div>
         <div id="sasu-params-block" style="display:none">
           <div class="divider"></div>
-          <div class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">🏢 Pilotage SASU</div>
+          <div id="sasu-pilotage-label" class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">🏢 Pilotage SASU</div>
+          <div id="eurl-fiscal-block" style="display:none;margin-bottom:16px">
+            <label class="flabel">Régime fiscal</label>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <label class="tva-regime-opt" id="eurl-r-is"><input type="radio" name="eurl-fiscal" value="is" onchange="saveEurlFiscal('is')"><div><strong>EURL à l'IS</strong><div class="ts mt1">Impôt sur les sociétés</div></div></label>
+              <label class="tva-regime-opt" id="eurl-r-ir"><input type="radio" name="eurl-fiscal" value="ir" onchange="saveEurlFiscal('ir')"><div><strong>EURL à l'IR</strong><div class="ts mt1">Impôt sur le revenu</div></div></label>
+            </div>
+          </div>
           <div class="frow">
             <div class="fgroup">
               <label class="flabel">Solde du compte pro au 1er janvier <span id="sasu-treso-year-label"></span> (€)</label>
@@ -885,12 +893,12 @@ html,body{overflow-x:hidden;}
               <div class="ts mt4" style="color:var(--tl)">Trésorerie de départ en début d'année.</div>
             </div>
             <div class="fgroup">
-              <label class="flabel">Rémunération nette / mois (€)</label>
+              <label class="flabel" id="sasu-remu-label">Rémunération nette / mois (€)</label>
               <input type="number" id="p-remu-nette" step="100" min="0" placeholder="Ex : 3 000" oninput="saveSasuParam('remunerationNette',+this.value);updateSasuPreview()">
             </div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" title="Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.">?</span></label>
+            <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" id="sasu-charges-tip" title="Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.">?</span></label>
             <input type="number" id="p-cout-remu-pct" step="5" min="0" max="200" placeholder="Ex : 80" oninput="saveSasuParam('coutRemunerationPct',+this.value);updateSasuPreview()">
             <div class="ts mt4" id="sasu-remu-preview" style="color:var(--tl)"></div>
           </div>
@@ -7184,13 +7192,28 @@ function renderParams() {
   const pSalEl=document.getElementById('p-charges-salariales');
   if(pSalEl) pSalEl.value=p.chargesSalariales||'';
   const sasu=isSASU();
+  const isEurl=DATA.params.statut==='eurl';
   document.getElementById('micro-charges-block').style.display=sasu?'none':'';
   document.getElementById('sasu-params-block').style.display=sasu?'':'none';
   if(sasu){
+    document.getElementById('sasu-pilotage-label').textContent=`🏢 Pilotage ${isEurl?'EURL':'SASU'}`;
+    document.getElementById('sasu-remu-label').textContent=isEurl?'Rémunération du gérant / mois (€)':'Rémunération nette / mois (€)';
+    const defaultPct=isEurl?45:80;
+    document.getElementById('sasu-charges-tip').title=isEurl
+      ?`Cotisations TNS du gérant majoritaire. Exemple : 45 % → 3 000 € nets = 4 350 € coût réel société.`
+      :`Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.`;
+    document.getElementById('eurl-fiscal-block').style.display=isEurl?'':'none';
+    if(isEurl){
+      const fiscal=DATA.params.eurlFiscal||'is';
+      ['is','ir'].forEach(v=>{
+        const lbl=document.getElementById('eurl-r-'+v);
+        if(lbl){lbl.classList.toggle('selected',v===fiscal);lbl.querySelector('input').checked=(v===fiscal);}
+      });
+    }
     document.getElementById('sasu-treso-year-label').textContent=DATA.currentYear;
     document.getElementById('p-treso-depart').value=(p.tresorerieParAnnee||{})[DATA.currentYear]||'';
     document.getElementById('p-remu-nette').value=p.remunerationNette||'';
-    document.getElementById('p-cout-remu-pct').value=p.coutRemunerationPct||80;
+    document.getElementById('p-cout-remu-pct').value=p.coutRemunerationPct||defaultPct;
     updateSasuPreview();
   }
   // Modules
@@ -7201,7 +7224,7 @@ function renderParams() {
   if(currentParamTab==='perso') renderThemes();
 }
 function renderTvaParams() {
-  const p=DATA.params, sasu=isSASU(), mixte=isActiviteMixte();
+  const p=DATA.params, sasu=isSASU(), sasuStrict=DATA.params.statut==='sasu', mixte=isActiviteMixte();
   // Sync URSSAF régime radio buttons
   const urssafReg=getUrssafRegime();
   ['mensuel','trimestriel'].forEach(r=>{
@@ -7220,14 +7243,14 @@ function renderTvaParams() {
     // En SASU, le régime réel mensuel est légalement obligatoire — les 3
     // autres options sont verrouillées (pas seulement "franchise") pour que
     // le clic ne soit plus silencieusement ignoré.
-    if(inp) inp.disabled=sasu&&(r!=='mensuel');
+    if(inp) inp.disabled=sasuStrict&&(r!=='mensuel');
     if(lbl) lbl.classList.toggle('locked',!!(inp&&inp.disabled));
   });
   const statusLabels={franchise:'Franchise en base — aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié — 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel — déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel — déclaration CA3 chaque trimestre.'};
-  document.getElementById('tva-status-text').textContent=sasu?'TVA toujours active en SASU (régime réel mensuel obligatoire).':statusLabels[regime]||'';
-  document.getElementById('tva-franchise-zone').style.display=(tva||sasu)?'none':'';
-  document.getElementById('tva-active-zone').style.display=(tva||sasu)?'':'none';
-  if(!tva&&!sasu){
+  document.getElementById('tva-status-text').textContent=sasuStrict?'TVA toujours active en SASU (régime réel mensuel obligatoire).':statusLabels[regime]||'';
+  document.getElementById('tva-franchise-zone').style.display=(tva||sasuStrict)?'none':'';
+  document.getElementById('tva-active-zone').style.display=(tva||sasuStrict)?'':'none';
+  if(!tva&&!sasuStrict){
     const el=document.getElementById('tva-seuils-info');
     const {franchise:fS,tolerance:tS}=getTVASeuilsStatut();
     if(el) el.innerHTML=mixte
@@ -7307,9 +7330,12 @@ function onStatutChange(val) {
       : TVA_SEUILS.prestation.franchise;
   }
   if(val==='sasu'){
-    // SASU : TVA au régime réel toujours active
+    // SASU : TVA au régime réel mensuel obligatoire
     if(!DATA.params.tva) DATA.params.tva=true;
-    // UX-3 — L'activité mixte micro-entreprise n'a pas de sens en SASU — on la désactive
+    if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
+  }
+  if(val==='eurl'){
+    // EURL : activité mixte non applicable, TVA libre (pas forcée)
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
   }
   saveData(); recalcObjectifs();
@@ -7318,6 +7344,10 @@ function onStatutChange(val) {
   if(currentPage==='dashboard') renderDashboard();
 }
 // ── SASU ─────────────────────────────────────────────────────
+function saveEurlFiscal(val) {
+  DATA.params.eurlFiscal=val;
+  saveData();
+}
 function saveSasuParam(field, val) {
   if(field==='tresorerieDepart'){
     if(!DATA.params.tresorerieParAnnee) DATA.params.tresorerieParAnnee={};
@@ -7340,7 +7370,8 @@ function renderSasuCard(d) {
   const caHT=d.caBrut;
   const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
   const remuNet=DATA.params.remunerationNette||0;
-  if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en SASU mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
+  const _statutLabel=DATA.params.statut==='eurl'?'EURL':'SASU';
+  if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
   const coutRemuMensuel=getSasuCoutRemuMensuel();
   const coutRemuAnnuel=coutRemuMensuel*12;
   const tvaCol=getTVACollecteeAnnuelle();
@@ -7598,7 +7629,7 @@ function renderObjectifsResult() {
   const hMens=p.joursParSemaine*p.semainesParAn/12*p.heuresParJour;
   // Mise à jour du label selon statut
   const lbl=document.getElementById('objectif-net-label');
-  if(lbl) lbl.textContent=isSASU()?'Rémunération nette souhaitée / mois (€)':'Revenu net mensuel souhaité (€)';
+  if(lbl) lbl.textContent=DATA.params.statut==='eurl'?'Rémunération du gérant / mois (€)':isSASU()?'Rémunération nette souhaitée / mois (€)':'Revenu net mensuel souhaité (€)';
   const depTxtDetail=dep>0
     ?(depCompl>0
       ?`<div class="ts mt4">dont <strong>${fmtE(depRec)}/mois</strong> charges fixes + <strong>${fmtE(depCompl)}/mois</strong> charges complémentaires</div>`
@@ -7616,7 +7647,7 @@ function renderObjectifsResult() {
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
         <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.remunerationNette||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
       </div>
-      <div class="alert al-info mt12">💡 En SASU, le CA à atteindre couvre le coût total de votre rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + vos dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas votre net versé — c'est ce que la société doit encaisser pour tenir.</div>`;
+      <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de votre rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + vos dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas votre net versé — c'est ce que la société doit encaisser pour tenir.</div>`;
     return;
   }
   const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;

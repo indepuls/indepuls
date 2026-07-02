@@ -13,7 +13,7 @@ import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO
 // ── HELPERS STATUT ───────────────────────────────────────────
 
 export function isSASU(DATA) {
-  return DATA.params.statut === 'sasu';
+  return DATA.params.statut === 'sasu' || DATA.params.statut === 'eurl';
 }
 
 export function isActiviteMixte(DATA) {
@@ -348,7 +348,7 @@ export function getTVADeductibleAnnuelle(DATA) {
 }
 
 export function getTvaRegime(DATA) {
-  if (isSASU(DATA)) return 'mensuel';
+  if (DATA.params.statut === 'sasu') return 'mensuel';
   const p = DATA.params;
   if (!p.tva) return 'franchise';
   return p.tvaRegime || 'mensuel';
