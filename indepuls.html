@@ -2083,6 +2083,12 @@ html,body{overflow-x:hidden;}
         <option value="achat_revente">Achat-revente</option>
       </optgroup>
     </select>
+    <p class="picker-sub" style="margin-top:24px;margin-bottom:8px">Votre statut juridique</p>
+    <select id="picker-statut-select" class="picker-select">
+      <option value="micro-bnc">Micro-entreprise</option>
+      <option value="sasu">SASU</option>
+      <option value="eurl">EURL</option>
+    </select>
     <button class="btn btn-acc picker-btn" onclick="pickerStep1Next()">Découvrir Indépuls →</button>
   </div>
 </div>
@@ -3118,6 +3124,10 @@ function pickerStep1Next() {
   const sel = document.getElementById('picker-metier-select');
   const metier = sel ? sel.value : '';
   if (!metier) { if (sel) sel.classList.add('field-invalid'); return; }
+  const statut = (document.getElementById('picker-statut-select')||{}).value || 'micro-bnc';
+  DATA.params.statut = statut;
+  if(statut==='sasu'){ if(!DATA.params.tva) DATA.params.tva=true; DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||80; }
+  if(statut==='eurl'){ DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||45; }
   applyProfile(metier);
   loadDemoWithCurrentParams();
 }
