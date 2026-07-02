@@ -4561,13 +4561,13 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   const moisAgeCtx=getMoisDepuisOuverture();
   if(moisAgeCtx===null||moisAgeCtx>=2){
     const actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'||isRecurringStillActive(m)));
-    if(!actives.length) alerts.push({pr:2,cl:'al-warn',txt:`🔍 Aucune mission en cours ni devis en attente — pensez à alimenter votre pipeline.`});
+    if(!actives.length) alerts.push({pr:2,cl:'al-warn',txt:`🔍 Aucune mission en cours ni devis en attente — c'est le moment de relancer votre prospection.`});
   }
   const factMissionsCtx=DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact'&&m.dateFact);
   if(factMissionsCtx.length>0){
     const lastFact=[...factMissionsCtx].sort((a,b)=>new Date(b.dateFact)-new Date(a.dateFact))[0];
     const daysAgo=Math.round((Date.now()-new Date(lastFact.dateFact+'T12:00:00').getTime())/86400000);
-    if(daysAgo>=45) alerts.push({pr:2,cl:'al-warn',txt:`📆 Dernière facturation il y a <strong>${daysAgo} jours</strong> — alimentez votre pipeline pour sécuriser les prochains mois.`});
+    if(daysAgo>=45) alerts.push({pr:2,cl:'al-warn',txt:`📆 Dernière facturation il y a <strong>${daysAgo} jours</strong> — relancez votre prospection pour sécuriser les prochains mois.`});
   }
   alerts.sort((a,b)=>a.pr-b.pr);
   return alerts;
@@ -5175,7 +5175,7 @@ function wScoreSante(d) {
     advComm='Priorité à la prospection pour sécuriser les prochaines semaines.';
   } else {
     diagComm='🔴 Aucune activité future identifiée. Priorité à la prospection.';
-    advComm='Envoyez au moins un nouveau devis cette semaine pour alimenter votre pipeline.';
+    advComm='Envoyez au moins un nouveau devis cette semaine pour sécuriser votre activité future.';
   }
 
   // ── SCORE GLOBAL ─────────────────────────────────────────────
@@ -5183,7 +5183,7 @@ function wScoreSante(d) {
   const scoreColor=score>=80?'var(--ok)':score>=60?'#84cc16':score>=40?'var(--warn)':score>=20?'#f97316':'var(--err)';
 
   // ── DIAGNOSTIC GLOBAL ────────────────────────────────────────
-  const pilliers=[{n:'rentabilité',art:'la',s:sRent},{n:'remplissage',art:'le',s:sRemp},{n:'trésorerie',art:'la',s:sTreso},{n:'commercial',art:'le',s:sComm}];
+  const pilliers=[{n:'rentabilité',art:'la',s:sRent},{n:'agenda',art:"l'",s:sRemp},{n:'trésorerie',art:'la',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
   let diagGlobal='';
   if(score>=85) diagGlobal='Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
@@ -5205,7 +5205,7 @@ function wScoreSante(d) {
       const oldest=[...attM].sort((a,b)=>(a.dateFact||'z')<(b.dateFact||'z')?-1:1)[0];
       priorite=`Relancer le devis <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
     } else {
-      priorite='Créer et envoyer <strong>au moins un nouveau devis cette semaine</strong> pour alimenter votre pipeline.';
+      priorite='Créer et envoyer <strong>au moins un nouveau devis cette semaine</strong> pour sécuriser vos prochaines semaines.';
     }
   } else if(worst.n==='remplissage'&&cap>0){
     const hManq=Math.max(1,Math.round((cap*0.6)-charge));
@@ -5426,7 +5426,7 @@ function wProjection3Mois(d) {
   }).join('');
   const hasData=months.some(m=>m.caTotal>0);
   return `<div class="card">
-    <div class="card-header"><div><div class="card-title">🔮 Projection 3 mois</div><div class="card-sub">Basé sur le pipeline actuel · taux de transfo ${fmt(txT*100,0)} %</div></div></div>
+    <div class="card-header"><div><div class="card-title">🔮 Projection 3 mois</div><div class="card-sub">Basé sur votre activité en cours · taux de transfo ${fmt(txT*100,0)} %</div></div></div>
     ${hasData?rows:`<div class="empty ts">Ajoutez des missions en cours ou des devis en attente pour activer cette projection.</div>`}
   </div>`;
 }
