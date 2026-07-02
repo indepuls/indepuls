@@ -9496,7 +9496,12 @@ document.addEventListener('keydown', function(e) {
         data: DATA,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id,app_type' });
-    } catch(e) { console.warn('syncToCloud failed:', e); }
+    } catch(e) {
+      console.warn('syncToCloud failed:', e);
+      if (typeof showToast === 'function') {
+        showToast('⚠️ Données non synchronisées — vérifiez votre connexion internet.', 'var(--err)');
+      }
+    }
   }
 
   var _origSaveData = window.saveData;
