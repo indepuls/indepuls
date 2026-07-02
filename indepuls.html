@@ -1861,10 +1861,11 @@ html,body{overflow-x:hidden;}
       <div class="divider"></div>
       <div class="fgroup">
         <label class="flabel">Rattacher à une mission <span class="ts">(optionnel)</span></label>
-        <select id="d-mission-id">
+        <select id="d-mission-id" onchange="checkDepRecMission()">
           <option value="">— Aucune —</option>
         </select>
         <div class="ts" style="margin-top:4px;color:var(--tl)">La dépense sera associée à cette mission et exclue des charges fixes.</div>
+        <div id="dep-rec-mission-warn" style="display:none;margin-top:6px;padding:7px 10px;background:#fef3c7;border-radius:6px;font-size:12px;color:#92400e">⚠️ Dépense récurrente liée à une mission : elle continuera d'être comptabilisée chaque mois même après la clôture du chantier. Si c'est une charge fixe (abonnement, loyer…), préférez la laisser sans mission associée.</div>
       </div>
     </div>
     <div id="dep-zero-zone" style="display:none;margin-top:14px;border:1.5px solid var(--warn);border-left:4px solid var(--warn);border-radius:8px;padding:12px 14px;background:rgba(201,115,22,.05)">
@@ -6851,6 +6852,13 @@ function openDepModal(id) {
 function toggleDateDebutDep(val) {
   document.getElementById('d-debut-zone').style.display=val==='ponctuelle'?'none':'';
   if(val==='ponctuelle'){ document.getElementById('d-toujours').checked=false; document.getElementById('d-date-debut').disabled=false; }
+  checkDepRecMission();
+}
+function checkDepRecMission() {
+  const rec = document.getElementById('d-rec')?.value;
+  const mission = document.getElementById('d-mission-id')?.value;
+  const warn = document.getElementById('dep-rec-mission-warn');
+  if (warn) warn.style.display = (rec && rec !== 'ponctuelle' && mission) ? '' : 'none';
 }
 function toggleToujours(checked) {
   const inp=document.getElementById('d-date-debut');
@@ -7056,7 +7064,7 @@ function renderDepenses() {
 
   // ── Filtre rapide ──
   let filtered=[...all];
-  if(depFilter==='mensuelle')   filtered=filtered.filter(d=>d.recurrence==='mensuelle'  && !d.chantierId);
+  if(depFilter==='mensuelle')   filtered=filtered.filter(d=>d.recurrence==='mensuelle');
   else if(depFilter==='annuelle')  filtered=filtered.filter(d=>d.recurrence==='annuelle'   && !d.chantierId);
   else if(depFilter==='ponctuelle') filtered=filtered.filter(d=>d.recurrence==='ponctuelle' && !d.chantierId);
   else if(depFilter==='mission')   filtered=filtered.filter(d=>!!d.chantierId);
