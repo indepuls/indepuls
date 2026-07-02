@@ -380,21 +380,21 @@ html,body{overflow-x:hidden;}
     border-radius:10px;padding:12px;margin-bottom:8px;
   }
   #page-missions .tbl-wrap td{display:block;padding:0;border:none;}
-  /* Timer */
-  #page-missions .tbl-wrap td:nth-child(1){order:1;flex-shrink:0;}
-  /* Client / Mission */
-  #page-missions .tbl-wrap td:nth-child(2){order:1;flex:1;min-width:0;}
+  /* Client / Mission — 1re colonne, prend toute la largeur disponible */
+  #page-missions .tbl-wrap td:nth-child(1){order:1;flex:1;min-width:0;}
   /* Catégorie : masqué */
-  #page-missions .tbl-wrap td:nth-child(3){display:none!important;}
-  /* Devis : 2e ligne pleine largeur */
-  #page-missions .tbl-wrap td:nth-child(4){order:2;width:100%;font-size:14px;font-weight:700;padding-top:4px;}
+  #page-missions .tbl-wrap td:nth-child(2){display:none!important;}
+  /* Montant : 2e ligne pleine largeur */
+  #page-missions .tbl-wrap td:nth-child(3){order:2;width:100%;font-size:14px;font-weight:700;padding-top:4px;}
   /* Statut : à droite de la 1re ligne */
-  #page-missions .tbl-wrap td:nth-child(5){order:1;flex-shrink:0;margin-left:auto;}
+  #page-missions .tbl-wrap td:nth-child(4){order:1;flex-shrink:0;margin-left:auto;}
   /* Facturée le, Temps, Taux réel, Notes : masqués */
+  #page-missions .tbl-wrap td:nth-child(5),
   #page-missions .tbl-wrap td:nth-child(6),
   #page-missions .tbl-wrap td:nth-child(7),
-  #page-missions .tbl-wrap td:nth-child(8),
-  #page-missions .tbl-wrap td:nth-child(9){display:none!important;}
+  #page-missions .tbl-wrap td:nth-child(8){display:none!important;}
+  /* Bouton timer ▶ : en début de 1re ligne */
+  #page-missions .tbl-wrap td:nth-child(9){order:1;flex-shrink:0;}
   /* Actions : 3e ligne pleine largeur */
   #page-missions .tbl-wrap td:nth-child(10){
     order:3;width:100%;display:flex;gap:6px;flex-wrap:wrap;
