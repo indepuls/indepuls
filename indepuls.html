@@ -3970,6 +3970,7 @@ function navigate(page) {
   if (_navEl) _navEl.classList.add('active');
   document.getElementById('topbar-title').textContent = getPageTitle(page);
   currentPage = page;
+  try { localStorage.setItem('indepuls_last_page', page); } catch(e) {}
   closeMobileSidebar();
   renderPage(page);
   if (DATA.isExample) updateDemoUI();
@@ -9260,6 +9261,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateSbTimer();
   showMigrationPicker();
   showProfilePicker();
+  const _lastPage = localStorage.getItem('indepuls_last_page');
+  if (_lastPage && document.getElementById('page-'+_lastPage)) navigate(_lastPage);
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
 });
