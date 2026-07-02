@@ -756,7 +756,6 @@ html,body{overflow-x:hidden;}
   <div class="page" id="page-params">
     <div class="tab-hd">
       <button class="tab-btn active" onclick="switchParamTab('activite',this)">Mon activité</button>
-      <button class="tab-btn" onclick="switchParamTab('fonctionnement',this)">Comment je travaille</button>
       <button class="tab-btn" onclick="switchParamTab('fiscalite',this)">Fiscalité & charges</button>
       <button class="tab-btn" onclick="switchParamTab('objectifs',this)">Mes objectifs</button>
       <button class="tab-btn" id="tab-btn-categories" onclick="switchParamTab('offres',this)">Mes offres</button>
@@ -822,12 +821,8 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- COMMENT JE TRAVAILLE -->
-    <div class="tab-pane" id="tab-fonctionnement">
-      <div class="alert al-info mb12" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
-      <div class="card">
+      <div class="alert al-info mt16 mb0" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
+      <div class="card mt16">
         <div class="card-title mb4">Organisation de l'activité</div>
         <div class="ts mb12" style="color:var(--tl)">Comment souhaitez-vous organiser votre activité ?</div>
         <div style="display:flex;flex-direction:column;gap:7px">
@@ -7125,7 +7120,7 @@ function switchParamTab(tab, btn) {
   if(tab==='offres') renderCategoriesList();
   if(tab==='fiscalite'||tab==='avance') renderTvaParams();
   if(tab==='perso') renderThemes();
-  if(tab==='fonctionnement') renderModulesUI();
+  if(tab==='activite') renderModulesUI();
 }
 function toggleSalaries(val) {
   saveParam('chargesSalariales', val ? (DATA.params.chargesSalariales||0) : 0);
