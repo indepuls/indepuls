@@ -5350,9 +5350,10 @@ function wScoreSante(d) {
     const mt=m.isRecurring&&m.montantMensuel>0?` · ${fmtE(m.montantMensuel)}/mois`:m.montantDevis>0?` · ${fmtE(m.montantDevis)}`:'';
     return `<div onclick="goToMission('${m.id}')" style="display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:5px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0;display:inline-block"></span><span style="font-size:12px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lbl}</span><span style="font-size:11px;color:var(--tl);white-space:nowrap">${mt}</span></div>`;
   }).join('');
-  const _mecCard=_actives.length?`<div class="card" style="padding:8px 14px;margin-bottom:10px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--ok);font-weight:700;margin-bottom:4px">● ${tVocab('itemsEnCours')} · ${_actives.length}</div>${_activeRows}</div>`:'';
+  const _mecCard=_actives.length?`<div class="card" style="padding:8px 14px;margin-bottom:12px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--ok);font-weight:700;margin-bottom:4px">● ${tVocab('itemsEnCours')} · ${_actives.length}</div>${_activeRows}</div>`:'';
   return `<div>
-    <div class="sante-layout" style="margin-bottom:12px;grid-template-columns:240px 1fr">
+    ${_mecCard}
+    <div class="sante-layout" style="margin-bottom:12px">
       <div class="card" style="border-left:4px solid ${scoreColor};text-align:center;padding:20px 14px">
         <div style="position:relative;width:84px;height:84px;margin:0 auto 10px">
           <svg width="84" height="84" style="transform:rotate(-90deg)">
@@ -5367,14 +5368,11 @@ function wScoreSante(d) {
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:7px">Santé de l'activité</div>
         <div style="font-size:12px;color:var(--text);line-height:1.5">${diagGlobal}</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${_mecCard}
-        <div class="card" style="padding:16px 18px;flex:1">
-          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:4px">📋 Votre brief</div>
-          <div style="font-size:10px;color:var(--tl);margin-bottom:10px">Basé sur vos données du ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>
-          <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;display:block;margin-bottom:6px">👉 Action recommandée</span>${priorite}</div>
-          ${alertsSection}
-        </div>
+      <div class="card" style="padding:16px 18px">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:4px">📋 Votre brief</div>
+        <div style="font-size:10px;color:var(--tl);margin-bottom:10px">Basé sur vos données du ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;display:block;margin-bottom:6px">👉 Action recommandée</span>${priorite}</div>
+        ${alertsSection}
       </div>
     </div>
     <div class="g4" style="gap:10px">
