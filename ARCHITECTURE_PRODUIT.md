@@ -236,9 +236,9 @@ chargeEstimee + chargeUnit      tempsManuel[]
 1. achat_revente : champ "Prix d'achat unitaire" + marge temps réel
 2. fabrication : champ "Quantité produite"
 
-### Phase 5 — Archives
-1. Métrique principale conditionnelle selon `modules.objectif`
-2. Phrase interprétation adaptée
+### Phase 5 — Archives ✅ *implémentée (2026-07)*
+1. ~~Métrique principale conditionnelle selon `modules.objectif`~~ → `renderArchives` et `getArchYearData` utilisent `modules.objectif` (plus `BUSINESS_PROFILE_MAP`)
+2. ~~Phrase interprétation adaptée~~ → `buildArchInterpretation` utilisait déjà `modules.objectif` correctement
 
 ---
 

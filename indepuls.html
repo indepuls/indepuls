@@ -7724,8 +7724,9 @@ function renderArchives() {
   const caNd=years.map(y=>y===cy?caNetC:(DATA.archives[y]||{}).caNet||0);
   requestAnimationFrame(()=>{ drawBarChart('chart-archives',years.map(String),[{label:'CA brut',data:caBD,color:themeColor('--acc')||'#5B2C4A'},{label:'Revenu net',data:caNd,color:themeColor('--sec')||'#BB9E81'}],{height:260}); });
   const _archFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
-  const _archIsChantier=_archFamily==='chantier';
-  const _archIsMarge=_archFamily==='fabrication'||_archFamily==='achat_revente';
+  const _archObjectifMod=DATA.params.modules?.objectif||'th';
+  const _archIsChantier=_archObjectifMod==='tjm';
+  const _archIsMarge=_archObjectifMod==='marge_commande';
   const _archHj=DATA.params.heuresParJour||7;
   const _archItemLbl=_archFamily==='achat_revente'?'vente':'commande';
   const _archKpiLbl=_archIsChantier?'TJM moyen':_archIsMarge?`Gain / ${_archItemLbl}`:'TH réel';
@@ -7770,9 +7771,9 @@ function renderArchives() {
 // ── Archives : helpers comparaison annuelle ───────────────────
 function getArchYearData(y){
   const cy=DATA.currentYear;
-  const _fam=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const _objMod=DATA.params.modules?.objectif||'th';
   const _hj=DATA.params.heuresParJour||7;
-  function _kpi(caNet,h,m){ if(_fam==='chantier') return h>0?caNet/h*_hj:0; if(_fam==='fabrication'||_fam==='achat_revente') return m>0?caNet/m:0; return h>0?caNet/h:0; }
+  function _kpi(caNet,h,m){ if(_objMod==='tjm') return h>0?caNet/h*_hj:0; if(_objMod==='marge_commande') return m>0?caNet/m:0; return h>0?caNet/h:0; }
   if(y===cy){
     const h=getHeuresFact()+getHeuresInterne();
     const caNet=getCaNetAnnuel(), caBrut=getCaAnnuelBrut();

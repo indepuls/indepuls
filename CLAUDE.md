@@ -367,6 +367,7 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Rebranding** : toutes les références "OBM Pilot" / "Artisan Pilot" remplacées par "Indépuls" ; fichiers export renommés `indepuls-sauvegarde-*.json` ; rétrocompatibilité import maintenue (anciens fichiers `tool:'obm'`/`'artisan'` toujours acceptés)
 - **Modules comportementaux v29 (2026-06)** : `DATA.params.modePlanning` → `DATA.params.modules` (objet avec `planning`, `uniteTemps`, `objectif`, `devis`). `getDefaultModules(metier)` retourne les valeurs par défaut selon le profil. `applyDefaults()` injecte l'objet si absent. `migrate()` assure la rétrocompatibilité v28→v29. Architecture `family` (vocabulaire) reste découplée de `modules` (comportement).
 - **Phase 5 — TH/TJM artisan** : `isJours()` helper ; `calcDevis()` convertit jours→heures ; labels TJM/€j dans devis, recalcObjectifs, KPI, alertes objectif pour les profils `uniteTemps='jours'` (ex: artisan_batiment)
+- **Phase 5 bis — modules.objectif partout (2026-07)** : tous les écrans qui affichaient encore le KPI selon la famille métier (`BUSINESS_PROFILE_MAP`) ont été corrigés pour utiliser `modules.objectif` à la place. Écrans corrigés : page Objectifs (`renderObjectifsResult`), bande de synthèse dashboard (`wSynopsis`), Archives (`renderArchives`, `getArchYearData`). La famille reste utilisée uniquement pour le vocabulaire (vente/commande, emojis 🛍️/📦) et les seuils domaine-métier (marge 20% vs 30%). **Règle consolidée** : si c'est un KPI principal ou un label de taux → `modules.objectif`. Si c'est un mot métier ou un threshold spécifique au domaine → `BUSINESS_PROFILE_MAP`.
 - **Phase 6 — planning conditionnel** : nav Planning visible seulement si `modules.planning==='calendrier'` ; guard `navigate('planning')` ; `#m-planning-zone` dans la modale mission masqué si aucun ou management ; widget Remplissage retourne '' si planning=aucun (valeur supprimée depuis)
 - **Phase 7 — calendrier planning freelance** : page Planning complète dans freelance (navigation mois, rendu calendrier HTML, sessions par mission, taux de remplissage) ; nav Planning visible uniquement si `modules.planning==='calendrier'` (profil evenementiel) ; `initEditingSessions()`, `addSessionToEdit()`, `removeSessionFromEdit()` pour la gestion des sessions dans la modale ; `getTauxRemplissageMois` et `getTauxRemplissageAnnee` exportés dans `shared/modes/freelance.js`
 - **Fusion interfaces v30 (2026-06)** : `indepuls.html` remplace les deux HTML séparés. `shared/modes/unified.js` (copie de freelance.js, STORAGE_KEY='indepuls', SCHEMA_VERSION=30). 7 profils dans les selects (`getDefaultModules` étendu avec `simulateurOffre`). `applyProfile(metier)` réinitialise `modules` aux défauts du profil — remplace `saveParam('metier',...)` partout. Migration localStorage 4 cas : clé unifiée / freelance seul / artisan seul / conflit → modale `modal-migration`. `index.html` redirige vers `indepuls.html`. Modal-mission : collectif conditionnel (famille service), charge estimée conditionnelle (planning estime).
@@ -598,10 +599,9 @@ function tVocab(key) {
 Principe : **profil = défauts, modules = comportement réel, dashboard = lit les modules**.
 Ne jamais utiliser la famille pour décider du comportement — utiliser `modules.*`.
 
-**Phase 1 — `modules.objectif` pilote le KPI principal** ✅ *validée, à implémenter*
-- Remplacer `_isChantier`/`_isMarge` dans `renderDashboard()` et `buildAlerts()` par `modules.objectif`
+**Phase 1 — `modules.objectif` pilote le KPI principal** ✅ *implémentée (2026-07)*
+- Tous les écrans utilisent `modules.objectif` pour le KPI affiché : `wKPIs()`, `buildAlerts()`, bilan mensuel, `wSynopsis()`, `renderObjectifsResult()`, `renderArchives()`, `getArchYearData()`.
 - `'th'` → KPI TH réel (€/h) · `'tjm'` → KPI TJM réel (€/j) · `'marge_commande'` → Gain moyen par commande
-- Points d'impact : `wKPIs()`, `buildAlerts()`, bilan mensuel (colonne rentabilité)
 
 **Phase 2 — `modules.uniteTemps` pilote h vs j partout** *(à faire après Phase 1)*
 - `isJours()` déjà utilisé dans missions + simulateur — étendre au dashboard
