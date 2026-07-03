@@ -9706,11 +9706,13 @@ document.addEventListener('keydown', function(e) {
         if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Compte créé ! Vérifiez votre email pour confirmer.'; }
         if(btn){ btn.disabled=true; btn.textContent='Email envoyé'; }
       } catch(e) {
-        var errMsg = e.message === 'User already registered'
-          ? 'Cet email est déjà utilisé.'
-          : (e.message || 'Erreur lors de la création du compte.');
+        var raw = e.message || '';
+        var errMsg = raw === 'User already registered' ? 'Cet email est déjà utilisé.'
+          : raw && raw !== '{}' ? raw
+          : 'Erreur lors de la création du compte. Réessayez dans quelques instants.';
         if(msg){ msg.style.color='#e55'; msg.textContent=errMsg; }
         if(btn){ btn.disabled=false; btn.textContent='Créer mon compte'; }
+        console.error('[AUTH] signUp error', e);
       }
     };
     window.authForgotPassword = async function() {
