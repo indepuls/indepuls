@@ -2080,7 +2080,7 @@ html,body{overflow-x:hidden;}
   <div class="picker-wrap">
     <h2 class="picker-title">Quel est votre profil d'activité ?</h2>
     <p class="picker-sub">Indépuls adapte son vocabulaire et ses outils à votre métier.<br>Vous pourrez modifier ce choix à tout moment dans les paramètres.</p>
-    <select id="picker-metier-select" class="picker-select">
+    <select id="picker-metier-select" class="picker-select" onchange="pickerUpdateDesc()">
       <option value="">— Sélectionner mon profil —</option>
       <optgroup label="Services &amp; expertise">
         <option value="prestataire_services">Prestataire de services</option>
@@ -2096,6 +2096,7 @@ html,body{overflow-x:hidden;}
         <option value="achat_revente">Achat-revente</option>
       </optgroup>
     </select>
+    <div id="picker-desc" style="display:none;margin-top:14px;background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--tl);line-height:1.6;text-align:left"></div>
     <p class="picker-sub" style="margin-top:24px;margin-bottom:8px">Votre statut juridique</p>
     <select id="picker-statut-select" class="picker-select">
       <option value="micro-bnc">Micro-entreprise</option>
@@ -3130,6 +3131,28 @@ function getExampleData(metier) {
 function showProfilePicker() {
   if (!DATA._needsProfilePick) return;
   document.getElementById('screen-profile-picker').classList.remove('hidden');
+}
+
+var _PICKER_DESC = {
+  prestataire_services: { ico:'💼', txt:'Vous vendez votre expertise ou votre temps : conseil, coaching, formation, développement, marketing… Indépuls suit votre TJM ou taux horaire, vos missions et votre rentabilité.' },
+  creatif_com:          { ico:'🎨', txt:'Vous réalisez des prestations créatives : design, photo, vidéo, rédaction, communication… Indépuls suit vos devis, votre TJM et la rentabilité de chaque prestation.' },
+  evenementiel:         { ico:'🎤', txt:'Vous organisez ou animez des événements ponctuels. Indépuls gère le planning de vos dates, le suivi des encaissements et votre taux de remplissage sur l\'année.' },
+  artisan_batiment:     { ico:'🔨', txt:'Vous réalisez des chantiers : maçonnerie, plomberie, électricité, peinture, menuiserie… Indépuls suit la rentabilité de chaque chantier, vos coûts matériaux et vos encaissements.' },
+  artisan_commande:     { ico:'🧰', txt:'Vous fabriquez ou intervenez sur commande : réparation, sur-mesure, entretien… Indépuls suit le coût de revient de chaque commande et votre marge réelle.' },
+  fabricant_serie:      { ico:'📦', txt:'Vous produisez des articles en série : cosmétiques, bijoux, bougies, pâtisseries… Indépuls suit vos coûts de fabrication, votre marge par produit et votre CA.' },
+  achat_revente:        { ico:'🛍️', txt:'Vous achetez pour revendre : e-commerce, négoce, marketplace… Indépuls calcule votre marge nette après coût d\'achat, frais de plateforme et envoi.' },
+};
+function pickerUpdateDesc() {
+  var sel = document.getElementById('picker-metier-select');
+  var box = document.getElementById('picker-desc');
+  if (!sel || !box) return;
+  var d = _PICKER_DESC[sel.value];
+  if (d) {
+    box.innerHTML = '<span style="font-size:20px;margin-right:8px;vertical-align:middle">' + d.ico + '</span><span style="vertical-align:middle">' + d.txt + '</span>';
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
 }
 
 // Étape 1 → démo directe + modal bienvenue
