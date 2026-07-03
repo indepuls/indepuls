@@ -6313,7 +6313,8 @@ function openMissionModal(id) {
     } else { depZone.style.display='none'; }
   }
   // Ouvrir le bloc avancé si la mission éditée a déjà des données avancées
-  const hasAdvanced = m && (m.chargeEstimee || m.sourceAcquisition || m.notes || (m.sessions && m.sessions.length));
+  const hasAdvanced = (m && (m.chargeEstimee || m.sourceAcquisition || m.notes || (m.sessions && m.sessions.length)))
+    || DATA.params.modules?.calendrier;
   toggleMissionAdvanced(!!hasAdvanced);
   openModal('modal-mission');
 }
