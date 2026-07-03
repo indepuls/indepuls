@@ -9526,6 +9526,12 @@ document.addEventListener('keydown', function(e) {
           document.body.setAttribute('data-theme', DATA.theme || 'obm');
         };
         _doRender();
+      } else if (!res.data) {
+        // Nouveau compte — aucune donnée cloud : afficher le picker si aucun métier choisi
+        if (!DATA.params || !DATA.params.metier) {
+          DATA._needsProfilePick = true;
+          if (typeof showProfilePicker === 'function') showProfilePicker();
+        }
       }
     } catch(e) { console.warn('loadFromCloud failed:', e); }
     _cloudLoaded = true;
