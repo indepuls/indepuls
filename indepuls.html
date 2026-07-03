@@ -9484,6 +9484,10 @@ document.addEventListener('keydown', function(e) {
           parsed = applyDefaults(parsed);
           DATA = parsed;
         }
+        // Données cloud chargées — fermer le picker de profil s'il était ouvert
+        DATA._needsProfilePick = false;
+        var pickerEl = document.getElementById('screen-profile-picker');
+        if (pickerEl) pickerEl.classList.add('hidden');
         var _doRender = function() {
           if (typeof getCurrentYearMonths !== 'function') { setTimeout(_doRender, 80); return; }
           if (typeof renderAll === 'function') renderAll();
