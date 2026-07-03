@@ -3225,7 +3225,10 @@ function renderDemoBanner() {
     </div>
     <div class="demo-slim-actions">
       <span class="step-cta" onclick="navigate('params')" style="font-size:11px">Affiner mes paramètres</span>
-      <button class="btn btn-acc" style="font-size:11px;padding:6px 12px" onclick="openClearExampleModal()">Commencer avec mes données</button>
+      <div style="text-align:right">
+        <button class="btn btn-acc" style="font-size:11px;padding:6px 12px" onclick="openClearExampleModal()">Commencer avec mes données</button>
+        <div style="font-size:10px;color:var(--tl);margin-top:4px">Vos paramètres sont conservés, les données fictives disparaissent.</div>
+      </div>
     </div>
   </div>`;
 }
