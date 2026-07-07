@@ -169,7 +169,8 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 .tab-btn{padding:9px 16px;border:none;background:none;cursor:pointer;font-size:13px;color:var(--tl);font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;font-weight:600;}
 .tab-btn.active{color:var(--acc);border-bottom-color:var(--acc);}.tab-btn:hover{color:var(--pri);}
 .tab-pane{display:none;}.tab-pane.active{display:block;}
-.info-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--brd);color:var(--tl);font-size:10px;font-weight:700;cursor:help;vertical-align:middle;margin-left:3px;}
+.info-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--brd);color:var(--tl);font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:3px;user-select:none;}
+#_tip_bubble{position:absolute;z-index:9999;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--text);line-height:1.6;max-width:280px;box-shadow:0 4px 16px rgba(0,0,0,.15);}
 .rentab-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--brd);}
 .rentab-row:last-child{border-bottom:none;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px;}
@@ -9317,6 +9318,36 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_lastPage && document.getElementById('page-'+_lastPage)) navigate(_lastPage);
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
+});
+
+// ── INFO-TIP : clic pour afficher/masquer ────────────────────
+document.addEventListener('click', function(e) {
+  var tip = e.target.closest('.info-tip');
+  var existing = document.getElementById('_tip_bubble');
+  // Clic en dehors → ferme
+  if (!tip) { if (existing) existing.remove(); return; }
+  e.stopPropagation();
+  // Même ? déjà ouvert → ferme
+  if (existing && existing._src === tip) { existing.remove(); return; }
+  if (existing) existing.remove();
+  // Récupère le texte (title ou data-tip)
+  var text = tip.getAttribute('data-tip') || tip.getAttribute('title') || '';
+  if (!text) return;
+  // Stocke dans data-tip et retire title pour éviter le tooltip natif
+  tip.setAttribute('data-tip', text);
+  tip.removeAttribute('title');
+  // Crée la bulle
+  var bubble = document.createElement('div');
+  bubble.id = '_tip_bubble';
+  bubble._src = tip;
+  bubble.textContent = text;
+  document.body.appendChild(bubble);
+  var rect = tip.getBoundingClientRect();
+  var top = rect.bottom + window.scrollY + 6;
+  var left = rect.left + window.scrollX - 8;
+  var maxLeft = window.innerWidth - 296;
+  bubble.style.top = top + 'px';
+  bubble.style.left = Math.max(8, Math.min(left, maxLeft)) + 'px';
 });
 
 window.addEventListener('beforeunload', () => {
