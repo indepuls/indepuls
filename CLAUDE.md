@@ -438,6 +438,20 @@ Le domaine Planning est **séparé de `calculs.js`** (qui reste centré sur les 
 
 `DATA.params.modules.planning` valeurs valides : `'estime'` | `'calendrier'` | `'aucun'`. Anciennement `DATA.params.modePlanning` (migré en v29 → `modules.planning`). Toute valeur inconnue est remplacée par la valeur de `getDefaultModules(metier)`.
 
+**Note (2026-07)** : `modules.planning` (string) a depuis été remplacé par deux booléens indépendants `modules.calendrier` + `modules.estimation` (voir plus bas "`DATA.params.modules` — objet de comportement par profil"). `getPilierRemplissage()` a désormais **4 branches** : `'estime'`, `'calendrier'`, `'additif'` (les deux actifs — voir ci-dessous), `'aucun'`. `wCapacite` et `wRemplissage` dans `indepuls.html` sont en réalité du **code mort** (jamais appelés par `renderDashboard()`, découvert lors du chantier additif 2026-07) — le vrai consommateur vivant de `getPilierRemplissage()` est `wScoreSante()` (pilier "Votre agenda" + sa modale détail).
+
+**Agrégation additive (2026-07)** — `modules.calendrier` ET `modules.estimation` actifs simultanément (ex. événementiel) : plus de choix de mode global (le calendrier gagnait toujours avant ce fix), remplacé par une **somme mission par mission**, mois courant :
+- Récurrente (`isRecurring=true`) : principale = `chargeEstimee` (si `statut==='cours'` ou `isRecurringStillActive`) ; repli = ses sessions sur le mois si `chargeEstimee` absent
+- Ponctuelle (`isRecurring=false`) : principale = ses sessions sur le mois ; repli = `chargeEstimee` si aucune session
+- Si les deux champs sont renseignés sur une mission, seul le champ principal compte — l'autre reste purement visuel, jamais additionné
+- Conversion sessions (h/mois) → h/semaine : division par `joursOuvrables(mois)/joursParSemaine`, qui s'annule mathématiquement en `joursDuMois/7` (indépendant du défaut `joursParSemaine` utilisé)
+- Session sans `heures` renseigné (rétrocompat) → repli `joursOccupés × heuresParJour`, jamais 0 pour une session avec une date réelle
+- `resultatHSemaine(methode, cap, charge)` factorise le calcul commun aux modes `'estime'` et `'additif'` (mêmes textes/barème, seule la `charge` en amont diffère) — comportement de `'estime'` et `'calendrier'` seuls strictement inchangé
+- Copy contextuelle dans la modale mission (`updateModaleMissionCopy()`, appelée depuis `toggleRecurrenceFields()`) : uniquement si les deux modules sont actifs, texte différent selon `isRecurring` — restauré aux valeurs par défaut sinon
+- Détail Score Santé (`rowsRemp`/`methRemp`) adapté aux 3 méthodes réelles (`estime`/`calendrier`/`additif`) au lieu d'un texte figé "h/sem" — bug préexistant pour le mode calendrier pur (`unite` pouvait être `'j'`) corrigé au passage
+- Voir `ARCHITECTURE_PRODUIT.md` § "Agrégation additive par mission" et § "Copy contextuelle" pour la spec produit complète
+- **Point d'attention déploiement** : recalcule différemment des données existantes — des utilisateurs hybrides (calendrier+estimation) verront leur taux de remplissage changer sans avoir touché à rien (avant : calendrier gagnait toujours ; après : somme des deux). Comportement voulu, mais à accompagner d'une communication si nécessaire.
+
 ### `SCHEMA_VERSION` — 2 endroits à synchroniser
 Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, etc.) :
 1. `indepuls.html` — constante en haut du script principal
