@@ -1599,17 +1599,20 @@ html,body{overflow-x:hidden;}
 
 <!-- MODAL SAISIE MULTIPLE MISSIONS -->
 <div class="modal-ov hidden" id="modal-bulk-missions">
-  <div class="modal" style="max-width:860px">
-    <div class="modal-title">Ajouter plusieurs missions</div>
-    <div class="ts mb10" style="color:var(--tl)">Pratique pour rattraper un historique (ex : démarrer en juillet et rattraper janvier→juin d'un coup). Client et Montant sont les seuls champs obligatoires — les lignes incomplètes sont ignorées à l'enregistrement. Pour les cas particuliers (récurrence, sessions, activité mixte, programme collectif), utilisez "+ Ajouter une mission".</div>
+  <div class="modal" style="max-width:900px">
+    <div class="modal-title" id="bulk-modal-title">Ajouter plusieurs missions</div>
+    <div class="ts mb10" style="color:var(--tl)" id="bulk-modal-intro"></div>
     <div class="tbl-wrap">
-      <table>
+      <table style="table-layout:fixed">
+        <colgroup>
+          <col style="width:18%"><col style="width:23%"><col style="width:13%"><col style="width:15%"><col style="width:13%"><col style="width:14%"><col style="width:4%">
+        </colgroup>
         <thead>
           <tr>
-            <th>Client</th>
+            <th id="bulk-th-client">Client</th>
             <th>Description <span class="ts" style="font-weight:400">(optionnel)</span></th>
             <th>Montant (€ HT)</th>
-            <th>Temps (h) <span class="ts" style="font-weight:400">(optionnel)</span></th>
+            <th>Temps passé (h) <span class="info-tip" title="Indispensable pour calculer votre taux horaire réel — sans cette info, la mission compte dans votre CA mais pas dans votre TH.">?</span></th>
             <th>Date</th>
             <th>Statut</th>
             <th></th>
@@ -2482,6 +2485,8 @@ function applyVocabUI() {
   if (nav) nav.textContent = tVocab('navLabel');
   const btn = document.getElementById('btn-add-mission-top');
   if (btn) btn.textContent = tVocab('addItem');
+  const btnBulk = document.getElementById('btn-add-mission-bulk');
+  if (btnBulk) btnBulk.textContent = '+ Ajouter plusieurs ' + tVocab('items').toLowerCase();
   const suivi = document.getElementById('missions-page-suivi');
   if (suivi) suivi.textContent = tVocab('suivi');
   const sub = document.getElementById('missions-page-sub');
@@ -6583,17 +6588,28 @@ function saveMission() {
 }
 
 // ── SAISIE MULTIPLE DE MISSIONS ───────────────────────────────
-// Assistant de saisie pour rattraper un historique rapidement. Champs volontairement
-// limités (pas de récurrence, sessions, activité mixte détaillée, ni programme collectif) —
-// pour ces cas-là, l'utilisatrice reste sur openMissionModal(). Missions créées = missions
-// normales, éditables ensuite comme n'importe quelle autre.
+// Assistant de saisie pour rattraper un historique rapidement, ou saisir plusieurs missions
+// courantes d'un coup. Champs volontairement limités (pas de récurrence, sessions, activité
+// mixte détaillée, ni programme collectif) — pour ces cas-là, l'utilisatrice reste sur
+// openMissionModal(). Missions créées = missions normales, éditables ensuite comme n'importe
+// quelle autre.
 let bulkMissionRows = [];
+const BULK_MISSION_PLACEHOLDERS = {
+  service:       { client:'Ex : Sophie Martin',   desc:'Ex : Refonte site web' },
+  chantier:      { client:'Ex : M. et Mme Durand', desc:'Ex : Rénovation salle de bain' },
+  fabrication:   { client:'Ex : Boutique Un Grain', desc:'Ex : Lot de 20 bougies parfumées' },
+  achat_revente: { client:'Ex : Julie R.',         desc:'Ex : Vide-dressing vintage' },
+};
 
 function _newBulkMissionRow() {
   return { client:'', description:'', montant:'', temps:'', date: today(), statut:'fact' };
 }
 function openBulkMissionModal() {
   bulkMissionRows = [_newBulkMissionRow(), _newBulkMissionRow(), _newBulkMissionRow()];
+  const itemsLbl = tVocab('items').toLowerCase();
+  document.getElementById('bulk-modal-title').textContent = 'Ajouter plusieurs ' + itemsLbl;
+  document.getElementById('bulk-modal-intro').textContent = `Pratique pour rattraper un historique (ex : démarrer en juillet et rattraper janvier→juin d'un coup), ou saisir plusieurs ${itemsLbl} courantes d'un coup. Client et Montant sont les seuls champs obligatoires — les lignes incomplètes sont ignorées à l'enregistrement. Pour les cas particuliers (récurrence, sessions, activité mixte, programme collectif), utilisez "${tVocab('addItem')}".`;
+  document.getElementById('bulk-th-client').textContent = tVocab('client');
   renderBulkMissionRows();
   openModal('modal-bulk-missions');
 }
@@ -6614,9 +6630,11 @@ function renderBulkMissionRows() {
     ['att', "En attente d'acceptation"], ['cours', 'En cours'],
     ['ref', 'Refusé / Annulé'], ['fact', 'Facturé / Terminé'],
   ];
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
+  const ph = BULK_MISSION_PLACEHOLDERS[family] || BULK_MISSION_PLACEHOLDERS.service;
   tbody.innerHTML = bulkMissionRows.map((r, i) => `<tr>
-    <td><input type="text" id="bulk-client-${i}" value="${esc(r.client)}" placeholder="Ex : Client Dupont" oninput="updateBulkMissionField(${i},'client',this.value)"></td>
-    <td><input type="text" id="bulk-desc-${i}" value="${esc(r.description)}" placeholder="Ex : Refonte site web" oninput="updateBulkMissionField(${i},'description',this.value)"></td>
+    <td><input type="text" id="bulk-client-${i}" value="${esc(r.client)}" placeholder="${esc(ph.client)}" oninput="updateBulkMissionField(${i},'client',this.value)"></td>
+    <td><input type="text" id="bulk-desc-${i}" value="${esc(r.description)}" placeholder="${esc(ph.desc)}" oninput="updateBulkMissionField(${i},'description',this.value)"></td>
     <td><input type="number" id="bulk-montant-${i}" min="0" step="10" value="${esc(r.montant)}" placeholder="Ex : 1 500" oninput="updateBulkMissionField(${i},'montant',this.value)"></td>
     <td><input type="number" id="bulk-temps-${i}" min="0" step="0.5" value="${esc(r.temps)}" placeholder="Ex : 8" oninput="updateBulkMissionField(${i},'temps',this.value)"></td>
     <td><input type="date" id="bulk-date-${i}" value="${esc(r.date)}" oninput="updateBulkMissionField(${i},'date',this.value)"></td>
