@@ -3692,6 +3692,8 @@ function monthLabelFull(k) { const [y,m]=k.split('-'); return new Date(+y,+m-1,1
 // Nombre de mois actifs dans l'année affichée (pour lisser les charges annuelles)
 // getActiveMonthsInYear → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 function heuresMs(ms) { const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`; }
+// Format court lisible ("1h30" / "45 min"), utilisé par les bannières/toasts liés aux chronos.
+function formatDureeHM(ms) { const h=Math.floor(ms/3600000), mn=Math.floor((ms%3600000)/60000); return h>0?(mn>0?`${h}h${String(mn).padStart(2,'0')}`:`${h}h`):`${mn} min`; }
 // getMissionTotalMs → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // getMissionHeures → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
 // getTauxHoraireMinCible → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)
@@ -6757,7 +6759,14 @@ function commitTimer(x) {
 }
 function startTimer(id) {
   const m=DATA.missions.find(x=>x.id===id); if(!m) return;
-  DATA.missions.forEach(x=>{ if(x.id!==id&&x.timerRunning) commitTimer(x); });
+  DATA.missions.forEach(x=>{
+    if(x.id!==id&&x.timerRunning){
+      const elapsed=Date.now()-x.timerStart;
+      commitTimer(x);
+      const who=x.isManagement?'Temps interne':`« ${x.client||'mission'} »`;
+      showToastIfReal(`⏸ Chrono ${who} arrêté — ${formatDureeHM(elapsed)} créditées.`, 'var(--acc)');
+    }
+  });
   if(m.timerRunning) commitTimer(m);
   else { m.timerRunning=true; m.timerStart=Date.now(); }
   saveData(); renderMissions(); updateSbTimer();
@@ -8603,8 +8612,7 @@ function checkTimerReminder() {
 
 function showTimerReminder(m, totalMs) {
   if(document.getElementById('timer-reminder')) return; // déjà visible
-  const h=Math.floor(totalMs/3600000), mn=Math.floor((totalMs%3600000)/60000);
-  const label=h>0?(mn>0?`${h}h${String(mn).padStart(2,'0')}`:`${h}h`):`${mn} min`;
+  const label=formatDureeHM(totalMs);
   const who=m.isManagement?'Le temps interne':`Le temps sur « ${esc(m.client||'cette mission')} »`;
   const div=document.createElement('div');
   div.id='timer-reminder'; div.className='timer-reminder';
@@ -8687,8 +8695,7 @@ function checkTimerGapOnResume() {
 
 function showTimerGapBanner(m, idleMs, lastActivity) {
   _timerGapPending={id:m.id, lastActivity};
-  const h=Math.floor(idleMs/3600000), mn=Math.floor((idleMs%3600000)/60000);
-  const label=h>0?(mn>0?`${h}h${String(mn).padStart(2,'0')}`:`${h}h`):`${mn} min`;
+  const label=formatDureeHM(idleMs);
   const who=m.isManagement?'le temps interne':`la mission « ${esc(m.client||'sans nom')} »`;
   const div=document.createElement('div');
   div.id='timer-gap-banner'; div.className='timer-reminder'; div.style.maxWidth='400px';
