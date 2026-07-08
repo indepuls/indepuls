@@ -1547,27 +1547,27 @@ html,body{overflow-x:hidden;}
         </select>
       </div>
     </div>
+    <div id="m-planning-zone">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
+      <div id="m-sessions-list" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
+        <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
+        <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
+          <label class="flabel" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
+          <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
+            style="padding:6px 6px;text-align:center"
+            oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
+        </div>
+        <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
+      </div>
+      <div class="ts mt4" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
+    </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
       <span id="m-advanced-arrow">▶</span> Options avancées
     </button>
     <div id="m-advanced-zone" style="display:none">
-      <div id="m-planning-zone">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
-        <div id="m-sessions-list" style="margin-bottom:8px"></div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
-          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
-          <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
-            <label class="flabel" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
-            <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
-              style="padding:6px 6px;text-align:center"
-              oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
-          </div>
-          <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
-        </div>
-        <div class="ts mt4" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
-      </div>
-      <div class="fgroup" style="margin-top:12px">
+      <div class="fgroup">
         <label class="flabel">Comment ce client vous a trouvé ? <span class="ts" style="font-weight:400">(optionnel)</span></label>
         <select id="m-source-acq">
           <option value="">— Non renseigné —</option>
@@ -6359,9 +6359,9 @@ function openMissionModal(id, prefillDate) {
       } else if(detail){ detail.textContent=''; }
     } else { depZone.style.display='none'; }
   }
-  // Ouvrir le bloc avancé si la mission éditée a déjà des données avancées
-  const hasAdvanced = (m && (m.chargeEstimee || m.sourceAcquisition || m.notes || (m.sessions && m.sessions.length)))
-    || DATA.params.modules?.calendrier;
+  // Ouvrir le bloc avancé si la mission éditée a déjà une source d'acquisition ou des notes
+  // (Sessions n'est plus dans ce bloc — toujours visible séparément si modules.calendrier actif)
+  const hasAdvanced = m && (m.sourceAcquisition || m.notes);
   toggleMissionAdvanced(!!hasAdvanced);
   openModal('modal-mission');
 }
