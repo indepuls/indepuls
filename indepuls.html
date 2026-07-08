@@ -83,6 +83,16 @@ body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--te
 
 /* === TABLE === */
 .tbl-wrap{overflow-x:auto;}
+
+/* Saisie multiple missions : grille desktop (colonnes), cartes empilées en dessous
+   de 640px (voir media query dédiée plus bas) — labels par champ toujours dans le DOM,
+   affichés seulement en mode carte (pas de tableau HTML, inputs peu adaptés au trick
+   data-label::before utilisé pour les tableaux en lecture seule). */
+.bulk-mission-head,.bulk-mission-row{display:grid;grid-template-columns:1.3fr 1.6fr 1fr 1.3fr 1.1fr 1.4fr 32px;gap:8px;align-items:center;}
+.bulk-mission-head{padding:0 0 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);}
+.bulk-mission-row{padding:8px 0;border-bottom:1px solid var(--brd);}
+.bulk-mission-row:last-child{border-bottom:none;}
+.bulk-row-label{display:none;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
 th{text-align:left;padding:9px 10px;border-bottom:2px solid var(--brd);color:var(--tl);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
 td{padding:9px 10px;border-bottom:1px solid var(--brd);vertical-align:middle;}
@@ -538,6 +548,15 @@ html,body{overflow-x:hidden;}
   #archives-retro-zone .tbl-wrap td:last-child:not([data-label]){
     display:flex;justify-content:flex-end;padding-top:8px !important;
   }
+
+  /* Saisie multiple missions : grille → cartes empilées */
+  .bulk-mission-head{display:none;}
+  .bulk-mission-row{
+    grid-template-columns:1fr;gap:8px;
+    border:1px solid var(--brd);border-radius:10px;padding:12px;margin-bottom:10px;
+  }
+  .bulk-row-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--tl);margin-bottom:3px;}
+  .bulk-mission-row .bulk-row-del{display:flex;justify-content:flex-end;}
 }
 
 /* ══════════════════════════════════════════════
@@ -1599,28 +1618,19 @@ html,body{overflow-x:hidden;}
 
 <!-- MODAL SAISIE MULTIPLE MISSIONS -->
 <div class="modal-ov hidden" id="modal-bulk-missions">
-  <div class="modal" style="max-width:900px">
+  <div class="modal" style="max-width:1040px">
     <div class="modal-title" id="bulk-modal-title">Ajouter plusieurs missions</div>
     <div class="ts mb10" style="color:var(--tl)" id="bulk-modal-intro"></div>
-    <div class="tbl-wrap">
-      <table style="table-layout:fixed">
-        <colgroup>
-          <col style="width:18%"><col style="width:23%"><col style="width:13%"><col style="width:15%"><col style="width:13%"><col style="width:14%"><col style="width:4%">
-        </colgroup>
-        <thead>
-          <tr>
-            <th id="bulk-th-client">Client</th>
-            <th>Description <span class="ts" style="font-weight:400">(optionnel)</span></th>
-            <th>Montant (€ HT)</th>
-            <th>Temps passé (h) <span class="info-tip" title="Indispensable pour calculer votre taux horaire réel — sans cette info, la mission compte dans votre CA mais pas dans votre TH.">?</span></th>
-            <th>Date</th>
-            <th>Statut</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="bulk-missions-tbody"></tbody>
-      </table>
+    <div class="bulk-mission-head">
+      <div id="bulk-th-client">Client</div>
+      <div>Description <span class="ts" style="font-weight:400">(optionnel)</span></div>
+      <div>Montant (€ HT)</div>
+      <div>Temps passé <span class="info-tip" title="Indispensable pour calculer votre taux horaire réel — sans cette info, la mission compte dans votre CA mais pas dans votre TH.">?</span></div>
+      <div>Date</div>
+      <div>Statut</div>
+      <div></div>
     </div>
+    <div id="bulk-missions-tbody"></div>
     <button class="btn btn-out btn-sm mt10" onclick="addBulkMissionRow()">+ Ajouter une ligne</button>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-bulk-missions')">Annuler</button>
@@ -6602,7 +6612,7 @@ const BULK_MISSION_PLACEHOLDERS = {
 };
 
 function _newBulkMissionRow() {
-  return { client:'', description:'', montant:'', temps:'', date: today(), statut:'fact' };
+  return { client:'', description:'', montant:'', tempsH:'', tempsMin:'', date: today(), statut:'fact' };
 }
 function openBulkMissionModal() {
   bulkMissionRows = [_newBulkMissionRow(), _newBulkMissionRow(), _newBulkMissionRow()];
@@ -6632,15 +6642,21 @@ function renderBulkMissionRows() {
   ];
   const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
   const ph = BULK_MISSION_PLACEHOLDERS[family] || BULK_MISSION_PLACEHOLDERS.service;
-  tbody.innerHTML = bulkMissionRows.map((r, i) => `<tr>
-    <td><input type="text" id="bulk-client-${i}" value="${esc(r.client)}" placeholder="${esc(ph.client)}" oninput="updateBulkMissionField(${i},'client',this.value)"></td>
-    <td><input type="text" id="bulk-desc-${i}" value="${esc(r.description)}" placeholder="${esc(ph.desc)}" oninput="updateBulkMissionField(${i},'description',this.value)"></td>
-    <td><input type="number" id="bulk-montant-${i}" min="0" step="10" value="${esc(r.montant)}" placeholder="Ex : 1 500" oninput="updateBulkMissionField(${i},'montant',this.value)"></td>
-    <td><input type="number" id="bulk-temps-${i}" min="0" step="0.5" value="${esc(r.temps)}" placeholder="Ex : 8" oninput="updateBulkMissionField(${i},'temps',this.value)"></td>
-    <td><input type="date" id="bulk-date-${i}" value="${esc(r.date)}" oninput="updateBulkMissionField(${i},'date',this.value)"></td>
-    <td><select id="bulk-statut-${i}" onchange="updateBulkMissionField(${i},'statut',this.value)">${statutOpts.map(([v,l])=>`<option value="${v}"${r.statut===v?' selected':''}>${l}</option>`).join('')}</select></td>
-    <td><button class="btn btn-del btn-xs" onclick="removeBulkMissionRow(${i})" title="Supprimer la ligne">🗑</button></td>
-  </tr>`).join('');
+  const clientLbl = tVocab('client') || 'Client';
+  tbody.innerHTML = bulkMissionRows.map((r, i) => `<div class="bulk-mission-row">
+    <div><label class="bulk-row-label">${esc(clientLbl)}</label><input type="text" id="bulk-client-${i}" value="${esc(r.client)}" placeholder="${esc(ph.client)}" oninput="updateBulkMissionField(${i},'client',this.value)"></div>
+    <div><label class="bulk-row-label">Description (optionnel)</label><input type="text" id="bulk-desc-${i}" value="${esc(r.description)}" placeholder="${esc(ph.desc)}" oninput="updateBulkMissionField(${i},'description',this.value)"></div>
+    <div><label class="bulk-row-label">Montant (€ HT)</label><input type="number" id="bulk-montant-${i}" min="0" step="10" value="${esc(r.montant)}" placeholder="Ex : 1 500" oninput="updateBulkMissionField(${i},'montant',this.value)"></div>
+    <div><label class="bulk-row-label">Temps passé</label><div style="display:flex;align-items:center;gap:3px">
+      <input type="number" id="bulk-tempsh-${i}" min="0" step="1" value="${esc(r.tempsH)}" placeholder="0" style="text-align:center;padding:7px 4px" title="Heures" oninput="updateBulkMissionField(${i},'tempsH',this.value)">
+      <span class="ts">h</span>
+      <input type="number" id="bulk-tempsmin-${i}" min="0" max="59" step="5" value="${esc(r.tempsMin)}" placeholder="0" style="text-align:center;padding:7px 4px" title="Minutes" oninput="updateBulkMissionField(${i},'tempsMin',this.value)">
+      <span class="ts">min</span>
+    </div></div>
+    <div><label class="bulk-row-label">Date</label><input type="date" id="bulk-date-${i}" value="${esc(r.date)}" oninput="updateBulkMissionField(${i},'date',this.value)"></div>
+    <div><label class="bulk-row-label">Statut</label><select id="bulk-statut-${i}" onchange="updateBulkMissionField(${i},'statut',this.value)">${statutOpts.map(([v,l])=>`<option value="${v}"${r.statut===v?' selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="bulk-row-del"><button class="btn btn-del btn-xs" onclick="removeBulkMissionRow(${i})" title="Supprimer la ligne">🗑</button></div>
+  </div>`).join('');
 }
 function saveBulkMissions() {
   let added = 0, skipped = 0;
@@ -6655,7 +6671,9 @@ function saveBulkMissions() {
     }
     const date = r.date || today();
     const statut = r.statut || 'fact';
-    const temps = parseFloat(r.temps) || 0;
+    const tempsH = parseInt(r.tempsH) || 0;
+    const tempsMin = parseInt(r.tempsMin) || 0;
+    const ms = (tempsH * 3600 + tempsMin * 60) * 1000;
     addMission({
       client, description: r.description || '', montantDevis: montant,
       montantPrestation: montant, montantVente: 0, statut,
@@ -6669,9 +6687,9 @@ function saveBulkMissions() {
     });
     // addMission() fixe tempsManuel:[] en dur après le spread — impossible de le passer
     // dans l'objet ci-dessus. On l'assigne juste après sur la mission qui vient d'être créée.
-    if (temps > 0) {
+    if (ms > 0) {
       const m = DATA.missions[DATA.missions.length - 1];
-      m.tempsManuel = [{ id: uuid(), date, ms: temps * 3600000 }];
+      m.tempsManuel = [{ id: uuid(), date, ms }];
     }
     added++;
   });
