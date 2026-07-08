@@ -2503,8 +2503,8 @@ function applyVocabUI() {
 // ── PLANNING — SESSIONS ──────────────────────────────────────
 let editingSessions = [];
 
-function initEditingSessions(m) {
-  editingSessions = m ? JSON.parse(JSON.stringify(m.sessions||[])) : [];
+function initEditingSessions(m, prefillDate) {
+  editingSessions = m ? JSON.parse(JSON.stringify(m.sessions||[])) : (prefillDate ? [{debut: prefillDate, fin: prefillDate}] : []);
   const debEl = document.getElementById('m-sess-debut');
   const finEl = document.getElementById('m-sess-fin');
   if (debEl) debEl.value = '';
@@ -2712,7 +2712,7 @@ function renderPlanning() {
     const bars = missions.map(m => {
       const c = colorMap[m.id];
       const mk2 = {bg:c+'22',tx:c,bd:c};
-      return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
+      return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="event.stopPropagation();openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
     }).join('');
     // Barre de charge journalière (visible seulement si sessions ont heures)
     const charge = modeHeures ? getChargeJourLocal(ds) : 0;
@@ -2723,7 +2723,7 @@ function renderPlanning() {
            <div style="height:100%;width:${Math.min(100,chargePct)}%;background:${chargeCol};transition:.3s"></div>
          </div>`
       : '';
-    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);${bgToday}${opWe}">
+    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);cursor:pointer;${bgToday}${opWe}" onclick="openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}">
       <div style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
       ${bars}
       ${chargeBar}
@@ -6245,7 +6245,7 @@ function updateCollectifTemps() {
   const el=document.getElementById('m-collectif-temps');
   if(el) el.textContent = t>0 ? `Total : ${fmt(t,1)} h` : '';
 }
-function openMissionModal(id) {
+function openMissionModal(id, prefillDate) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
   document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
   document.getElementById('mission-edit-id').value=m?m.id:'';
@@ -6329,7 +6329,7 @@ function openMissionModal(id) {
     if(montantInp) montantInp.oninput=(function(orig){return function(){if(orig)orig.call(this);updateMargeProduction();};})(montantInp.oninput||null);
     updateMargeProduction();
   }
-  initEditingSessions(m);
+  initEditingSessions(m, prefillDate);
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
   if(depZone){
