@@ -631,7 +631,10 @@ html,body{overflow-x:hidden;}
           <div class="card-title" id="missions-page-suivi">Suivi des missions</div>
           <div class="card-sub" id="missions-page-sub">Toutes vos missions en cours, passées ou en attente</div>
         </div>
-        <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
+        <div class="flex gap6" style="flex-wrap:wrap">
+          <button class="btn btn-out" onclick="openBulkMissionModal()" id="btn-add-mission-bulk">+ Ajouter plusieurs missions</button>
+          <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
+        </div>
       </div>
       <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
         <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
@@ -1590,6 +1593,35 @@ html,body{overflow-x:hidden;}
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SAISIE MULTIPLE MISSIONS -->
+<div class="modal-ov hidden" id="modal-bulk-missions">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-title">Ajouter plusieurs missions</div>
+    <div class="ts mb10" style="color:var(--tl)">Pratique pour rattraper un historique (ex : démarrer en juillet et rattraper janvier→juin d'un coup). Client et Montant sont les seuls champs obligatoires — les lignes incomplètes sont ignorées à l'enregistrement. Pour les cas particuliers (récurrence, sessions, activité mixte, programme collectif), utilisez "+ Ajouter une mission".</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Description <span class="ts" style="font-weight:400">(optionnel)</span></th>
+            <th>Montant (€ HT)</th>
+            <th>Temps (h) <span class="ts" style="font-weight:400">(optionnel)</span></th>
+            <th>Date</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="bulk-missions-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-out btn-sm mt10" onclick="addBulkMissionRow()">+ Ajouter une ligne</button>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-bulk-missions')">Annuler</button>
+      <button class="btn btn-acc" onclick="saveBulkMissions()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -6548,6 +6580,92 @@ function saveMission() {
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
   saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
+}
+
+// ── SAISIE MULTIPLE DE MISSIONS ───────────────────────────────
+// Assistant de saisie pour rattraper un historique rapidement. Champs volontairement
+// limités (pas de récurrence, sessions, activité mixte détaillée, ni programme collectif) —
+// pour ces cas-là, l'utilisatrice reste sur openMissionModal(). Missions créées = missions
+// normales, éditables ensuite comme n'importe quelle autre.
+let bulkMissionRows = [];
+
+function _newBulkMissionRow() {
+  return { client:'', description:'', montant:'', temps:'', date: today(), statut:'fact' };
+}
+function openBulkMissionModal() {
+  bulkMissionRows = [_newBulkMissionRow(), _newBulkMissionRow(), _newBulkMissionRow()];
+  renderBulkMissionRows();
+  openModal('modal-bulk-missions');
+}
+function updateBulkMissionField(i, key, val) {
+  if (bulkMissionRows[i]) bulkMissionRows[i][key] = val;
+}
+function addBulkMissionRow() {
+  bulkMissionRows.push(_newBulkMissionRow());
+  renderBulkMissionRows();
+}
+function removeBulkMissionRow(i) {
+  bulkMissionRows.splice(i, 1);
+  renderBulkMissionRows();
+}
+function renderBulkMissionRows() {
+  const tbody = document.getElementById('bulk-missions-tbody'); if (!tbody) return;
+  const statutOpts = [
+    ['att', "En attente d'acceptation"], ['cours', 'En cours'],
+    ['ref', 'Refusé / Annulé'], ['fact', 'Facturé / Terminé'],
+  ];
+  tbody.innerHTML = bulkMissionRows.map((r, i) => `<tr>
+    <td><input type="text" id="bulk-client-${i}" value="${esc(r.client)}" placeholder="Ex : Client Dupont" oninput="updateBulkMissionField(${i},'client',this.value)"></td>
+    <td><input type="text" id="bulk-desc-${i}" value="${esc(r.description)}" placeholder="Ex : Refonte site web" oninput="updateBulkMissionField(${i},'description',this.value)"></td>
+    <td><input type="number" id="bulk-montant-${i}" min="0" step="10" value="${esc(r.montant)}" placeholder="Ex : 1 500" oninput="updateBulkMissionField(${i},'montant',this.value)"></td>
+    <td><input type="number" id="bulk-temps-${i}" min="0" step="0.5" value="${esc(r.temps)}" placeholder="Ex : 8" oninput="updateBulkMissionField(${i},'temps',this.value)"></td>
+    <td><input type="date" id="bulk-date-${i}" value="${esc(r.date)}" oninput="updateBulkMissionField(${i},'date',this.value)"></td>
+    <td><select id="bulk-statut-${i}" onchange="updateBulkMissionField(${i},'statut',this.value)">${statutOpts.map(([v,l])=>`<option value="${v}"${r.statut===v?' selected':''}>${l}</option>`).join('')}</select></td>
+    <td><button class="btn btn-del btn-xs" onclick="removeBulkMissionRow(${i})" title="Supprimer la ligne">🗑</button></td>
+  </tr>`).join('');
+}
+function saveBulkMissions() {
+  let added = 0, skipped = 0;
+  bulkMissionRows.forEach((r, i) => {
+    const client = (r.client || '').trim();
+    const montant = parseFloat(r.montant) || 0;
+    if (!client || montant <= 0) {
+      skipped++;
+      if (!client) markInvalid(`bulk-client-${i}`);
+      if (montant <= 0) markInvalid(`bulk-montant-${i}`);
+      return;
+    }
+    const date = r.date || today();
+    const statut = r.statut || 'fact';
+    const temps = parseFloat(r.temps) || 0;
+    addMission({
+      client, description: r.description || '', montantDevis: montant,
+      montantPrestation: montant, montantVente: 0, statut,
+      dateFact: statut === 'fact' ? date : null,
+      categorie: '', notes: '', isRecurring: false,
+      montantMensuel: 0, dateDebutRec: '', nbMoisRec: null,
+      chargeEstimee: null, chargeUnit: 'h_sem', sessions: [],
+      typeMission: 'individuelle', nbParticipants: 0, prixParParticipant: 0,
+      tempsCreation: 0, tempsAnimation: 0, tempsSupport: 0,
+      sourceAcquisition: '', quantite: null, prixAchat: null,
+    });
+    // addMission() fixe tempsManuel:[] en dur après le spread — impossible de le passer
+    // dans l'objet ci-dessus. On l'assigne juste après sur la mission qui vient d'être créée.
+    if (temps > 0) {
+      const m = DATA.missions[DATA.missions.length - 1];
+      m.tempsManuel = [{ id: uuid(), date, ms: temps * 3600000 }];
+    }
+    added++;
+  });
+  if (added === 0) {
+    showToast('⚠️ Aucune ligne valide — Client et Montant sont obligatoires.', 'var(--err)');
+    return;
+  }
+  saveData();
+  closeModal('modal-bulk-missions');
+  showToastIfReal(`✅ ${added} mission${added>1?'s':''} ajoutée${added>1?'s':''}.${skipped>0?` ${skipped} ligne${skipped>1?'s':''} incomplète${skipped>1?'s':''} ignorée${skipped>1?'s':''}.`:''}`);
+  renderMissions();
+  if (currentPage==='dashboard') renderDashboard();
 }
 
 function duplicateMission(id) {
