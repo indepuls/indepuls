@@ -2715,11 +2715,13 @@ function renderPlanning() {
     const isToday = ds === todayStr;
     const isWe = (new Date(year,month-1,d).getDay()+6)%7 >= 5;
     const bgToday = isToday ? 'background:var(--acc);color:#fff;font-weight:700;' : '';
-    const opWe = isWe && !missions.length ? 'opacity:.35;' : '';
+    const opWe = isWe && !missions.length ? 'opacity:.7;' : '';
     const bars = missions.map(m => {
       const c = colorMap[m.id];
-      const mk2 = {bg:c+'22',tx:c,bd:c};
-      return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
+      // Le texte utilise var(--text) (contraste garanti par le thème actif) — la couleur de la
+      // mission ne sert plus qu'au liseré et au fond teinté, jamais au texte (illisible selon
+      // le thème avec certaines couleurs du cycle, ex. jaune/vert clair sur fond sombre).
+      return `<div style="background:${c}22;color:var(--text);border-left:2px solid ${c};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
     }).join('');
     // Barre de charge journalière (visible seulement si sessions ont heures)
     const charge = modeHeures ? getChargeJourLocal(ds) : 0;
