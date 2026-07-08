@@ -2504,10 +2504,10 @@ function applyVocabUI() {
 let editingSessions = [];
 
 function initEditingSessions(m, prefillDate) {
-  editingSessions = m ? JSON.parse(JSON.stringify(m.sessions||[])) : (prefillDate ? [{debut: prefillDate, fin: prefillDate}] : []);
+  editingSessions = m ? JSON.parse(JSON.stringify(m.sessions||[])) : [];
   const debEl = document.getElementById('m-sess-debut');
   const finEl = document.getElementById('m-sess-fin');
-  if (debEl) debEl.value = '';
+  if (debEl) debEl.value = !m && prefillDate ? prefillDate : '';
   if (finEl) finEl.value = '';
   renderEditSessions();
 }
