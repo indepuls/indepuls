@@ -42,6 +42,7 @@ export const getPonctuelsTresorerie   = (mk) => C.getPonctuelsTresorerie(DATA, m
 
 export const getCaBreakdownMois       = (mk) => C.getCaBreakdownMois(DATA, mk);
 export const getCaFromMissions        = (mk) => C.getCaFromMissions(DATA, mk);
+export const getCaRecurrenteADate     = (m, refDate) => C.getCaRecurrenteADate(DATA, m, refDate);
 export const getCaAnnuelBrut          = () => C.getCaAnnuelBrut(DATA);
 export const getCaNetAnnuel           = () => C.getCaNetAnnuel(DATA);
 export const getRevenuNetMois         = (mk) => C.getRevenuNetMois(DATA, mk);

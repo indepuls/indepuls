@@ -1515,6 +1515,13 @@ html,body{overflow-x:hidden;}
       <div class="ts" id="m-mixte-total" style="font-weight:700;color:var(--pri)"></div>
     </div>
     <div id="m-rec-zone" style="display:none">
+      <div class="fgroup" style="margin-bottom:8px">
+        <label class="flabel" style="display:flex;align-items:center;gap:6px;font-weight:400">
+          <input type="checkbox" id="m-sans-fin" onchange="toggleMissionSansFin(this.checked)">
+          Pas de date de fin connue
+          <span class="info-tip" title="Le CA sera comptabilisé chaque mois tant que le statut reste «En cours». Passez la mission en «Terminé» quand elle s'arrête réellement pour stopper le calcul. Ceci ne rend pas la mission visible sur le calendrier Planning : pour ça, ajoutez des sessions séparément.">?</span>
+        </label>
+      </div>
       <div class="frow">
         <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500"></div>
         <div class="fgroup"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
@@ -4930,7 +4937,7 @@ function wRentabClients() {
     if(!m.client) return;
     if(!byC[m.client]) byC[m.client]={h:0,ca:0,n:0};
     byC[m.client].h+=getMissionHeures(m);
-    if(m.isRecurring) byC[m.client].ca+=m.montantDevis||0;
+    if(m.isRecurring) byC[m.client].ca+=getCaRecurrenteADate(m);
     else if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
     byC[m.client].n++;
   });
@@ -5310,6 +5317,8 @@ function wScoreSante(d) {
   DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
     const cl=m.client||'Sans nom';
     let ca=0;
+    // Plafond volontaire à 12 mois : estimation glissante sur 1 an du poids du client pour le
+    // risque de concentration, pas une durée de mission tronquée — ne pas "corriger" en nbMoisRec brut.
     if(m.isRecurring&&m.statut==='cours') ca=(m.montantMensuel||0)*Math.min(m.nbMoisRec||12,12);
     else{const enc=(m.encaissements||[]).reduce((s,e)=>s+(e.montant||0),0);ca=enc>0?enc:(m.statut==='fact'&&m.montantDevis>0?m.montantDevis:0);}
     if(ca>0) clientCA[cl]=(clientCA[cl]||0)+ca;
@@ -6264,7 +6273,12 @@ function openMissionModal(id, prefillDate) {
     document.getElementById('m-montant-mens').value=m.montantMensuel||'';
     document.getElementById('m-nb-mois-rec').value=m.nbMoisRec||'';
     document.getElementById('m-debut-rec').value=m.dateDebutRec||'';
+    const sansFin=!m.nbMoisRec;
+    document.getElementById('m-sans-fin').checked=sansFin;
+    toggleMissionSansFin(sansFin);
   } else {
+    document.getElementById('m-sans-fin').checked=false;
+    toggleMissionSansFin(false);
     const mixte=isActiviteMixte();
     document.getElementById('m-montant-zone').style.display=mixte?'none':'';
     document.getElementById('m-montant-mixte-zone').style.display=mixte?'':'none';
@@ -6384,6 +6398,11 @@ function toggleRecurrenceFields(val) {
   document.getElementById('m-rec-zone').style.display=isRec?'':'none';
   if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
 }
+function toggleMissionSansFin(checked) {
+  const nbEl=document.getElementById('m-nb-mois-rec');
+  nbEl.disabled=checked;
+  if(checked) nbEl.value='';
+}
 function updateMontantMixteTotal() {
   const p=parseFloat(document.getElementById('m-presta').value)||0;
   const v=parseFloat(document.getElementById('m-vente').value)||0;
@@ -6400,7 +6419,7 @@ function saveMission() {
   let montantPrestation=0, montantVente=0;
   if(isRec){
     montantMensuel=parseFloat(document.getElementById('m-montant-mens').value)||0;
-    nbMoisRec=parseInt(document.getElementById('m-nb-mois-rec').value)||null;
+    nbMoisRec=document.getElementById('m-sans-fin').checked?null:(parseInt(document.getElementById('m-nb-mois-rec').value)||null);
     dateDebutRec=document.getElementById('m-debut-rec').value;
     montantDevis=montantMensuel*(nbMoisRec||0);
     montantPrestation=montantDevis; montantVente=0;
@@ -6583,7 +6602,7 @@ function rentabClientsBody() {
     if(!m.client) return;
     if(!byC[m.client]) byC[m.client]={h:0,ca:0,n:0};
     byC[m.client].h+=getMissionHeures(m);
-    if(m.isRecurring) byC[m.client].ca+=m.montantDevis||0;
+    if(m.isRecurring) byC[m.client].ca+=getCaRecurrenteADate(m);
     else if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
     byC[m.client].n++;
   });
@@ -9388,6 +9407,7 @@ document.addEventListener('keydown', function(e) {
   function sync() { Mode.setData(DATA); }
 
   window.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
+  window.getCaRecurrenteADate   = (m, refDate) => { sync(); return Mode.getCaRecurrenteADate(m, refDate); };
   window.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };

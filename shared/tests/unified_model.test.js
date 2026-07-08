@@ -184,6 +184,44 @@ async function main() {
     test('montantPrestation laissé à 0 pour une récurrente', 0, fixed.missions[0].montantPrestation);
   }
 
+  section('Récurrente sans date de fin connue (nbMoisRec = null) — reste comptée indéfiniment');
+  {
+    const D = baseData({ params: { ...baseData().params, activiteMixte: true } });
+    D.missions = [{
+      id: 'rec-ouvert', isManagement: false, isRecurring: true,
+      statut: 'cours', dateDebutRec: '2024-01', nbMoisRec: null, montantMensuel: 500,
+      montantDevis: 0, montantPrestation: 0, montantVente: 0,
+      encaissements: [],
+    }];
+    test('getCaFromMissions 2 ans après le début = montantMensuel (pas 0)', 500, C.getCaFromMissions(D, '2026-06'));
+    test('getCaPrestaMois 2 ans après le début = montantMensuel (pas 0)', 500, C.getCaPrestaMois(D, '2026-06'));
+
+    // Cumul réel depuis dateDebutRec jusqu'à refDate — corrige le bug "CA à 0€" de wRentabClients,
+    // qui utilisait montantDevis (figé à montantMensuel × nbMoisRec, donc 0 quand nbMoisRec est null).
+    test('getCaRecurrenteADate au tout premier mois = 500 (pas 0)', 500, C.getCaRecurrenteADate(D, D.missions[0], new Date('2024-01-15T00:00:00')));
+    test('getCaRecurrenteADate cumul janv. 2024 → juin 2026 (30 mois) = 15000', 15000, C.getCaRecurrenteADate(D, D.missions[0], new Date('2026-06-15T00:00:00')));
+  }
+
+  section('getCaRecurrenteADate — plafonnée par nbMoisRec quand la durée est connue');
+  {
+    const D = baseData({ params: { ...baseData().params, activiteMixte: true } });
+    D.missions = [{
+      id: 'rec-fini', isManagement: false, isRecurring: true,
+      statut: 'fact', dateDebutRec: '2026-01', nbMoisRec: 3, montantMensuel: 200,
+      montantDevis: 600, montantPrestation: 600, montantVente: 0,
+      encaissements: [],
+    }];
+    test('cumul plafonné à 3 mois (600) même bien après la fin', 600, C.getCaRecurrenteADate(D, D.missions[0], new Date('2026-08-01T00:00:00')));
+  }
+
+  section('getCaRecurrenteADate — cas d\'exclusion (0€)');
+  {
+    const D = baseData();
+    const nonDemarree = { id: 'ns', isManagement: false, isRecurring: true, statut: 'cours', dateDebutRec: '2026-09', nbMoisRec: null, montantMensuel: 500 };
+    test('avant dateDebutRec → 0', 0, C.getCaRecurrenteADate(D, nonDemarree, new Date('2026-03-01T00:00:00')));
+    test('mission non récurrente → 0', 0, C.getCaRecurrenteADate(D, mission({ isRecurring: false }), new Date()));
+  }
+
   console.log(`\n══════════════════════════════════════════════════`);
   console.log(`  ${PASS} PASS  |  ${FAIL} FAIL`);
   console.log(`══════════════════════════════════════════════════`);

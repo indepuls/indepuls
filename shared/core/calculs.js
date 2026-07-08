@@ -215,6 +215,20 @@ function monthKeyOf(dateStr) {
   return dateStr ? dateStr.slice(0, 7) : null;
 }
 
+// CA cumulé réel d'une mission récurrente depuis dateDebutRec jusqu'à refDate (aujourd'hui par
+// défaut), ou jusqu'à dateDebutRec+nbMoisRec si la durée est connue et déjà passée. Même logique
+// diff/mois que getCaFromMissions, mais cumulée sur plusieurs mois au lieu d'un seul mk.
+// Utile pour les récurrentes sans date de fin connue (nbMoisRec null), où montantDevis (figé à
+// la création) ne reflète pas le CA réellement encaissé à date.
+export function getCaRecurrenteADate(DATA, m, refDate = new Date()) {
+  if (!m.isRecurring || !m.dateDebutRec || m.statut === 'ref' || m.statut === 'att') return 0;
+  const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+  const diff = (refDate.getFullYear() - sy) * 12 + (refDate.getMonth() + 1 - sm);
+  if (diff < 0) return 0;
+  const moisComptes = Math.min(diff + 1, m.nbMoisRec || 9999);
+  return moisComptes * (m.montantMensuel || 0);
+}
+
 // Ventile le CA prestation d'un mois, missions récurrentes incluses (toujours 100% presta)
 // et missions ponctuelles ventilées via getMissionVenteRatio en cas d'activité mixte.
 export function getCaPrestaMois(DATA, mk) {
