@@ -183,59 +183,134 @@ export function scorerRemplissage(pct) {
 //
 // Mode 'aucun' ou modePlanning absent → details: null, score neutre 12.
 
+// Résultat commun aux modes 'estime' et 'additif' — même unité (h/sem), même barème,
+// mêmes textes. Seul le calcul de `charge` en amont diffère entre les deux modes.
+function resultatHSemaine(methode, cap, charge) {
+  const fmt1 = v => Math.round(v * 10) / 10;
+  const pct   = cap > 0 ? Math.round(charge / cap * 100) : 0;
+  const libre = Math.max(0, cap - charge);
+
+  if (cap === 0 || charge === 0) {
+    return {
+      score: 12, valeur: '—', sousTitre: 'Aucune charge renseignée',
+      diagnostic: '○ Renseignez vos missions pour activer cet indicateur.',
+      conseil: '', methode,
+      details: { capacite: cap, utilise: charge, libre, taux: pct, unite: 'h/sem' },
+    };
+  }
+
+  const score = scorerRemplissage(pct);
+  let diagnostic, conseil;
+  if (pct > 100) {
+    diagnostic = `🔴 Votre capacité facturable est dépassée (${pct} %). Risque de surcharge ou d'épuisement à moyen terme.`;
+    conseil    = "Envisagez de déléguer, d'augmenter vos tarifs ou de refuser les missions les moins rentables.";
+  } else if (pct >= 90) {
+    diagnostic = `🟠 Votre planning est presque plein (${pct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
+    conseil    = 'Évitez d\'accepter de nouvelles missions sans ajuster votre organisation ou vos tarifs.';
+  } else if (pct >= 75) {
+    diagnostic = '🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
+    conseil    = `${fmt1(libre)} h disponibles par semaine — idéal pour le pilotage et les opportunités ponctuelles.`;
+  } else if (pct >= 40) {
+    diagnostic = "🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
+    conseil    = `${fmt1(libre)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;
+  } else {
+    diagnostic = `🔴 Votre capacité est largement sous-utilisée (${pct} %). Le principal enjeu est actuellement de développer votre activité.`;
+    conseil    = "Priorité à la prospection. L'objectif de revenu est difficile à atteindre dans ces conditions.";
+  }
+
+  return {
+    score, methode,
+    valeur: Math.min(pct, 999) + ' %',
+    sousTitre: `${fmt1(libre)} h libres / sem`,
+    diagnostic, conseil,
+    details: { capacite: cap, utilise: charge, libre, taux: pct, unite: 'h/sem' },
+  };
+}
+
+// Heures de sessions d'UNE mission touchant le mois [mFirst, mLast] (mêmes clips que
+// getTauxRemplissageMois). Repli jours×heuresParJour par session sans `heures` renseigné
+// (rétrocompat) — aucune session avec une date réelle ne doit contribuer pour 0.
+function _sessionsHeuresMois(DATA, m, mFirst, mLast) {
+  const heuresParJour = DATA.params.heuresParJour || 7;
+  let total = 0;
+  (m.sessions || []).forEach(s => {
+    const fin = s.fin || s.debut;
+    if (s.debut > mLast || fin < mFirst) return; // ne touche pas la période
+    const clipDebut = s.debut < mFirst ? mFirst : s.debut;
+    const clipFin   = fin    > mLast  ? mLast  : fin;
+    const joursClip = joursOuvrésSemaine(clipDebut, clipFin);
+    if (s.heures > 0) {
+      const joursTotal = joursOuvrésSemaine(s.debut, fin);
+      total += (s.heures / joursTotal) * joursClip;
+    } else {
+      total += joursClip * heuresParJour;
+    }
+  });
+  return total;
+}
+
+// Agrégation additive par mission (modules.calendrier ET modules.estimation actifs) —
+// voir ARCHITECTURE_PRODUIT.md § "Agrégation additive par mission". Chaque mission active
+// contribue via son champ principal selon isRecurring, avec repli symétrique si ce champ
+// est vide mais que l'autre est renseigné. Retourne le total en h/semaine, mois courant.
+function _getChargeAdditiveMois(DATA) {
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const pad = n => String(n).padStart(2, '0');
+  const mFirst = `${year}-${pad(month)}-01`;
+  const mLast  = `${year}-${pad(month)}-${pad(daysInMonth)}`;
+  const joursParSem   = DATA.params.joursParSemaine || 4; // aligné sur getCapaciteHSem
+  const ouvrablesMois = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+  const semainesMois  = ouvrablesMois / joursParSem; // ≈ jours du mois / 7, indépendant de joursParSem
+
+  let total = 0;
+  DATA.missions.forEach(m => {
+    if (m.isManagement) return;
+    const estActive = m.statut === 'cours' || _isRecurringStillActive(m);
+    const hasSessionsPeriode = (m.sessions || []).some(s => s.debut <= mLast && (s.fin || s.debut) >= mFirst);
+
+    if (m.isRecurring) {
+      // Principal : charge estimée. Repli : sessions de cette mission sur la période.
+      if (estActive && m.chargeEstimee > 0) {
+        total += getMissionChargeHSem(DATA, m);
+      } else if (hasSessionsPeriode) {
+        total += _sessionsHeuresMois(DATA, m, mFirst, mLast) / semainesMois;
+      }
+    } else {
+      // Principal : sessions sur la période. Repli : charge estimée.
+      if (hasSessionsPeriode) {
+        total += _sessionsHeuresMois(DATA, m, mFirst, mLast) / semainesMois;
+      } else if (estActive && m.chargeEstimee > 0) {
+        total += getMissionChargeHSem(DATA, m);
+      }
+    }
+  });
+  return Math.round(total * 10) / 10;
+}
+
 export function getPilierRemplissage(DATA) {
   const mods = DATA.params.modules || {};
   // Rétrocompat : ancienne clé planning
   const legacyPlanning = DATA.params.modePlanning || mods.planning;
   const modeCalendrier = mods.calendrier ?? (legacyPlanning === 'calendrier');
   const modeEstimation = mods.estimation ?? (legacyPlanning === 'estime' || legacyPlanning == null);
-  const mode = modeCalendrier ? 'calendrier' : modeEstimation ? 'estime' : 'aucun';
-  const fmt1 = v => Math.round(v * 10) / 10; // 1 décimale
+  const mode = (modeCalendrier && modeEstimation) ? 'additif' : modeCalendrier ? 'calendrier' : modeEstimation ? 'estime' : 'aucun';
+
+  if (mode === 'additif') {
+    const cap    = getCapaciteHSem(DATA);
+    const charge = _getChargeAdditiveMois(DATA);
+    return resultatHSemaine('additif', cap, charge);
+  }
 
   if (mode === 'estime') {
     const cap    = getCapaciteHSem(DATA);
     const charge = getChargeEstimeeTotal(DATA);
-    const pct    = cap > 0 ? Math.round(charge / cap * 100) : 0;
-    const libre  = Math.max(0, cap - charge);
-
-    if (cap === 0 || charge === 0) {
-      return {
-        score: 12, valeur: '—', sousTitre: 'Aucune charge renseignée',
-        diagnostic: '○ Renseignez vos missions pour activer cet indicateur.',
-        conseil: '', methode: 'estime',
-        details: { capacite: cap, utilise: charge, libre, taux: pct, unite: 'h/sem' },
-      };
-    }
-
-    const score = scorerRemplissage(pct);
-    let diagnostic, conseil;
-    if (pct > 100) {
-      diagnostic = `🔴 Votre capacité facturable est dépassée (${pct} %). Risque de surcharge ou d'épuisement à moyen terme.`;
-      conseil    = "Envisagez de déléguer, d'augmenter vos tarifs ou de refuser les missions les moins rentables.";
-    } else if (pct >= 90) {
-      diagnostic = `🟠 Votre planning est presque plein (${pct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
-      conseil    = 'Évitez d\'accepter de nouvelles missions sans ajuster votre organisation ou vos tarifs.';
-    } else if (pct >= 75) {
-      diagnostic = '🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
-      conseil    = `${fmt1(libre)} h disponibles par semaine — idéal pour le pilotage et les opportunités ponctuelles.`;
-    } else if (pct >= 40) {
-      diagnostic = "🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
-      conseil    = `${fmt1(libre)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;
-    } else {
-      diagnostic = `🔴 Votre capacité est largement sous-utilisée (${pct} %). Le principal enjeu est actuellement de développer votre activité.`;
-      conseil    = "Priorité à la prospection. L'objectif de revenu est difficile à atteindre dans ces conditions.";
-    }
-
-    return {
-      score, methode: 'estime',
-      valeur: Math.min(pct, 999) + ' %',
-      sousTitre: `${fmt1(libre)} h libres / sem`,
-      diagnostic, conseil,
-      details: { capacite: cap, utilise: charge, libre, taux: pct, unite: 'h/sem' },
-    };
+    return resultatHSemaine('estime', cap, charge);
   }
 
   if (mode === 'calendrier') {
+    const fmt1 = v => Math.round(v * 10) / 10; // 1 décimale
     const year  = DATA.currentYear;
     const now   = new Date();
     const curMk = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;

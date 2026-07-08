@@ -272,6 +272,104 @@ function makeData(overrides = {}) {
   assert('calendrier details.libre >= 0',   rfull.details.libre    >= 0);
 }
 
+// ── getPilierRemplissage — mode 'additif' (calendrier ET estimation actifs) ──
+// Voir ARCHITECTURE_PRODUIT.md § "Agrégation additive par mission".
+{
+  const now  = new Date();
+  const y = now.getFullYear(), mo = now.getMonth() + 1;
+  const curMk = `${y}-${String(mo).padStart(2, '0')}`;
+  const daysInMonth = new Date(y, mo, 0).getDate();
+  const pad = n => String(n).padStart(2, '0');
+  const mFirst = `${curMk}-01`, mLast = `${curMk}-${pad(daysInMonth)}`;
+  const joursParSem   = 4; // PARAMS_BASE.joursParSemaine
+  const ouvrablesMois = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+  const semainesMois  = ouvrablesMois / joursParSem; // conversion h/mois → h/sem (spec)
+  const round1 = v => Math.round(v * 10) / 10;
+  const closeEnough = (a, b, eps = 0.05) => Math.abs(a - b) < eps;
+  const base = { params: { ...PARAMS_BASE, modules: { calendrier: true, estimation: true } } };
+  // Session couvrant tout le mois : le ratio (heures/joursTotal)×joursClip se simplifie à
+  // `heures` exactement (aucun clip), ce qui donne un total en h/mois prévisible.
+  const fullMonthSession = heures => [{ debut: mFirst, fin: mLast, heures }];
+
+  // 1. Récurrente avec chargeEstimee, sans session → contribue via chargeEstimee
+  {
+    const m = { isManagement: false, isRecurring: true, statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: [] };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    assertEq('additif · récurrente chargeEstimee seule → methode', r.methode, 'additif');
+    assertEq('additif · récurrente chargeEstimee seule → utilise=14', r.details.utilise, 14);
+  }
+
+  // 2. Récurrente sans chargeEstimee, avec sessions → repli sur les sessions
+  {
+    const m = { isManagement: false, isRecurring: true, statut: 'cours', chargeEstimee: 0, sessions: fullMonthSession(40) };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    const expected = round1(40 / semainesMois);
+    assert('additif · récurrente sessions seules (repli) → utilise ≈ attendu',
+      closeEnough(r.details.utilise, expected));
+  }
+
+  // 3. Récurrente avec les deux renseignés → seule chargeEstimee compte, sessions ignorées
+  {
+    const m = { isManagement: false, isRecurring: true, statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: fullMonthSession(40) };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    assertEq('additif · récurrente chargeEstimee + sessions → utilise=14 (sessions ignorées)', r.details.utilise, 14);
+  }
+
+  // 4. Ponctuelle avec sessions, sans chargeEstimee → contribue via sessions
+  {
+    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0, sessions: fullMonthSession(40) };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    const expected = round1(40 / semainesMois);
+    assert('additif · ponctuelle sessions seules → utilise ≈ attendu',
+      closeEnough(r.details.utilise, expected));
+  }
+
+  // 5. Ponctuelle sans session, avec chargeEstimee → repli sur chargeEstimee
+  {
+    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 10, chargeUnit: 'h_sem', sessions: [] };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    assertEq('additif · ponctuelle chargeEstimee seule (repli) → utilise=10', r.details.utilise, 10);
+  }
+
+  // 6. Ponctuelle avec les deux renseignés → seules les sessions comptent
+  {
+    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 10, chargeUnit: 'h_sem', sessions: fullMonthSession(40) };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    const expected = round1(40 / semainesMois);
+    assert('additif · ponctuelle sessions + chargeEstimee → utilise = sessions (chargeEstimee ignorée)',
+      closeEnough(r.details.utilise, expected));
+  }
+
+  // 7. Aucune donnée exploitable → ne contribue pas
+  {
+    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0, sessions: [] };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    assertEq('additif · aucune donnée → utilise=0', r.details.utilise, 0);
+  }
+
+  // 8. Somme de plusieurs missions de types différents
+  {
+    const mRec  = { isManagement: false, isRecurring: true,  statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: [] };
+    const mPonc = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0,  sessions: fullMonthSession(40) };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [mRec, mPonc] }));
+    const expected = round1(14 + 40 / semainesMois);
+    assert('additif · somme récurrente + ponctuelle ≈ attendu', closeEnough(r.details.utilise, expected));
+    assertEq('additif · unite h/sem', r.details.unite, 'h/sem');
+  }
+
+  // 9. Session sans `heures` renseigné (rétrocompat jours) → repli jours×heuresParJour, jamais 0
+  {
+    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0, sessions: [{ debut: mFirst, fin: mFirst }] };
+    const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
+    assert('additif · session sans heures → contribue quand même (pas 0)', r.details.utilise > 0);
+  }
+}
+
+// ── Non-régression — un seul module actif (comportement inchangé) ────────────
+// Les sections 'estime' et 'calendrier' ci-dessus couvrent déjà ce cas : la fonction
+// resultatHSemaine() partagée reproduit à l'identique le calcul et les textes de la
+// branche 'estime' d'origine, et la branche 'calendrier' n'a subi aucune modification.
+
 // ── Rapport ───────────────────────────────────────────────────
 console.log('\n' + '═'.repeat(70));
 console.log('  TESTS — shared/core/planning.js');

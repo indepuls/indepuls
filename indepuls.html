@@ -1535,7 +1535,8 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="frow" id="m-charge-zone">
       <div class="fgroup">
-        <label class="flabel">Charge / semaine <span class="info-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
+        <label class="flabel">Charge / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
+        <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
         <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5">
       </div>
       <div class="fgroup">
@@ -1548,7 +1549,8 @@ html,body{overflow-x:hidden;}
       </div>
     </div>
     <div id="m-planning-zone">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
+      <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
       <div id="m-sessions-list" style="margin-bottom:8px"></div>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
@@ -4998,14 +5000,21 @@ function wMissionsActives() {
 function wCapacite() {
   const p=DATA.params;
   const pilRemp=getPilierRemplissage();
+  const unite=pilRemp.details?.unite||'h/sem';
   const cap=pilRemp.details?.capacite??0, charge=pilRemp.details?.utilise??0, pct=pilRemp.details?.taux??0;
   const cl=pct>100?'bad':pct>80?'warn':'good';
   const clC=pct>100?'var(--err)':pct>80?'var(--warn)':'var(--ok)';
   const emoji=pct>100?'🔴':pct>80?'🟠':'🟢';
   const msg=pct>100?'Surchargé·e':pct>80?'Presque au max':pct>50?'Bien chargé·e':'Disponible';
   const restH=Math.max(0,cap-charge);
-  const restJ=fmt(restH/(p.heuresParJour||7),1);
-  const restLabel=`${fmt(restH,1)} h / semaine libres (≈ ${restJ} j)`;
+  // Libellés adaptés à l'unité réelle retournée par getPilierRemplissage (h/sem en mode
+  // estime/additif, h ou j en mode calendrier pur) — ne pas supposer h/sem partout.
+  const chargeLabel = unite==='h/sem' ? `${fmt(charge,1)} h/sem sur ${fmt(cap,0)} h/sem (${p.joursParSemaine}j × ${p.heuresParJour}h)`
+    : unite==='h' ? `${fmt(charge,1)} h sur ${fmt(cap,0)} h ce mois`
+    : `${fmt(charge,1)} j sur ${fmt(cap,0)} j ouvrables ce mois`;
+  const restLabel = unite==='h/sem' ? `${fmt(restH,1)} h / semaine libres (≈ ${fmt(restH/(p.heuresParJour||7),1)} j)`
+    : unite==='h' ? `${fmt(restH,1)} h libres ce mois`
+    : `${fmt(restH,1)} j libres ce mois`;
   // Missions actives avec charge renseignée
   const actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||isRecurringStillActive(m))&&m.chargeEstimee>0);
   const totalH=actives.reduce((s,m)=>s+getMissionChargeHSem(m),0);
@@ -5033,13 +5042,23 @@ function wCapacite() {
       </div>`;
     }).join('');
   }
+  // Tooltip et note de répartition adaptés au mode réel — en additif, la charge peut inclure
+  // des missions ponctuelles via leurs sessions calendrier, pas seulement la charge estimée.
+  const tipMethode = pilRemp.methode==='additif'
+    ? 'Combine la charge estimée (missions récurrentes) et les sessions calendrier (missions ponctuelles) — jamais les deux à la fois pour une même mission.'
+    : pilRemp.methode==='calendrier'
+      ? 'Se base sur vos sessions calendrier (page Planning).'
+      : 'Ajoutez une « Charge estimée » sur chaque mission en cours pour activer ce widget.';
+  const repartNote = pilRemp.methode!=='estime'
+    ? `<div class="ts mb8" style="color:var(--tl);font-style:italic">Missions avec charge estimée renseignée uniquement — les missions ponctuelles planifiées via le calendrier ne sont pas listées ci-dessous.</div>`
+    : '';
   return `<div class="card">
-    <div class="card-header"><div class="card-title">Capacité actuelle <span class="info-tip" title="Votre plafond est calculé depuis Paramètres › Rythme de travail (heures/jour × jours/semaine). Ajoutez une « Charge estimée » sur chaque mission en cours pour activer ce widget. Il répond à : puis-je accepter un nouveau client ?">?</span></div></div>
+    <div class="card-header"><div class="card-title">Capacité actuelle <span class="info-tip" title="Votre plafond est calculé depuis Paramètres › Rythme de travail (heures/jour × jours/semaine). ${tipMethode} Il répond à : puis-je accepter un nouveau client ?">?</span></div></div>
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
       <div style="font-size:30px;line-height:1">${emoji}</div>
       <div>
         <div style="font-size:28px;font-weight:700;color:${clC};line-height:1">${Math.min(pct,999)} %</div>
-        <div class="ts mt2" style="color:var(--tl)">${msg} — ${fmt(charge,1)} h/sem sur ${fmt(cap,0)} h/sem (${p.joursParSemaine}j × ${p.heuresParJour}h)</div>
+        <div class="ts mt2" style="color:var(--tl)">${msg} — ${chargeLabel}</div>
       </div>
     </div>
     <div class="prog-bar mb10" style="height:8px;border-radius:5px">
@@ -5050,6 +5069,7 @@ function wCapacite() {
     ${actives.length>0?`
     <div class="divider mt10 mb10"></div>
     <div class="ts mb8" style="font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)">Répartition par client</div>
+    ${repartNote}
     ${clientRows}
     `:`<div class="ts mt10" style="color:var(--tl)">Votre plafond : <strong>${fmt(cap,0)} h/sem</strong> (${p.joursParSemaine}j × ${p.heuresParJour}h)<br><span style="font-style:italic">Ajoutez une charge estimée sur vos ${tVocab('items').toLowerCase()} en cours pour voir la répartition.</span> <span style="cursor:pointer;color:var(--acc)" onclick="navigate('missions')">→ ${tVocab('pageTitle')}</span></div>`}
   </div>`;
@@ -5376,13 +5396,28 @@ function wScoreSante(d) {
   ];
   if(pctObj!==null) rowsRent.push({lbl:'Objectif de revenu net mensuel atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
-  // Remplissage (OBM — capacité hebdomadaire)
-  const rowsRemp=cap>0?[
-    {lbl:'Charge estimée',    val:fmt(charge,1)+' h/sem',              c:sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)'},
-    {lbl:'Capacité maximale', val:fmt(cap,0)+' h/sem',                 c:'var(--tl)'},
-    {lbl:'Heures libres',     val:fmt(Math.max(0,cap-charge),1)+' h/sem', c:capPct<=90?'var(--ok)':capPct<=100?'var(--warn)':'var(--err)'},
-    {lbl:'Taux d\'occupation',val:Math.min(capPct,999)+' %',           c:sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)'},
-  ]:[{lbl:'Capacité',val:'Non configurée',c:'var(--tl)'}];
+  // Remplissage — libellés adaptés à l'unité réelle retournée par getPilierRemplissage
+  // (h/sem en estime/additif, h ou j en calendrier pur) : ne pas supposer h/sem partout.
+  const rempUnite=pilRemp.details?.unite||'h/sem';
+  const cRemp=v=>sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)';
+  const cLibre=capPct<=90?'var(--ok)':capPct<=100?'var(--warn)':'var(--err)';
+  const rowsRemp=cap<=0?[{lbl:'Capacité',val:'Non configurée',c:'var(--tl)'}]
+    :rempUnite==='j'?[
+      {lbl:'Jours planifiés',    val:fmt(charge,0)+' j',              c:cRemp()},
+      {lbl:'Jours ouvrables',    val:fmt(cap,0)+' j',                 c:'var(--tl)'},
+      {lbl:'Jours libres',       val:fmt(Math.max(0,cap-charge),0)+' j', c:cLibre},
+      {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
+    ]:rempUnite==='h'?[
+      {lbl:'Heures planifiées',  val:fmt(charge,1)+' h',              c:cRemp()},
+      {lbl:'Capacité du mois',   val:fmt(cap,0)+' h',                 c:'var(--tl)'},
+      {lbl:'Heures libres',      val:fmt(Math.max(0,cap-charge),1)+' h', c:cLibre},
+      {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
+    ]:[
+      {lbl:pilRemp.methode==='additif'?'Charge combinée (estimée + sessions)':'Charge estimée', val:fmt(charge,1)+' h/sem', c:cRemp()},
+      {lbl:'Capacité maximale',  val:fmt(cap,0)+' h/sem',             c:'var(--tl)'},
+      {lbl:'Heures libres',      val:fmt(Math.max(0,cap-charge),1)+' h/sem', c:cLibre},
+      {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
+    ];
 
   // Trésorerie
   const rowsTreso=[
@@ -5410,7 +5445,12 @@ function wScoreSante(d) {
     :_rentIsChantier
       ?`<strong>Données ·</strong> TJM réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
       :`<strong>Données ·</strong> TH réel = CA brut annuel ÷ heures travaillées<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
-  const methRemp=`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br><strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
+  const methRempBareme=`<strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
+  const methRemp=pilRemp.methode==='calendrier'
+    ?`<strong>Données ·</strong> Sessions planifiées sur le calendrier vs jours ouvrables (ou capacité horaire) du mois<br><strong>Calcul ·</strong> Temps occupé ÷ capacité du mois × 100<br>${methRempBareme}`
+    :pilRemp.methode==='additif'
+      ?`<strong>Données ·</strong> Somme mission par mission : charge estimée pour les missions récurrentes, sessions calendrier pour les missions ponctuelles (repli sur l'autre champ si le principal est vide) — vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures combinées ÷ capacité max × 100<br>${methRempBareme}`
+      :`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br>${methRempBareme}`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
   const methComm=`<strong>Données ·</strong> Missions actives = ponctuelles en cours/en attente + récurrentes encore dans leur période<br><strong>Barème ·</strong> ≥ 3 actives OU ≥ 2 actives + 1 devis → 25/25 &nbsp;·&nbsp; 2 actives OU 1 active + 1 devis → 18/25<br>&nbsp;&nbsp;1 active sans devis → 10/25 &nbsp;·&nbsp; 0 active → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin de la récurrente active la plus longue`;
 
@@ -6399,6 +6439,49 @@ function toggleRecurrenceFields(val) {
   document.getElementById('m-montant-mixte-zone').style.display=(!isRec&&mixte)?'':'none';
   document.getElementById('m-rec-zone').style.display=isRec?'':'none';
   if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
+  updateModaleMissionCopy(isRec);
+}
+// Copy contextuelle Charge estimée / Sessions — uniquement quand modules.calendrier ET
+// modules.estimation sont actifs simultanément (sinon un seul des deux champs existe dans
+// le formulaire, pas d'ambiguïté possible sur lequel remplir). Voir ARCHITECTURE_PRODUIT.md
+// § "Copy contextuelle — champs Charge estimée / Sessions".
+function updateModaleMissionCopy(isRec) {
+  const chargeCopy=document.getElementById('m-charge-copy');
+  const chargeTip=document.getElementById('m-charge-tip');
+  const sessCopy=document.getElementById('m-sessions-copy');
+  const sessLabel=document.getElementById('modal-sessions-label');
+  const sessTip=document.getElementById('m-sessions-tip');
+  if(!chargeCopy||!sessCopy||!sessLabel) return;
+
+  const defaultChargeTip="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.";
+  const defaultSessTip="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.";
+  const defaultSessLabel=tVocab('sessions')||'Sessions';
+  const hybride=!!(DATA.params.modules?.calendrier&&DATA.params.modules?.estimation);
+
+  if(!hybride){
+    chargeCopy.style.display='none'; chargeCopy.textContent='';
+    sessCopy.style.display='none'; sessCopy.textContent='';
+    if(chargeTip) chargeTip.title=defaultChargeTip;
+    if(sessTip) sessTip.title=defaultSessTip;
+    sessLabel.textContent=defaultSessLabel;
+    return;
+  }
+
+  if(isRec){
+    chargeCopy.style.display='';
+    chargeCopy.textContent="C'est cette estimation qui compte dans votre taux de remplissage — un engagement récurrent n'a pas de date fixe.";
+    if(chargeTip) chargeTip.title="Pour une mission récurrente, c'est la charge estimée ci-dessus qui compte dans votre taux de remplissage. Si vous ne la renseignez pas mais que vous avez ajouté des sessions, ce sont elles qui prennent le relais. Si les deux sont renseignés, les sessions restent purement visuelles et ne s'additionnent pas à l'estimation.";
+    sessCopy.style.display='none'; sessCopy.textContent='';
+    sessLabel.textContent='Visualiser des rendez-vous sur le calendrier (optionnel)';
+    if(sessTip) sessTip.title=defaultSessTip;
+  } else {
+    chargeCopy.style.display='none'; chargeCopy.textContent='';
+    if(chargeTip) chargeTip.title=defaultChargeTip;
+    sessCopy.style.display='';
+    sessCopy.textContent='Quand cette mission a-t-elle lieu ?';
+    sessLabel.textContent=defaultSessLabel;
+    if(sessTip) sessTip.title="Ajoutez une ou plusieurs dates : c'est ce qui compte dans votre taux de remplissage pour une mission ponctuelle — la donnée la plus précise. Si vous ne connaissez pas encore les dates, une charge estimée peut servir de repère temporaire ; elle sera remplacée dès qu'une session est ajoutée.";
+  }
 }
 function toggleMissionSansFin(checked) {
   const nbEl=document.getElementById('m-nb-mois-rec');
