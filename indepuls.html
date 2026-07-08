@@ -2712,7 +2712,7 @@ function renderPlanning() {
     const bars = missions.map(m => {
       const c = colorMap[m.id];
       const mk2 = {bg:c+'22',tx:c,bd:c};
-      return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="event.stopPropagation();openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
+      return `<div style="background:${mk2.bg};color:${mk2.tx};border-left:2px solid ${mk2.bd};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
     }).join('');
     // Barre de charge journalière (visible seulement si sessions ont heures)
     const charge = modeHeures ? getChargeJourLocal(ds) : 0;
@@ -2723,10 +2723,11 @@ function renderPlanning() {
            <div style="height:100%;width:${Math.min(100,chargePct)}%;background:${chargeCol};transition:.3s"></div>
          </div>`
       : '';
-    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);cursor:pointer;${bgToday}${opWe}" onclick="openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}">
+    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);position:relative;${bgToday}${opWe}">
       <div style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
       ${bars}
       ${chargeBar}
+      <button type="button" onclick="openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
     </div>`;
   }).join('');
 
