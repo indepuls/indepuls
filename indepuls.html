@@ -7014,6 +7014,7 @@ function startTimerInterval() {
     DATA.missions.forEach(m=>{ if(m.timerRunning){ const el=document.getElementById('timer-'+m.id); if(el) el.textContent=heuresMs(getMissionTotalMs(m)); }});
     updateSbTimer();
     checkTimerReminder();
+    syncActivityTracking();
   },1000);
 }
 
@@ -8541,6 +8542,10 @@ function getSourceAcqPhrase(missions, noun) {
 
 // ── SIDEBAR TIMER WIDGET ─────────────────────────────────────
 function getMgmtMission() { return DATA.missions.find(m=>m.isManagement); }
+// Un seul chrono peut tourner à la fois dans tout le système (startTimer() arrête
+// automatiquement tout autre chrono actif avant d'en démarrer un nouveau) — ce helper
+// suffit donc partout où on a besoin du chrono actif, mission ou "Temps interne".
+function getRunningTimer() { return DATA.missions.find(m=>m.timerRunning); }
 
 function sbTimerToggle() {
   const client=DATA.missions.find(m=>m.timerRunning&&!m.isManagement);
@@ -8581,28 +8586,30 @@ function updateSbTimer() {
 }
 
 // ── RAPPEL TIMER ─────────────────────────────────────────────
+// Couvre tout chrono actif (mission, chantier ou Temps interne) — pas seulement l'interne.
 let timerReminderShownAt=0;
-const REMINDER_THRESHOLD=90*60*1000; // 1h30
+const REMINDER_THRESHOLD=60*60*1000; // 1h
 const REMINDER_COOLDOWN=30*60*1000;  // ré-afficher toutes les 30 min
 
 function checkTimerReminder() {
-  const m=getMgmtMission();
-  if(!m||!m.timerRunning||!m.timerStart) return;
+  const m=getRunningTimer();
+  if(!m||!m.timerStart) return;
   const liveMs=Date.now()-m.timerStart;
   if(liveMs<REMINDER_THRESHOLD) return;
   if(Date.now()-timerReminderShownAt<REMINDER_COOLDOWN) return;
   timerReminderShownAt=Date.now();
-  showTimerReminder(getMissionTotalMs(m));
+  showTimerReminder(m, getMissionTotalMs(m));
 }
 
-function showTimerReminder(totalMs) {
+function showTimerReminder(m, totalMs) {
   if(document.getElementById('timer-reminder')) return; // déjà visible
   const h=Math.floor(totalMs/3600000), mn=Math.floor((totalMs%3600000)/60000);
   const label=h>0?(mn>0?`${h}h${String(mn).padStart(2,'0')}`:`${h}h`):`${mn} min`;
+  const who=m.isManagement?'Le temps interne':`Le temps sur « ${esc(m.client||'cette mission')} »`;
   const div=document.createElement('div');
   div.id='timer-reminder'; div.className='timer-reminder';
   div.innerHTML=`
-    <div style="font-weight:700;margin-bottom:4px;color:var(--text)">⏱ Le temps interne tourne depuis ${label}</div>
+    <div style="font-weight:700;margin-bottom:4px;color:var(--text)">⏱ ${who} tourne depuis ${label}</div>
     <div class="ts">Travaillez-vous toujours sur votre activité ?</div>
     <div class="timer-reminder-btns">
       <button class="btn btn-out btn-sm" onclick="dismissTimerReminder()">Oui, continuer</button>
@@ -8618,10 +8625,109 @@ function dismissTimerReminder() {
 }
 
 function pauseFromReminder() {
-  const m=getMgmtMission();
-  if(m&&m.timerRunning){ commitTimer(m); saveData(); }
+  const m=getRunningTimer();
+  if(m){ commitTimer(m); saveData(); }
   updateSbTimer();
   const el=document.getElementById('timer-reminder'); if(el) el.remove();
+  if(currentPage==='missions') renderMissions();
+  if(currentPage==='dashboard') renderDashboard();
+}
+
+// ── SUIVI D'ACTIVITÉ RÉELLE ───────────────────────────────────
+// Détecte une absence (veille, fermeture) pendant qu'un chrono tourne. Écouteurs actifs
+// uniquement pendant un chrono actif (coût nul sinon). Stocké en localStorage (pas DATA/
+// saveData) pour survivre à une fermeture complète d'onglet sans déclencher la mécanique
+// de sauvegarde à chaque mouvement de souris.
+const ACTIVITY_STORAGE_KEY='indepuls_last_activity';
+const ACTIVITY_WRITE_THROTTLE=5000; // 5s
+let _lastActivityWriteAt=0;
+let _activityListenersAttached=false;
+const ACTIVITY_EVENTS=['mousemove','keydown','click','scroll'];
+
+function _recordActivity() {
+  const now=Date.now();
+  if(now-_lastActivityWriteAt<ACTIVITY_WRITE_THROTTLE) return;
+  _lastActivityWriteAt=now;
+  localStorage.setItem(ACTIVITY_STORAGE_KEY, String(now));
+}
+function startActivityTracking() {
+  if(_activityListenersAttached) return;
+  _activityListenersAttached=true;
+  ACTIVITY_EVENTS.forEach(evt=>document.addEventListener(evt,_recordActivity,{passive:true}));
+  _lastActivityWriteAt=0; _recordActivity(); // marque le début du suivi immédiatement
+}
+function stopActivityTracking() {
+  if(!_activityListenersAttached) return;
+  _activityListenersAttached=false;
+  ACTIVITY_EVENTS.forEach(evt=>document.removeEventListener(evt,_recordActivity));
+}
+// Appelé en continu (toutes les secondes via startTimerInterval) — démarre/arrête le
+// suivi selon qu'un chrono tourne ou non, sans dupliquer les écouteurs (idempotent).
+function syncActivityTracking() {
+  if(getRunningTimer()) startActivityTracking();
+  else stopActivityTracking();
+}
+
+// ── VÉRIFICATION AU RETOUR (veille / fermeture d'onglet) ──────
+// Principe non négociable : ne jamais modifier silencieusement le temps enregistré —
+// toujours demander confirmation. Aucune fermeture automatique de cette bannière.
+const TIMER_GAP_THRESHOLD=15*60*1000; // 15 min d'inactivité réelle
+let _timerGapPending=null;
+
+function checkTimerGapOnResume() {
+  const m=getRunningTimer();
+  if(!m||!m.timerStart) return;
+  if(document.getElementById('timer-gap-banner')) return; // déjà affichée
+  const lastRaw=localStorage.getItem(ACTIVITY_STORAGE_KEY);
+  const lastActivity=lastRaw?parseInt(lastRaw,10):m.timerStart;
+  const idleMs=Date.now()-lastActivity;
+  if(idleMs<TIMER_GAP_THRESHOLD) return;
+  showTimerGapBanner(m, idleMs, lastActivity);
+}
+
+function showTimerGapBanner(m, idleMs, lastActivity) {
+  _timerGapPending={id:m.id, lastActivity};
+  const h=Math.floor(idleMs/3600000), mn=Math.floor((idleMs%3600000)/60000);
+  const label=h>0?(mn>0?`${h}h${String(mn).padStart(2,'0')}`:`${h}h`):`${mn} min`;
+  const who=m.isManagement?'le temps interne':`la mission « ${esc(m.client||'sans nom')} »`;
+  const div=document.createElement('div');
+  div.id='timer-gap-banner'; div.className='timer-reminder'; div.style.maxWidth='400px';
+  div.innerHTML=`
+    <div style="font-weight:700;margin-bottom:4px;color:var(--text)">⏱ Absence détectée sur ${who} : ${label}</div>
+    <div class="ts" style="margin-bottom:2px">Le chrono a continué de tourner pendant votre absence. Que souhaitez-vous faire ?</div>
+    <div class="timer-reminder-btns" style="flex-direction:column">
+      <button class="btn btn-acc btn-sm" onclick="resolveTimerGap('remove')">Retirer la période d'inactivité</button>
+      <button class="btn btn-out btn-sm" onclick="resolveTimerGap('count')">Compter tout le temps</button>
+      <button class="btn btn-out btn-sm" onclick="resolveTimerGap('manual')">Saisir manuellement</button>
+    </div>`;
+  document.body.appendChild(div);
+  // Pas d'auto-fermeture (setTimeout) : l'utilisatrice doit choisir, jamais de défaut silencieux.
+}
+
+function resolveTimerGap(choice) {
+  if(!_timerGapPending) return;
+  const {id, lastActivity}=_timerGapPending;
+  const m=DATA.missions.find(x=>x.id===id);
+  const banner=document.getElementById('timer-gap-banner'); if(banner) banner.remove();
+  _timerGapPending=null;
+  if(!m||!m.timerRunning) return;
+
+  if(choice==='count'){
+    commitTimer(m);
+    saveData();
+  } else if(choice==='remove'){
+    const workedMs=Math.max(0, lastActivity-m.timerStart);
+    if(m.isManagement) addTempsInterne(getCurrentMk(), workedMs);
+    else m.timerAccumulated=(m.timerAccumulated||0)+workedMs;
+    m.timerRunning=false; m.timerStart=null;
+    saveData();
+  } else if(choice==='manual'){
+    m.timerRunning=false; m.timerStart=null; // pas de commit — l'utilisatrice saisira le total exact
+    saveData();
+    openCorrectTimeModal(m.id, m.isManagement?getCurrentMk():null);
+    return;
+  }
+  updateSbTimer();
   if(currentPage==='missions') renderMissions();
   if(currentPage==='dashboard') renderDashboard();
 }
@@ -9575,6 +9681,7 @@ function renderActiviteTypeUI() {
 // ── INIT ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
+  checkTimerGapOnResume(); // couvre le cas d'une fermeture complète d'onglet et réouverture plus tard
   migrateMetierParam();
   document.body.setAttribute('data-theme', DATA.theme || 'obm');
   renderAll();
@@ -9589,6 +9696,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_lastPage && document.getElementById('page-'+_lastPage)) navigate(_lastPage);
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState==='visible') checkTimerGapOnResume(); });
+  window.addEventListener('focus', checkTimerGapOnResume);
 });
 
 // ── INFO-TIP : clic pour afficher/masquer ────────────────────
@@ -9622,7 +9731,11 @@ document.addEventListener('click', function(e) {
 });
 
 window.addEventListener('beforeunload', () => {
-  DATA.missions.forEach(m => { if(m.timerRunning) commitTimer(m); });
+  // Ne JAMAIS committer silencieusement ici (ça contournerait tout le mécanisme de
+  // vérification au retour — checkTimerGapOnResume()) : on sauvegarde l'état tel quel,
+  // chrono toujours marqué actif avec son timerStart d'origine. À la réouverture,
+  // checkTimerGapOnResume() détectera l'écart et demandera confirmation, que la fermeture
+  // ait duré 2 minutes ou 2 jours — même mécanisme que pour une mise en veille.
   saveData();
 });
 
