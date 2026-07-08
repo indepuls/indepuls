@@ -750,7 +750,7 @@ html,body{overflow-x:hidden;}
         <div id="archives-table-zone"></div>
       </div>
       <div class="card">
-        <div class="card-header"><div class="card-title">Évolution taux horaire réel</div></div>
+        <div class="card-header"><div class="card-title" id="chart-th-reel-title">Évolution taux horaire réel</div></div>
         <canvas id="chart-th-reel" height="200"></canvas>
       </div>
       <div id="archives-progress-zone"></div>
@@ -7982,6 +7982,8 @@ function renderArchives() {
   const _archHj=DATA.params.heuresParJour||7;
   const _archItemLbl=_archFamily==='achat_revente'?'vente':'commande';
   const _archKpiLbl=_archIsChantier?'TJM moyen':_archIsMarge?`Gain / ${_archItemLbl}`:'TH réel';
+  const _archTitleEl=document.getElementById('chart-th-reel-title');
+  if(_archTitleEl) _archTitleEl.textContent=`Évolution ${_archKpiLbl}`;
   const _archKpiUnit=_archIsChantier?'/j':_archIsMarge?'':'/h';
   function _archKpiVal(d){
     if(!d||(!d.caNet&&!d.heures&&!d.missions)) return 0;
@@ -8230,10 +8232,15 @@ function drawBarChart(canvasId,labels,datasets,opts={}) {
   const pad={t:20,r:15,b:35,l:55}, cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
   const refLines=opts.refLines||[];
   const refVals=refLines.map(r=>r.value).filter(v=>v>0);
-  const allV=[...datasets.flatMap(d=>d.data),...refVals], maxV=Math.max(...allV,1), minV=Math.min(0,...allV), range=maxV-minV;
+  const allV=[...datasets.flatMap(d=>d.data),...refVals];
+  // maxV=1 est un plancher artificiel pour éviter une division par zéro quand il n'y a
+  // aucune donnée (compte neuf) — sans données réelles, l'axe ne doit afficher que des 0,
+  // pas des graduations arrondies d'un maximum inventé (ex : 1, 0.75, 0.5… → 1,1,1,0,0).
+  const hasData=Math.max(...allV,0)>0;
+  const maxV=Math.max(...allV,1), minV=Math.min(0,...allV), range=maxV-minV;
   const gc=themeColor('--brd')||'rgba(0,0,0,.06)', tc=themeColor('--tl')||'#7a7a8a';
   ctx.strokeStyle=gc; ctx.lineWidth=1;
-  for(let i=0;i<=4;i++){ const y=pad.t+(cH/4)*i; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke(); const v=maxV-(range/4)*i; ctx.fillStyle=tc; ctx.font='10px Lato,sans-serif'; ctx.textAlign='right'; ctx.fillText(v>=1000?Math.round(v/1000)+'k':Math.round(v),pad.l-5,y+3); }
+  for(let i=0;i<=4;i++){ const y=pad.t+(cH/4)*i; ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke(); const v=hasData?maxV-(range/4)*i:0; ctx.fillStyle=tc; ctx.font='10px Lato,sans-serif'; ctx.textAlign='right'; ctx.fillText(v>=1000?Math.round(v/1000)+'k':Math.round(v),pad.l-5,y+3); }
   const n=datasets.length, gw=cW/labels.length, bw=Math.min(gw*.35/n,20), tbw=bw*n+(n-1)*3;
   datasets.forEach((ds,di)=>{ ctx.fillStyle=ds.color; ds.data.forEach((v,i)=>{ const x=pad.l+gw*i+gw/2-tbw/2+di*(bw+3),bH=Math.abs(v)/range*cH,y=pad.t+(maxV-Math.max(v,0))/range*cH; ctx.globalAlpha=.85; ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,bw,bH,[3,3,0,0]); else ctx.rect(x,y,bw,bH); ctx.fill(); }); });
   ctx.globalAlpha=1;
