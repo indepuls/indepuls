@@ -7835,6 +7835,9 @@ function onStatutChange(val) {
     // SASU : TVA au régime réel mensuel obligatoire
     if(!DATA.params.tva) DATA.params.tva=true;
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
+    // Forcer le taux de charges à 80 % par défaut en SASU (vs 45 % EURL) — symétrique
+    // à la logique EURL ci-dessous, sinon un aller-retour EURL→SASU garde le taux EURL.
+    if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===45) DATA.params.coutRemunerationPct=80;
   }
   if(val==='eurl'){
     // EURL : activité mixte non applicable, TVA libre (pas forcée)
