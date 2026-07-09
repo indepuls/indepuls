@@ -52,6 +52,7 @@ export function getChargeJour(DATA, dateStr) {
 
 // Copie locale — les HTML gardent leur propre copie pour leurs autres usages.
 function _isRecurringStillActive(m) {
+  if (m.statut === 'ref') return false;
   if (!m.isRecurring || !m.dateDebutRec) return false;
   if (!m.nbMoisRec || m.nbMoisRec <= 0) return true;
   const [sy, sm] = m.dateDebutRec.split('-').map(Number);

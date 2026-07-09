@@ -121,6 +121,13 @@ function makeData(overrides = {}) {
   assertEq('getChargeEstimeeTotal récurrente terminée exclue',
     P.getChargeEstimeeTotal(makeData({ missions: [mRecOld] })), 0);
 
+  // Mission récurrente refusée, sans date de fin connue (nbMoisRec null → fenêtre indéfinie) :
+  // un statut 'ref' doit toujours exclure du calcul d'activité, même sans fenêtre de dates expirée.
+  const mRecRef = { ...mBase, statut: 'ref', isRecurring: true,
+                    dateDebutRec: '2020-01', nbMoisRec: null };
+  assertEq('getChargeEstimeeTotal récurrente refusée exclue même sans date de fin connue',
+    P.getChargeEstimeeTotal(makeData({ missions: [mRecRef] })), 0);
+
   // Plusieurs missions
   const m2 = { ...mBase, chargeEstimee: 3 };
   assertEq('getChargeEstimeeTotal somme plusieurs missions',

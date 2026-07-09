@@ -3808,6 +3808,7 @@ function getMissionChargeHSem(m) { return toHeuresSem(m.chargeEstimee||0, m.char
 // Pour une mission récurrente, le statut "Facturé" indique une étape administrative,
 // mais l'activité reste considérée comme en cours jusqu'à la fin de la période prévue.
 function isRecurringStillActive(m) {
+  if (m.statut === 'ref') return false;
   if (!m.isRecurring || !m.dateDebutRec) return false;
   if (!m.nbMoisRec || m.nbMoisRec <= 0) return true;
   const [sy, sm] = m.dateDebutRec.split('-').map(Number);
@@ -5348,14 +5349,14 @@ function wScoreSante(d) {
   const scoreColor=score>=80?'var(--ok)':score>=60?'#84cc16':score>=40?'var(--warn)':score>=20?'#f97316':'var(--err)';
 
   // ── DIAGNOSTIC GLOBAL ────────────────────────────────────────
-  const pilliers=[{n:'rentabilité',art:'la',s:sRent},{n:'agenda',art:"l'",s:sRemp},{n:'trésorerie',art:'la',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
+  const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'agenda',art:"l'",s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
   let diagGlobal='';
   if(score>=85) diagGlobal='Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
-  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art} ${worst.n}.`;
-  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art} ${worst.n}.`;
-  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art} ${worst.n}.`;
-  else diagGlobal=`Votre activité demande une attention immédiate. Concentrez-vous sur un seul levier : ${worst.art} ${worst.n}.`;
+  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.`;
+  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.`;
+  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art}${worst.n}.`;
+  else diagGlobal=`Votre activité demande une attention immédiate. Concentrez-vous sur un seul levier : ${worst.art}${worst.n}.`;
 
   // ── PRIORITÉ DU MOMENT ───────────────────────────────────────
   let priorite='';
@@ -5388,7 +5389,7 @@ function wScoreSante(d) {
   } else if(score>=85){
     priorite='Continuez sur cette lancée — votre activité est en excellente santé. 🎉';
   } else {
-    priorite=`Concentrer vos efforts sur <strong>la ${worst.n}</strong> pour améliorer votre score global.`;
+    priorite=`Concentrer vos efforts sur <strong>${worst.art}${worst.n}</strong> pour améliorer votre score global.`;
   }
 
   // ── ALERTES (client dominant + objectif mois + alertes système) ─
@@ -6900,6 +6901,7 @@ function renderMissionsSummary(all) {
   if(!sumEl) return;
   const actives=all.filter(m=>!m.isManagement);
   if(!actives.length){ sumEl.innerHTML=''; return; }
+  const _masc=tVocabMasculin(), _itemLow=tVocab('item').toLowerCase(), _itemsLow=tVocab('items').toLowerCase();
   const enCours=actives.filter(m=>m.statut==='cours'||isRecurringStillActive(m));
   const enAtt=actives.filter(m=>m.statut==='att');
   const facturees=actives.filter(m=>m.statut==='fact'&&!isRecurringStillActive(m));
@@ -6932,8 +6934,8 @@ function renderMissionsSummary(all) {
     <div style="padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--tl);font-weight:600;white-space:nowrap">📅 ${DATA.currentYear}</span>
-        ${sep}${st('🔄','En cours',enCours.length+' '+(enCours.length>1?tVocab('items').toLowerCase():tVocab('item').toLowerCase())+' · '+fmtE(caEnCours),'')}
-        ${sep}${st('📩','En attente',enAtt.length+' devis'+(caEnAtt?' · '+fmtE(caEnAtt):''),'')}
+        ${sep}${st('🔄','En cours',enCours.length+' '+(enCours.length>1?_itemsLow:_itemLow)+' · '+fmtE(caEnCours),'')}
+        ${sep}${st('📩','En attente',enAtt.length+' '+(enAtt.length>1?_itemsLow:_itemLow)+(caEnAtt?' · '+fmtE(caEnAtt):''),'')}
         ${sep}${st('💰','À encaisser',encVal,encCol)}
         ${sep}${st('✅','Facturé',fmtE(caFacture),'var(--ok)')}
         ${sep}${st('🎯','Transfo.',txT+' %','')}
@@ -6943,12 +6945,12 @@ function renderMissionsSummary(all) {
     </div>
     <div id="msn-stats-panel" style="display:none;border-top:1px solid var(--brd);padding:14px 16px" data-hf="${_hF}" data-hi="${_hI}" data-href="${_hRef}">
       <div class="g3" style="gap:10px">
-        ${card('🔄','En cours',enCours.length+' '+(enCours.length>1?tVocab('items').toLowerCase():tVocab('item').toLowerCase()),fmtE(caEnCours)+' de CA en cours','')}
-        ${card('📩','En attente',enAtt.length+' devis',enAtt.length>0?fmtE(caEnAtt)+' potentiels':'Aucun devis en attente','')}
+        ${card('🔄','En cours',enCours.length+' '+(enCours.length>1?_itemsLow:_itemLow),fmtE(caEnCours)+' de CA en cours','')}
+        ${card('📩','En attente',enAtt.length+' '+(enAtt.length>1?_itemsLow:_itemLow),enAtt.length>0?fmtE(caEnAtt)+' potentiels':`Aucun${_masc?'':'e'} ${_itemLow} en attente`,'')}
         ${card('💰','À encaisser',aEncaisser.length>0?fmtE(totalReste):'Tout encaissé',aEncaisser.length>0?(aEncaisser.length+' mission'+(aEncaisser.length>1?'s':'')+' · '+(enRetard>0?enRetard+' en retard':'À jour')):aEncaisser.length===0&&facturees.length>0?'✓ Aucun impayé':'—',aEncaisser.length>0&&enRetard>0?'var(--warn)':aEncaisser.length>0?'var(--warn)':'var(--ok)')}
         ${card('✅','CA facturé',fmtE(caFacture),facturees.length+' mission'+(facturees.length>1?'s':'')+(facturees.length>0?' terminée'+(facturees.length>1?'s':''):''),'var(--ok)')}
-        ${card('🎯','Taux de transformation',txT+' %',okM+' accepté'+(okM>1?'s':'')+' sur '+totM+' devis','')}
-        ${card('📭','Pertes sèches',fmt(pS,1)+' h','sur devis refusés',pS>5?'var(--warn)':'')}
+        ${card('🎯','Taux de transformation',txT+' %',okM+' accepté'+(_masc?'':'e')+(okM>1?'s':'')+' sur '+totM+' '+(totM>1?_itemsLow:_itemLow),'')}
+        ${card('📭','Pertes sèches',fmt(pS,1)+' h','sur '+_itemsLow+' refusé'+(_masc?'s':'es'),pS>5?'var(--warn)':'')}
       </div>
       ${(_hF>0||_hI>0)?`<div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">⏱ Répartition du temps travaillé</div><canvas id="chart-temps" style="width:100%" height="70"></canvas></div>`:''}
       <div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">🏆 Top clients & offres</div></div>
