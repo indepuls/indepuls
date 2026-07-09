@@ -2053,7 +2053,7 @@ html,body{overflow-x:hidden;}
 <!-- MODAL MOTIF REFUS -->
 <div class="modal-ov hidden" id="modal-ref-motif">
   <div class="modal" style="max-width:420px">
-    <div class="modal-title">📋 Devis refusé</div>
+    <div class="modal-title" id="ref-motif-title">📋 Devis refusé</div>
     <p class="ts mb12" style="color:var(--tl);line-height:1.6">Facultatif — indiquer le motif vous permettra de suivre les tendances dans vos statistiques.</p>
     <input type="hidden" id="ref-motif-id">
     <div class="fgroup">
@@ -2433,6 +2433,13 @@ function tVocab(key) {
   const metier = DATA.params?.metier || '';
   const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
+}
+// Genre grammatical du mot tVocab('item') pour le profil actif — 'chantier' est la seule
+// famille masculine (mission/commande/vente sont féminines). À utiliser pour tout accord
+// (ce/cette, un nouveau/une nouvelle, refusé/refusée, aucun/aucune…) plutôt que de
+// recopier localement le test BUSINESS_PROFILE_MAP[...]==='chantier'.
+function tVocabMasculin() {
+  return (BUSINESS_PROFILE_MAP[DATA.params?.metier] || DEFAULT_FAMILY) === 'chantier';
 }
 function getDefaultModules(metier) {
   // calendrier = page Planning + sessions visibles
@@ -4666,11 +4673,11 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     if(daysWait>=7){
       const d7cl=daysWait>=14?'al-warn':'al-info';
       const d7pr=daysWait>=14?1:2;
-      alerts.push({pr:d7pr,cl:d7cl,txt:`📬 Devis <strong>${esc(m.client||m.description||'sans nom')}</strong> sans réponse depuis <strong>${daysWait} j</strong>${m.montantDevis>0?` — ${fmtE(m.montantDevis)}`:''}. Relancer ?`});
+      alerts.push({pr:d7pr,cl:d7cl,txt:`📬 ${tVocab('item')} <strong>${esc(m.client||m.description||'sans nom')}</strong> sans réponse depuis <strong>${daysWait} j</strong>${m.montantDevis>0?` — ${fmtE(m.montantDevis)}`:''}. Relancer ?`});
     }
   });
   const att=DATA.missions.filter(m=>m.statut==='att').length;
-  if(att>0) alerts.push({pr:3,cl:'al-info',txt:`📩 ${att} devis en attente de réponse.`});
+  if(att>0) alerts.push({pr:3,cl:'al-info',txt:`📩 ${att} ${att>1?tVocab('items').toLowerCase():tVocab('item').toLowerCase()} en attente de réponse.`});
   if(p.tva){const tvaRev=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());if(tvaRev>0) alerts.push({pr:3,cl:'al-info',txt:`🧾 TVA à reverser : ${fmtE(tvaRev)} — pensez à provisionner.`});}
   // Alerte plafond régime micro (distinct du seuil TVA)
   try{
@@ -4687,7 +4694,7 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   const moisAgeCtx=getMoisDepuisOuverture();
   if(moisAgeCtx===null||moisAgeCtx>=2){
     const actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||m.statut==='att'||isRecurringStillActive(m)));
-    if(!actives.length) alerts.push({pr:2,cl:'al-warn',txt:`🔍 Aucune mission en cours ni devis en attente — c'est le moment de relancer votre prospection.`});
+    if(!actives.length) alerts.push({pr:2,cl:'al-warn',txt:`🔍 Aucun${tVocabMasculin()?'':'e'} ${tVocab('item').toLowerCase()} en cours ni en attente — c'est le moment de relancer votre prospection.`});
   }
   const factMissionsCtx=DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact'&&m.dateFact);
   if(factMissionsCtx.length>0){
@@ -5318,20 +5325,22 @@ function wScoreSante(d) {
       :`Vous avez de la visibilité client, mais vos ${_items} actuels ne remplissent pas assez votre agenda. Cherchez à augmenter leur scope ou à en ajouter.`;
   }
   const vComm=nbActives>0?`${nbActives} active${nbActives>1?'s':''}`:'Aucune';
-  const subComm=nbDevis>0?`${nbDevis} devis · ${fmtE(pipelineVal)}`:'Aucun devis actif';
+  const _itemLow=tVocab('item').toLowerCase(), _itemsLow=tVocab('items').toLowerCase(), _masc=tVocabMasculin();
+  const _itemWord=nbDevis===1?_itemLow:_itemsLow;
+  const subComm=nbDevis>0?`${nbDevis} ${_itemWord} · ${fmtE(pipelineVal)}`:`Aucun${_masc?'':'e'} ${_itemLow} en attente`;
   let diagComm,advComm;
   if(sComm>=25){
     diagComm='🟢 Votre activité dispose d\'une visibilité commerciale confortable.';
-    advComm=nbDevis>0?`${nbDevis} devis en attente (${fmtE(pipelineVal)}) — relancez-les avant qu\'ils refroidissent.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
+    advComm=nbDevis>0?`${nbDevis} ${_itemWord} en attente (${fmtE(pipelineVal)}) — relancez-${nbDevis===1?(_masc?'le':'la'):'les'} avant qu${nbDevis===1?(_masc?'\'il':'\'elle'):'\'ils'} refroidiss${nbDevis===1?'e':'ent'}.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
   } else if(sComm>=18){
     diagComm='🟠 Votre activité reste sécurisée mais il est temps d\'alimenter votre prospection.';
-    advComm=nbDevis>0?`Relancez vos ${nbDevis} devis en attente et cherchez de nouvelles opportunités.`:'Envoyez de nouveaux devis pour renforcer votre visibilité commerciale.';
+    advComm=nbDevis>0?`Relancez ${nbDevis===1?'votre':'vos'} ${nbDevis} ${_itemWord} en attente et cherchez de nouvelles opportunités.`:`Créez de nouve${_masc?'aux':'lles'} ${_itemsLow} pour renforcer votre visibilité commerciale.`;
   } else if(sComm>=10){
-    diagComm='🟠 Visibilité commerciale limitée — une seule mission active, aucun devis.';
+    diagComm=`🟠 Visibilité commerciale limitée — ${_masc?'un seul':'une seule'} ${_itemLow} ${_masc?'actif':'active'}, aucun${_masc?'':'e'} ${_itemLow} en attente.`;
     advComm='Priorité à la prospection pour sécuriser les prochaines semaines.';
   } else {
     diagComm='🔴 Aucune activité future identifiée. Priorité à la prospection.';
-    advComm='Envoyez au moins un nouveau devis cette semaine pour sécuriser votre activité future.';
+    advComm=`Créez au moins ${_masc?'un nouveau':'une nouvelle'} ${_itemLow} cette semaine pour sécuriser votre activité future.`;
   }
 
   // ── SCORE GLOBAL ─────────────────────────────────────────────
@@ -5359,14 +5368,15 @@ function wScoreSante(d) {
   } else if(worst.n==='commercial'){
     if(attM.length>0){
       const oldest=[...attM].sort((a,b)=>(a.dateFact||'z')<(b.dateFact||'z')?-1:1)[0];
-      priorite=`Relancer le devis <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
+      priorite=`Relancer ${tVocabMasculin()?'le':'la'} ${tVocab('item').toLowerCase()} <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
     } else {
-      priorite='Créer et envoyer <strong>au moins un nouveau devis cette semaine</strong> pour sécuriser vos prochaines semaines.';
+      priorite=`Créer <strong>au moins ${tVocabMasculin()?'un nouveau':'une nouvelle'} ${tVocab('item').toLowerCase()} cette semaine</strong> pour sécuriser vos prochaines semaines.`;
     }
   } else if(worst.n==='remplissage'&&cap>0){
     const hManq=Math.max(1,Math.round((cap*0.6)-charge));
     const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
-    const relanceHint=attPipe>0?` Commencez par relancer vos <strong>${attPipe} devis en attente</strong>.`:' Pensez à relancer votre prospection ou vos devis en attente.';
+    const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
+    const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
     priorite=`Votre agenda a de la place — remplir <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
   } else if(worst.n==='rentabilité'&&hT>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
@@ -5482,8 +5492,8 @@ function wScoreSante(d) {
 
   // Commercial
   const rowsComm=[
-    {lbl:'Missions actives',       val:nbActives>0?nbActives.toString():'Aucune',   c:nbActives>=2?'var(--ok)':nbActives===1?'var(--warn)':'var(--err)'},
-    {lbl:'Devis en attente',       val:nbDevis>0?nbDevis+' devis':'Aucun',          c:nbDevis>0?'var(--text)':'var(--tl)'},
+    {lbl:tVocab('items')+' '+(_masc?'actifs':'actives'), val:nbActives>0?nbActives.toString():(_masc?'Aucun':'Aucune'),   c:nbActives>=2?'var(--ok)':nbActives===1?'var(--warn)':'var(--err)'},
+    {lbl:tVocab('items')+' en attente',       val:nbDevis>0?nbDevis+' '+_itemWord:(_masc?'Aucun':'Aucune'),          c:nbDevis>0?'var(--text)':'var(--tl)'},
     {lbl:'CA potentiel',           val:pipelineVal>0?fmtE(pipelineVal):'—',         c:pipelineVal>0?'var(--text)':'var(--tl)'},
     {lbl:'Visibilité commerciale', val:visLabel,                                     c:nbActives>=2?'var(--ok)':nbActives===1?'var(--warn)':'var(--err)'},
   ];
@@ -5501,7 +5511,8 @@ function wScoreSante(d) {
       ?`<strong>Données ·</strong> Somme mission par mission : charge estimée pour les missions récurrentes, sessions calendrier pour les missions ponctuelles (repli sur l'autre champ si le principal est vide) — vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures combinées ÷ capacité max × 100<br>${methRempBareme}`
       :`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br>${methRempBareme}`;
   const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €`;
-  const methComm=`<strong>Données ·</strong> Missions actives = ponctuelles en cours/en attente + récurrentes encore dans leur période<br><strong>Barème ·</strong> ≥ 3 actives OU ≥ 2 actives + 1 devis → 25/25 &nbsp;·&nbsp; 2 actives OU 1 active + 1 devis → 18/25<br>&nbsp;&nbsp;1 active sans devis → 10/25 &nbsp;·&nbsp; 0 active → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin de la récurrente active la plus longue`;
+  const _actifsWord=_masc?'actifs':'actives', _actifWord=_masc?'actif':'active';
+  const methComm=`<strong>Données ·</strong> ${tVocab('items')} ${_actifsWord} = ponctuelles en cours/en attente + récurrentes encore dans leur période<br><strong>Barème ·</strong> ≥ 3 ${_actifsWord} OU ≥ 2 ${_actifsWord} + 1 ${_itemLow} → 25/25 &nbsp;·&nbsp; 2 ${_actifsWord} OU 1 ${_actifWord} + 1 ${_itemLow} → 18/25<br>&nbsp;&nbsp;1 ${_actifWord} sans ${_itemLow} → 10/25 &nbsp;·&nbsp; 0 ${_actifWord} → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin de la récurrente active la plus longue`;
 
   // ── RENDU D'UN PILIER (carte compacte) ───────────────────────
   const pilierCard=(label,pts,diag,adv,navPage,rows,meth)=>{
@@ -6804,6 +6815,8 @@ function setMissionStatut(id,val) {
     document.getElementById('ref-motif-id').value=id;
     document.getElementById('ref-motif-select').value=m.motifRefus||'';
     m.statut='ref'; m.dateFact=null; saveData(); renderMissions();
+    const refTitleEl=document.getElementById('ref-motif-title');
+    if(refTitleEl) refTitleEl.textContent=`📋 ${tVocab('item')} refusé${tVocabMasculin()?'':'e'}`;
     openModal('modal-ref-motif'); return;
   }
   m.statut=val; if(val!=='fact') m.dateFact=null;
