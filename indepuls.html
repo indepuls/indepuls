@@ -8735,20 +8735,24 @@ function checkTimerGapOnResume() {
 
 function showTimerGapBanner(m, idleMs, lastActivity) {
   _timerGapPending={id:m.id, lastActivity};
-  const label=formatDureeHM(idleMs);
+  const activeMs=Math.max(0, lastActivity-m.timerStart);
+  const totalMs=Date.now()-m.timerStart;
+  const activeLabel=formatDureeHM(activeMs), idleLabel=formatDureeHM(idleMs), totalLabel=formatDureeHM(totalMs);
   const who=m.isManagement?'le temps interne':`la mission « ${esc(m.client||'sans nom')} »`;
-  const div=document.createElement('div');
-  div.id='timer-gap-banner'; div.className='timer-reminder'; div.style.maxWidth='400px';
-  div.innerHTML=`
-    <div style="font-weight:700;margin-bottom:4px;color:var(--text)">⏱ Absence détectée sur ${who} : ${label}</div>
-    <div class="ts" style="margin-bottom:2px">Le chrono a continué de tourner pendant votre absence. Que souhaitez-vous faire ?</div>
-    <div class="timer-reminder-btns" style="flex-direction:column">
-      <button class="btn btn-acc btn-sm" onclick="resolveTimerGap('remove')">Retirer la période d'inactivité</button>
-      <button class="btn btn-out btn-sm" onclick="resolveTimerGap('count')">Compter tout le temps</button>
-      <button class="btn btn-out btn-sm" onclick="resolveTimerGap('manual')">Saisir manuellement</button>
+  const ov=document.createElement('div');
+  ov.id='timer-gap-banner'; ov.className='modal-ov';
+  ov.innerHTML=`
+    <div class="modal" style="max-width:400px">
+      <div class="modal-title">⏱ Absence détectée sur ${who}</div>
+      <p class="ts mb12" style="color:var(--tl);line-height:1.6">Vous étiez actif <strong>${activeLabel}</strong>, puis absent <strong>${idleLabel}</strong>.</p>
+      <div class="timer-reminder-btns" style="flex-direction:column">
+        <button class="btn btn-acc btn-sm" onclick="resolveTimerGap('remove')">Retirer les ${idleLabel} d'absence</button>
+        <button class="btn btn-out btn-sm" onclick="resolveTimerGap('count')">Compter tout le temps (${totalLabel})</button>
+        <button class="btn btn-out btn-sm" onclick="resolveTimerGap('manual')">Saisir manuellement</button>
+      </div>
     </div>`;
-  document.body.appendChild(div);
-  // Pas d'auto-fermeture (setTimeout) : l'utilisatrice doit choisir, jamais de défaut silencieux.
+  document.body.appendChild(ov);
+  // Pas d'auto-fermeture, pas de clic sur le fond pour fermer : l'utilisatrice doit choisir, jamais de défaut silencieux.
 }
 
 function resolveTimerGap(choice) {
