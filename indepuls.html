@@ -672,7 +672,7 @@ html,body{overflow-x:hidden;}
         <table>
           <thead><tr>
             <th id="missions-th-client">Client / Mission</th><th>Catégorie</th>
-            <th>Devis</th><th>Statut</th><th>Facturée le</th>
+            <th>Montant</th><th>Statut</th><th>Facturée le</th>
             <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel</th><th>Notes</th><th>Chrono</th><th></th>
           </tr></thead>
           <tbody id="missions-tbody"></tbody>
@@ -1335,7 +1335,7 @@ html,body{overflow-x:hidden;}
         <div class="step-num">3</div>
         <div class="step-body" style="flex:1">
           <h3 id="onboarding-step3-title">Créez vos premières missions</h3>
-          <p id="onboarding-step3-desc">Ajoutez un client ou un programme dès l'émission du devis. Suivez votre temps avec le chronomètre intégré.</p>
+          <p id="onboarding-step3-desc">Ajoutez un client ou un programme dès la création de votre mission. Suivez votre temps avec le chronomètre intégré.</p>
           <span class="step-cta" id="onboarding-cta-1" onclick="navigate('missions')">→ Aller dans Missions</span>
         </div>
       </div>
@@ -1380,7 +1380,7 @@ html,body{overflow-x:hidden;}
           <div class="glossary-item"><div class="gterm">Taux horaire réel</div><div class="gdef">Revenu net ÷ heures totales travaillées (missions + gestion). L'indicateur le plus honnête sur votre rentabilité.</div></div>
           <div class="glossary-item"><div class="gterm">Projection annuelle</div><div class="gdef">Extrapolation du CA actuel sur 12 mois, basée sur la moyenne des mois réalisés.</div></div>
           <div class="glossary-item"><div class="gterm">Temps non facturable</div><div class="gdef">Gestion, admin, prospection — suivi via la ligne "Mon entreprise".</div></div>
-          <div class="glossary-item"><div class="gterm">Taux de transformation</div><div class="gdef">% de devis acceptés (en cours + facturés) sur le total des devis émis.</div></div>
+          <div class="glossary-item"><div class="gterm">Taux de transformation</div><div class="gdef">% de missions acceptées (en cours + facturées) sur le total de missions proposées.</div></div>
           <div class="glossary-item"><div class="gterm">Pertes sèches</div><div class="gdef">Heures passées sur des missions finalement refusées. Fait baisser votre taux horaire réel sans générer de CA.</div></div>
           <div class="glossary-item"><div class="gterm">Seuil franchise TVA</div><div class="gdef">37 500 € (prestations, tolérance 41 250 €) — 85 000 € (ventes, tolérance 93 500 €). Au-delà, vous devez collecter la TVA.</div></div>
           <div class="glossary-item"><div class="gterm">Zone de tolérance TVA</div><div class="gdef">CA au-dessus du seuil mais sous la tolérance : franchise maintenue l'année en cours, TVA obligatoire l'année suivante. Indépuls vous alerte dès que vous entrez dans cette zone.</div></div>
@@ -2182,7 +2182,7 @@ html,body{overflow-x:hidden;}
         <span style="color:#2a7a2a;font-weight:700;flex-shrink:0">✅</span> Modifier les données d'exemple
       </div>
       <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text);line-height:1.5">
-        <span style="color:#2a7a2a;font-weight:700;flex-shrink:0">✅</span> Tester le simulateur, des devis, des missions…
+        <span style="color:#2a7a2a;font-weight:700;flex-shrink:0">✅</span> Tester le simulateur, ajouter des missions…
       </div>
     </div>
     <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left">
@@ -2249,7 +2249,7 @@ html,body{overflow-x:hidden;}
     <div class="ts mb2">Vous avez sélectionné : <strong id="profil-change-label"></strong></div>
     <div class="ts mb14" style="color:var(--tl)" id="profil-change-desc"></div>
     <div style="background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:16px;font-size:13px;line-height:1.7">
-      Voulez-vous appliquer les réglages recommandés pour ce profil <em>(suivi du temps, devis, objectif de tarification)</em> ou conserver vos réglages actuels ?
+      Voulez-vous appliquer les réglages recommandés pour ce profil <em>(suivi du temps, objectif de tarification)</em> ou conserver vos réglages actuels ?
     </div>
     <div class="modal-foot" style="flex-direction:column;gap:8px">
       <button class="btn btn-acc" style="width:100%;justify-content:center" onclick="confirmProfilChange(true)">Appliquer les réglages recommandés</button>
@@ -2475,7 +2475,7 @@ function getDefaultCategoriesForFamily() {
 }
 const PROFIL_DESCRIPTIONS = {
   prestataire_services: "💼 Consultant, coach, formateur, développeur, assistant virtuel, juriste, RH… Vous vendez votre expertise ou votre temps. Indépuls suit votre taux horaire, vos missions et votre rentabilité.",
-  creatif_com:          "🎨 Graphiste, designer, community manager, vidéaste, rédacteur, photographe de studio… Vous réalisez des prestations créatives. Indépuls suit vos devis, votre taux horaire et la rentabilité de chaque prestation.",
+  creatif_com:          "🎨 Graphiste, designer, community manager, vidéaste, rédacteur, photographe de studio… Vous réalisez des prestations créatives. Indépuls suit vos missions, votre taux horaire et la rentabilité de chaque prestation.",
   evenementiel:         "🎤 Traiteur, animateur teambuilding, photographe événementiel, DJ, wedding planner… Vous organisez ou animez des événements ponctuels. Indépuls gère votre planning, vos encaissements et votre taux de remplissage.",
   artisan_batiment:     "🔨 Maçon, plombier, électricien, peintre, menuisier, carreleur, paysagiste… Vous réalisez des chantiers. Indépuls suit la rentabilité de chaque chantier, vos coûts matériaux et vos encaissements.",
   artisan_commande:     "🧰 Réparateur, tapissier, ferronnier, ébéniste sur-mesure… Vous fabriquez ou intervenez sur commande. Indépuls suit le coût de revient de chaque commande et votre marge réelle.",
@@ -2513,6 +2513,8 @@ function applyVocabUI() {
   // Onboarding
   const ob3title = document.getElementById('onboarding-step3-title');
   if (ob3title) ob3title.textContent = tVocab('firstItem');
+  const ob3desc = document.getElementById('onboarding-step3-desc');
+  if (ob3desc) ob3desc.textContent = `Ajoutez un client ou un programme dès la création de votre ${tVocab('item').toLowerCase()}. Suivez votre temps avec le chronomètre intégré.`;
   const obCta1 = document.getElementById('onboarding-cta-1');
   if (obCta1) obCta1.textContent = tVocab('goTo');
   const obCta2 = document.getElementById('onboarding-cta-2');
@@ -3206,7 +3208,7 @@ function showProfilePicker() {
 
 var _PICKER_DESC = {
   prestataire_services: { ico:'💼', txt:'Consultant, coach, formateur, développeur, assistant virtuel, juriste, RH… Vous vendez votre expertise ou votre temps. Indépuls suit votre taux horaire, vos missions et votre rentabilité.' },
-  creatif_com:          { ico:'🎨', txt:'Graphiste, designer, community manager, vidéaste, rédacteur, photographe de studio… Vous réalisez des prestations créatives. Indépuls suit vos devis, votre taux horaire et la rentabilité de chaque prestation.' },
+  creatif_com:          { ico:'🎨', txt:'Graphiste, designer, community manager, vidéaste, rédacteur, photographe de studio… Vous réalisez des prestations créatives. Indépuls suit vos missions, votre taux horaire et la rentabilité de chaque prestation.' },
   evenementiel:         { ico:'🎤', txt:'Traiteur, animateur teambuilding, photographe événementiel, DJ, wedding planner… Vous organisez ou animez des événements ponctuels. Indépuls gère votre planning, vos encaissements et votre taux de remplissage.' },
   artisan_batiment:     { ico:'🔨', txt:'Maçon, plombier, électricien, peintre, menuisier, carreleur, paysagiste… Vous réalisez des chantiers. Indépuls suit la rentabilité de chaque chantier, vos coûts matériaux et vos encaissements.' },
   artisan_commande:     { ico:'🧰', txt:'Réparateur, tapissier, ferronnier, ébéniste sur-mesure… Vous fabriquez ou intervenez sur commande. Indépuls suit le coût de revient de chaque commande et votre marge réelle.' },
@@ -5015,7 +5017,7 @@ function wRentabClients() {
     return `<div class="rentab-row"><div style="flex:1"><div class="fb">${cl}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;
   };
   const hRef=DATA.missions.filter(m=>m.statut==='ref').reduce((s,m)=>s+getMissionHeures(m),0);
-  const pertesHtml=hRef>2?`<div style="font-size:12px;padding:5px 0 10px;border-bottom:1px solid var(--brd);margin-bottom:6px;color:var(--warn);font-weight:600">⚠ ${fmt(hRef,1)} h perdues sur devis refusés (pertes sèches)</div>`:'';
+  const pertesHtml=hRef>2?`<div style="font-size:12px;padding:5px 0 10px;border-bottom:1px solid var(--brd);margin-bottom:6px;color:var(--warn);font-weight:600">⚠ ${fmt(hRef,1)} h perdues sur ${tVocab('items').toLowerCase()} refusé${tVocabMasculin()?'s':'es'} (pertes sèches)</div>`:'';
   const top=cls.slice(0,5),rest=cls.slice(5);
   const sortBtns=`<div style="display:flex;gap:4px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('th')">Par TH</button></div>`;
   return `<div class="card"><div class="card-header"><div class="card-title">Top clients</div>${sortBtns}</div>
@@ -5617,7 +5619,7 @@ function wProjection3Mois(d) {
   const hasData=months.some(m=>m.caTotal>0);
   return `<div class="card">
     <div class="card-header"><div><div class="card-title">🔮 Projection 3 mois</div><div class="card-sub">Basé sur votre activité en cours · taux de transfo ${fmt(txT*100,0)} %</div></div></div>
-    ${hasData?rows:`<div class="empty ts">Ajoutez des missions en cours ou des devis en attente pour activer cette projection.</div>`}
+    ${hasData?rows:`<div class="empty ts">Ajoutez des ${tVocab('items').toLowerCase()} en cours ou en attente pour activer cette projection.</div>`}
   </div>`;
 }
 
@@ -8466,7 +8468,7 @@ function renderChartTemps(hF,hI,hRef=0) {
   ctx.fillStyle=sec; ctx.textAlign='right'; ctx.fillText(`Interne : ${fmt(hI,1)} h (${fmt((1-pF)*100,0)} %)`,bX+bW,bY-6);
   if(hRef>0){
     ctx.fillStyle=err; ctx.textAlign='center'; ctx.font='10px Lato,sans-serif';
-    ctx.fillText(`⚠ Pertes sèches : ${fmt(hRef,1)} h sur devis refusés`,W/2,bY+bH+14);
+    ctx.fillText(`⚠ Pertes sèches : ${fmt(hRef,1)} h sur ${tVocab('items').toLowerCase()} refusé${tVocabMasculin()?'s':'es'}`,W/2,bY+bH+14);
   }
 }
 
