@@ -13,12 +13,9 @@ shared/
 │   ├── calculs.js    — Calculs métier purs (TVA, URSSAF, revenu net, abattement micro, plafonds…)
 │   └── storage.js    — loadData, saveData, migrate, exportData, handleImport
 ├── modes/
-│   ├── freelance.js  — Wrappers DATA + STORAGE_KEY pour le mode Freelance/OBM
-│   └── artisan.js    — Wrappers DATA + STORAGE_KEY + fonctions propres à l'Artisan
+│   └── unified.js    — Wrappers DATA pour le mode unifié (branché sur indepuls.html)
 └── tests/
     ├── abattement_micro.test.js — 44 tests : abattement forfaitaire + plafonds régime micro
-    ├── bridge_smoke.js          — 100 tests : smoke test de chaque export Mode.* appelé par le bridge HTML
-    ├── phase2_sandbox.js        — 4063 comparaisons : branchement réel Freelance + substitution Artisan
     ├── unified_model.test.js    — 19 tests : modèle unifié montantDevis = prestation + vente
     └── validation.js            — 73 tests : alignement core/calculs.js sur les originaux HTML
 ```
@@ -36,12 +33,9 @@ et expose chaque fonction sur `window.*` pour les appels du script principal.
 ## Lancer les tests
 
 ```bash
-node tests.js                              # 56 tests unitaires (core Freelance)
 node shared/tests/abattement_micro.test.js # 44 tests abattement + plafonds micro
 node shared/tests/validation.js            # 73 tests alignement core vs originaux
 node shared/tests/unified_model.test.js    # 19 tests modèle unifié
-node shared/tests/phase2_sandbox.js        # 4063 comparaisons branchement prod
-node shared/tests/bridge_smoke.js          # 100 smoke tests bridge modes/*.js
 ```
 
 ## Domaines couverts
