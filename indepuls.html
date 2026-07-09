@@ -594,9 +594,9 @@ html,body{overflow-x:hidden;}
   <!-- TIMER WIDGET -->
   <div class="sb-timer" id="sb-timer-widget">
     <div class="sb-timer-head">
-      <span class="sb-timer-ico" title="Ce chronomètre est un raccourci rapide : il enregistre le temps passé sur votre activité (gestion, admin, prospection…) et l'ajoute automatiquement à la ligne « Mon entreprise » dans vos missions. Démarrez-le quand vous lancez le logiciel.">⏱</span>
+      <span class="sb-timer-ico" id="sb-timer-ico" title="Ce chronomètre est un raccourci rapide : il enregistre le temps passé sur votre activité (gestion, admin, prospection…) et l'ajoute automatiquement à la ligne « Mon entreprise » dans vos missions. Démarrez-le quand vous lancez le logiciel.">⏱</span>
       <span class="sb-timer-label" id="sb-timer-label">Temps interne</span>
-      <span class="info-tip" title="Lancez ce chrono quand vous travaillez pour votre propre entreprise : gestion, admin, prospection, comptabilité… Ce temps a une valeur réelle. Le suivre vous aide à savoir combien d'heures vous investissez dans votre activité — et si c'est rentable.">?</span>
+      <span class="info-tip" id="sb-timer-tip" title="Lancez ce chrono quand vous travaillez pour votre propre entreprise : gestion, admin, prospection, comptabilité… Ce temps a une valeur réelle. Le suivre vous aide à savoir combien d'heures vous investissez dans votre activité — et si c'est rentable.">?</span>
     </div>
     <div class="sb-timer-sub" id="sb-timer-sub">Tps passé sur mon activité → « Mon entreprise »</div>
     <div class="sb-timer-disp" id="sb-timer-disp"></div>
@@ -8564,11 +8564,15 @@ function sbTimerToggle() {
   if(currentPage==='dashboard') renderDashboard();
 }
 
+const SB_TIMER_ICO_DEFAULT="Ce chronomètre est un raccourci rapide : il enregistre le temps passé sur votre activité (gestion, admin, prospection…) et l'ajoute automatiquement à la ligne « Mon entreprise » dans vos missions. Démarrez-le quand vous lancez le logiciel.";
+const SB_TIMER_TIP_DEFAULT="Lancez ce chrono quand vous travaillez pour votre propre entreprise : gestion, admin, prospection, comptabilité… Ce temps a une valeur réelle. Le suivre vous aide à savoir combien d'heures vous investissez dans votre activité — et si c'est rentable.";
 function updateSbTimer() {
   const disp=document.getElementById('sb-timer-disp');
   const sub=document.getElementById('sb-timer-sub');
   const lbl=document.getElementById('sb-timer-label');
   const btns=document.getElementById('sb-timer-btns');
+  const ico=document.getElementById('sb-timer-ico');
+  const tip=document.getElementById('sb-timer-tip');
   if(!disp||!sub||!btns) return;
   const client=DATA.missions.find(m=>m.timerRunning&&!m.isManagement);
   const mgmt=getMgmtMission();
@@ -8578,6 +8582,12 @@ function updateSbTimer() {
     if(lbl) lbl.textContent=client.client||'Mission';
     sub.textContent='Chrono en cours';
     btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
+    // Tooltips contextuels : sinon "?" décrit toujours le Temps interne, même sur un chrono mission
+    const itemLbl=(tVocab('item')||'mission').toLowerCase();
+    const _fam=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+    const demo=_fam==='chantier'?'ce':'cette'; // accord : "ce chantier" (masc.) vs "cette mission/commande/vente" (fém.)
+    if(ico) ico.title=`Ce chronomètre suit le temps réellement passé sur ${demo} ${itemLbl} (« ${client.client||'sans nom'} »). Il alimente le calcul de votre taux horaire réel.`;
+    if(tip) tip.title=`Ce temps compte directement dans votre taux horaire réel sur ${demo} ${itemLbl} — mettez-le en pause dès que vous changez d'activité.`;
   } else if(mgmt&&mgmt.timerRunning){
     const sessionMs=mgmt.timerStart?Date.now()-mgmt.timerStart:0;
     disp.textContent=heuresMs(sessionMs);
@@ -8585,12 +8595,16 @@ function updateSbTimer() {
     if(lbl) lbl.textContent='Temps interne';
     sub.textContent='Session en cours';
     btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
+    if(ico) ico.title=SB_TIMER_ICO_DEFAULT;
+    if(tip) tip.title=SB_TIMER_TIP_DEFAULT;
   } else {
     disp.textContent='00:00:00';
     disp.className='sb-timer-disp paused';
     if(lbl) lbl.textContent='Temps interne';
     sub.textContent='Session : prête';
     btns.innerHTML=`<button class="sb-timer-btn" onclick="sbTimerToggle()">▶ Démarrer</button>`;
+    if(ico) ico.title=SB_TIMER_ICO_DEFAULT;
+    if(tip) tip.title=SB_TIMER_TIP_DEFAULT;
   }
 }
 
