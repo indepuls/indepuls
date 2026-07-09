@@ -8564,6 +8564,15 @@ function sbTimerToggle() {
   if(currentPage==='dashboard') renderDashboard();
 }
 
+// Met à jour uniquement data-tip (jamais title) : le gestionnaire de clic .info-tip lit
+// data-tip en priorité, et l'absence de title garantit qu'aucun tooltip natif au survol ne
+// peut apparaître — y compris ici où le contenu est réécrit chaque seconde pendant qu'un
+// chrono tourne (remettre title à chaque appel aurait recréé le survol natif à chaque tick).
+function _setInfoTip(el, text) {
+  if (!el) return;
+  el.removeAttribute('title');
+  el.setAttribute('data-tip', text);
+}
 const SB_TIMER_ICO_DEFAULT="Ce chronomètre est un raccourci rapide : il enregistre le temps passé sur votre activité (gestion, admin, prospection…) et l'ajoute automatiquement à la ligne « Mon entreprise » dans vos missions. Démarrez-le quand vous lancez le logiciel.";
 const SB_TIMER_TIP_DEFAULT="Lancez ce chrono quand vous travaillez pour votre propre entreprise : gestion, admin, prospection, comptabilité… Ce temps a une valeur réelle. Le suivre vous aide à savoir combien d'heures vous investissez dans votre activité — et si c'est rentable.";
 function updateSbTimer() {
@@ -8586,8 +8595,8 @@ function updateSbTimer() {
     const itemLbl=(tVocab('item')||'mission').toLowerCase();
     const _fam=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
     const demo=_fam==='chantier'?'ce':'cette'; // accord : "ce chantier" (masc.) vs "cette mission/commande/vente" (fém.)
-    if(ico) ico.title=`Ce chronomètre suit le temps réellement passé sur ${demo} ${itemLbl} (« ${client.client||'sans nom'} »). Il alimente le calcul de votre taux horaire réel.`;
-    if(tip) tip.title=`Ce temps compte directement dans votre taux horaire réel sur ${demo} ${itemLbl} — mettez-le en pause dès que vous changez d'activité.`;
+    _setInfoTip(ico, `Ce chronomètre suit le temps réellement passé sur ${demo} ${itemLbl} (« ${client.client||'sans nom'} »). Il alimente le calcul de votre taux horaire réel.`);
+    _setInfoTip(tip, `Ce temps compte directement dans votre taux horaire réel sur ${demo} ${itemLbl} — mettez-le en pause dès que vous changez d'activité.`);
   } else if(mgmt&&mgmt.timerRunning){
     const sessionMs=mgmt.timerStart?Date.now()-mgmt.timerStart:0;
     disp.textContent=heuresMs(sessionMs);
@@ -8595,16 +8604,16 @@ function updateSbTimer() {
     if(lbl) lbl.textContent='Temps interne';
     sub.textContent='Session en cours';
     btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
-    if(ico) ico.title=SB_TIMER_ICO_DEFAULT;
-    if(tip) tip.title=SB_TIMER_TIP_DEFAULT;
+    _setInfoTip(ico, SB_TIMER_ICO_DEFAULT);
+    _setInfoTip(tip, SB_TIMER_TIP_DEFAULT);
   } else {
     disp.textContent='00:00:00';
     disp.className='sb-timer-disp paused';
     if(lbl) lbl.textContent='Temps interne';
     sub.textContent='Session : prête';
     btns.innerHTML=`<button class="sb-timer-btn" onclick="sbTimerToggle()">▶ Démarrer</button>`;
-    if(ico) ico.title=SB_TIMER_ICO_DEFAULT;
-    if(tip) tip.title=SB_TIMER_TIP_DEFAULT;
+    _setInfoTip(ico, SB_TIMER_ICO_DEFAULT);
+    _setInfoTip(tip, SB_TIMER_TIP_DEFAULT);
   }
 }
 
@@ -9722,6 +9731,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── INFO-TIP : clic pour afficher/masquer ────────────────────
+// Retire systématiquement `title` (→ `data-tip`) sur tout .info-tip dès son insertion dans
+// le DOM — sans ça, le tooltip natif du navigateur peut apparaître au survol avant le tout
+// premier clic (le clic seul retirait `title`, trop tard pour ce cas). Le clic doit rester
+// le seul déclencheur, jamais le survol.
+function _stripInfoTipTitle(el) {
+  if (!el.hasAttribute('title')) return;
+  el.setAttribute('data-tip', el.getAttribute('title'));
+  el.removeAttribute('title');
+}
+document.querySelectorAll('.info-tip[title]').forEach(_stripInfoTipTitle);
+new MutationObserver(muts => {
+  muts.forEach(m => m.addedNodes.forEach(node => {
+    if (node.nodeType !== 1) return;
+    if (node.matches && node.matches('.info-tip[title]')) _stripInfoTipTitle(node);
+    if (node.querySelectorAll) node.querySelectorAll('.info-tip[title]').forEach(_stripInfoTipTitle);
+  }));
+}).observe(document.body, { childList: true, subtree: true });
+
 document.addEventListener('click', function(e) {
   var tip = e.target.closest('.info-tip');
   var existing = document.getElementById('_tip_bubble');
