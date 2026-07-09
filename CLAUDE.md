@@ -53,7 +53,7 @@ Toujours privilégier une phrase compréhensible, une recommandation claire, une
 - Les indicateurs doivent être orientés action
 - **Mobile first** — aucun scroll horizontal autorisé
 - Les conseils doivent être compréhensibles par quelqu'un qui ne connaît rien à la comptabilité
-- **Interface unifiée** : `indepuls.html` est le seul point d'entrée. `indepuls_freelance.html` et `indepuls_artisan.html` sont conservés en archive mais ne sont plus maintenus
+- **Interface unifiée** : `indepuls.html` est le seul point d'entrée. `indepuls_freelance.html` et `indepuls_artisan.html` (archives) ont été supprimés (2026-07) — voir "Nettoyage archives Freelance/Artisan" plus bas
 - La SASU doit afficher des informations orientées rémunération et trésorerie plutôt que revenu net
 - **CA = encaissements réels pour tous les profils**, sans exception. Ne jamais proposer un "CA au devis signé" comme option — les alertes tableau de bord couvrent le cas des factures non encaissées
 
@@ -78,13 +78,8 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 |---|---|
 | `indepuls.html` | **Point d'entrée unique** — app complète tous profils (SCHEMA_VERSION 30) |
 | `index.html` | Redirection automatique vers `indepuls.html` (portail dual-session supprimé) |
-| `indepuls_freelance.html` | Archive mode freelance (SCHEMA_VERSION 29) — ne plus maintenir |
-| `indepuls_artisan.html` | Archive mode artisan (SCHEMA_VERSION 29) — ne plus maintenir |
 | `shared/modes/unified.js` | Pont ESM pour `indepuls.html` — STORAGE_KEY='indepuls', SCHEMA_VERSION=30 |
-| `shared/modes/freelance.js` | Pont ESM Freelance (conservé pour `indepuls_freelance.html`) |
-| `shared/modes/artisan.js` | Pont ESM Artisan (conservé pour `indepuls_artisan.html`) |
 | `vercel.json` | Config déploiement Vercel |
-| `tests.js` | Suite de tests principale (VM Node.js) — 56 tests Freelance |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
 | `shared/core/calculs.js` | ~580 lignes, 54 fonctions exportées — calculs financiers uniquement |
 | `shared/core/affaires.js` | Rentabilité unitaire par affaire : dépenses liées, marge, TH réel, agrégations portefeuille |
@@ -92,11 +87,9 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | `shared/core/taux.js` | Référentiel fiscal 2026 (TVA, URSSAF, abattements, plafonds micro) |
 | `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` |
 | `shared/tests/abattement_micro.test.js` | 44 tests ESM — abattements, plafonds micro, prorata |
-| `shared/tests/planning.test.js` | 61 tests ESM — moteur Planning, tous modes, valeurs limites |
-| `shared/tests/bridge_smoke.js` | 102 tests — vérifie que chaque window.* appelé par le HTML existe |
+| `shared/tests/planning.test.js` | 73 tests ESM — moteur Planning, tous modes, valeurs limites |
 | `shared/tests/validation.js` | 73 tests — compare fonctions HTML locales vs core |
-| `shared/tests/unified_model.test.js` | 19 tests — modèle `montantDevis = prestation + vente` |
-| `shared/tests/phase2_sandbox.js` | 4 063 comparaisons Freelance bridge vs core direct |
+| `shared/tests/unified_model.test.js` | 26 tests — modèle `montantDevis = prestation + vente` |
 | `.gitignore` | Exclut `.claude/` (fichiers de dev local) |
 
 ## Déploiement
@@ -116,14 +109,14 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 
 ## Architecture du pont HTML ↔ modules ESM (bridge pattern)
 
-Chaque fichier HTML contient, en bas du `<body>`, un bloc `<script type="module">` qui :
-1. Importe le module ESM du mode (`shared/modes/freelance.js` ou `artisan.js`)
+`indepuls.html` contient, en bas du `<body>`, un bloc `<script type="module">` qui :
+1. Importe le module ESM du mode (`shared/modes/unified.js`)
 2. Appelle `Mode.setData(DATA)` pour synchroniser les données du module avec `DATA` global
 3. Expose les fonctions du module sur `window.*` pour que le script principal (non-module) puisse les appeler
 
 ```js
-// Exemple — bloc bridge en bas de indepuls_freelance.html
-import * as Mode from './shared/modes/freelance.js';
+// Exemple — bloc bridge en bas de indepuls.html
+import * as Mode from './shared/modes/unified.js';
 
 function sync() { Mode.setData(DATA); } // à appeler avant tout usage du mode
 
@@ -217,24 +210,10 @@ fmtE(val, dec)              // formatage €
 saveData()                  // persist DATA en localStorage
 ```
 
-## Divergences archives Artisan / Freelance
-
-Ces divergences existent dans les fichiers archivés (`indepuls_freelance.html` / `indepuls_artisan.html`). Dans `indepuls.html`, elles sont résolues.
-
-| Point | Freelance (archive) | Artisan (archive) | indepuls.html (unifié) |
-|---|---|---|---|
-| Shape de `getCaBreakdownMois` | `{presta, vente}` | `{prestation, vente, total}` | Logique freelance (`{presta, vente}`) via `unified.js` |
-| `window.isActiviteMixte` | Disponible dans le bridge | **Absent** — utiliser `DATA.params.activiteMixte` | Disponible via `unified.js` |
-| CA mensuel | Encaissements réels | Encaissements réels | Encaissements réels (identique) |
-| Bilan mensuel | Non | Oui (`DATA.bilanDismissed`) | Non (logique freelance) |
-
-**Bug historique** (juin 2026) : `isActiviteMixte()` appelé dans `wProvisionsSide` du HTML artisan → dashboard blanc. Corrigé en remplaçant l'appel par `DATA.params.activiteMixte`.
-
 ## SCHEMA_VERSION
 
 - `indepuls.html` est à `SCHEMA_VERSION = 30` (juin 2026 — fusion interfaces, clé localStorage unifiée `indepuls`)
 - `shared/modes/unified.js` porte aussi la version 30
-- Les archives (`indepuls_freelance.html`, `indepuls_artisan.html`, `shared/modes/freelance.js`, `shared/modes/artisan.js`) restent à 29 — ne pas les modifier
 - `migrate()` dans `storage.js` est **idempotent** (pas de blocs conditionnels par version) — incrémenter la constante ne cause pas de migration risquée, mais reste nécessaire pour marquer un changement de structure `DATA`
 - À incrémenter dans **2 endroits** : `indepuls.html` + `shared/modes/unified.js`
 
@@ -244,15 +223,13 @@ Ces divergences existent dans les fichiers archivés (`indepuls_freelance.html` 
 # Depuis C:\Users\alexb\OneDrive\Bureau\Indépuls\indepuls-repo
 $node = "C:\Program Files\nodejs\node.exe"
 
-& $node tests.js                                          # 56 tests Freelance (VM HTML)
 & $node --experimental-vm-modules shared/tests/abattement_micro.test.js  # 44 tests abattements
-& $node shared/tests/bridge_smoke.js                      # 100 tests bridge smoke
 & $node shared/tests/validation.js                        # 73 tests comparaison HTML/core
-& $node shared/tests/unified_model.test.js                # 19 tests modèle unifié
-& $node shared/tests/phase2_sandbox.js                    # 4 063 comparaisons sandbox
+& $node shared/tests/unified_model.test.js                # 26 tests modèle unifié
+& $node shared/tests/planning.test.js                     # 73 tests moteur Planning
 ```
 
-Total : environ **4 355 assertions** couvrant calculs, bridge, migrations, et règles fiscales 2026.
+Total : environ **216 assertions** couvrant calculs, migrations, planning et règles fiscales 2026.
 
 ## Architecture du dashboard (freelance & artisan)
 
@@ -429,11 +406,17 @@ ARCH_INSIGHT_GENERATORS       // tableau extensible pour futures analyses (sourc
 - **Fix vocabulaire "devis" — vague 2 (2026-07)** : 8 occurrences supplémentaires repérées par retour bêta-testeuse, laissant croire à une fonctionnalité de gestion de devis inexistante. (1) En-tête colonne du tableau Missions `<th>Devis</th>` → `<th>Montant</th>` (colonne affiche `montantDevis`/`montantMensuel`, jamais un devis à proprement parler). (2) Texte d'onboarding étape 3 (`#onboarding-step3-desc`) — "dès l'émission du devis" → "dès la création de votre {item}", rendu dynamique dans `applyVocabUI()` comme son titre voisin (`#onboarding-step3-title`). (3) Glossaire "Taux de transformation" reformulé en langage mission générique (le glossaire entier est statique, non adapté par profil — cohérence gardée avec les autres entrées comme "Pertes sèches" qui disent déjà "missions"). (4) Modal bienvenue démo : "Tester le simulateur, des devis, des missions…" → "Tester le simulateur, ajouter des missions…" (ne liste plus "devis" comme fonctionnalité séparée). (5) Modal changement de profil : mention "devis" retirée de la liste des réglages appliqués — `modules.devis` n'est plus lu nulle part dans `indepuls.html` (vérifié par recherche), ne gate plus rien. (6) Description du profil `creatif_com` (présente 2 fois, `PROFIL_DESCRIPTIONS` et un second objet de descriptions ~ligne 3211) : "Indépuls suit vos devis" → "Indépuls suit vos missions" — texte en dur volontairement (chaque entrée de ces objets est une prose fixe par profil, pas vocab-ifiée ailleurs dans ce même objet, ex. `artisan_batiment` dit déjà "chantiers" en dur). (7) `wProjection3Mois()` : "des missions en cours ou des devis en attente" → `${tVocab('items').toLowerCase()} en cours ou en attente`. (8) "X h perdues sur devis refusés (pertes sèches)" — les deux occurrences (`wRentabClients()` en HTML + `ctx.fillText` du graphique canvas répartition temps) rendues dynamiques : `${tVocab('items').toLowerCase()} refusé${tVocabMasculin()?'s':'es'}`.
   - **Non touché, volontairement** : mêmes principes qu'en vague 1 — `montantDevis` (nom de champ technique), libellés "Montant du devis (€ HT)" (formulaire mission + Simulateur), textes TVA/versements expliquant le fonctionnement des encaissements, placeholders de champ de référence libre ("Devis signé…"), catégorie libre "Conseil / Devis" (catégorie choisie par l'utilisateur, pas une fonctionnalité), données de démo, Simulateur ("Tester un devis", `calcDevis()`, `devis-result`), `modules.devis` (champ conservé en donnée mais plus lu), widget "motif de refus" (`wMotifsRefus`, "1 devis refusé renseigné — motif") non listé dans cette vague.
   - **Règle de vocabulaire consolidée** : "devis" et "facture" restent des mots parfaitement valides dans Indépuls pour désigner un **montant**, une **référence** (ex. "Devis signé" dans un champ de référence libre), ou le **Simulateur** ("Tester un devis" = simulateur de rentabilité, une fonctionnalité réelle). Ce qui est proscrit, c'est de laisser entendre qu'Indépuls **gère des devis comme entité** (création, liste, statut de devis séparé d'une mission) — l'app ne gère que missions/chantiers/commandes/ventes avec un statut. Ne pas partir en croisade pour retirer tout "devis"/"facture" du fichier : vérifier au cas par cas si le mot décrit une fonctionnalité inexistante avant de le remplacer.
+- **Nettoyage archives Freelance/Artisan (2026-07)** : `indepuls_freelance.html`, `indepuls_artisan.html`, `shared/modes/freelance.js`, `shared/modes/artisan.js` supprimés — morts depuis la fusion (2026-06), non liés depuis `index.html`, aucune dépendance depuis `indepuls.html` (qui n'importe que `shared/modes/unified.js`) ni depuis `shared/core/*.js`. Supprimés avec eux : `tests.js` (racine, chargeait `indepuls_freelance.html` en VM), `shared/tests/bridge_smoke.js` (smoke test de `modes/freelance.js`+`modes/artisan.js` contre les 2 HTML archivés), `shared/tests/phase2_sandbox.js` (comparaisons vs les 2 HTML archivés en VM). Suites de tests restantes, autonomes vis-à-vis des archives : `validation.js` (73 tests), `unified_model.test.js` (26 tests), `abattement_micro.test.js` (44 tests), `planning.test.js` (73 tests) — toutes vertes après suppression.
+  - **~46 commentaires obsolètes corrigés** dans `indepuls.html` : le pattern `// {fn} → branchée sur core/calculs.js via modes/freelance.js (voir le bloc module en fin de fichier)` datait de l'architecture pré-fusion — remplacé par `via modes/unified.js` (recherche globale, tous identiques mot pour mot, vérifiés avant remplacement en masse). Le commentaire d'en-tête du bloc bridge (`<script type="module">`, fin de fichier) a été réécrit entièrement (comptages de tests obsolètes, framing "Freelance/Artisan" au lieu d'unifié).
+  - **`shared/README.md`** mis à jour : section Structure (`modes/unified.js` au lieu de `freelance.js`/`artisan.js`, tests retirés de la liste), section "Lancer les tests" (3 commandes au lieu de 6).
+  - **Non touché, volontairement** : `shared/core/calculs.js` contient encore quelques commentaires mentionnant `modes/freelance.js`/`modes/artisan.js` (lignes ~6, ~165-171) — expliquent une divergence de forme historique (`{presta, vente}` vs `{prestation, vente, total}`) toujours pertinente pour comprendre le choix de shape actuel de `getCaBreakdownMois`, hors du périmètre de ce nettoyage (non demandé, pas un fichier supprimé).
+  - **LocalStorage `'indepuls_freelance'`/`'indepuls_artisan'`** (`indepuls.html`, logique de migration ~ligne 3480-3570 + script inline ~ligne 584) : **ne pas confondre avec les fichiers supprimés** — ce sont des noms de clés localStorage historiques, utilisés pour détecter et migrer les données d'utilisateurs qui avaient encore l'ancienne app séparée dans leur navigateur. Ne jamais supprimer cette logique, elle n'a aucun rapport avec les archives HTML/JS retirées.
+  - **Vérification** : `grep -rn "modes/freelance\|modes/artisan\|indepuls_freelance\|indepuls_artisan"` ne renvoie plus, dans le code exécutable, que ces clés localStorage légitimes + un commentaire historique dans `calculs.js` — confirmé sans faux négatif avant de considérer la tâche terminée. `index.html` et `vercel.json` ne référençaient déjà aucun des fichiers supprimés.
 
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
-`indepuls_freelance.html` et `indepuls_artisan.html` sont des archives. Ne plus les modifier. Tout bug ou feature va dans `indepuls.html` + `shared/core/` uniquement.
+`indepuls_freelance.html` et `indepuls_artisan.html` (archives) ont été supprimés (2026-07, voir "Nettoyage archives Freelance/Artisan" plus bas). Tout bug ou feature va dans `indepuls.html` + `shared/core/` uniquement.
 
 ### Module Affaires — `shared/core/affaires.js`
 
@@ -486,8 +469,6 @@ Le domaine Planning est **séparé de `calculs.js`** (qui reste centré sur les 
 Si la structure de `DATA` change (nouveau champ dans `params`, nouveau tableau, etc.) :
 1. `indepuls.html` — constante en haut du script principal
 2. `shared/modes/unified.js` — constante `SCHEMA_VERSION`
-
-Ne pas modifier les archives (`indepuls_freelance.html`, `indepuls_artisan.html`, `freelance.js`, `artisan.js`).
 
 ### `DATA.params.modules` — objet de comportement par profil
 Depuis v29, les flags comportementaux sont regroupés dans `DATA.params.modules` :
@@ -611,8 +592,8 @@ Dans les simulateurs (`calcSimulateur`, `calcDevis`) : base = montant HT total d
 Relancer au minimum :
 ```powershell
 $node = "C:\Program Files\nodejs\node.exe"
-& $node tests.js                      # régression calculs Freelance
-& $node shared/tests/bridge_smoke.js  # vérifie que chaque window.* existe encore
+& $node shared/tests/validation.js         # régression calculs vs originaux HTML
+& $node shared/tests/unified_model.test.js # modèle unifié montantDevis
 ```
 
 ## Système de vocabulaire métier
@@ -632,7 +613,7 @@ Le vocabulaire affiché s'adapte automatiquement au métier sélectionné dans P
 **Règle de positionnement des modules (2026-06)** : module violet = "Je vends mon temps / expertise / prestation" → freelance ; module orange = "Je réalise des chantiers / commandes / fabrications avec achats de matières" → artisan. Traiteur et fleuriste → artisan (famille `chantier`, vocabulaire "Chantier"). Rédacteur → freelance (famille `service`, même logique qu'un consultant). Ferronnier → artisan (famille `fabrication`, logique fabrication sur mesure).
 
 ### Mapping métier → famille (`BUSINESS_PROFILE_MAP`)
-Objet centralisé dans chaque HTML (clés normalisées : `obm`, `coach`, `macon`, `fabricant`, etc.). Les deux fichiers HTML doivent toujours avoir le même `BUSINESS_PROFILE_MAP` — synchroniser manuellement à chaque ajout de métier.
+Objet centralisé dans `indepuls.html` (clés normalisées : `obm`, `coach`, `macon`, `fabricant`, etc.).
 
 ### Fonction helper
 ```js
@@ -642,7 +623,7 @@ function tVocab(key) {
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
 }
 ```
-`DEFAULT_FAMILY = 'service'` dans `indepuls.html` et `indepuls_freelance.html`, `'chantier'` dans `indepuls_artisan.html`.
+`DEFAULT_FAMILY = 'service'` dans `indepuls.html`.
 
 ### Migration automatique
 `migrateMetierParam()` convertit les anciennes valeurs affichées (ex : `"Coach"`, `"Maçon"`) en clés normalisées (`"coach"`, `"macon"`) au premier chargement, sans perte de données.
@@ -684,18 +665,15 @@ Ne jamais utiliser la famille pour décider du comportement — utiliser `module
 ### 1. Suivi des déclarations URSSAF *(priorité haute)*
 Les micro-entrepreneurs déclarent leur CA et paient leurs cotisations chaque trimestre (ou mois s'ils ont opté pour le mensuel). Aujourd'hui Indépuls calcule les provisions mais n'indique pas *quand* déclarer ni combien exactement. Une page ou un widget "Prochaine déclaration URSSAF" avec le CA cumulé de la période et le montant à payer aurait une forte valeur pratique. À implémenter dans `calculs.js` (les données sont déjà disponibles).
 
-### 2. Tests Artisan dans `tests.js` *(priorité haute)*
-La suite principale (`tests.js`, 56 tests) ne couvre que le Freelance via un contexte VM qui charge `indepuls_freelance.html`. L'Artisan n'a pas d'équivalent — seul `bridge_smoke.js` vérifie que les fonctions existent. Un bug de calcul artisan peut passer inaperçu. Écrire `tests_artisan.js` sur le même modèle (VM + `indepuls_artisan.html`) en priorité.
-
-### 3. Mode Artisan enrichi *(moyen terme)*
-L'Artisan actuel est une adaptation du Freelance. Les besoins spécifiques BTP non couverts :
+### 3. Besoins spécifiques BTP (profil `chantier`) *(moyen terme)*
+Le profil `chantier` (famille artisan bâtiment) est une adaptation du modèle générique. Besoins spécifiques BTP non couverts :
 - Planning chantiers avec jalons (devis → acompte → solde)
 - Gestion des sous-traitants (impact sur la marge)
 - Suivi des retenues de garantie
-Ces fonctionnalités iraient dans `shared/modes/artisan.js` et des widgets dédiés dans le HTML artisan.
+Ces fonctionnalités iraient dans `shared/core/` (nouvelle logique métier) + widgets dédiés dans `indepuls.html`, conditionnés par famille/`modules.*` comme le reste de l'app.
 
 ### 4. Export / bilan mensuel PDF *(moyen terme)*
-Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions, revenu net. Utile pour les rendez-vous comptables. Faisable en JS pur via `window.print()` avec une CSS `@media print` dédiée, sans dépendance externe. Serait commun aux deux modes.
+Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions, revenu net. Utile pour les rendez-vous comptables. Faisable en JS pur via `window.print()` avec une CSS `@media print` dédiée, sans dépendance externe. Commun à tous les profils.
 
 ### 5. Synchronisation bancaire *(long terme)*
 Connexion à un agrégateur bancaire (Bridge API, Powens…) pour réconcilier automatiquement les encaissements avec les missions. Impact fort sur la qualité des données artisan (aujourd'hui saisie manuelle des encaissements). Nécessite un backend — hors portée du vanilla actuel.
