@@ -5379,10 +5379,11 @@ function wScoreSante(d) {
     const _soldeLabel=_anchor
       ?`Basé sur votre solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} (${fmtE(_soldeActuel,0)})`
       :`Solde actuel estimé : ${fmtE(_soldeActuel,0)} — depuis la trésorerie de départ`;
-    extraTresoHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--tl);margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px">
+    extraTresoHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--tl);margin-bottom:6px;padding:8px 10px;background:var(--bg);border-radius:6px">
       <span>${_soldeLabel}</span>
       <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--tl);flex-shrink:0" title="Saisir mon solde bancaire actuel">✏️</button>
-    </div>`;
+    </div>
+    <div style="font-size:10px;color:var(--tl);opacity:.85;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>`;
     _tresoExtraRows=[
       {lbl:'Trésorerie prévisionnelle fin '+DATA.currentYear, val:fmtE(_proj,0), c:_proj<0?'var(--err)':_proj<_depMoy?'var(--warn)':'var(--ok)'},
       {lbl:_anchor?'Solde réel':'Solde estimé', val:fmtE(_soldeActuel,0), c:'var(--tl)'},
@@ -7975,6 +7976,7 @@ function renderSasuCard(d) {
     </div>
     <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${msgPrincipal}</div>
     <div class="alert ${statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err'}" style="font-size:12px;margin-bottom:10px">${msgProjection}</div>
+    <div class="alert al-info" style="font-size:11px;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>
     <div style="border-top:1px solid var(--brd);padding-top:10px">
       <div style="font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="var p=document.getElementById('${detailId}');var open=p.style.display!=='none';p.style.display=open?'none':'block';this.querySelector('span').textContent=open?'Voir le détail du calcul →':'Masquer le détail ↑'">
         <span>Voir le détail du calcul →</span>
