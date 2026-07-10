@@ -5593,7 +5593,7 @@ function wScoreSante(d) {
   } else if(worst.n==='trésorerie'&&moyensArr.length>0){
     const m0=moyensArr[0];
     priorite=`Relancer <strong>${esc(m0.m.client)}</strong> — ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
-  } else if(worst.n==='commercial'){
+  } else if(worst.n==='horizon'){
     if(attM.length>0){
       const oldest=[...attM].sort((a,b)=>(a.dateFact||'z')<(b.dateFact||'z')?-1:1)[0];
       priorite=`Relancer ${tVocabMasculin()?'le':'la'} ${tVocab('item').toLowerCase()} <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
