@@ -7960,12 +7960,9 @@ function renderSasuCard(d) {
     <span style="font-weight:700">${sign}${val}</span>
   </div>`;
   const soldeLabel=anchor?`Solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')}`:'Solde actuel estimé';
-  // Chaîne visible en un coup d'œil : départ → aujourd'hui → fin d'année. Un solde réel saisi
-  // remplace l'estimation (n'en découle PAS mathématiquement) — la chaîne ne relie donc que
-  // réel → projection quand il est présent, sans laisser croire que le départ y mène.
-  const chaineTreso=anchor
-    ?`Solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} : <strong>${fmtE(soldeBase,0)}</strong> → <strong>${fmtE(tresoEstimee,0)}</strong> fin d'année`
-    :`${fmtE(depart,0)} au départ → <strong>${fmtE(soldeBase,0)}</strong> aujourd'hui (estimé) → <strong>${fmtE(tresoEstimee,0)}</strong> fin d'année`;
+  // Pas de rappel "X € au départ → Y € aujourd'hui → Z € fin d'année" ici : cette chaîne est
+  // déjà affichée sur la carte du pilier Trésorerie (Score Santé) juste au-dessus — l'y
+  // dupliquer alourdissait la carte sans apporter d'info nouvelle.
 
   return `<div class="card" style="border-left:4px solid ${accentC}">
     <div class="card-header">
@@ -7974,7 +7971,7 @@ function renderSasuCard(d) {
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--brd)">
       <div style="font-size:11px;color:var(--tl)">Rémunération cible</div>
-      <div style="font-size:13px;color:var(--text)"><strong>${fmtE(remuNet,0)}</strong>/mois nets · <span style="cursor:pointer;color:var(--acc)" onclick="navigate('params')">Paramètres</span></div>
+      <div style="font-size:13px;color:var(--text)"><strong>${fmtE(remuNet,0)}</strong>/mois nets · <span style="cursor:pointer;color:var(--acc)" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Paramètres</span></div>
     </div>
     <div style="margin-bottom:12px">
       <div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:4px">Rémunération idéale possible</div>
@@ -7982,13 +7979,12 @@ function renderSasuCard(d) {
       <div style="font-size:12px;color:var(--tl);margin-top:5px">${fmtE(capaciteMensuelle,0)} bruts/mois — soit <strong style="color:${accentC}">${ecartNet>=0?'+':''}${fmtE(ecartNet,0)}</strong> d'écart avec votre cible</div>
     </div>
     ${msgPrincipal?`<div style="font-size:12px;color:var(--text);line-height:1.5;margin-bottom:8px">${msgPrincipal}</div>`:''}
-    <div class="alert ${badgeCls}" style="font-size:12px;margin-bottom:10px">${msgProjection}</div>
-    <div style="font-size:11px;color:var(--tl);margin-bottom:6px">${chaineTreso}</div>
-    <div class="alert al-info" style="font-size:11px;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>
+    <div class="alert ${badgeCls}" style="font-size:12px;margin-bottom:10px"><span>${msgProjection}</span></div>
     <div style="border-top:1px solid var(--brd);padding-top:10px">
       <div style="font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="var p=document.getElementById('${detailId}');var open=p.style.display!=='none';p.style.display=open?'none':'block';this.querySelector('span').textContent=open?'Voir le détail du calcul →':'Masquer le détail ↑'">
         <span>Voir le détail du calcul →</span>
       </div>
+      <div style="font-size:10px;color:var(--tl);opacity:.8;margin-top:5px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>
       <div id="${detailId}" style="display:none;margin-top:10px;border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
         ${!anchor?row('Solde au 1er janvier (départ)',fmtE(depart,0),''):''}
         ${row(soldeLabel,fmtE(soldeBase),'')}
