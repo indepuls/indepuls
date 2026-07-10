@@ -5376,15 +5376,20 @@ function wScoreSante(d) {
     }
     const _anchor=DATA.params.soldeReel!=null;
     const _soldeActuel=_anchor?DATA.params.soldeReel:getSasuSoldeActuelEstime();
+    const _depart=getTresorerieDepart();
+    // Chaîne visible en un coup d'œil : départ → aujourd'hui → fin d'année. Si un solde réel
+    // est saisi, il remplace l'estimation (n'en découle PAS mathématiquement) — la chaîne ne
+    // relie donc que réel → projection, sans laisser croire que le départ théorique y mène.
     const _soldeLabel=_anchor
-      ?`Basé sur votre solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} (${fmtE(_soldeActuel,0)})`
-      :`Solde actuel estimé : ${fmtE(_soldeActuel,0)} — depuis la trésorerie de départ`;
+      ?`Solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} : <strong>${fmtE(_soldeActuel,0)}</strong> → <strong>${fmtE(_proj,0)}</strong> fin d'année`
+      :`${fmtE(_depart,0)} au départ → <strong>${fmtE(_soldeActuel,0)}</strong> aujourd'hui (estimé) → <strong>${fmtE(_proj,0)}</strong> fin d'année`;
     extraTresoHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--tl);margin-bottom:6px;padding:8px 10px;background:var(--bg);border-radius:6px">
       <span>${_soldeLabel}</span>
       <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--tl);flex-shrink:0" title="Saisir mon solde bancaire actuel">✏️</button>
     </div>
     <div style="font-size:10px;color:var(--tl);opacity:.85;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>`;
     _tresoExtraRows=[
+      ...(!_anchor?[{lbl:'Solde au 1er janvier (départ)', val:fmtE(_depart,0), c:'var(--tl)'}]:[]),
       {lbl:'Trésorerie prévisionnelle fin '+DATA.currentYear, val:fmtE(_proj,0), c:_proj<0?'var(--err)':_proj<_depMoy?'var(--warn)':'var(--ok)'},
       {lbl:_anchor?'Solde réel':'Solde estimé', val:fmtE(_soldeActuel,0), c:'var(--tl)'},
       {lbl:'Dépenses + rémunération moy./mois', val:fmtE(_depMoy,0), c:'var(--tl)'},
@@ -7891,6 +7896,7 @@ function renderSasuCard(d) {
   const depAvg=pastMonths.reduce((s,mk)=>s+getDepensesMois(mk),0)/n;
   const anchor=DATA.params.soldeReel!=null;
   const soldeBase=anchor?DATA.params.soldeReel:getSasuSoldeActuelEstime();
+  const depart=getTresorerieDepart();
   const remuNet=DATA.params.remunerationNette||0;
   const _statutLabel=DATA.params.statut==='eurl'?'EURL':'SASU';
   if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
@@ -7948,6 +7954,12 @@ function renderSasuCard(d) {
     <span style="font-weight:700">${sign}${val}</span>
   </div>`;
   const soldeLabel=anchor?`Solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')}`:'Solde actuel estimé';
+  // Chaîne visible en un coup d'œil : départ → aujourd'hui → fin d'année. Un solde réel saisi
+  // remplace l'estimation (n'en découle PAS mathématiquement) — la chaîne ne relie donc que
+  // réel → projection quand il est présent, sans laisser croire que le départ y mène.
+  const chaineTreso=anchor
+    ?`Solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} : <strong>${fmtE(soldeBase,0)}</strong> → <strong>${fmtE(tresoEstimee,0)}</strong> fin d'année`
+    :`${fmtE(depart,0)} au départ → <strong>${fmtE(soldeBase,0)}</strong> aujourd'hui (estimé) → <strong>${fmtE(tresoEstimee,0)}</strong> fin d'année`;
 
   return `<div class="card" style="border-left:4px solid ${accentC}">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
@@ -7976,12 +7988,14 @@ function renderSasuCard(d) {
     </div>
     <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${msgPrincipal}</div>
     <div class="alert ${statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err'}" style="font-size:12px;margin-bottom:10px">${msgProjection}</div>
+    <div style="font-size:11px;color:var(--tl);margin-bottom:6px">${chaineTreso}</div>
     <div class="alert al-info" style="font-size:11px;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>
     <div style="border-top:1px solid var(--brd);padding-top:10px">
       <div style="font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="var p=document.getElementById('${detailId}');var open=p.style.display!=='none';p.style.display=open?'none':'block';this.querySelector('span').textContent=open?'Voir le détail du calcul →':'Masquer le détail ↑'">
         <span>Voir le détail du calcul →</span>
       </div>
       <div id="${detailId}" style="display:none;margin-top:10px;border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
+        ${!anchor?row('Solde au 1er janvier (départ)',fmtE(depart,0),''):''}
         ${row(soldeLabel,fmtE(soldeBase),'')}
         ${row(`CA projeté (moy. ${fmtE(caAvg,0)}/mois × ${moisRestants} mois restant${moisRestants>1?'s':''})`,fmtE(Math.round(caAvg*moisRestants),0),'+')}
         ${row(`Dépenses projetées (moy. ${fmtE(depAvg,0)}/mois × ${moisRestants})`,fmtE(Math.round(depAvg*moisRestants),0),'−')}
