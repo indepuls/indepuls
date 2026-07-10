@@ -4243,12 +4243,14 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
   // ── Zones fixes (non personnalisables) ───────────────────────
   let fixed = '';
   fixed += '<div class="w-mb">'+wScoreSante(d)+'</div>';
-  if(isSASU()) fixed += '<div class="w-mb">'+renderSasuCard(d)+'</div>';
 
   // ── Trajectoire annuelle + Répartition/Provisions (2 colonnes) ──
+  // Colonne droite : Rémunération recommandée (SASU/EURL seulement) en tête, puis
+  // Répartition CA + Provisions — même gabarit de carte pour les trois.
+  const rightCol=(isSASU()?renderSasuCard(d):'')+wRepartitionCA(d)+wProvisionsSide(d);
   const bottomRow=`<div class="w-mb"><div class="g2-traj">
     ${wTrajectoireAnnuelle(d)}
-    <div style="display:flex;flex-direction:column;gap:16px">${wRepartitionCA(d)}${wProvisionsSide(d)}</div>
+    <div style="display:flex;flex-direction:column;gap:16px">${rightCol}</div>
   </div></div>`;
 
   // ── Card bilan mensuel (1er du mois) ─────────────────────────
@@ -7899,7 +7901,7 @@ function renderSasuCard(d) {
   const depart=getTresorerieDepart();
   const remuNet=DATA.params.remunerationNette||0;
   const _statutLabel=DATA.params.statut==='eurl'?'EURL':'SASU';
-  if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
+  if(remuNet===0) return `<div class="card"><div class="card-header"><div class="card-title">🏦 Rémunération recommandée</div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
   const coutRemuMensuel=getSasuCoutRemuMensuel();
   // TVA encore due d'ici la fin de l'année (pas la TVA annuelle totale — voir
   // getTvaAVenirFinAnnee() : un encours qui tourne, pas une dette qui s'accumule).
@@ -7924,27 +7926,31 @@ function renderSasuCard(d) {
   const badgeLbl=statut==='ok'?'🟢 Soutenable':statut==='warn'?'🟠 Fragile':'🔴 Non soutenable';
   const badgeCls=statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err';
 
-  // Messages dynamiques
-  let msgPrincipal, msgProjection;
+  // Messages dynamiques. Le chiffre net (capaciteNetteEquiv) et l'écart (ecartNet) sont déjà
+  // affichés en gros dans le bloc "Rémunération idéale possible" ci-dessous — msgPrincipal ne
+  // répète plus ces chiffres, il n'apporte que de l'information qui n'y figure pas encore.
+  let msgPrincipal='', msgProjection;
   if(statut==='ok'){
-    // Marge affichée en net (comparable à la rémunération cible) — moisTenue/moisAvantNeg
-    // ci-dessous restent en brut : ils comparent à soldeBase, une trésorerie d'entreprise.
     const margeAnNet=Math.round(ecartNet*12);
-    msgPrincipal=`Votre activité couvre actuellement votre rémunération cible. Marge de sécurité : <strong>+${fmtE(ecartNet,0)}/mois</strong> — soit <strong>${fmtE(margeAnNet)} de réserve annuelle</strong>.`;
+    msgPrincipal=`Soit <strong>${fmtE(margeAnNet)} de réserve annuelle</strong> à ce rythme.`;
     msgProjection=`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--ok)">${fmtE(tresoEstimee)}</strong>.`;
-  } else if(statut==='warn'){
-    const manque=Math.abs(ecart); // brut — pilote moisTenue (trésorerie de l'entreprise)
-    const manqueNet=Math.abs(ecartNet); // affiché — cohérent avec la carte "Écart"
-    const moisTenue=soldeBase>0?Math.floor(soldeBase/manque):0;
-    msgPrincipal=`Votre rémunération est actuellement soutenue grâce à votre trésorerie disponible. Il manque <strong>${fmtE(manqueNet,0)}/mois</strong> — surveillez votre niveau d'activité.`;
-    msgProjection=moisTenue>0?`À activité constante, votre trésorerie tient encore <strong>${moisTenue} mois</strong>. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--warn)">${fmtE(tresoEstimee)}</strong>.`:`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--warn)">${fmtE(tresoEstimee)}</strong>.`;
   } else {
-    const caManquant=Math.round(Math.abs(ecart)*12);
-    const moisAvantNeg=soldeBase>0&&ecart<0?Math.floor(soldeBase/Math.abs(ecart)):0;
-    msgPrincipal=capaciteBrute<=0
-      ?`Votre activité actuelle ne permet pas de dégager une rémunération — vos dépenses dépassent vos encaissements. Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour couvrir vos charges et vous verser une rémunération.`
-      :`Votre rémunération actuelle n'est pas compatible avec le niveau d'activité observé. Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour maintenir votre rémunération cible.`;
-    msgProjection=moisAvantNeg>0?`À activité constante, votre trésorerie deviendra négative dans <strong>${moisAvantNeg} mois</strong>. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--err)">${fmtE(tresoEstimee)}</strong>.`:`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--err)">${fmtE(tresoEstimee)}</strong>.`;
+    // Le badge (statut) se base sur l'écart mensuel structurel (capacité vs rémunération),
+    // tandis que le pilier Trésorerie se base sur la projection fin d'année (getSasuProjectionFinAnnee,
+    // qui tient compte du solde déjà en caisse). Les deux peuvent diverger sans se contredire :
+    // le solde actuel peut absorber un écart structurel non soutenable, pendant un temps limité.
+    // manque/moisCoussin quantifient ce "pendant un temps limité" pour l'expliciter à l'écran.
+    const manque=Math.abs(ecart); // brut, mensuel — le badge est déjà calibré dessus
+    const moisCoussin=soldeBase>0?Math.floor(soldeBase/manque):0;
+    if(statut==='err'){
+      const caManquant=Math.round(Math.abs(ecart)*12);
+      msgPrincipal=capaciteBrute<=0
+        ?`Vos dépenses dépassent vos encaissements — il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour couvrir vos charges et vous verser une rémunération.`
+        :`Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour maintenir votre rémunération cible.`;
+    }
+    msgProjection=(tresoEstimee>=0&&moisCoussin>0)
+      ?`Le pilier Trésorerie reste serein cette année — votre solde actuel absorbe l'écart. Mais à ce rythme, ce coussin s'épuisera dans environ <strong>${moisCoussin} mois</strong> si rien ne change. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:${accentC}">${fmtE(tresoEstimee)}</strong>.`
+      :`Votre trésorerie ne suffit plus à absorber cet écart à ce rythme. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:${accentC}">${fmtE(tresoEstimee)}</strong>.`;
   }
 
   // Détail accordéon
@@ -7962,32 +7968,21 @@ function renderSasuCard(d) {
     :`${fmtE(depart,0)} au départ → <strong>${fmtE(soldeBase,0)}</strong> aujourd'hui (estimé) → <strong>${fmtE(tresoEstimee,0)}</strong> fin d'année`;
 
   return `<div class="card" style="border-left:4px solid ${accentC}">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <div>
-        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:3px">🏦 Santé financière de la société</div>
-        <div style="font-size:14px;font-weight:700;color:var(--pri)">Rémunération recommandée</div>
-      </div>
+    <div class="card-header">
+      <div class="card-title">🏦 Rémunération recommandée</div>
       <div class="alert ${badgeCls}" style="padding:4px 10px;font-size:12px;font-weight:700;border-radius:20px;margin:0">${badgeLbl}</div>
     </div>
-    <div class="g3" style="gap:10px;margin-bottom:14px">
-      <div class="kpi neu" style="padding:11px 13px">
-        <div class="kpi-label">Rémunération cible</div>
-        <div class="kpi-val" style="font-size:20px">${fmtE(remuNet,0)}</div>
-        <div class="kpi-sub">/ mois (nets)</div>
-      </div>
-      <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
-        <div class="kpi-label">Rémunération idéale possible</div>
-        <div class="kpi-val" style="font-size:20px;color:${accentC}">${fmtE(capaciteNetteEquiv,0)}</div>
-        <div class="kpi-sub">${fmtE(capaciteMensuelle,0)} brut / mois</div>
-      </div>
-      <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
-        <div class="kpi-label">Écart</div>
-        <div class="kpi-val" style="font-size:20px;color:${accentC}">${ecartNet>=0?'+':''}${fmtE(ecartNet,0)}</div>
-        <div class="kpi-sub">/ mois (net)</div>
-      </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--brd)">
+      <div style="font-size:11px;color:var(--tl)">Rémunération cible</div>
+      <div style="font-size:13px;color:var(--text)"><strong>${fmtE(remuNet,0)}</strong>/mois nets · <span style="cursor:pointer;color:var(--acc)" onclick="navigate('params')">Paramètres</span></div>
     </div>
-    <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${msgPrincipal}</div>
-    <div class="alert ${statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err'}" style="font-size:12px;margin-bottom:10px">${msgProjection}</div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:4px">Rémunération idéale possible</div>
+      <div style="font-size:26px;font-weight:900;color:${accentC};line-height:1">${fmtE(capaciteNetteEquiv,0)}</div>
+      <div style="font-size:12px;color:var(--tl);margin-top:5px">${fmtE(capaciteMensuelle,0)} bruts/mois — soit <strong style="color:${accentC}">${ecartNet>=0?'+':''}${fmtE(ecartNet,0)}</strong> d'écart avec votre cible</div>
+    </div>
+    ${msgPrincipal?`<div style="font-size:12px;color:var(--text);line-height:1.5;margin-bottom:8px">${msgPrincipal}</div>`:''}
+    <div class="alert ${badgeCls}" style="font-size:12px;margin-bottom:10px">${msgProjection}</div>
     <div style="font-size:11px;color:var(--tl);margin-bottom:6px">${chaineTreso}</div>
     <div class="alert al-info" style="font-size:11px;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>
     <div style="border-top:1px solid var(--brd);padding-top:10px">
