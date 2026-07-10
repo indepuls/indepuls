@@ -7907,6 +7907,11 @@ function renderSasuCard(d) {
   // avec "Rémunération cible" (nette). capaciteMensuelle est brut, pas comparable tel quel.
   const capaciteNetteEquiv=Math.round(capaciteMensuelle/(1+(DATA.params.coutRemunerationPct||0)/100));
   const ecart=capaciteMensuelle-coutRemuMensuel;
+  // Écart affiché à l'utilisatrice, en net (net−net, comparable à "de combien ajuster mon
+  // salaire") : identité exacte ecartNet = ecart/(1+coutRemunerationPct/100), donc le seuil
+  // -500 ci-dessous reste calibré en BRUT sans le moindre changement de sensibilité, quel
+  // que soit le taux de charges — pas une valeur à re-caler séparément.
+  const ecartNet=capaciteNetteEquiv-remuNet;
   const statut=ecart>=0?'ok':ecart>=-500?'warn':'err';
   const accentC=statut==='ok'?'var(--ok)':statut==='warn'?'var(--warn)':'var(--err)';
   const badgeLbl=statut==='ok'?'🟢 Soutenable':statut==='warn'?'🟠 Fragile':'🔴 Non soutenable';
@@ -7915,13 +7920,16 @@ function renderSasuCard(d) {
   // Messages dynamiques
   let msgPrincipal, msgProjection;
   if(statut==='ok'){
-    const margeAn=Math.round(ecart*12);
-    msgPrincipal=`Votre activité couvre actuellement votre rémunération cible. Marge de sécurité : <strong>+${fmtE(ecart,0)}/mois</strong> — soit <strong>${fmtE(margeAn)} de réserve annuelle</strong>.`;
+    // Marge affichée en net (comparable à la rémunération cible) — moisTenue/moisAvantNeg
+    // ci-dessous restent en brut : ils comparent à soldeBase, une trésorerie d'entreprise.
+    const margeAnNet=Math.round(ecartNet*12);
+    msgPrincipal=`Votre activité couvre actuellement votre rémunération cible. Marge de sécurité : <strong>+${fmtE(ecartNet,0)}/mois</strong> — soit <strong>${fmtE(margeAnNet)} de réserve annuelle</strong>.`;
     msgProjection=`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--ok)">${fmtE(tresoEstimee)}</strong>.`;
   } else if(statut==='warn'){
-    const manque=Math.abs(ecart);
+    const manque=Math.abs(ecart); // brut — pilote moisTenue (trésorerie de l'entreprise)
+    const manqueNet=Math.abs(ecartNet); // affiché — cohérent avec la carte "Écart"
     const moisTenue=soldeBase>0?Math.floor(soldeBase/manque):0;
-    msgPrincipal=`Votre rémunération est actuellement soutenue grâce à votre trésorerie disponible. Il manque <strong>${fmtE(manque,0)}/mois</strong> — surveillez votre niveau d'activité.`;
+    msgPrincipal=`Votre rémunération est actuellement soutenue grâce à votre trésorerie disponible. Il manque <strong>${fmtE(manqueNet,0)}/mois</strong> — surveillez votre niveau d'activité.`;
     msgProjection=moisTenue>0?`À activité constante, votre trésorerie tient encore <strong>${moisTenue} mois</strong>. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--warn)">${fmtE(tresoEstimee)}</strong>.`:`Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:var(--warn)">${fmtE(tresoEstimee)}</strong>.`;
   } else {
     const caManquant=Math.round(Math.abs(ecart)*12);
@@ -7955,14 +7963,14 @@ function renderSasuCard(d) {
         <div class="kpi-sub">/ mois (nets)</div>
       </div>
       <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
-        <div class="kpi-label">Capacité brute mensuelle</div>
-        <div class="kpi-val" style="font-size:20px;color:${accentC}">${fmtE(capaciteMensuelle,0)}</div>
-        <div class="kpi-sub">≈ ${fmtE(capaciteNetteEquiv,0)} net après charges</div>
+        <div class="kpi-label">Rémunération idéale possible</div>
+        <div class="kpi-val" style="font-size:20px;color:${accentC}">${fmtE(capaciteNetteEquiv,0)}</div>
+        <div class="kpi-sub">${fmtE(capaciteMensuelle,0)} brut / mois</div>
       </div>
       <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
         <div class="kpi-label">Écart</div>
-        <div class="kpi-val" style="font-size:20px;color:${accentC}">${ecart>=0?'+':''}${fmtE(ecart,0)}</div>
-        <div class="kpi-sub">/ mois</div>
+        <div class="kpi-val" style="font-size:20px;color:${accentC}">${ecartNet>=0?'+':''}${fmtE(ecartNet,0)}</div>
+        <div class="kpi-sub">/ mois (net)</div>
       </div>
     </div>
     <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px">${msgPrincipal}</div>
