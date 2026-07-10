@@ -4938,7 +4938,6 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
         <span><span style="display:inline-block;width:7px;height:7px;background:var(--pri);opacity:.2;border-radius:1px;vertical-align:middle;margin-right:3px"></span>Brut</span>
         ${objNet>0?`<span><span style="display:inline-block;width:10px;border-top:1.5px dashed var(--warn);vertical-align:middle;margin-right:3px"></span>Objectif</span>`:''}
       </div>
-      <div style="font-size:11px;color:var(--tl)">${phraseChart}</div>
     </div>
 
     <div style="background:var(--bg);border-radius:10px;padding:14px 16px">
@@ -5530,10 +5529,10 @@ function wScoreSante(d) {
   else sComm=3;
   // Si le remplissage est bas mais le commercial est bon, adapter le conseil (sComm doit être calculé avant)
   if(sRemp<=12&&sComm>=18&&advRemp&&advRemp.toLowerCase().includes('prospection')){
-    const _items=tVocab('items');
+    const _itemsFix=tVocab('items').toLowerCase();
     advRemp=nbActives>=3
-      ?`Vos ${_items} n'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des ${_items} complémentaires.`
-      :`Vous avez de la visibilité client, mais vos ${_items} actuels ne remplissent pas assez votre agenda. Cherchez à augmenter leur scope ou à en ajouter.`;
+      ?`Vos ${_itemsFix} n'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des ${_itemsFix} complémentaires.`
+      :`Vous avez de la visibilité client, mais vos ${_itemsFix} actuels ne remplissent pas assez votre capacité disponible. Cherchez à augmenter leur scope ou à en ajouter.`;
   }
   const vComm=nbActives>0?`${nbActives} active${nbActives>1?'s':''}`:'Aucune';
   const _itemLow=tVocab('item').toLowerCase(), _itemsLow=tVocab('items').toLowerCase(), _masc=tVocabMasculin();
@@ -5568,7 +5567,10 @@ function wScoreSante(d) {
   const annualAtRisk=trajTarget>0&&!!trajBestMonth&&pctAtPace!=null&&pctAtPace<0.85;
 
   // ── DIAGNOSTIC GLOBAL ────────────────────────────────────────
-  const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'agenda',art:"l'",s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
+  // 'remplissage' aligné sur la clé déjà utilisée pour ce pilier partout ailleurs (sRemp,
+  // vRemp, rowsRemp…) et sur worst.n==='remplissage' ci-dessous — "agenda" ne correspondait
+  // à rien de stable, c'était une dérive de nommage qui rendait cette branche inatteignable.
+  const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'remplissage',art:'le ',s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
   let diagGlobal='';
   // Ce texte est un constat, pas un conseil — le conseil (quoi faire) vit exclusivement dans
@@ -5603,7 +5605,7 @@ function wScoreSante(d) {
     const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
     const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
     const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
-    priorite=`Votre agenda a de la place — remplir <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
+    priorite=`Votre remplissage a de la place — combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
   } else if(worst.n==='rentabilité'&&hT>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
@@ -5640,7 +5642,7 @@ function wScoreSante(d) {
   if(totalCaCli>0){
     const [topCl,topVal]=Object.entries(clientCA).sort((a,b)=>b[1]-a[1])[0];
     const pctTop=Math.round(topVal/totalCaCli*100);
-    if(pctTop>=50) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Identifiez un prospect à relancer cette semaine.</div>`);
+    if(pctTop>=50) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.</div>`);
     else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA — une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
   }
   // Objectif mensuel en cours
@@ -5801,7 +5803,7 @@ function wScoreSante(d) {
     </div>
     <div class="g4" style="gap:10px">
       ${pilierCard('Votre rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
-      ${pilierCard('Votre agenda',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
+      ${pilierCard('Votre remplissage',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
       ${pilierCard('Votre trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso,extraTresoHTML)}
       ${pilierCard('Votre horizon',sComm,diagComm,advComm,'missions',rowsComm,methComm)}
     </div>
