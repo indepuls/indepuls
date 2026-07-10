@@ -466,6 +466,43 @@ export function getSasuSoldeActuelEstime(DATA) {
   return Math.round(getTresorerieDepart(DATA) + ca + inflows - dep - remu);
 }
 
+// TVA encore due entre maintenant et la fin de l'année — PAS la TVA annuelle totale
+// (si elle est payée à l'échéance comme le régime l'impose, les mois déjà réglés ne
+// sont plus dus). Un seul terme par régime, jamais multiplié par les mois restants
+// sauf le trimestriel où le prochain trimestre n'est pas encore entamé :
+//  - mensuel   : encours à taille constante (collecté en M, dû le 25 de M+1) — le
+//                dernier mois écoulé seulement.
+//  - trimestriel : au 31/12, le trimestre en cours (T4) sera complet — extrapolé à
+//                partir de la moyenne mensuelle des mois déjà écoulés × 3, pas du
+//                cumul partiel du trimestre en cours à la date d'appel.
+//  - simplifié : acomptes de juillet (55 %) et décembre (40 %) de la TVA annuelle
+//                estimée — les deux restent dus si on est avant juillet, seul celui
+//                de décembre si on est après.
+//  - franchise : 0.
+export function getTvaAVenirFinAnnee(DATA) {
+  const regime = getTvaRegime(DATA);
+  if (regime === 'franchise') return 0;
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth() + 1;
+  if (regime === 'mensuel') {
+    const [py, pm] = m === 1 ? [y - 1, 12] : [y, m - 1];
+    const prevMk = `${py}-${String(pm).padStart(2, '0')}`;
+    return Math.max(0, Math.round(getTVACollecteeMois(DATA, prevMk) - getTVADeductibleMois(DATA, prevMk)));
+  }
+  if (regime === 'trimestriel') {
+    const curMk = `${y}-${String(m).padStart(2, '0')}`;
+    const pastMonths = getCurrentYearMonths(DATA).filter(mk => mk < curMk);
+    const n = Math.max(pastMonths.length, 1);
+    const tvaAvg = pastMonths.reduce((s, mk) => s + getTVACollecteeMois(DATA, mk) - getTVADeductibleMois(DATA, mk), 0) / n;
+    return Math.max(0, Math.round(tvaAvg * 3));
+  }
+  if (regime === 'simplifie') {
+    const ann = Math.max(0, getTVACollecteeAnnuelle(DATA) - getTVADeductibleAnnuelle(DATA));
+    return m < 7 ? Math.round(ann * 0.95) : Math.round(ann * 0.40);
+  }
+  return 0;
+}
+
 export function getSasuProjectionFinAnnee(DATA) {
   const curMk = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const cm = parseInt(curMk.split('-')[1], 10);
@@ -475,7 +512,8 @@ export function getSasuProjectionFinAnnee(DATA) {
   const n = Math.max(pastMonths.length, 1);
   const caAvg  = pastMonths.reduce((s, mk) => s + getCaFromMissions(DATA, mk) + getPonctuelsCA(DATA, mk), 0) / n;
   const depAvg = pastMonths.reduce((s, mk) => s + getDepensesMois(DATA, mk), 0) / n;
-  return Math.round(base + (caAvg - depAvg - getSasuCoutRemuMensuel(DATA)) * moisRestants);
+  const tvaAVenir = getTvaAVenirFinAnnee(DATA);
+  return Math.round(base + (caAvg - depAvg - getSasuCoutRemuMensuel(DATA)) * moisRestants - tvaAVenir);
 }
 
 // ── ENCAISSEMENTS ────────────────────────────────────────────

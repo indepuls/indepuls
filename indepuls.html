@@ -4432,7 +4432,10 @@ function wRepartitionCA(d) {
   const mc=Math.max(getMoisActifsAnnee().length,1);
   function rep(isAn) {
     const ca=isAn?d.caBrut:getCaFromMissions(curMk)+getPonctuelsCA(curMk);
-    const urssaf=isSASU()?0:isAn?Math.round(getUrssafAnnuelBrut()):Math.round(getUrssafProvisionMensuelle());
+    // SASU/EURL : la "charge" à ce niveau est la rémunération elle-même (charges comprises) —
+    // pas de cotisations URSSAF personnelles. Vue annuelle : CA encaissé depuis le 1er janvier,
+    // donc mois réellement écoulés (mc), jamais ×12 fixe (même piège que getSasuProjectionFinAnnee()).
+    const urssaf=isSASU()?Math.round(getSasuCoutRemuMensuel()*(isAn?mc:1)):isAn?Math.round(getUrssafAnnuelBrut()):Math.round(getUrssafProvisionMensuelle());
     const impots=isSASU()?Math.round(ca*getImpotsTaux()):getImpotEstimeMicro(ca,0);
     const dep=isAn?months.reduce((s,mk)=>s+getDepensesMois(mk),0):getDepensesMois(curMk);
     const disponible=Math.max(0,ca-urssaf-impots-dep);
@@ -4458,8 +4461,12 @@ function wRepartitionCA(d) {
       </div>
     </div>`;
   }
+  // SASU/EURL : une fois la rémunération (déjà "pour vous") déduite, ce qui reste est de la
+  // trésorerie d'entreprise, pas un revenu personnel supplémentaire — libellé adapté en
+  // conséquence. Micro/BNC/BIC inchangé : "disponible pour vous" y désigne le revenu réel.
+  const _dispoLbl=isSASU()?"Disponible pour l'entreprise":'Disponible pour vous';
   const segs=[
-    {lbl:'Disponible pour vous', val:cur.disponible, col:'#2d7a4f'},
+    {lbl:_dispoLbl, val:cur.disponible, col:'#2d7a4f'},
     {lbl:isSASU()?'Charges sociales':'URSSAF + CFP', val:cur.urssaf, col:'#f97316'},
     ...(cur.impots>0?[{lbl:'Impôts (estimés)', val:cur.impots, col:'#a78bfa'}]:[]),
     ...(cur.dep>0?[{lbl:'Dépenses pro', val:cur.dep, col:'#94a3b8'}]:[]),
@@ -4494,13 +4501,13 @@ function wRepartitionCA(d) {
         <div style="width:160px;height:160px;border-radius:50%;background:${gradient}"></div>
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);width:88px;height:88px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--brd)">
           <div style="font-size:24px;font-weight:900;color:#2d7a4f;line-height:1">${pctD}%</div>
-          <div style="font-size:9px;color:var(--tl);text-align:center;line-height:1.3;margin-top:1px">pour<br>vous</div>
+          <div style="font-size:9px;color:var(--tl);text-align:center;line-height:1.3;margin-top:1px">${isSASU()?'pour<br>la société':'pour<br>vous'}</div>
         </div>
       </div>
       <div style="flex:1;min-width:220px">${legend}</div>
     </div>
     <div style="background:rgba(45,122,79,.08);border-radius:8px;padding:11px 14px;border-left:3px solid #2d7a4f">
-      <div style="font-size:13px;color:var(--text);line-height:1.5">🪙 Pour <strong>100 € encaissés</strong>, <strong style="color:#2d7a4f;font-size:16px">${pctD} €</strong> restent réellement disponibles après charges, fiscalité et dépenses.</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5">🪙 Pour <strong>100 € encaissés</strong>, <strong style="color:#2d7a4f;font-size:16px">${pctD} €</strong> ${isSASU()?"restent dans l'entreprise après rémunération, charges, fiscalité et dépenses.":'restent réellement disponibles après charges, fiscalité et dépenses.'}</div>
       ${pctAlt!==null?`<div style="font-size:11px;color:var(--tl);margin-top:4px">${altLbl} : <strong>${pctAlt} %</strong></div>`:''}
     </div>
     ${tvaNote}
@@ -7887,15 +7894,18 @@ function renderSasuCard(d) {
   const _statutLabel=DATA.params.statut==='eurl'?'EURL':'SASU';
   if(remuNet===0) return `<div class="card"><div class="card-header"><div><div class="card-title">Rémunération recommandée</div><div class="card-sub">🏦 Santé financière de la société</div></div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
   const coutRemuMensuel=getSasuCoutRemuMensuel();
-  const tvaCol=getTVACollecteeAnnuelle();
-  const tvaDed=getTVADeductibleAnnuelle();
-  const tvaNette=Math.max(0,tvaCol-tvaDed);
+  // TVA encore due d'ici la fin de l'année (pas la TVA annuelle totale — voir
+  // getTvaAVenirFinAnnee() : un encours qui tourne, pas une dette qui s'accumule).
+  const tvaAVenir=DATA.params.tva?getTvaAVenirFinAnnee():0;
   const tresoEstimee=getSasuProjectionFinAnnee();
   const moisRestants=12-parseInt(curMk.split('-')[1],10);
 
   // ── Soutenabilité ──────────────────────────────────────────
   const capaciteBrute=caAvg-depAvg;
   const capaciteMensuelle=Math.max(0,Math.round(capaciteBrute));
+  // Équivalent net (une fois les charges de rémunération déduites) — pour comparaison
+  // avec "Rémunération cible" (nette). capaciteMensuelle est brut, pas comparable tel quel.
+  const capaciteNetteEquiv=Math.round(capaciteMensuelle/(1+(DATA.params.coutRemunerationPct||0)/100));
   const ecart=capaciteMensuelle-coutRemuMensuel;
   const statut=ecart>=0?'ok':ecart>=-500?'warn':'err';
   const accentC=statut==='ok'?'var(--ok)':statut==='warn'?'var(--warn)':'var(--err)';
@@ -7945,9 +7955,9 @@ function renderSasuCard(d) {
         <div class="kpi-sub">/ mois (nets)</div>
       </div>
       <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
-        <div class="kpi-label">Rémunération recommandée</div>
+        <div class="kpi-label">Capacité brute mensuelle</div>
         <div class="kpi-val" style="font-size:20px;color:${accentC}">${fmtE(capaciteMensuelle,0)}</div>
-        <div class="kpi-sub">/ mois selon votre activité</div>
+        <div class="kpi-sub">≈ ${fmtE(capaciteNetteEquiv,0)} net après charges</div>
       </div>
       <div class="kpi ${statut==='ok'?'good':statut==='warn'?'warn':'bad'}" style="padding:11px 13px">
         <div class="kpi-label">Écart</div>
@@ -7963,11 +7973,10 @@ function renderSasuCard(d) {
       </div>
       <div id="${detailId}" style="display:none;margin-top:10px;border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
         ${row(soldeLabel,fmtE(soldeBase),'')}
-        ${row(`CA moyen mensuel encaissé (${n} mois écoulé${n>1?'s':''})`,fmtE(caAvg,0),'+')}
-        ${row('Dépenses moyennes mensuelles',fmtE(depAvg,0),'−')}
-        ${row('Rémunération (coût société)',fmtE(coutRemuMensuel,0),'−')}
-        ${tvaNette>0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><span style="color:var(--tl)">TVA totale estimée à réserver${(()=>{try{const e=getNextTVAEcheance();return e&&e.montant>0&&e.montant<tvaNette?`<br><span style='font-size:11px;opacity:.8'>Dont ${fmtE(e.montant)} à payer à la prochaine échéance</span>`:''}catch(x){return ''}})()}</span><span style="font-weight:700">~${fmtE(tvaNette)}</span></div>`:''}
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><span style="color:var(--tl)">Flux mensuel net × ${moisRestants} mois restant${moisRestants>1?'s':''}</span></div>
+        ${row(`CA projeté (moy. ${fmtE(caAvg,0)}/mois × ${moisRestants} mois restant${moisRestants>1?'s':''})`,fmtE(Math.round(caAvg*moisRestants),0),'+')}
+        ${row(`Dépenses projetées (moy. ${fmtE(depAvg,0)}/mois × ${moisRestants})`,fmtE(Math.round(depAvg*moisRestants),0),'−')}
+        ${row(`Rémunération (${fmtE(coutRemuMensuel,0)}/mois × ${moisRestants})`,fmtE(Math.round(coutRemuMensuel*moisRestants),0),'−')}
+        ${tvaAVenir>0?row('TVA à provisionner d\'ici fin '+DATA.currentYear,fmtE(tvaAVenir,0),'−'):''}
         <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-weight:700;font-size:13px">
           <span>Trésorerie prévisionnelle fin ${DATA.currentYear}</span>
           <span style="color:${accentC}">${fmtE(tresoEstimee)}</span>
@@ -9999,6 +10008,7 @@ document.addEventListener('keydown', function(e) {
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
   window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
   window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+  window.getTvaAVenirFinAnnee = () => { sync(); return Mode.getTvaAVenirFinAnnee(); };
   window.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
   window.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };
   window.getTVADeductibleAnnuelle  = () => { sync(); return Mode.getTVADeductibleAnnuelle(); };

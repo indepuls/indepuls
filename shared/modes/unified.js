@@ -70,6 +70,7 @@ export const getSasuCoutRemuMensuel   = () => C.getSasuCoutRemuMensuel(DATA);
 export const getTresorerieDepart      = () => C.getTresorerieDepart(DATA);
 export const getSasuSoldeActuelEstime = () => C.getSasuSoldeActuelEstime(DATA);
 export const getSasuProjectionFinAnnee = () => C.getSasuProjectionFinAnnee(DATA);
+export const getTvaAVenirFinAnnee     = () => C.getTvaAVenirFinAnnee(DATA);
 
 export const getTotalEncaisse         = C.getTotalEncaisse;
 export const getResteAEncaisser       = C.getResteAEncaisser;
