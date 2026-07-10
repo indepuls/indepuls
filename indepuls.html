@@ -954,6 +954,7 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
         <div class="ts mt8" id="tva-status-text"></div>
+        <div id="tva-zone-alert" class="mt8"></div>
         <div id="tva-franchise-zone" class="mt12">
           <div id="tva-seuils-info"></div>
         </div>
@@ -2946,6 +2947,7 @@ function wRemplissage() {
 }
 
 // Seuils TVA 2026 — source unique de vérité
+// TODO: doublon avec shared/core/taux.js — voir chantier de nettoyage TVA_SEUILS
 const TVA_SEUILS = {
   prestation: { franchise: 37500, tolerance: 41250 },
   achat:      { franchise: 85000, tolerance: 93500 }
@@ -3247,7 +3249,7 @@ function pickerStep1Next() {
   if (!metier) { if (sel) sel.classList.add('field-invalid'); return; }
   const statut = (document.getElementById('picker-statut-select')||{}).value || 'micro-bnc';
   DATA.params.statut = statut;
-  if(statut==='sasu'){ if(!DATA.params.tva) DATA.params.tva=true; DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||80; }
+  if(statut==='sasu'){ DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||80; }
   if(statut==='eurl'){ DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||45; }
   applyProfile(metier);
   loadDemoWithCurrentParams();
@@ -7834,7 +7836,9 @@ function renderParams() {
   if(currentParamTab==='perso') renderThemes();
 }
 function renderTvaParams() {
-  const p=DATA.params, sasu=isSASU(), sasuStrict=DATA.params.statut==='sasu', mixte=isActiviteMixte();
+  // Une SASU peut être en franchise en base comme n'importe quel autre statut (seuils
+  // identiques, BOI-TVA-DECLA-20-20-30-10) — pas de verrouillage spécifique SASU ici.
+  const p=DATA.params, sasu=isSASU(), mixte=isActiviteMixte();
   // Sync URSSAF régime radio buttons
   const urssafReg=getUrssafRegime();
   ['mensuel','trimestriel'].forEach(r=>{
@@ -7845,28 +7849,48 @@ function renderTvaParams() {
   });
   const regime=getTvaRegime();
   const tva=p.tva;
+  // Zone de dépassement du seuil de franchise — calculée pour tous les statuts (pas seulement
+  // SASU), indépendamment du régime TVA actuellement sélectionné : reste pertinente même en
+  // TVA déjà active, si l'utilisatrice envisage un retour en franchise. Mixte : pire des deux
+  // zones (prestation/vente), même logique que le panneau Revenus.
+  let tvaZoneWorst='normal';
+  if(mixte){
+    const caP=getCaPrestaSeuilAnnuel(), caV=getCaVenteSeuilAnnuel();
+    const zP=getTVAZone(caP,TVA_SEUILS.prestation.franchise,TVA_SEUILS.prestation.tolerance);
+    const zV=getTVAZone(caV,TVA_SEUILS.achat.franchise,TVA_SEUILS.achat.tolerance);
+    tvaZoneWorst=(zP==='depasse'||zV==='depasse')?'depasse':(zP==='tolerance'||zV==='tolerance')?'tolerance':'normal';
+  } else {
+    const {franchise,tolerance}=getTVASeuilsStatut();
+    tvaZoneWorst=getTVAZone(getCaPrestaSeuilAnnuel(),franchise,tolerance);
+  }
   ['franchise','simplifie','mensuel','trimestriel'].forEach(r=>{
     const lbl=document.getElementById('tva-r-'+r);
     const inp=lbl?lbl.querySelector('input[type="radio"]'):null;
     if(lbl) lbl.classList.toggle('selected',r===regime);
     if(inp) inp.checked=(r===regime);
-    // En SASU, le régime réel mensuel est légalement obligatoire — les 3
-    // autres options sont verrouillées (pas seulement "franchise") pour que
-    // le clic ne soit plus silencieusement ignoré.
-    if(inp) inp.disabled=sasuStrict&&(r!=='mensuel');
+    // Seule "Franchise" est grisée, et seulement en zone 'depasse' (conséquence immédiate —
+    // TVA due dès le 1er du mois du dépassement). La zone 'tolerance' n'entraîne qu'un
+    // avertissement (franchise valable jusqu'à fin d'année) : rien à griser à ce stade.
+    if(inp) inp.disabled=(r==='franchise'&&tvaZoneWorst==='depasse');
     if(lbl) lbl.classList.toggle('locked',!!(inp&&inp.disabled));
   });
   const statusLabels={franchise:'Franchise en base — aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié — 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel — déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel — déclaration CA3 chaque trimestre.'};
-  document.getElementById('tva-status-text').textContent=sasuStrict?'TVA toujours active en SASU (régime réel mensuel obligatoire).':statusLabels[regime]||'';
-  document.getElementById('tva-franchise-zone').style.display=(tva||sasuStrict)?'none':'';
-  document.getElementById('tva-active-zone').style.display=(tva||sasuStrict)?'':'none';
+  document.getElementById('tva-status-text').textContent=statusLabels[regime]||'';
+  const zoneAlertEl=document.getElementById('tva-zone-alert');
+  if(zoneAlertEl) zoneAlertEl.innerHTML=tvaZoneWorst==='depasse'
+    ?'<div class="alert al-err">⛔ Seuil de tolérance dépassé — la TVA s\'applique immédiatement, dès le 1er du mois du dépassement, pas seulement l\'année prochaine. Consultez un expert-comptable.</div>'
+    :tvaZoneWorst==='tolerance'
+      ?'<div class="alert al-warn">⚠️ Vous êtes dans la zone de tolérance — la franchise reste valable jusqu\'à la fin de l\'année, mais la TVA s\'appliquera dès le 1er janvier prochain si votre CA reste à ce niveau.</div>'
+      :'';
+  document.getElementById('tva-franchise-zone').style.display=tva?'none':'';
+  document.getElementById('tva-active-zone').style.display=tva?'':'none';
   // Sync mode déclaration TVA
   const tvaMode=p.tvaModeDeclaration||'encaissements';
   ['encaissements','debits'].forEach(m=>{
     const lbl=document.getElementById('tva-mode-'+m);
     if(lbl){lbl.classList.toggle('selected',m===tvaMode);lbl.querySelector('input').checked=(m===tvaMode);}
   });
-  if(!tva&&!sasuStrict){
+  if(!tva){
     const el=document.getElementById('tva-seuils-info');
     const {franchise:fS,tolerance:tS}=getTVASeuilsStatut();
     if(el) el.innerHTML=mixte
@@ -7946,8 +7970,9 @@ function onStatutChange(val) {
       : TVA_SEUILS.prestation.franchise;
   }
   if(val==='sasu'){
-    // SASU : TVA au régime réel mensuel obligatoire
-    if(!DATA.params.tva) DATA.params.tva=true;
+    // Une SASU peut être en franchise en base de TVA (seuils identiques aux autres statuts,
+    // BOI-TVA-DECLA-20-20-30-10) — ne pas forcer p.tva ici, laisser l'utilisatrice choisir
+    // librement dans Paramètres > Fiscalité, comme pour l'EURL ci-dessous.
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
     // Forcer le taux de charges à 80 % par défaut en SASU (vs 45 % EURL) — symétrique
     // à la logique EURL ci-dessous, sinon un aller-retour EURL→SASU garde le taux EURL.

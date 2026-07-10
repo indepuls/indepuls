@@ -387,7 +387,6 @@ export function getTVADeductibleAnnuelle(DATA) {
 }
 
 export function getTvaRegime(DATA) {
-  if (DATA.params.statut === 'sasu') return 'mensuel';
   const p = DATA.params;
   if (!p.tva) return 'franchise';
   return p.tvaRegime || 'mensuel';
