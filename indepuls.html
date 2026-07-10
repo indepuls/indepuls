@@ -4752,7 +4752,15 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const netR=1-getTauxChargesPresta()-getImpotsTaux();
   const depM=getDepensesMoyenneMensuelle();
   const annualTarget=netR>0&&objNet>0?(objNet+depM)/netR*12:0;
-  const annualAtPace=caBrut/mc*12;
+  // "À ce rythme" doit s'annualiser depuis le CA réellement réalisé (moisR) — caBrut (utilisé
+  // pour le chiffre "CA annuel" et la barre au-dessus, volontairement inchangés) inclut déjà
+  // le CA des mois FUTURS d'un contrat récurrent encore actif (engagé mais pas encore encaissé).
+  // Diviser ce total par mc (mois déjà réalisés seulement) puis ×12 revenait à projeter deux
+  // fois ce CA futur déjà compté — gonflait "à ce rythme" au point de dépasser la projection du
+  // meilleur mois reproduit, un non-sens repéré en test. caBrutRealise ne somme que les mois
+  // effectivement réalisés, cohérent avec bestMonth (choisi dans ce même sous-ensemble).
+  const caBrutRealise=moisR.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
+  const annualAtPace=caBrutRealise/mc*12;
   const pctAnnuel=annualTarget>0?Math.min(Math.round(caBrut/annualTarget*100),200):0;
   const jg1Cl=pctAnnuel>=100?'ok':pctAnnuel>=70?'wn':'bd';
   let phraseAnnuel;
@@ -4815,27 +4823,30 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   // DATA.archives n'a qu'un total annuel par an (pas de détail mensuel) : impossible d'y
   // chercher "le meilleur mois de l'an dernier" pour l'instant — on assume donc toujours
   // le repli honnête ci-dessous sous 3 mois réalisés, plutôt qu'une fausse projection.
+  // Sélectionné sur le BRUT (et non le net) : cette section entière (annualAtPace,
+  // annualTarget, la barre de progression) raisonne en CA brut. Choisir le mois au plus haut
+  // net pouvait désigner un mois dont le brut n'était PAS le plus élevé (charges plus faibles
+  // ce mois-là) — projeté en brut, "le meilleur mois" pouvait alors sortir sous la moyenne du
+  // rythme actuel, contradiction relevée en test. En sélectionnant sur le brut, le mois choisi
+  // est par construction le maximum du même ensemble que la moyenne annualAtPace=caBrut/mc —
+  // sa projection est donc mathématiquement toujours ≥ la projection au rythme actuel.
   const bestMonth=moisR.length>=3
-    ?chart12.filter(c=>!c.isFut).reduce((best,c)=>(!best||c.net>best.net)?c:best,null)
+    ?chart12.filter(c=>!c.isFut).reduce((best,c)=>(!best||c.brut>best.brut)?c:best,null)
     :null;
   let phraseMeilleurAn;
-  if(!bestMonth||bestMonth.net<=0){
+  if(!bestMonth||bestMonth.brut<=0){
     phraseMeilleurAn='Pas encore assez de recul pour comparer — revenez dans quelques semaines.';
   } else {
     const [by,bm]=bestMonth.mk.split('-').map(Number);
     const moisLabelBest=new Date(by,bm-1,1).toLocaleDateString('fr-FR',{month:'long'});
-    // Annualisé en BRUT (bestMonth.brut), pas en net : "À ce rythme" et l'objectif annuel
-    // juste au-dessus sont tous deux en CA brut (annualAtPace, annualTarget). Annualiser le
-    // NET du meilleur mois comparait deux bases différentes — pouvait sortir plus bas que la
-    // projection au rythme actuel malgré un "meilleur" mois, incompréhensible pour la
-    // lectrice. bestMonth.net reste affiché entre parenthèses (repère personnel : ce que ce
-    // mois lui a réellement rapporté), la projection elle-même reste sur la base de la section.
     const projMeilleur=bestMonth.brut*12;
     const pctMeilleur=annualTarget>0?Math.round(projMeilleur/annualTarget*100):null;
+    // bestMonth.net affiché entre parenthèses à titre de repère (ce que ce mois a réellement
+    // rapporté), mais ne pilote plus ni la sélection du mois ni la projection.
     phraseMeilleurAn=`En reproduisant votre meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net) : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> de CA sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de votre objectif`:''}.`;
   }
   let phraseMeilleurMois=null;
-  if(bestMonth&&bestMonth.net>0&&bestMonth.mk!==curMk){
+  if(bestMonth&&bestMonth.brut>0&&bestMonth.mk!==curMk){
     const todayJour=new Date().getDate();
     const [by,bm]=bestMonth.mk.split('-').map(Number);
     const joursDansBest=new Date(by,bm,0).getDate();
