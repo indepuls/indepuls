@@ -4824,9 +4824,15 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   } else {
     const [by,bm]=bestMonth.mk.split('-').map(Number);
     const moisLabelBest=new Date(by,bm-1,1).toLocaleDateString('fr-FR',{month:'long'});
-    const projMeilleur=bestMonth.net*12;
+    // Annualisé en BRUT (bestMonth.brut), pas en net : "À ce rythme" et l'objectif annuel
+    // juste au-dessus sont tous deux en CA brut (annualAtPace, annualTarget). Annualiser le
+    // NET du meilleur mois comparait deux bases différentes — pouvait sortir plus bas que la
+    // projection au rythme actuel malgré un "meilleur" mois, incompréhensible pour la
+    // lectrice. bestMonth.net reste affiché entre parenthèses (repère personnel : ce que ce
+    // mois lui a réellement rapporté), la projection elle-même reste sur la base de la section.
+    const projMeilleur=bestMonth.brut*12;
     const pctMeilleur=annualTarget>0?Math.round(projMeilleur/annualTarget*100):null;
-    phraseMeilleurAn=`En reproduisant votre meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net) : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de votre objectif`:''}.`;
+    phraseMeilleurAn=`En reproduisant votre meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net) : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> de CA sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de votre objectif`:''}.`;
   }
   let phraseMeilleurMois=null;
   if(bestMonth&&bestMonth.net>0&&bestMonth.mk!==curMk){
