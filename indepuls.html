@@ -4754,17 +4754,31 @@ function getTrajectoireAnnuelleInfo(objNet) {
   const moisR=getMoisRealises(), mc=Math.max(moisR.length,1);
   const netR=1-getTauxChargesPresta()-getImpotsTaux();
   const depM=getDepensesMoyenneMensuelle();
-  const annualTarget=netR>0&&objNet>0?(objNet+depM)/netR*12:0;
+  // Proratisé sur les mois réellement actifs cette année (getActiveMonthsInYear — même fonction
+  // que getDepensesMoyenneMensuelle() utilise déjà pour lisser les dépenses annuelles), PAS ×12
+  // fixe : une activité ouverte en mars n'a que 10 mois pour générer du CA cette année, pas 12 —
+  // sans ça, l'objectif annuel était surestimé de 12/10 pour toute activité démarrée en cours
+  // d'année (repéré dans les données démo elles-mêmes : dateOuverture=mars → actMois=10).
+  const actMois=getActiveMonthsInYear();
+  const annualTarget=netR>0&&objNet>0?(objNet+depM)/netR*actMois:0;
   const months12=[];
   for(let i=0;i<12;i++){
     const mk=`${DATA.currentYear}-${String(i+1).padStart(2,'0')}`;
     months12.push({mk,brut:getCaFromMissions(mk)+getPonctuelsCA(mk),net:getRevenuNetMois(mk),isCur:mk===curMk,isFut:mk>curMk});
   }
-  // "À ce rythme" doit s'annualiser depuis le CA réellement réalisé (moisR) — un total incluant
-  // les mois FUTURS d'un contrat récurrent encore actif (CA engagé mais pas encore encaissé)
-  // divisé par les seuls mois déjà réalisés puis ×12 projetterait deux fois ce même CA futur.
   const caBrutRealise=moisR.reduce((s,mk)=>{const m=months12.find(x=>x.mk===mk);return s+(m?m.brut:0);},0);
-  const annualAtPace=caBrutRealise/mc*12;
+  // Mois restants au calendrier (même formule que renderSasuCard()) — PAS 12-mc : mc ne compte
+  // que les mois avec de l'activité réelle (getMoisRealises), donc un mois blanc ferait gonfler
+  // artificiellement "mois restants" (déjà passés mais comptés comme encore à venir).
+  const moisRestants=Math.max(0,12-parseInt(curMk.split('-')[1],10));
+  // "À ce rythme" = déjà réalisé + (moyenne mensuelle réalisée × mois calendaires restants), pas
+  // moyenne×12 : cette dernière formule extrapolait sur une année pleine de 12 mois même pour une
+  // activité qui ne sera jamais ouverte que 10 mois cette année — un non-sens pour toute activité
+  // démarrée en cours d'année, et déjà biaisé même en année pleine dès qu'il y a un mois blanc
+  // avant le démarrage (mars ici). Cette formule reste correcte quelle que soit la date
+  // d'ouverture, sans avoir besoin d'actMois explicitement : elle ne présume jamais de mois qui
+  // n'existent pas dans l'année (avant l'ouverture ou après le 31 décembre).
+  const annualAtPace=caBrutRealise+(caBrutRealise/mc)*moisRestants;
   // Sélectionné sur le BRUT (et non le net) : le mois au plus haut net n'est pas forcément celui
   // au CA le plus élevé (charges différentes d'un mois à l'autre) — projeté en brut, "le meilleur
   // mois" pouvait sinon sortir sous la moyenne du rythme actuel, non-sens relevé en test. En
@@ -4773,11 +4787,6 @@ function getTrajectoireAnnuelleInfo(objNet) {
   const bestMonth=moisR.length>=3
     ?months12.filter(c=>!c.isFut).reduce((best,c)=>(!best||c.brut>best.brut)?c:best,null)
     :null;
-  // Mois restants au calendrier (même formule que renderSasuCard()) — PAS 12-mc : mc ne
-  // compte que les mois avec de l'activité réelle (getMoisRealises), donc un mois blanc en
-  // janvier/février ferait gonfler artificiellement "mois restants" (les mois blancs déjà
-  // passés seraient comptés comme encore à venir).
-  const moisRestants=Math.max(0,12-parseInt(curMk.split('-')[1],10));
   const bestCaseAnnual=bestMonth?caBrutRealise+bestMonth.brut*moisRestants:null;
   const pctAtPace=annualTarget>0?annualAtPace/annualTarget:null;
   const atteignable=(annualTarget>0&&bestCaseAnnual!=null)?bestCaseAnnual>=annualTarget:null;
