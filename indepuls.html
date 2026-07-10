@@ -4788,11 +4788,13 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     return (d.isCur?`<rect x="${(i*sW).toFixed(1)}" y="0" width="${sW}" height="${pH}" fill="var(--acc)" opacity=".06" rx="1"/>`:'')
       +(hB>0?`<rect x="${x}" y="${pH-hB}" width="${bW}" height="${hB}" fill="var(--pri)" opacity="${fut?.08:.18}" rx="1"/>`:'')
       +(hN>0?`<rect x="${x}" y="${pH-hN}" width="${bW}" height="${hN}" fill="var(--ok)" opacity="${fut?.2:.8}" rx="1"/>`:'')
-      +`<text x="${(i*sW+sW/2).toFixed(1)}" y="34" text-anchor="middle" font-size="4" fill="var(--tl)" opacity="${fut?.4:.65}">${mAbbr[i]}</text>`;
+      +`<text x="${(i*sW+sW/2).toFixed(1)}" y="34" text-anchor="middle" font-family="Lato, sans-serif" font-size="4" fill="var(--tl)" opacity="${fut?.4:.65}">${mAbbr[i]}</text>`;
   }).join('');
   const yObj=objNet>0?(pH-sc(objNet)):null;
-  const svgObj=yObj!==null?`<line x1="0" y1="${yObj}" x2="108" y2="${yObj}" stroke="var(--warn)" stroke-width=".7" stroke-dasharray="2 1.5"/><text x="107" y="${yObj>5?yObj-1.5:yObj+4}" text-anchor="end" font-size="4" fill="var(--warn)">obj. net</text>`:'';
-  const miniSvg=`<svg viewBox="0 0 108 36" style="width:100%;height:auto;display:block;margin:6px 0;overflow:visible">${svgBars}${svgObj}</svg>`;
+  const svgObj=yObj!==null?`<line x1="0" y1="${yObj}" x2="108" y2="${yObj}" stroke="var(--warn)" stroke-width=".7" stroke-dasharray="2 1.5"/><text x="107" y="${yObj>5?yObj-1.5:yObj+4}" text-anchor="end" font-family="Lato, sans-serif" font-size="4" fill="var(--warn)">obj. net</text>`:'';
+  // max-width : ce SVG a été conçu pour l'ancienne carte étroite (wKPIs, 1/3 de largeur) —
+  // sans plafond il s'étire disproportionnellement sur la carte plus large actuelle.
+  const miniSvg=`<svg viewBox="0 0 108 36" style="width:100%;max-width:340px;height:auto;display:block;margin:6px auto;overflow:visible">${svgBars}${svgObj}</svg>`;
   const mWithData=chart12.filter(d=>!d.isFut&&d.brut>0);
   const mAbove=objNet>0?mWithData.filter(d=>d.net>=objNet).length:0;
   const phraseChart=objNet>0&&mWithData.length>0
@@ -4843,7 +4845,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   }
 
   return `<div class="card">
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:6px">📊 Votre trajectoire annuelle</div>
+    <div class="card-header"><div class="card-title">📊 Votre trajectoire annuelle</div></div>
     <div style="font-size:14px;color:var(--text);line-height:1.55;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">${phraseCombinee}</div>
 
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Sur l'année</div>
@@ -4854,30 +4856,32 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
          <div class="kpi-sub mt4">${pctAnnuel} % — ${fmtE(caBrut)} / ${fmtE(annualTarget,0)}</div>`
       :`<div class="kpi-sub">Projection : ${fmtE(proj,0)}/an</div>`
     }
-    <div onclick="navigate('revenus')" style="cursor:pointer">
+    <div style="font-size:11px;color:var(--tl);line-height:1.6;margin-top:9px">
+      À ce rythme, la projection de votre CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.<br>
+      ${phraseMeilleurAn}
+    </div>
+    <div onclick="navigate('revenus')" style="cursor:pointer;margin-top:14px;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">
       ${miniSvg}
       <div style="display:flex;gap:10px;font-size:10px;color:var(--tl);margin-bottom:8px">
         <span><span style="display:inline-block;width:7px;height:7px;background:var(--ok);border-radius:1px;vertical-align:middle;margin-right:3px"></span>Net</span>
         <span><span style="display:inline-block;width:7px;height:7px;background:var(--pri);opacity:.2;border-radius:1px;vertical-align:middle;margin-right:3px"></span>Brut</span>
         ${objNet>0?`<span><span style="display:inline-block;width:10px;border-top:1.5px dashed var(--warn);vertical-align:middle;margin-right:3px"></span>Objectif</span>`:''}
       </div>
-      <div style="font-size:11px;color:var(--tl);margin-bottom:10px">${phraseChart}</div>
-    </div>
-    <div style="font-size:11px;color:var(--tl);line-height:1.6;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">
-      À ce rythme, la projection de votre CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.<br>
-      ${phraseMeilleurAn}
+      <div style="font-size:11px;color:var(--tl)">${phraseChart}</div>
     </div>
 
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Ce mois-ci — ${moisLabel}</div>
-    <div class="kpi-label">Revenu net du mois</div>
-    <div class="kpi-val" style="font-size:22px">${fmtE(caNetMois)}</div>
-    ${objNet>0
-      ?`<div class="prog-bar mt8" style="height:8px"><div class="prog-fill ${pcObj}" style="width:${pctObj}%"></div></div>
-         <div class="kpi-sub mt4">${pctObj} % de l'objectif — ${fmtE(caNetMois)} / ${fmtE(objNet,0)}</div>`
-      :''
-    }
-    <div style="font-size:11px;color:var(--tl);line-height:1.6;margin-top:9px">
-      ${phraseMeilleurMois?phraseMeilleurMois+'<br>':''}${phraseNet}
+    <div style="background:var(--bg);border-radius:10px;padding:14px 16px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Ce mois-ci — ${moisLabel}</div>
+      <div class="kpi-label">Revenu net du mois</div>
+      <div class="kpi-val" style="font-size:22px">${fmtE(caNetMois)}</div>
+      ${objNet>0
+        ?`<div class="prog-bar mt8" style="height:8px"><div class="prog-fill ${pcObj}" style="width:${pctObj}%"></div></div>
+           <div class="kpi-sub mt4">${pctObj} % de l'objectif — ${fmtE(caNetMois)} / ${fmtE(objNet,0)}</div>`
+        :''
+      }
+      <div style="font-size:11px;color:var(--tl);line-height:1.6;margin-top:9px">
+        ${phraseMeilleurMois?phraseMeilleurMois+'<br>':''}${phraseNet}
+      </div>
     </div>
   </div>`;
 }
