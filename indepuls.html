@@ -4741,26 +4741,57 @@ function getCaMissionsADate(mk, jour) {
   });
   return Math.max(0,total);
 }
+// ── TRAJECTOIRE ANNUELLE — projection au rythme réalisé + test d'atteignabilité ──
+// Source unique pour wTrajectoireAnnuelle() (graphique + phrases) et wScoreSante() (Action
+// recommandée) : les deux doivent toujours s'accorder sur "l'objectif annuel est-il en bonne
+// voie", jamais recalculer ceci séparément (c'est justement l'incohérence corrigée ici — un
+// score à 90/100 disait "tout va bien" pendant que ce widget disait "objectif compromis").
+// atteignable = même en reproduisant le meilleur mois déjà réalisé sur tous les mois restants,
+// est-ce mathématiquement possible d'atteindre l'objectif ? Un repère factuel (basé sur une
+// performance déjà obtenue, pas un vœu pieux), pas une garantie.
+function getTrajectoireAnnuelleInfo(objNet) {
+  const curMk=getCurrentMk();
+  const moisR=getMoisRealises(), mc=Math.max(moisR.length,1);
+  const netR=1-getTauxChargesPresta()-getImpotsTaux();
+  const depM=getDepensesMoyenneMensuelle();
+  const annualTarget=netR>0&&objNet>0?(objNet+depM)/netR*12:0;
+  const months12=[];
+  for(let i=0;i<12;i++){
+    const mk=`${DATA.currentYear}-${String(i+1).padStart(2,'0')}`;
+    months12.push({mk,brut:getCaFromMissions(mk)+getPonctuelsCA(mk),net:getRevenuNetMois(mk),isCur:mk===curMk,isFut:mk>curMk});
+  }
+  // "À ce rythme" doit s'annualiser depuis le CA réellement réalisé (moisR) — un total incluant
+  // les mois FUTURS d'un contrat récurrent encore actif (CA engagé mais pas encore encaissé)
+  // divisé par les seuls mois déjà réalisés puis ×12 projetterait deux fois ce même CA futur.
+  const caBrutRealise=moisR.reduce((s,mk)=>{const m=months12.find(x=>x.mk===mk);return s+(m?m.brut:0);},0);
+  const annualAtPace=caBrutRealise/mc*12;
+  // Sélectionné sur le BRUT (et non le net) : le mois au plus haut net n'est pas forcément celui
+  // au CA le plus élevé (charges différentes d'un mois à l'autre) — projeté en brut, "le meilleur
+  // mois" pouvait sinon sortir sous la moyenne du rythme actuel, non-sens relevé en test. En
+  // sélectionnant sur le brut, le mois choisi est le maximum du même ensemble que la moyenne
+  // annualAtPace : sa projection est donc mathématiquement toujours ≥ la projection au rythme actuel.
+  const bestMonth=moisR.length>=3
+    ?months12.filter(c=>!c.isFut).reduce((best,c)=>(!best||c.brut>best.brut)?c:best,null)
+    :null;
+  // Mois restants au calendrier (même formule que renderSasuCard()) — PAS 12-mc : mc ne
+  // compte que les mois avec de l'activité réelle (getMoisRealises), donc un mois blanc en
+  // janvier/février ferait gonfler artificiellement "mois restants" (les mois blancs déjà
+  // passés seraient comptés comme encore à venir).
+  const moisRestants=Math.max(0,12-parseInt(curMk.split('-')[1],10));
+  const bestCaseAnnual=bestMonth?caBrutRealise+bestMonth.brut*moisRestants:null;
+  const pctAtPace=annualTarget>0?annualAtPace/annualTarget:null;
+  const atteignable=(annualTarget>0&&bestCaseAnnual!=null)?bestCaseAnnual>=annualTarget:null;
+  return {chart12:months12,moisR,mc,annualTarget,caBrutRealise,annualAtPace,bestMonth,moisRestants,bestCaseAnnual,pctAtPace,atteignable};
+}
 function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const curMk=getCurrentMk();
   const [cY,cM]=curMk.split('-');
   const moisLabel=new Date(+cY,+cM-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  const moisR=getMoisRealises(), mc=Math.max(moisR.length,1);
   const p=DATA.params;
+  const traj=getTrajectoireAnnuelleInfo(objNet);
+  const {chart12,moisR,mc,annualTarget,annualAtPace,bestMonth}=traj;
 
   // ── KPI 1 : CA ANNUEL ─────────────────────────────────────────
-  const netR=1-getTauxChargesPresta()-getImpotsTaux();
-  const depM=getDepensesMoyenneMensuelle();
-  const annualTarget=netR>0&&objNet>0?(objNet+depM)/netR*12:0;
-  // "À ce rythme" doit s'annualiser depuis le CA réellement réalisé (moisR) — caBrut (utilisé
-  // pour le chiffre "CA annuel" et la barre au-dessus, volontairement inchangés) inclut déjà
-  // le CA des mois FUTURS d'un contrat récurrent encore actif (engagé mais pas encore encaissé).
-  // Diviser ce total par mc (mois déjà réalisés seulement) puis ×12 revenait à projeter deux
-  // fois ce CA futur déjà compté — gonflait "à ce rythme" au point de dépasser la projection du
-  // meilleur mois reproduit, un non-sens repéré en test. caBrutRealise ne somme que les mois
-  // effectivement réalisés, cohérent avec bestMonth (choisi dans ce même sous-ensemble).
-  const caBrutRealise=moisR.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
-  const annualAtPace=caBrutRealise/mc*12;
   const pctAnnuel=annualTarget>0?Math.min(Math.round(caBrut/annualTarget*100),200):0;
   const jg1Cl=pctAnnuel>=100?'ok':pctAnnuel>=70?'wn':'bd';
   let phraseAnnuel;
@@ -4792,11 +4823,6 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
 
   // ── KPI 3 : MINI GRAPHIQUE ÉVOLUTION ────────────────────────
   const mAbbr=['J','F','M','A','M','J','J','A','S','O','N','D'];
-  const chart12=[];
-  for(let i=0;i<12;i++){
-    const mk=`${DATA.currentYear}-${String(i+1).padStart(2,'0')}`;
-    chart12.push({mk,brut:getCaFromMissions(mk)+getPonctuelsCA(mk),net:getRevenuNetMois(mk),isCur:mk===curMk,isFut:mk>curMk});
-  }
   const cMax=Math.max(...chart12.map(d=>d.brut),objNet||0,1);
   const pH=26,sW=9,bW=6,bOff=1.5;
   const sc=v=>Math.max(0,Math.round(Math.max(0,v)/cMax*pH));
@@ -4823,16 +4849,8 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   // DATA.archives n'a qu'un total annuel par an (pas de détail mensuel) : impossible d'y
   // chercher "le meilleur mois de l'an dernier" pour l'instant — on assume donc toujours
   // le repli honnête ci-dessous sous 3 mois réalisés, plutôt qu'une fausse projection.
-  // Sélectionné sur le BRUT (et non le net) : cette section entière (annualAtPace,
-  // annualTarget, la barre de progression) raisonne en CA brut. Choisir le mois au plus haut
-  // net pouvait désigner un mois dont le brut n'était PAS le plus élevé (charges plus faibles
-  // ce mois-là) — projeté en brut, "le meilleur mois" pouvait alors sortir sous la moyenne du
-  // rythme actuel, contradiction relevée en test. En sélectionnant sur le brut, le mois choisi
-  // est par construction le maximum du même ensemble que la moyenne annualAtPace=caBrut/mc —
-  // sa projection est donc mathématiquement toujours ≥ la projection au rythme actuel.
-  const bestMonth=moisR.length>=3
-    ?chart12.filter(c=>!c.isFut).reduce((best,c)=>(!best||c.brut>best.brut)?c:best,null)
-    :null;
+  // bestMonth vient de getTrajectoireAnnuelleInfo() (sélectionné sur le brut, cf. commentaire
+  // sur la fonction) — ne pas le recalculer ici, wScoreSante() doit voir exactement le même mois.
   let phraseMeilleurAn;
   if(!bestMonth||bestMonth.brut<=0){
     phraseMeilleurAn='Pas encore assez de recul pour comparer — revenez dans quelques semaines.';
@@ -5236,6 +5254,11 @@ function wScoreSante(d) {
     </div>`;
   }
   const {thR,hT,objNet,caNetMoy,caBrut}=d;
+  // Même source que wTrajectoireAnnuelle() pour "Action recommandée" : les 4 piliers mesurent
+  // la santé opérationnelle (rythme, capacité, trésorerie, pipeline), aucun ne mesure la
+  // progression cumulée vers l'objectif annuel — un score élevé peut donc coexister avec un
+  // objectif annuel compromis, sans que rien ne le signale. Voir usage plus bas (score>=85).
+  const trajInfo=getTrajectoireAnnuelleInfo(objNet);
   const thMin=getTauxHoraireMinCible();
   const hj=DATA.params.heuresParJour||7;
   const curMk=getCurrentMk();
@@ -5509,11 +5532,22 @@ function wScoreSante(d) {
   const score=sRent+sRemp+sTreso+sComm;
   const scoreColor=score>=80?'var(--ok)':score>=60?'#84cc16':score>=40?'var(--warn)':score>=20?'#f97316':'var(--err)';
 
+  // Score élevé mais objectif annuel compromis : les 4 piliers ci-dessus ne mesurent aucun
+  // d'entre eux la progression cumulée vers l'objectif (voir commentaire sur trajInfo plus haut)
+  // — sans ce garde-fou, "excellente trajectoire" pouvait s'afficher pendant qu'un objectif
+  // annuel réellement à risque restait invisible tant qu'on ne descendait pas voir le widget
+  // "Votre trajectoire annuelle". Seuil 0,85 aligné sur celui de phraseAnnuel (même widget) —
+  // le score global et le widget passent au orange/rouge exactement au même moment.
+  const {annualTarget:trajTarget,pctAtPace,atteignable:trajAtteignable,bestMonth:trajBestMonth,moisRestants:trajMoisRestants}=trajInfo;
+  const annualAtRisk=trajTarget>0&&!!trajBestMonth&&pctAtPace!=null&&pctAtPace<0.85;
+
   // ── DIAGNOSTIC GLOBAL ────────────────────────────────────────
   const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'agenda',art:"l'",s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
   let diagGlobal='';
-  if(score>=85) diagGlobal='Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
+  if(score>=85) diagGlobal=annualAtRisk
+    ?'Votre activité tourne très bien aujourd\'hui — mais votre CA annuel risque de ne pas être atteint au rythme actuel. Voir « Votre trajectoire annuelle » ci-dessous.'
+    :'Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
   else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.`;
   else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.`;
   else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art}${worst.n}.`;
@@ -5548,7 +5582,13 @@ function wScoreSante(d) {
     else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin)
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
   } else if(score>=85){
-    priorite='Continuez sur cette lancée — votre activité est en excellente santé. 🎉';
+    if(annualAtRisk){
+      priorite=trajAtteignable
+        ?`Votre activité est en excellente santé aujourd'hui, mais votre CA annuel risque de ne pas être atteint au rythme actuel. L'objectif reste atteignable : il faudrait maintenir un rythme proche de votre meilleur mois sur les <strong>${trajMoisRestants} mois restants</strong>.`
+        :`Votre activité est en excellente santé aujourd'hui, mais votre CA annuel ne sera probablement pas atteint — même en reproduisant votre meilleur mois sur le reste de l'année, l'écart ne peut plus être comblé. Mieux vaut ajuster votre objectif que courir après un chiffre hors de portée.`;
+    } else {
+      priorite='Continuez sur cette lancée — votre activité est en excellente santé. 🎉';
+    }
   } else {
     priorite=`Concentrer vos efforts sur <strong>${worst.art}${worst.n}</strong> pour améliorer votre score global.`;
   }
