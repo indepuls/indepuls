@@ -10110,6 +10110,11 @@ document.addEventListener('click', function(e) {
   // Clic en dehors → ferme
   if (!tip) { if (existing) existing.remove(); return; }
   e.stopPropagation();
+  // preventDefault indispensable quand le ? est imbriqué dans un <label> (ex. options TVA/statut) :
+  // sans ça, l'action par défaut du label déclenche un clic synthétique sur son input associé,
+  // qui émet son propre évènement click remontant ici — cible hors .info-tip, donc la branche
+  // "clic en dehors" ci-dessus referme aussitôt la bulle qu'on vient d'ouvrir (bug repéré en retour bêta).
+  e.preventDefault();
   // Même ? déjà ouvert → ferme
   if (existing && existing._src === tip) { existing.remove(); return; }
   if (existing) existing.remove();
