@@ -4327,7 +4327,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
         <div style="text-align:center"><div style="font-size:11px;color:var(--tl);margin-bottom:3px">${_prevBilanLbl}</div><div style="font-size:20px;font-weight:700;color:var(--text)">${_prevBilanVal}</div></div>
       </div>
       <div style="margin-top:14px;border-top:1px solid var(--brd);padding-top:12px">
-        <label style="font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Votre réflexion du mois <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0">(optionnel)</span></label>
+        <label style="font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:6px">Ma réflexion du mois <span style="opacity:.6;font-weight:400;text-transform:none;letter-spacing:0">(optionnel)</span></label>
         <textarea id="bilan-note-input" rows="2" placeholder="Points marquants, causes d'un écart, intentions pour le mois prochain…">${existingBilanNote}</textarea>
         <div style="display:flex;justify-content:flex-end;margin-top:8px">
           <button class="btn btn-acc btn-sm" onclick="saveBilanNote('${prevMk}','${todayKey}')">Sauvegarder & fermer</button>
@@ -4397,7 +4397,7 @@ function wProvisionsSide(d) {
       const tvaTot=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());
       return {lbl:echTVA.label,val:echTVA.montant,days:echTVA.daysLeft,sub:tvaTot>echTVA.montant?`Sur ${fmtE(tvaTot)} estimés annuellement`:null};
     }
-    if(echTVA.montant===0) return {lbl:echTVA.label,val:0,days:null,sub:'Vous êtes à l\'équilibre — TVA collectée = TVA déductible',positive:true};
+    if(echTVA.montant===0) return {lbl:echTVA.label,val:0,days:null,sub:'Je suis à l\'équilibre — TVA collectée = TVA déductible',positive:true};
     return {lbl:'Crédit de TVA',val:Math.abs(echTVA.montant),days:null,sub:'TVA déductible supérieure à la TVA collectée — remboursable ou reportable',positive:true};
   })();
 
@@ -4431,7 +4431,7 @@ function wProvisionsSide(d) {
       const caMoisBrut=getCaFromMissions(curMk)+getPonctuelsCA(curMk);
       if(!totalAConserver||caMoisBrut<=0) return '';
       if(caMoisBrut>=totalAConserver)
-        return '<div style="font-size:12px;color:var(--ok);margin-bottom:10px;display:flex;gap:6px"><span>🟢</span><span><strong>Situation confortable</strong> — les revenus du mois couvrent vos provisions à venir.</span></div>';
+        return '<div style="font-size:12px;color:var(--ok);margin-bottom:10px;display:flex;gap:6px"><span>🟢</span><span><strong>Situation confortable</strong> — les revenus du mois couvrent mes provisions à venir.</span></div>';
       if(caMoisBrut>=totalAConserver*0.5)
         return '<div style="font-size:12px;color:var(--warn);margin-bottom:10px;display:flex;gap:6px"><span>🟠</span><span><strong>À surveiller</strong> — les revenus du mois ne couvrent qu\'une partie des provisions à constituer.</span></div>';
       return '<div style="font-size:12px;color:var(--err);margin-bottom:10px;display:flex;gap:6px"><span>🔴</span><span><strong>Vigilance</strong> — vos prochaines échéances risquent de peser sur votre trésorerie.</span></div>';
@@ -4442,7 +4442,7 @@ function wProvisionsSide(d) {
       if(_isMicro&&!impotsTaux)
         return '<div style="font-size:11px;color:var(--tl);margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid var(--brd)">Aucun taux d\'impôt renseigné — aucune provision d\'impôt n\'est calculée. <span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="navigate(\'params\')">Renseigner dans Paramètres › Impôt</span></div>';
       if(_isMicro&&impotsTaux)
-        return '<div style="font-size:10px;color:var(--tl);margin-top:8px;opacity:.8">Impôt estimé après abattement micro — prévision indicative basée sur votre taux saisi. À ajuster selon votre situation personnelle.</div>';
+        return '<div style="font-size:10px;color:var(--tl);margin-top:8px;opacity:.8">Impôt estimé après abattement micro — prévision indicative basée sur mon taux saisi. À ajuster selon ma situation personnelle.</div>';
       return '';
     })()
     +(()=>{
@@ -4489,7 +4489,7 @@ function wRepartitionCA(d) {
     const btnE=(v,lbl)=>`<button onclick="DATA.repartitionVue='${v}';renderDashboard()" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${vue===v?'var(--pri)':'var(--brd)'};background:${vue===v?'var(--pri)':'transparent'};color:${vue===v?'#fff':'var(--tl)'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">${lbl}</button>`;
     return `<div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-        <div><div class="card-title">💰 Où part votre chiffre d'affaires ?</div>
+        <div><div class="card-title">💰 Où part mon chiffre d'affaires ?</div>
         <div class="card-sub">${moisLbl} · Aucun encaissement enregistré ce mois</div></div>
         <div style="display:flex;gap:6px">${btnE('annee','Année')}${btnE('mois','Mois')}</div>
       </div>
@@ -4500,10 +4500,12 @@ function wRepartitionCA(d) {
       </div>
     </div>`;
   }
-  // SASU/EURL : une fois la rémunération (déjà "pour vous") déduite, ce qui reste est de la
+  // SASU/EURL : une fois la rémunération (déjà "pour moi") déduite, ce qui reste est de la
   // trésorerie d'entreprise, pas un revenu personnel supplémentaire — libellé adapté en
-  // conséquence. Micro/BNC/BIC inchangé : "disponible pour vous" y désigne le revenu réel.
-  const _dispoLbl=isSASU()?"Disponible pour l'entreprise":'Disponible pour vous';
+  // conséquence. Micro/BNC/BIC inchangé : "disponible pour moi" y désigne le revenu réel
+  // (registre 1 — donnée qui lui appartient — cohérent avec le passage en 1re personne des
+  // autres cartes de données du dashboard, 2026-07).
+  const _dispoLbl=isSASU()?"Disponible pour l'entreprise":'Disponible pour moi';
   const segs=[
     {lbl:_dispoLbl, val:cur.disponible, col:'#2d7a4f'},
     {lbl:isSASU()?'Charges sociales':'URSSAF + CFP', val:cur.urssaf, col:'#f97316'},
@@ -4531,7 +4533,7 @@ function wRepartitionCA(d) {
   const btn=(v,lbl)=>`<button onclick="DATA.repartitionVue='${v}';renderDashboard()" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${vue===v?'var(--pri)':'var(--brd)'};background:${vue===v?'var(--pri)':'transparent'};color:${vue===v?'#fff':'var(--tl)'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">${lbl}</button>`;
   return `<div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div><div class="card-title">💰 Où part votre chiffre d'affaires ?</div>
+      <div><div class="card-title">💰 Où part mon chiffre d'affaires ?</div>
       <div class="card-sub">${vue==='annee'?`Année ${DATA.currentYear}`:moisLbl} · CA encaissé : ${fmtE(cur.ca)}</div></div>
       <div style="display:flex;gap:6px">${btn('annee','Année')}${btn('mois','Mois')}</div>
     </div>
@@ -4540,7 +4542,7 @@ function wRepartitionCA(d) {
         <div style="width:160px;height:160px;border-radius:50%;background:${gradient}"></div>
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);width:88px;height:88px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--brd)">
           <div style="font-size:24px;font-weight:900;color:#2d7a4f;line-height:1">${pctD}%</div>
-          <div style="font-size:9px;color:var(--tl);text-align:center;line-height:1.3;margin-top:1px">${isSASU()?'pour<br>la société':'pour<br>vous'}</div>
+          <div style="font-size:9px;color:var(--tl);text-align:center;line-height:1.3;margin-top:1px">${isSASU()?'pour<br>la société':'pour<br>moi'}</div>
         </div>
       </div>
       <div style="flex:1;min-width:220px">${legend}</div>
@@ -4834,7 +4836,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   if(annualTarget>0){
     const r=annualAtPace/annualTarget;
     if(r>=1.1) phraseAnnuel='🟢 Continuez ainsi — vous dépasserez votre objectif annuel.';
-    else if(r>=1) phraseAnnuel='🟢 À ce rythme, vous atteindrez votre objectif annuel.';
+    else if(r>=1) phraseAnnuel='🟢 À ce rythme, j\'atteindrai mon objectif annuel.';
     else if(r>=.85) phraseAnnuel=`🟠 À ce rythme, vous atteindrez environ ${Math.round(r*100)} % de votre objectif annuel.`;
     else phraseAnnuel='🔴 À ce rythme, l\'objectif annuel risque de ne pas être atteint.';
   } else {
@@ -4846,7 +4848,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const pctObj=objNet>0?Math.min(Math.round(caNetMois/objNet*100),100):0;
   const pcObj=pctObj>=100?'ok':pctObj>=75?'wn':'bd';
   let phraseNet;
-  if(isSASU()){phraseNet='Rémunération fixe définie dans votre profil.';}
+  if(isSASU()){phraseNet='Rémunération fixe définie dans mon profil.';}
   else if(objNet>0){
     const manque=objNet-caNetMois;
     if(pctObj>=100) phraseNet='🟢 Objectif du mois atteint — excellent !';
@@ -4897,7 +4899,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     const pctMeilleur=annualTarget>0?Math.round(projMeilleur/annualTarget*100):null;
     // bestMonth.net affiché entre parenthèses à titre de repère (ce que ce mois a réellement
     // rapporté), mais ne pilote plus ni la sélection du mois ni la projection.
-    phraseMeilleurAn=`En reproduisant votre meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net) : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> de CA sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de votre objectif`:''}.`;
+    phraseMeilleurAn=`En reproduisant mon meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net) : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> de CA sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de mon objectif`:''}.`;
   }
   let phraseMeilleurMois=null;
   if(bestMonth&&bestMonth.brut>0&&bestMonth.mk!==curMk){
@@ -4908,7 +4910,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     const moisLabelBest=new Date(by,bm-1,1).toLocaleDateString('fr-FR',{month:'long'});
     const curCaADate=getCaMissionsADate(curMk,todayJour);
     const bestCaADate=getCaMissionsADate(bestMonth.mk,jourCompare);
-    phraseMeilleurMois=`Au ${todayJour} du mois, vous avez encaissé <strong>${fmtE(curCaADate,0)}</strong> de CA — votre meilleur mois (${moisLabelBest}) en était à <strong>${fmtE(bestCaADate,0)}</strong> au même stade.`;
+    phraseMeilleurMois=`Au ${todayJour} du mois, j'ai encaissé <strong>${fmtE(curCaADate,0)}</strong> de CA — mon meilleur mois (${moisLabelBest}) en était à <strong>${fmtE(bestCaADate,0)}</strong> au même stade.`;
   }
 
   // ── PHRASE DE DIAGNOSTIC COMBINÉE (annuel + mensuel dans la même phrase) ──
@@ -4919,14 +4921,14 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     phraseCombinee=phraseAnnuel;
   } else {
     const rAn=annualAtPace/annualTarget;
-    if(rAn>=1&&pctObj>=100) phraseCombinee=`🟢 Vous êtes sur la bonne trajectoire — objectif annuel en vue, et objectif du mois déjà atteint.`;
-    else if(rAn>=1&&pctObj<100) phraseCombinee=`🟢 Votre trajectoire annuelle est bonne, mais il reste <strong>${fmtE(objNet-caNetMois)}</strong> à trouver ce mois-ci pour rester dans le rythme.`;
+    if(rAn>=1&&pctObj>=100) phraseCombinee=`🟢 Je suis sur la bonne trajectoire — objectif annuel en vue, et objectif du mois déjà atteint.`;
+    else if(rAn>=1&&pctObj<100) phraseCombinee=`🟢 Ma trajectoire annuelle est bonne. Il reste <strong>${fmtE(objNet-caNetMois)}</strong> à trouver ce mois-ci pour rester dans le rythme.`;
     else if(rAn<1&&pctObj>=100) phraseCombinee=`🟠 Bon mois, mais l'objectif annuel reste incertain à ce rythme — continuez sur cette lancée.`;
     else phraseCombinee=`🔴 L'année comme le mois sont en dessous de vos objectifs — <strong>${fmtE(objNet-caNetMois)}</strong> à trouver ce mois-ci pour redresser la trajectoire.`;
   }
 
   return `<div class="card">
-    <div class="card-header"><div class="card-title">📊 Votre trajectoire annuelle</div></div>
+    <div class="card-header"><div class="card-title">📊 Ma trajectoire annuelle</div></div>
     <div style="font-size:14px;color:var(--text);line-height:1.55;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">${phraseCombinee}</div>
 
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Sur l'année</div>
@@ -4938,7 +4940,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
       :`<div class="kpi-sub">Projection : ${fmtE(proj,0)}/an</div>`
     }
     <div style="font-size:11px;color:var(--tl);line-height:1.6;margin-top:9px">
-      À ce rythme, la projection de votre CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.<br>
+      À ce rythme, la projection de mon CA annuel sera de <strong style="color:var(--pri)">${fmtE(Math.round(annualAtPace),0)}</strong>.<br>
       ${phraseMeilleurAn}
     </div>
     <div onclick="navigate('revenus')" style="cursor:pointer;margin-top:14px;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">
@@ -5278,12 +5280,12 @@ function wScoreSante(d) {
     const tjmMinP = Math.round(thMinP * hjP);
     const hasParamsP = DATA.params.objectifNetMensuel > 0 && thMinP > 0;
     return `<div class="card">
-      <div class="card-header"><div><div class="card-title">Score de Santé</div><div class="card-sub">Analyse de votre activité en 4 piliers</div></div></div>
+      <div class="card-header"><div><div class="card-title">Score de Santé</div><div class="card-sub">Analyse de mon activité en 4 piliers</div></div></div>
       <div style="text-align:center;padding:28px 16px">
         <div style="font-size:38px;margin-bottom:10px">⏳</div>
         <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre ${tVocab('item').toLowerCase()==='chantier'?'premier':'première'} ${tVocab('item').toLowerCase()}</div>
         <div style="font-size:12px;color:var(--tl);line-height:1.7;max-width:360px;margin:0 auto">Le score n'est calculé que lorsque vos données sont suffisantes pour produire une analyse pertinente.</div>
-        ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum estimé d'après vos paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
+        ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum estimé d'après mes paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
         <div style="margin-top:16px"><button class="btn btn-acc btn-sm" onclick="navigate('missions')">📋 ${tVocab('createButton')}</button></div>
       </div>
     </div>`;
@@ -5346,7 +5348,7 @@ function wScoreSante(d) {
     subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos chantiers.';advRent='';}
     else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
-    else if(sRent>=20){diagRent=`🟢 TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à votre seuil minimum.`;advRent='Vos chantiers sont rentables. Continuez ainsi.';}
+    else if(sRent>=20){diagRent=`🟢 TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à mon seuil minimum.`;advRent='Vos chantiers sont rentables. Continuez ainsi.';}
     else if(sRent>=14){diagRent=`🟠 TJM réel proche de la cible — il manque encore ${fmtE(gapTjm,0)}/j.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`🔴 TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos chantiers.';}
     else{diagRent=`🔴 TJM réel très faible — objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les chantiers les moins rentables.';}
@@ -5356,7 +5358,7 @@ function wScoreSante(d) {
     const gapTh=thMin-thBrut;
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
     else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
-    else if(sRent>=20){diagRent=`🟢 TH réel supérieur de ${fmtE(-gapTh,0)}/h à votre seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
+    else if(sRent>=20){diagRent=`🟢 TH réel supérieur de ${fmtE(-gapTh,0)}/h à mon seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
     else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`🔴 TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
     else{diagRent=`🔴 TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
@@ -5390,13 +5392,13 @@ function wScoreSante(d) {
   } else if(_rentIsChantier){
     if(hMoisTotal>0){
       const okMois=tjmMin>0?tjmMoisBrut>=tjmMin:null;
-      diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?' — au-dessus de votre seuil minimum':' — en dessous de votre seuil minimum'}.`;
+      diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?' — au-dessus de mon seuil minimum':' — en dessous de votre seuil minimum'}.`;
       rowRentMois={lbl:'TJM réel (ce mois)',val:fmtE(tjmMoisBrut,0)+'/j',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   } else {
     if(hMoisTotal>0){
       const okMois=thMin>0?thMoisBrut>=thMin:null;
-      diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?' — au-dessus de votre seuil minimum':' — en dessous de votre seuil minimum'}.`;
+      diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?' — au-dessus de mon seuil minimum':' — en dessous de votre seuil minimum'}.`;
       rowRentMois={lbl:'TH réel (ce mois)',val:fmtE(thMoisBrut,0)+'/h',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   }
@@ -5424,7 +5426,7 @@ function wScoreSante(d) {
   let vTreso,subTreso,diagTreso,advTreso;
   if(mtTotalNonEnc===0){
     vTreso='Saine';subTreso='Aucun impayé';
-    diagTreso='🟢 Aucun risque identifié sur votre trésorerie.';advTreso='Continuez à facturer régulièrement.';
+    diagTreso='🟢 Aucun risque identifié sur ma trésorerie.';advTreso='Continuez à facturer régulièrement.';
   } else if(mtImpaye===0){
     vTreso=fmtE(mtTotalNonEnc);subTreso='À encaisser';
     diagTreso=`🟢 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Aucun retard de paiement identifié à ce jour.`;
@@ -5462,7 +5464,7 @@ function wScoreSante(d) {
       _tresoLigne=`◐ Trésorerie fragile — prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. La trésorerie reste positive mais la marge est faible — surveillez vos entrées.`;
       diagTreso=`${_tresoLigne}<br>${diagTreso}`;
     } else {
-      _tresoLigne=`▲ Trésorerie solide — prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. À ce rythme, votre société terminera l'année avec une trésorerie confortable.`;
+      _tresoLigne=`▲ Trésorerie solide — prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. À ce rythme, ma société terminera l'année avec une trésorerie confortable.`;
       diagTreso=`${diagTreso}<br>${_tresoLigne}`;
     }
     const _anchor=DATA.params.soldeReel!=null;
@@ -5494,13 +5496,13 @@ function wScoreSante(d) {
       .reduce((s,m)=>s+getResteAEncaisser(m),0);
     if(_ech.total>0){
       const _couvert=mtTotalNonEnc>=_ech.total;
-      let _ligne=`<strong>${fmtE(_ech.total)}</strong> à provisionner${_dateProchaine?` d'ici le ${_dateProchaine}`:''}. Vous avez <strong>${fmtE(mtTotalNonEnc)}</strong> dû (facturé, en attente de paiement)`;
+      let _ligne=`<strong>${fmtE(_ech.total)}</strong> à provisionner${_dateProchaine?` d'ici le ${_dateProchaine}`:''}. J'ai <strong>${fmtE(mtTotalNonEnc)}</strong> dû (facturé, en attente de paiement)`;
       _ligne+=mtTotalNonEnc>0?(_couvert?' — largement couvert.':` — insuffisant, il manque ${fmtE(_ech.total-mtTotalNonEnc)}.`):'.';
-      if(_argentProbable>0) _ligne+=` + <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur vos ${tVocab('items').toLowerCase()} en cours (non garantis).`;
+      if(_argentProbable>0) _ligne+=` + <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur mes ${tVocab('items').toLowerCase()} en cours (non garantis).`;
       diagTreso+=`<br>${_ligne}`;
       _tresoExtraRows.push({lbl:'Prochaines échéances'+(_dateProchaine?` (d'ici le ${_dateProchaine})`:''), val:fmtE(_ech.total), c:_couvert?'var(--ok)':'var(--err)'});
     } else if(_argentProbable>0){
-      diagTreso+=`<br>+ <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur vos ${tVocab('items').toLowerCase()} en cours (non garantis).`;
+      diagTreso+=`<br>+ <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur mes ${tVocab('items').toLowerCase()} en cours (non garantis).`;
     }
     if(_argentProbable>0) _tresoExtraRows.push({lbl:'Probable non garanti (en cours)', val:fmtE(_argentProbable), c:'var(--tl)'});
   }
@@ -5550,7 +5552,7 @@ function wScoreSante(d) {
   const subComm=nbDevis>0?`${nbDevis} ${_itemWord} · ${fmtE(pipelineVal)}`:`Aucun${_masc?'':'e'} ${_itemLow} en attente`;
   let diagComm,advComm;
   if(sComm>=25){
-    diagComm='🟢 Votre activité dispose d\'une visibilité commerciale confortable.';
+    diagComm='🟢 Mon activité dispose d\'une visibilité commerciale confortable.';
     advComm=nbDevis>0?`${nbDevis} ${_itemWord} en attente (${fmtE(pipelineVal)}) — relancez-${nbDevis===1?(_masc?'le':'la'):'les'} avant qu${nbDevis===1?(_masc?'\'il':'\'elle'):'\'ils'} refroidiss${nbDevis===1?'e':'ent'}.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
   } else if(sComm>=18){
     diagComm='🟠 Votre activité reste sécurisée mais il est temps d\'alimenter votre prospection.';
@@ -5604,9 +5606,9 @@ function wScoreSante(d) {
   // de répéter en substance ce que priorite développe déjà (doublon repéré en retour bêta sur
   // la branche score>=85+annualAtRisk, où les deux textes disaient presque la même chose).
   if(score>=85) diagGlobal=annualAtRisk
-    ?'Votre activité tourne très bien aujourd\'hui, mais votre CA annuel est à risque.'
+    ?'Mon activité tourne très bien aujourd\'hui. Votre CA annuel est à risque.'
     :'Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
-  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.`;
+  else if(score>=70) diagGlobal=`Mon activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.`;
   else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.`;
   else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art}${worst.n}.`;
   else diagGlobal=`Votre activité demande une attention immédiate — le point faible : ${worst.art}${worst.n}.`;
@@ -5635,7 +5637,7 @@ function wScoreSante(d) {
     const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
     const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
     const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
-    priorite=`Votre remplissage a de la place — combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
+    priorite=`Mon remplissage a de la place. Combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
     prioriteNavPage=_navPageByPilier.remplissage;
   } else if(worst.n==='rentabilité'&&hT>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
@@ -5827,7 +5829,7 @@ function wScoreSante(d) {
       ${_mecCard}
       <div class="card ss-brief" style="grid-column:2;grid-row:1/3;padding:16px 18px">
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:4px">📋 Votre brief</div>
-        <div style="font-size:10px;color:var(--tl);margin-bottom:10px">Basé sur vos données du ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>
+        <div style="font-size:10px;color:var(--tl);margin-bottom:10px">Basé sur mes données du ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>
         <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;display:block;margin-bottom:6px">👉 Action recommandée</span>${priorite}${_prioriteBtn(prioriteNavPage)}</div>
         ${alertsSection}
       </div>
@@ -5847,10 +5849,10 @@ function wScoreSante(d) {
       </div>
     </div>
     <div class="g4" style="gap:10px">
-      ${pilierCard('Votre rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
-      ${pilierCard('Votre remplissage',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
-      ${pilierCard('Votre trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso,extraTresoHTML)}
-      ${pilierCard('Votre horizon',sComm,diagComm,advComm,'missions',rowsComm,methComm)}
+      ${pilierCard('Ma rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
+      ${pilierCard('Mon remplissage',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
+      ${pilierCard('Ma trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso,extraTresoHTML)}
+      ${pilierCard('Mon horizon',sComm,diagComm,advComm,'missions',rowsComm,methComm)}
     </div>
   </div>`;
 }
@@ -8072,7 +8074,7 @@ function renderSasuCard(d) {
   const depart=getTresorerieDepart();
   const remuNet=DATA.params.remunerationNette||0;
   const _statutLabel=DATA.params.statut==='eurl'?'EURL':'SASU';
-  if(remuNet===0) return `<div class="card"><div class="card-header"><div class="card-title">🏦 Rémunération recommandée</div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer ma rémunération</button></div></div>`;
+  if(remuNet===0) return `<div class="card"><div class="card-header"><div class="card-title">🏦 Rémunération recommandée</div></div><div class="alert al-warn" style="margin-top:8px">⚠️ Vous êtes en ${_statutLabel} mais aucune rémunération nette cible n'est renseignée. Les projections de soutenabilité ne peuvent pas être calculées.<br><br><button class="btn btn-sm" onclick="navigate('params')">Configurer la rémunération</button></div></div>`;
   const coutRemuMensuel=getSasuCoutRemuMensuel();
   // TVA encore due d'ici la fin de l'année (pas la TVA annuelle totale — voir
   // getTvaAVenirFinAnnee() : un encours qui tourne, pas une dette qui s'accumule).
@@ -8147,7 +8149,7 @@ function renderSasuCard(d) {
     <div style="margin-bottom:12px">
       <div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:4px">Rémunération idéale possible</div>
       <div style="font-size:26px;font-weight:900;color:${accentC};line-height:1">${fmtE(capaciteNetteEquiv,0)}</div>
-      <div style="font-size:12px;color:var(--tl);margin-top:5px">${fmtE(capaciteMensuelle,0)} bruts/mois — soit <strong style="color:${accentC}">${ecartNet>=0?'+':''}${fmtE(ecartNet,0)}</strong> d'écart avec votre cible</div>
+      <div style="font-size:12px;color:var(--tl);margin-top:5px">${fmtE(capaciteMensuelle,0)} bruts/mois — soit <strong style="color:${accentC}">${ecartNet>=0?'+':''}${fmtE(ecartNet,0)}</strong> d'écart avec ma cible</div>
     </div>
     ${msgPrincipal?`<div style="font-size:12px;color:var(--text);line-height:1.5;margin-bottom:8px">${msgPrincipal}</div>`:''}
     <div class="alert ${badgeCls}" style="font-size:12px;margin-bottom:10px"><span>${msgProjection}</span></div>
