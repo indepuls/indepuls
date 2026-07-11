@@ -3220,22 +3220,25 @@ function showProfilePicker() {
   document.getElementById('screen-profile-picker').classList.remove('hidden');
 }
 
-var _PICKER_DESC = {
-  prestataire_services: { ico:'💼', txt:'Consultant, coach, formateur, développeur, assistant virtuel, juriste, RH… Vous vendez votre expertise ou votre temps. Indépuls suit votre taux horaire, vos missions et votre rentabilité.' },
-  creatif_com:          { ico:'🎨', txt:'Graphiste, designer, community manager, vidéaste, rédacteur, photographe de studio… Vous réalisez des prestations créatives. Indépuls suit vos missions, votre taux horaire et la rentabilité de chaque prestation.' },
-  evenementiel:         { ico:'🎤', txt:'Traiteur, animateur teambuilding, photographe événementiel, DJ, wedding planner… Vous organisez ou animez des événements ponctuels. Indépuls gère votre planning, vos encaissements et votre taux de remplissage.' },
-  artisan_batiment:     { ico:'🔨', txt:'Maçon, plombier, électricien, peintre, menuisier, carreleur, paysagiste… Vous réalisez des chantiers. Indépuls suit la rentabilité de chaque chantier, vos coûts matériaux et vos encaissements.' },
-  artisan_commande:     { ico:'🧰', txt:'Réparateur, tapissier, ferronnier, ébéniste sur-mesure… Vous fabriquez ou intervenez sur commande. Indépuls suit le coût de revient de chaque commande et votre marge réelle.' },
-  fabricant_serie:      { ico:'📦', txt:'Créateur de cosmétiques, bijoux, bougies, pâtissier, chocolatier… Vous produisez des articles en série. Indépuls suit vos coûts de fabrication, votre marge par produit et votre CA.' },
-  achat_revente:        { ico:'🛍️', txt:'E-commerçant, revendeur, négociant, vendeur marketplace… Vous achetez pour revendre. Indépuls calcule votre marge nette après coût d\'achat, frais de plateforme et envoi.' },
+// Icônes du picker de profil — la description elle-même vient de PROFIL_DESCRIPTIONS
+// (source unique) ; ce fichier avait auparavant sa propre copie du texte (_PICKER_DESC),
+// identique au mot près mais jamais mise à jour en même temps (repéré au même titre que
+// le duplicata getSourceAcqPhrase()/wSourceAcq() — même symptôme, même risque de dérive).
+var PROFIL_ICONS = {
+  prestataire_services:'💼', creatif_com:'🎨', evenementiel:'🎤',
+  artisan_batiment:'🔨', artisan_commande:'🧰', fabricant_serie:'📦', achat_revente:'🛍️',
 };
 function pickerUpdateDesc() {
   var sel = document.getElementById('picker-metier-select');
   var box = document.getElementById('picker-desc');
   if (!sel || !box) return;
-  var d = _PICKER_DESC[sel.value];
-  if (d) {
-    box.innerHTML = '<span style="font-size:20px;margin-right:8px;vertical-align:middle">' + d.ico + '</span><span style="vertical-align:middle">' + d.txt + '</span>';
+  var txt = PROFIL_DESCRIPTIONS[sel.value];
+  if (txt) {
+    var ico = PROFIL_ICONS[sel.value] || '';
+    // PROFIL_DESCRIPTIONS porte déjà son icône en tête de chaîne (ex. "💼 Consultant…") —
+    // on la retire ici pour la réafficher séparément, agrandie, sans la dupliquer.
+    var txtSansIco = txt.replace(/^\S+\s*/, '');
+    box.innerHTML = '<span style="font-size:20px;margin-right:8px;vertical-align:middle">' + ico + '</span><span style="vertical-align:middle">' + txtSansIco + '</span>';
     box.style.display = 'block';
   } else {
     box.style.display = 'none';
@@ -4202,13 +4205,13 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const caMinAnnuel = Math.round(thMin * hAn2);
     const earlyResults = (hasParams && objNet2 > 0 && thMin > 0) ? `
       <div class="card" style="border-left:4px solid var(--ok);margin-top:16px">
-        <div class="card-header"><div class="card-title">📊 Vos premiers indicateurs</div><div class="card-sub">Calculés à partir de vos paramètres — affinés après l'ajout de vos missions</div></div>
+        <div class="card-header"><div class="card-title">📊 Mes premiers indicateurs</div><div class="card-sub">Calculés à partir de mes paramètres — affinés après l'ajout de mes missions</div></div>
         <div class="g3" style="gap:12px">
-          <div class="kpi neu"><div class="kpi-ico">⏱</div><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${fmtE(thMin,0)}/h</div><div class="kpi-sub">Pour atteindre votre objectif</div></div>
+          <div class="kpi neu"><div class="kpi-ico">⏱</div><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${fmtE(thMin,0)}/h</div><div class="kpi-sub">Pour atteindre mon objectif</div></div>
           <div class="kpi neu"><div class="kpi-ico">🎯</div><div class="kpi-label">Objectif mensuel net</div><div class="kpi-val">${fmtE(objNet2,0)}</div><div class="kpi-sub">Net après charges</div></div>
           <div class="kpi neu"><div class="kpi-ico">📈</div><div class="kpi-label">CA annuel minimum</div><div class="kpi-val">${fmtE(caMinAnnuel,0)}</div><div class="kpi-sub">Pour couvrir charges + objectif</div></div>
         </div>
-        ${hasDep?`<div class="alert al-ok" style="margin-top:12px;font-size:12px">✅ Vos dépenses sont prises en compte dans le taux horaire minimum calculé ci-dessus.</div>`:`<div class="alert al-info" style="margin-top:12px;font-size:12px">💡 Ajoutez vos dépenses professionnelles pour affiner votre taux horaire minimum.</div>`}
+        ${hasDep?`<div class="alert al-ok" style="margin-top:12px;font-size:12px">✅ Mes dépenses sont prises en compte dans le taux horaire minimum calculé ci-dessus.</div>`:`<div class="alert al-info" style="margin-top:12px;font-size:12px">💡 Ajoutez vos dépenses professionnelles pour affiner votre taux horaire minimum.</div>`}
       </div>` : '';
     const step = (num, done, icon, title, desc, ctaLabel, ctaFn) => `
       <div class="step-card" style="border-left:4px solid ${done?'var(--ok)':'var(--err)'}">
@@ -4266,7 +4269,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
         <div style="max-width:500px;margin:0 auto">
           ${step1}
           ${step(2,hasParams,'⚙️','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs','Configurer',"navigate('params')")}
-          ${step(3,hasDep,'💳','Ajoutez vos dépenses professionnelles','Logiciels · assurances · comptable · abonnements…','Ajouter mes dépenses',"navigate('depenses')")}
+          ${step(3,hasDep,'💳','Ajoutez vos dépenses professionnelles','Logiciels · assurances · comptable · abonnements…','Ajouter des dépenses',"navigate('depenses')")}
           ${step(4,false,'📋',tVocab('firstItem'),'Étape finale : débloque le tableau de bord complet et le Score de Santé',tVocab('createButton'),"navigate('missions')")}
         </div>
         <div style="text-align:center;margin-top:20px">
