@@ -1122,7 +1122,7 @@ html,body{overflow-x:hidden;}
         <!-- Toggle mode -->
         <div style="display:flex;gap:6px;margin-bottom:16px" id="sim-mode-toggle">
           <button type="button" id="sim-mode-btn-verifier" onclick="switchSimMode('verifier')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Vérifier un prix</button>
-          <button type="button" id="sim-mode-btn-calculer" onclick="switchSimMode('calculer')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Calculer mon tarif</button>
+          <button type="button" id="sim-mode-btn-calculer" onclick="switchSimMode('calculer')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Calculer un tarif</button>
         </div>
         <div class="card-sub mb16" id="sim-subtitle">Vérifiez si ce que vous allez vendre est rentable avant de le proposer.</div>
 
@@ -3317,7 +3317,7 @@ function clearExampleData() {
   closeModal('modal-clear-example');
   renderAll();
   applyVocabUI();
-  showToast('✅ Votre espace est prêt. Ajoutez votre première affaire pour commencer !');
+  showToast('✅ Mon espace est prêt. Ajoutez votre première affaire pour commencer !');
 }
 
 function renderDemoBanner() {
@@ -3517,12 +3517,12 @@ function _migrateFromLegacy() {
 
   if (hasFl && !hasAr) {
     localStorage.setItem(STORAGE_KEY, localStorage.getItem('indepuls_freelance'));
-    showToast('✅ Données migrées depuis votre espace précédent.');
+    showToast('✅ Données migrées depuis mon espace précédent.');
     return true;
   }
   if (hasAr && !hasFl) {
     localStorage.setItem(STORAGE_KEY, localStorage.getItem('indepuls_artisan'));
-    showToast('✅ Données migrées depuis votre espace précédent.');
+    showToast('✅ Données migrées depuis mon espace précédent.');
     return true;
   }
 
@@ -9464,11 +9464,11 @@ function renderSimOutputs(r) {
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid var(--pri)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">💶 Prix minimum à facturer</div>
       <div style="font-size:32px;font-weight:700;color:var(--pri);line-height:1;margin-bottom:4px">${fmtE(prixMin)}${partLabel ? `<span style="font-size:14px;font-weight:400;color:var(--tl)"> HT</span>` : ' <span style="font-size:14px;font-weight:400;color:var(--tl)">HT</span>'}</div>
-      <div class="ts mb16">Pour atteindre exactement votre objectif${heures > 0 ? ` sur ${fmt(heures,1)} h` : ''}</div>
+      <div class="ts mb16">Pour atteindre exactement mon objectif${heures > 0 ? ` sur ${fmt(heures,1)} h` : ''}</div>
       <div style="padding:12px 16px;background:rgba(99,90,255,.07);border-radius:8px;border-left:3px solid var(--pri)">
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">✨ Avec marge de sécurité (10 %)</div>
         <div style="font-size:22px;font-weight:700;color:var(--text)">${fmtE(prixConfort)} HT</div>
-        ${_hasCharges ? `<div class="ts" style="margin-top:3px">Net estimé : <strong>${fmtE(netConfort)}</strong> dans votre poche</div>` : ''}
+        ${_hasCharges ? `<div class="ts" style="margin-top:3px">Net estimé : <strong>${fmtE(netConfort)}</strong> dans ma poche</div>` : ''}
       </div>
       ${isCollectif && participants > 1 ? `<div style="margin-top:10px;padding:10px 14px;background:var(--bg);border-radius:8px"><div class="ts">Par participant : <strong>${fmtE(Math.ceil(prixMin/participants/10)*10)}</strong> min · <strong>${fmtE(Math.ceil(prixConfort/participants/10)*10)}</strong> avec marge</div></div>` : ''}
       ${advHtml}
@@ -9492,7 +9492,7 @@ function renderSimOutputs(r) {
       ${!isViable ? `<div class="alert al-err mb12">⛔ Impossible d'être rentable à ce prix de vente avec ce temps. Réduisez le temps ou négociez mieux le prix.</div>` : ''}
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">🛒 Prix d'achat maximum</div>
       <div style="font-size:32px;font-weight:700;color:${isViable ? 'var(--pri)' : 'var(--err)'};line-height:1;margin-bottom:4px">${isViable ? fmtE(achatMaxRound) : '—'}</div>
-      <div class="ts mb16">Pour atteindre exactement votre objectif${heures > 0 ? ` sur ${fmt(heures,1)} h` : ''}</div>
+      <div class="ts mb16">Pour atteindre exactement mon objectif${heures > 0 ? ` sur ${fmt(heures,1)} h` : ''}</div>
       ${isViable ? `<div style="padding:12px 16px;background:rgba(99,90,255,.07);border-radius:8px;border-left:3px solid var(--pri)">
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">✨ Avec marge de sécurité (10 %)</div>
         <div style="font-size:22px;font-weight:700;color:var(--text)">${fmtE(achatConfort)}</div>
@@ -9530,7 +9530,7 @@ function renderSimOutputs(r) {
     // Objectif + conseil prix
     const objLines = [];
     if (thCible > 0) {
-      objLines.push(`Votre objectif : gagner au moins <strong>${fmtE(thCible, 0)}/h</strong> brut.`);
+      objLines.push(`Mon objectif : gagner au moins <strong>${fmtE(thCible, 0)}/h</strong> brut.`);
       if (heures > 0 && thBrut !== null && thBrut < thCible) {
         const prixMin = Math.ceil((thCible * heures + coutsDirects) / 10) * 10;
         objLines.push(`Pour atteindre votre objectif, cette commande devrait être vendue <strong>${fmtE(prixMin)}</strong>.`);
@@ -9561,7 +9561,7 @@ function renderSimOutputs(r) {
       ['📈 Marge brute',       `${fmtE(margeBrute)} <span class="ts">(${pctMarge} %)</span>`],
       heures > 0 ? ['⏱ Temps de fabrication', `${fmt(heures,1)} h`] : null,
       thBrut !== null ? ['💵 Gain brut / heure', `<strong>${fmtE(Math.round(thBrut), 0)}/h</strong>`] : null,
-      thNet !== null && _hasCharges ? ['💵 Gain net / heure', `<strong>${fmtE(thNet, 0)}/h</strong> <span class="ts">dans votre poche</span>`] : null,
+      thNet !== null && _hasCharges ? ['💵 Gain net / heure', `<strong>${fmtE(thNet, 0)}/h</strong> <span class="ts">dans ma poche</span>`] : null,
     ].filter(Boolean);
 
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${diagBorder}">
@@ -9602,7 +9602,7 @@ function renderSimOutputs(r) {
     // Objectif
     const objLines = [];
     if (thCible > 0) {
-      objLines.push(`Votre objectif : gagner au moins <strong>${fmtE(thCible, 0)}/h</strong> brut.`);
+      objLines.push(`Mon objectif : gagner au moins <strong>${fmtE(thCible, 0)}/h</strong> brut.`);
       if (heures > 0 && thBrut !== null && thBrut < thCible) {
         const prixVenteMin = Math.ceil((thCible * heures + coutsDirects) / 10) * 10;
         objLines.push(`Pour atteindre votre objectif, cette vente devrait être vendue <strong>${fmtE(prixVenteMin)}</strong>.`);
@@ -9675,7 +9675,7 @@ function renderSimOutputs(r) {
     heures > 0 ? ['Temps estimé', `${fmt(heures,1)} h`] : null,
     !_isJ && thBrut !== null ? ['TH brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(Math.round(thBrut),0)}/h</span><span class="ts"> avant URSSAF</span>`] : null,
     _isJ && tjmBrut !== null ? ['TJM brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(tjmBrut,0)}/j</span><span class="ts"> avant URSSAF</span>`] : null,
-    thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['Net / heure estimé', `<strong>${fmtE(thNet,0)}/h</strong><span class="ts"> dans votre poche</span>`] : null,
+    thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['Net / heure estimé', `<strong>${fmtE(thNet,0)}/h</strong><span class="ts"> dans ma poche</span>`] : null,
     thCible > 0 ? (_isJ
       ? ['TJM cible (brut)', `${fmtE(Math.round(thCible*_hj),0)}/j · confort ${fmtE(Math.round(thCible*_hj*1.1),0)}/j`]
       : ['TH cible (brut)', `${fmtE(thCible,0)}/h · confort ${fmtE(Math.round(thCible*1.1),0)}/h`]) : null,
@@ -9687,7 +9687,7 @@ function renderSimOutputs(r) {
     : ` + impôts ${_impotTaux}%`) : '';
   const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
   const netBox = _hasCharges && margeBrute > 0 ? `<div style="margin-top:14px;padding:12px 16px;background:rgba(45,122,79,.08);border-radius:8px;border-left:3px solid var(--ok)">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans votre poche</div>
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans ma poche</div>
     <div style="font-size:24px;font-weight:700;color:var(--ok);line-height:1">${fmtE(revenuNet)}</div>
     <div style="font-size:11px;color:var(--tl);margin-top:3px">après URSSAF ${_urssafTaux}%${_impotSub}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>
   </div>` : '';
