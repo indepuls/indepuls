@@ -3263,6 +3263,10 @@ function closeWelcomeModal(dest) {
 // Charge les données fictives en injectant les params déjà configurés
 function loadDemoWithCurrentParams(skipWelcome) {
   const savedParams = JSON.parse(JSON.stringify(DATA.params));
+  // alertsDismissed est un champ racine de DATA (pas sous .params) — préservé au cas où cette
+  // fonction est rappelée en cours de session (ex. changement de profil démo) après qu'une
+  // alerte ait déjà été marquée "Traité".
+  const savedAlertsDismissed = DATA.alertsDismissed;
   const theme = DATA.theme || 'obm';
   // Construire la démo pour ce métier
   const demoData = getExampleData(savedParams.metier);
@@ -3272,6 +3276,7 @@ function loadDemoWithCurrentParams(skipWelcome) {
   const demoDateOuverture = demoData.params.dateOuverture;
   // Fusionner : structure démo + params réels de l'utilisateur
   DATA = demoData;
+  if (savedAlertsDismissed) DATA.alertsDismissed = savedAlertsDismissed;
   DATA.params = { ...demoData.params, ...savedParams };
   // dateOuverture vide (défaut de getDefaultData() pour tout nouvel utilisateur, avant même le
   // choix du profil) ne doit jamais écraser celle générée par la démo — sinon la démo perd
@@ -3540,11 +3545,16 @@ function loadData() {
     if (parsed.isExample) {
       const savedMetier = parsed.params?.metier;
       const savedParams = parsed.params;
+      // alertsDismissed est un champ racine de DATA (pas sous .params) — DATA = demoData plus
+      // bas repart d'un objet frais qui ne l'a jamais eu, sinon "Traité" réapparaîtrait à
+      // chaque F5 en mode démo (bug repéré en retour bêta).
+      const savedAlertsDismissed = parsed.alertsDismissed;
       const demoData = getExampleData(savedMetier);
       // Capturé AVANT "DATA = demoData" (qui rend les deux variables identiques, même objet) —
       // le lire après coup renverrait la valeur déjà fusionnée/écrasée, pas l'originale.
       const demoDateOuverture = demoData.params.dateOuverture;
       DATA = demoData;
+      if (savedAlertsDismissed) DATA.alertsDismissed = savedAlertsDismissed;
       if (savedParams) {
         DATA.params = { ...demoData.params, ...savedParams };
         // Même garde qu'à la création (loadDemoWithCurrentParams) : un dateOuverture vide
@@ -5672,8 +5682,13 @@ function wScoreSante(d) {
   if(totalCaCli>0){
     const [topCl,topVal]=Object.entries(clientCA).sort((a,b)=>b[1]-a[1])[0];
     const pctTop=Math.round(topVal/totalCaCli*100);
-    if(pctTop>=50&&!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span></span>${_dismissBtn('clientDominant')}</div>`);
-    else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA — une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
+    // Le palier (50%+ vs 40-49%) et le dismiss sont deux décisions indépendantes : le dismiss
+    // ne doit jamais faire retomber sur l'alerte du palier inférieur (bug repéré en retour bêta
+    // — masquer l'alerte "dépend fortement" à 63% affichait à la place l'alerte "à surveiller"
+    // 40-49%, alors que le CA n'a pas bougé). Le dismiss masque seulement l'alerte, point.
+    if(pctTop>=50){
+      if(!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span></span>${_dismissBtn('clientDominant')}</div>`);
+    } else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA — une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
   }
   // Objectif mensuel en cours
   if(objNet>0){
