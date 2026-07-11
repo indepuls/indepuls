@@ -5552,6 +5552,15 @@ function wScoreSante(d) {
     diagComm='🔴 Aucune activité future identifiée. Priorité à la prospection.';
     advComm=`Créez au moins ${_masc?'un nouveau':'une nouvelle'} ${_itemLow} cette semaine pour sécuriser votre activité future.`;
   }
+  // Bouton "Relancer" — uniquement quand advComm désigne une mission précise et unique
+  // (nbDevis===1, attM[0] est alors sans ambiguïté LA mission dont le texte parle ci-dessus,
+  // que ce soit dans la branche sComm>=25 ou sComm>=18). nbDevis===1 implique toujours
+  // nbActives>=1, donc sComm est nécessairement 18 ou 25 ici — jamais 10 ni 3, pas besoin
+  // de restreindre ce bloc à une branche en particulier.
+  if(nbDevis===1){
+    const _m=attM[0];
+    advComm+=`<div class="step-cta" onclick="navigate('missions');setTimeout(()=>openMissionModal('${_m.id}'),100)">Relancer →</div>`;
+  }
 
   // ── SCORE GLOBAL ─────────────────────────────────────────────
   const score=sRent+sRemp+sTreso+sComm;
@@ -5572,6 +5581,13 @@ function wScoreSante(d) {
   // à rien de stable, c'était une dérive de nommage qui rendait cette branche inatteignable.
   const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'remplissage',art:'le ',s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
+  // Même mapping pilier→page que les appels pilierCard() plus bas (rentabilité→params,
+  // remplissage/trésorerie/horizon→missions) et mêmes libellés que navLabels dans
+  // openPilierDetail() — pour que le bouton du Brief pointe vers le même endroit et
+  // affiche le même texte qu'en passant par la modale du pilier.
+  const _navPageByPilier={rentabilité:'params',remplissage:'missions',trésorerie:'missions',horizon:'missions'};
+  const _navLabelsBrief={params:'Paramètres',revenus:'Revenus',depenses:'Dépenses',dashboard:'Tableau de bord'};
+  const _prioriteBtn=page=>page?`<div style="margin-top:6px"><span class="step-cta" onclick="navigate('${page}')">→ Onglet ${page==='missions'?tVocab('pageTitle'):(_navLabelsBrief[page]||page)}</span></div>`:'';
   let diagGlobal='';
   // Ce texte est un constat, pas un conseil — le conseil (quoi faire) vit exclusivement dans
   // "Action recommandée" (priorite, juste en dessous). Rester court et factuel ici pour éviter
@@ -5586,7 +5602,11 @@ function wScoreSante(d) {
   else diagGlobal=`Votre activité demande une attention immédiate — le point faible : ${worst.art}${worst.n}.`;
 
   // ── PRIORITÉ DU MOMENT ───────────────────────────────────────
-  let priorite='';
+  // prioriteNavPage : bouton d'action sous "Action recommandée" — uniquement défini sur les
+  // branches qui pointent vers un pilier précis (remplissage, rentabilité, fallback générique),
+  // jamais sur gravesArr/trésorerie/horizon (qui ont déjà leur propre action de relance
+  // spécifique) ni sur les branches score>=85 (rien à cibler).
+  let priorite='', prioriteNavPage=null;
   if(gravesArr.length>0){
     const g=gravesArr[0];
     priorite=`Relancer <strong>${esc(g.m.client)}</strong> — ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
@@ -5606,6 +5626,7 @@ function wScoreSante(d) {
     const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
     const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
     priorite=`Votre remplissage a de la place — combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
+    prioriteNavPage=_navPageByPilier.remplissage;
   } else if(worst.n==='rentabilité'&&hT>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
@@ -5613,6 +5634,7 @@ function wScoreSante(d) {
       priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
     else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin)
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
+    if(priorite) prioriteNavPage=_navPageByPilier.rentabilité;
   } else if(score>=85){
     if(annualAtRisk){
       priorite=trajAtteignable
@@ -5623,9 +5645,17 @@ function wScoreSante(d) {
     }
   } else {
     priorite=`Concentrer vos efforts sur <strong>${worst.art}${worst.n}</strong> pour améliorer votre score global.`;
+    prioriteNavPage=_navPageByPilier[worst.n];
   }
 
   // ── ALERTES (client dominant + objectif mois + alertes système) ─
+  // "Traité" — fenêtre glissante de 15 jours, distincte de DATA.bilanDismissed (qui masque
+  // "jusqu'au mois prochain" via une clé de mois, adapté à une card mensuelle, pas ici).
+  // Volontairement limité aux 2 alertes de coaching (client dominant, objectif mensuel) —
+  // jamais sur les échéances fiscales (URSSAF/TVA) : de l'argent réel à verser à une date
+  // réelle, un dismiss de 15 jours y créerait un risque de rater un paiement.
+  const _alertDismissed=k=>{const ts=DATA.alertsDismissed?.[k];return !!(ts&&(Date.now()-ts<15*24*60*60*1000));};
+  const _dismissBtn=k=>`<span onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.${k}=Date.now();saveData();renderDashboard();" style="cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0" title="Masquer cette alerte pendant 15 jours">✓ Traité</span>`;
   const alertLines=[];
   // Client dominant
   const clientCA={};
@@ -5642,14 +5672,14 @@ function wScoreSante(d) {
   if(totalCaCli>0){
     const [topCl,topVal]=Object.entries(clientCA).sort((a,b)=>b[1]-a[1])[0];
     const pctTop=Math.round(topVal/totalCaCli*100);
-    if(pctTop>=50) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.</div>`);
+    if(pctTop>=50&&!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span></span>${_dismissBtn('clientDominant')}</div>`);
     else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA — une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
   }
   // Objectif mensuel en cours
   if(objNet>0){
     const caNetMois=getRevenuNetMois(curMk);
     const pctOM=Math.round(caNetMois/objNet*100);
-    if(pctOM<80){const _now=new Date(),_finMois=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_joursR=_finMois-_now.getDate()+1;alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver · encore <strong>${_joursR} jour${_joursR>1?'s':''}</strong> ce mois-ci.</div>`);}
+    if(pctOM<80&&!_alertDismissed('objectifMensuel')){const _now=new Date(),_finMois=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_joursR=_finMois-_now.getDate()+1;alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver · encore <strong>${_joursR} jour${_joursR>1?'s':''}</strong> ce mois-ci.</span>${_dismissBtn('objectifMensuel')}</div>`);}
   }
   // Prochaines échéances fiscales
   try {
@@ -5783,7 +5813,7 @@ function wScoreSante(d) {
       <div class="card ss-brief" style="grid-column:2;grid-row:1/3;padding:16px 18px">
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:4px">📋 Votre brief</div>
         <div style="font-size:10px;color:var(--tl);margin-bottom:10px">Basé sur vos données du ${new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'})}</div>
-        <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;display:block;margin-bottom:6px">👉 Action recommandée</span>${priorite}</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.65;padding:10px 14px;background:var(--bg);border-radius:8px;border-left:3px solid ${scoreColor}"><span style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;display:block;margin-bottom:6px">👉 Action recommandée</span>${priorite}${_prioriteBtn(prioriteNavPage)}</div>
         ${alertsSection}
       </div>
       <div class="card" style="border-left:4px solid ${scoreColor};text-align:center;padding:20px 14px">
