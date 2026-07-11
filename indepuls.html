@@ -650,7 +650,7 @@ html,body{overflow-x:hidden;}
       <div class="card-header">
         <div>
           <div class="card-title" id="missions-page-suivi">Suivi des missions</div>
-          <div class="card-sub" id="missions-page-sub">Toutes vos missions en cours, passées ou en attente</div>
+          <div class="card-sub" id="missions-page-sub">Toutes mes missions en cours, passées ou en attente</div>
         </div>
         <div class="flex gap6" style="flex-wrap:wrap">
           <button class="btn btn-out" onclick="openBulkMissionModal()" id="btn-add-mission-bulk">+ Ajouter plusieurs missions</button>
@@ -797,15 +797,15 @@ html,body{overflow-x:hidden;}
       <div class="card">
         <div class="card-title mb16">Mon activité</div>
         <div class="frow">
-          <div class="fgroup"><label class="flabel">Votre prénom</label><input type="text" id="p-nom" oninput="saveParam('nom',this.value);updateDashboardTitle()" placeholder="Ex : Faustine, Marie, Alex…"></div>
+          <div class="fgroup"><label class="flabel">Prénom</label><input type="text" id="p-nom" oninput="saveParam('nom',this.value);updateDashboardTitle()" placeholder="Ex : Faustine, Marie, Alex…"></div>
           <div class="fgroup">
-            <label class="flabel">Quand avez-vous lancé votre activité ?</label>
+            <label class="flabel">Date de lancement de l'activité</label>
             <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
             <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
           </div>
         </div>
         <div class="fgroup mt12">
-          <label class="flabel">Quel est votre cœur de métier ? <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
+          <label class="flabel">Cœur de métier <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
           <select id="p-metier" onchange="onProfilChange(this.value)">
             <option value="">— Sélectionner —</option>
             <optgroup label="Prestation de services">
@@ -828,7 +828,7 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="divider"></div>
         <div class="fgroup">
-          <label class="flabel">Que vendez-vous ?</label>
+          <label class="flabel">Prestations ou produits ?</label>
           <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
             <label class="tva-regime-opt" id="act-type-presta"><input type="radio" name="activite-type" value="prestations" onchange="saveActiviteType('prestations')"><div><strong>Uniquement des prestations de services</strong><div class="ts mt1">Coaching, conseil, formation, communication, artisanat intellectuel…</div></div></label>
             <label class="tva-regime-opt" id="act-type-produits"><input type="radio" name="activite-type" value="produits" onchange="saveActiviteType('produits')"><div><strong>Uniquement des produits ou marchandises</strong><div class="ts mt1">Achat-revente, commerce, vente de créations en série…</div></div></label>
@@ -854,7 +854,7 @@ html,body{overflow-x:hidden;}
       <div class="alert al-info mt16 mb0" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
       <div class="card mt16">
         <div class="card-title mb4">Organisation de l'activité</div>
-        <div class="ts mb12" style="color:var(--tl)">Comment souhaitez-vous organiser votre activité ?</div>
+        <div class="ts mb12" style="color:var(--tl)">Comment organiser l'activité ?</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <label class="tva-regime-opt" id="mod-planning-estimation" style="cursor:pointer">
             <input type="checkbox" id="mod-cb-estimation" onchange="saveModulePlanning('estimation',this)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
@@ -945,7 +945,7 @@ html,body{overflow-x:hidden;}
       <div class="card mt16">
         <div class="card-title mb16">TVA <span class="info-tip" title="La TVA est collectée sur vos factures et reversée à l'État. En franchise, vous n'en facturez pas. En régime réel, vous la collectez sur vos ventes et déduisez la TVA payée sur vos achats professionnels.">?</span></div>
         <div class="fgroup">
-          <label class="flabel">Votre régime TVA <span class="info-tip" title="Choisissez le régime indiqué sur votre attestation fiscale ou notifié par votre SIE (service des impôts des entreprises). En cas de doute, votre comptable peut vous le confirmer.">?</span></label>
+          <label class="flabel">Régime TVA <span class="info-tip" title="Choisissez le régime indiqué sur votre attestation fiscale ou notifié par votre SIE (service des impôts des entreprises). En cas de doute, votre comptable peut vous le confirmer.">?</span></label>
           <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
             <label class="tva-regime-opt" id="tva-r-franchise"><input type="radio" name="tva-regime" value="franchise" onchange="saveTvaRegime('franchise')"><div><strong>Franchise en base</strong> <span class="info-tip" title="Vous ne facturez pas de TVA tant que votre CA reste sous le seuil légal. Mention obligatoire sur vos factures : «TVA non applicable — art. 293 B du CGI».">?</span><div class="ts mt1">Pas de TVA facturée · Suivi du seuil légal automatique</div></div></label>
             <label class="tva-regime-opt" id="tva-r-simplifie"><input type="radio" name="tva-regime" value="simplifie" onchange="saveTvaRegime('simplifie')"><div><strong>Réel simplifié</strong> <span class="info-tip" title="Régime courant pour les petites structures assujetties. Vous payez 2 acomptes dans l'année (juillet et décembre) puis un solde en mai N+1 via la déclaration CA12. Accessible si votre CA HT est inférieur à 254 000 € (services) ou 840 000 € (ventes).">?</span><div class="ts mt1">2 acomptes / an (juil. + déc.) · Solde en mai N+1 via déclaration CA12</div></div></label>
@@ -1087,7 +1087,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card mb16">
         <div class="card-header">
-          <div><div class="card-title">Sauvegarde cloud</div><div class="card-sub">Vos données sont synchronisées sur votre compte Indépuls</div></div>
+          <div><div class="card-title">Sauvegarde cloud</div><div class="card-sub">Mes données sont synchronisées sur mon compte Indépuls</div></div>
         </div>
         <p class="ts mb16" style="line-height:1.7">Indépuls sauvegarde automatiquement vos données sur votre compte à chaque modification. Vous pouvez vous connecter depuis n'importe quel appareil et retrouver vos données à jour. En complément, vous pouvez exporter une sauvegarde locale.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -2510,7 +2510,7 @@ function applyVocabUI() {
   const suivi = document.getElementById('missions-page-suivi');
   if (suivi) suivi.textContent = tVocab('suivi');
   const sub = document.getElementById('missions-page-sub');
-  if (sub) sub.textContent = tVocab('items') + ' en cours, à venir ou en attente';
+  if (sub) sub.textContent = 'Mes ' + tVocab('items').toLowerCase() + ' en cours, à venir ou en attente';
   const thClient = document.getElementById('missions-th-client');
   if (thClient) thClient.textContent = tVocab('clientField');
   // Onboarding
@@ -8336,7 +8336,7 @@ function renderObjectifsResult() {
   // cible indépendant du nombre de mois réellement travaillés cette année précise ; seul le
   // total annuel affiché ("= X € / an") doit refléter le nombre de mois réels.
   const actMois=getActiveMonthsInYear();
-  const actMoisNote=actMois<12?` Votre activité n'est active que <strong>${actMois} mois</strong> cette année — l'objectif annuel ci-dessus en tient compte.`:'';
+  const actMoisNote=actMois<12?` Mon activité n'est active que <strong>${actMois} mois</strong> cette année — l'objectif annuel ci-dessus en tient compte.`:'';
   const depRec=getDepensesMoyenneMensuelle();
   const depRecEl=document.getElementById('dep-rec-display');
   if(depRecEl) depRecEl.textContent=depRec>0?fmtE(depRec):'0 €';
@@ -8344,7 +8344,7 @@ function renderObjectifsResult() {
   const capEl=document.getElementById('cap-facturable-display');
   if(capEl){
     capEl.style.display=capH>0?'':'none';
-    capEl.innerHTML=`⏱ Capacité facturable : <strong>${capH} h / semaine</strong> — référence du pilier Remplissage dans votre Score de Santé.`;
+    capEl.innerHTML=`⏱ Capacité facturable : <strong>${capH} h / semaine</strong> — référence du pilier Remplissage dans mon Score de Santé.`;
   }
   const depCompl=(p.chargesAnnuellesCompl||0)/12;
   const dep=depRec+depCompl;
@@ -8369,7 +8369,7 @@ function renderObjectifsResult() {
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
         <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.remunerationNette||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
       </div>
-      <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de votre rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + vos dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas votre net versé — c'est ce que la société doit encaisser pour tenir.${actMoisNote}</div>`;
+      <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de ma rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + mes dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas mon net versé — c'est ce que la société doit encaisser pour tenir.${actMoisNote}</div>`;
     return;
   }
   const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
@@ -8835,7 +8835,7 @@ function wSourceAcq(actives, noun) {
     return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><span style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0;margin-top:3px"></span><span style="flex:1;font-size:11px;line-height:1.4;color:var(--text)">${lbl}</span><span style="font-size:11px;font-weight:700;white-space:nowrap;color:var(--pri)">${val.n} · ${pct}%${caStr}</span></div>`;
   }).join('');
   const top=entries[0], topLbl=(SRC_LABELS[top[0]]||top[0]).toLowerCase(), topPct=Math.round(top[1].n/total*100);
-  let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de vos nouveau${noun==='mission'?'x':'x'} ${noun}s.`:`Votre principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
+  let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de mes nouveau${noun==='mission'?'x':'x'} ${noun}s.`:`Ma principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
   return `<div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">
     <div class="card-title" style="font-size:13px;margin-bottom:12px">📡 Sources d'acquisition</div>
     <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:140px;padding-top:4px">${legend}</div></div>
