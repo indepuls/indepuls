@@ -626,6 +626,16 @@ Bug remonté par Faustine (le champ "Rémunération nette souhaitée / mois" de 
   - Profil Micro (non-SASU) avant/après : `getTrajectoireAnnuelleInfo(4000)` → `annualTarget=67 567,57` = `(4000+dep)/(1-getTauxChargesPresta()-getImpotsTaux())×10`, formule strictement inchangée, aucune branche SASU appliquée.
   - 216 assertions (4 suites) toujours au vert.
 
+### Code mort supprimé — ancien système de widgets dashboard personnalisables (2026-07, suivi)
+
+`buildWidget(key,d)` était le dispatcher d'un ancien système de personnalisation de widgets du dashboard, piloté par `DATA.params.dashboardWidgets` — champ aujourd'hui explicitement supprimé par `migrate()` ("Suppressions de champs obsolètes"), rendant `buildWidget()` elle-même et les fonctions qui n'étaient appelées que par elle inatteignables.
+
+- **8 fonctions supprimées** (vérifiées une par une par recherche texte dans tout le fichier, `shared/` inclus, avant suppression) : `buildWidget(key,d)`, `wSurveiller(d)`, `wRentabClients()`, `wRentabCat()`, `wRemplissage()`, `wCapacite()`, `wMissionsActives()`, `wProjection3Mois(d)`, `wTJMMin(d)` — 9 noms au total (le prompt en listait 8, `wRemplissage()` s'y ajoute : elle vivait à un autre endroit du fichier, loin du bloc principal, repérée dans le même passage de vérification). 317 lignes supprimées au total.
+- **`wRevenusBreakdown()` confirmée vivante, non touchée** : appelée directement dans `renderRevenus()` (page Revenus) indépendamment de `buildWidget()`, qui n'était pas son seul appelant.
+- **Piège évité** : `wRentabClients()`/`wRentabCat()` (dead) ont des cousines vivantes de nom proche mais distinctes — `rentabClientsBody()`/`rentabCatBody()` (page Missions, `renderMissionsSummary()`), qui appellent elles-mêmes `toggleRentabSort()`/`toggleRentabCatSort()`. Ces 4 dernières fonctions sont restées intactes ; seules les versions `w`-préfixées (widgets dashboard morts) ont été supprimées.
+- **Vérifié** : recherche finale de `buildWidget` dans tout le projet → 0 occurrence. Page rechargée sans erreur console, dashboard/Missions/Paramètres/Revenus fonctionnels, `wRevenusBreakdown()` toujours opérationnelle sur la page Revenus (section "Composition des revenus" affichée), Planning fonctionnel une fois son module réactivé (l'affichage vide observé pendant le test venait de `DATA.params.modules.calendrier=false` sur le profil de test, sans rapport avec cette suppression). 216 assertions (4 suites) toujours au vert.
+- **Repéré en passant, non traité (hors mandat de ce chantier)** : `wSynthese(...)` et `wJalonFiscal()` (juste avant/après le bloc supprimé) présentent un profil similaire — non demandées dans ce prompt, donc non vérifiées ni touchées ; candidates possibles pour un futur passage de nettoyage si confirmées mortes.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
