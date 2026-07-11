@@ -3263,11 +3263,18 @@ function clearExampleData() {
   const params  = JSON.parse(JSON.stringify(DATA.params));
   const theme   = DATA.theme || 'obm';
   const curYear = DATA.currentYear;
+  // categories est un champ racine de DATA (pas sous .params) — la démo l'avait déjà
+  // correctement calé sur le métier (via getExampleData). Si on ne le préserve pas ici,
+  // "DATA = getDefaultData()" juste après le remplace par une liste générique fixe qui ne
+  // correspond pas forcément au métier, et sans jamais déclencher le filet de sécurité de
+  // applyVocabUI() (qui ne corrige que les listes vides).
+  const categories = JSON.parse(JSON.stringify(DATA.categories || []));
   DATA = getDefaultData();
   DATA.params    = params;
   DATA.theme     = theme;
   DATA.currentYear = curYear;
   DATA.isExample = false;
+  if (categories.length) DATA.categories = categories;
   document.body.setAttribute('data-theme', theme);
   saveData();
   closeModal('modal-clear-example');
