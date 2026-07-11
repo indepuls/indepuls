@@ -921,6 +921,7 @@ html,body{overflow-x:hidden;}
             <div class="fgroup">
               <label class="flabel" id="sasu-remu-label">Rémunération nette / mois (€)</label>
               <input type="number" id="p-remu-nette" step="100" min="0" placeholder="Ex : 3 000" oninput="saveSasuParam('remunerationNette',+this.value);updateSasuPreview()">
+              <div class="ts mt4" style="color:var(--tl)">Ce montant sert de base à tout le tableau de bord (trajectoire annuelle, Score de Santé, trésorerie) — c'est votre rémunération réellement configurée.</div>
             </div>
           </div>
           <div class="fgroup">
@@ -4294,7 +4295,11 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     caBrut+=getCaFromMissions(mk)+p; caVentes+=getPonctuelsVente(mk); caPonctuels+=p;
     caTreso+=getPonctuelsTresorerie(mk);
   });
-  const caNet=getCaNetAnnuel(), caNetMoy=caNet/mc, objNet=DATA.params.objectifNetMensuel;
+  // Source unique de l'objectif consommé par tout le dashboard (trajectoire, pilier Trésorerie,
+  // alerte "objectif mensuel", échelle du graphique de bilan) : en SASU/EURL, objectifNetMensuel
+  // devient un champ de simulation isolé (page Objectifs) — seule remunerationNette reflète la
+  // réalité. Même logique que dans renderChartCA(). Les deux doivent toujours s'accorder.
+  const caNet=getCaNetAnnuel(), caNetMoy=caNet/mc, objNet=isSASU()?(DATA.params.remunerationNette||0):DATA.params.objectifNetMensuel;
   const hF=getHeuresFact(), hI=getHeuresInterne(), hT=hF+hI;
   const thR=hT>0?caNet/hT:0;
   const proj=mR.length>0?(caBrut/mR.length)*12:0;
@@ -4317,7 +4322,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const jSem2 = DATA.params.joursParSemaine || 4;
     const sem2 = DATA.params.semainesParAn || 44;
     const hAn2 = hj2 * jSem2 * sem2;
-    const objNet2 = DATA.params.objectifNetMensuel || 0;
+    const objNet2 = isSASU() ? (DATA.params.remunerationNette||0) : (DATA.params.objectifNetMensuel||0);
     const caMinAnnuel = Math.round(thMin * hAn2);
     const earlyResults = (hasParams && objNet2 > 0 && thMin > 0) ? `
       <div class="card" style="border-left:4px solid var(--ok);margin-top:16px">
@@ -4900,7 +4905,6 @@ function getCaMissionsADate(mk, jour) {
 function getTrajectoireAnnuelleInfo(objNet) {
   const curMk=getCurrentMk();
   const moisR=getMoisRealises(), mc=Math.max(moisR.length,1);
-  const netR=1-getTauxChargesPresta()-getImpotsTaux();
   const depM=getDepensesMoyenneMensuelle();
   // Proratisé sur les mois réellement actifs cette année (getActiveMonthsInYear — même fonction
   // que getDepensesMoyenneMensuelle() utilise déjà pour lisser les dépenses annuelles), PAS ×12
@@ -4908,7 +4912,19 @@ function getTrajectoireAnnuelleInfo(objNet) {
   // sans ça, l'objectif annuel était surestimé de 12/10 pour toute activité démarrée en cours
   // d'année (repéré dans les données démo elles-mêmes : dateOuverture=mars → actMois=10).
   const actMois=getActiveMonthsInYear();
-  const annualTarget=netR>0&&objNet>0?(objNet+depM)/netR*actMois:0;
+  // SASU/EURL : getTauxChargesPresta() retourne déjà 0, donc le grossissement "netR" ci-dessous
+  // ne représente que l'impôt — jamais le vrai coefficient de charges (coutRemunerationPct).
+  // Réutilise getSasuCoutMensuelDepuisNet() (même formule que le calculateur d'objectifs) pour
+  // ne jamais dupliquer ce calcul.
+  let annualTarget;
+  if(isSASU()){
+    const coutRemuMens=getSasuCoutMensuelDepuisNet(objNet);
+    const impotsR=1-getImpotsTaux();
+    annualTarget=(impotsR>0&&objNet>0)?(coutRemuMens+depM)/impotsR*actMois:0;
+  } else {
+    const netR=1-getTauxChargesPresta()-getImpotsTaux();
+    annualTarget=(netR>0&&objNet>0)?(objNet+depM)/netR*actMois:0;
+  }
   const months12=[];
   for(let i=0;i<12;i++){
     const mk=`${DATA.currentYear}-${String(i+1).padStart(2,'0')}`;
@@ -6030,7 +6046,10 @@ function wTJMMin(d) {
   const p=DATA.params, hj=p.heuresParJour||7;
   const tjmMin=thMin>0?Math.ceil(thMin*hj/10)*10:0;
   const tjmActuel=hT>0?Math.round(thR*hj):0;
-  if(!p.objectifNetMensuel||!p.joursParSemaine) return `<div class="card"><div class="card-header"><div class="card-title">💡 TH minimum recommandé</div></div><div class="ts" style="color:var(--tl)">Renseignez votre objectif et rythme dans <span style="cursor:pointer;color:var(--acc)" onclick="navigate('params')">Paramètres</span>.</div></div>`;
+  // SASU/EURL : objectifNetMensuel est un champ de simulation isolé (page Objectifs), pas la
+  // rémunération réelle — même valeur SASU-aware que renderDashboard()/wTJMMin en cohérence.
+  const objNetRef=isSASU()?(p.remunerationNette||0):p.objectifNetMensuel;
+  if(!objNetRef||!p.joursParSemaine) return `<div class="card"><div class="card-header"><div class="card-title">💡 TH minimum recommandé</div></div><div class="ts" style="color:var(--tl)">Renseignez votre objectif et rythme dans <span style="cursor:pointer;color:var(--acc)" onclick="navigate('params')">Paramètres</span>.</div></div>`;
   const diff=tjmMin>0?tjmActuel-tjmMin:0;
   const ok=hT>0&&tjmActuel>=tjmMin;
   const color=hT===0?'var(--tl)':ok?'var(--ok)':'var(--err)';
@@ -6051,7 +6070,7 @@ function wTJMMin(d) {
     </div>
     ${hT>0?`<div class="prog-bar"><div class="prog-fill ${pct>=100?'ok':pct>=80?'wn':'bd'}" style="width:${Math.min(pct,100)}%"></div></div>
     <div class="ts mt6">${ok?'✓ Vous êtes au-dessus de votre plancher de rentabilité':`Objectif : ${fmtE(thMin,0)}/h pour couvrir charges + objectif net`}</div>`:''}
-    <div class="ts mt8" style="font-size:11px;color:var(--tl);font-style:italic">Calculé depuis : objectif ${fmtE(p.objectifNetMensuel)}/mois · ${p.joursParSemaine}j/sem · ${hj}h/j · ${p.semainesParAn||44} sem/an</div>
+    <div class="ts mt8" style="font-size:11px;color:var(--tl);font-style:italic">Calculé depuis : objectif ${fmtE(objNetRef)}/mois · ${p.joursParSemaine}j/sem · ${hj}h/j · ${p.semainesParAn||44} sem/an</div>
   </div>`;
 }
 
@@ -8152,6 +8171,12 @@ function onStatutChange(val) {
     // Forcer le taux de charges à 45 % par défaut en EURL (vs 80 % SASU)
     if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===80) DATA.params.coutRemunerationPct=45;
   }
+  if((val==='sasu'||val==='eurl')&&!DATA.params.objectifNetMensuel){
+    // objectifNetMensuel devient en SASU/EURL un champ de simulation isolé (page Objectifs,
+    // voir renderObjectifsResult) — pré-rempli avec la rémunération réelle par défaut, sans
+    // jamais écraser une valeur déjà saisie (profils existants dont celle-ci est utile telle quelle).
+    DATA.params.objectifNetMensuel=DATA.params.remunerationNette||0;
+  }
   saveData(); recalcObjectifs();
   renderParams();
   updateNavRecettes();
@@ -8477,8 +8502,11 @@ function renderObjectifsResult() {
       :`<div class="ts mt4">dont <strong>${fmtE(depRec)}/mois</strong> de dépenses récurrentes</div>`)
     :'';
   if(isSASU()){
-    const coutRemuMens=getSasuCoutRemuMensuel();
-    const caMensMin=coutRemuMens+dep;
+    const coutRemuMens=getSasuCoutMensuelDepuisNet(p.objectifNetMensuel||0);
+    // Grossissement par l'impôt uniquement ici : les charges (patronales/salariales) sont
+    // déjà comprises dans coutRemuMens via coutRemunerationPct, ne pas les compter deux fois.
+    const impotsR=1-getImpotsTaux();
+    const caMensMin=impotsR>0?(coutRemuMens+dep)/impotsR:coutRemuMens+dep;
     const caAnMin=caMensMin*actMois;
     const thMin=hMens>0?caMensMin/hMens:0;
     el.innerHTML=`
@@ -8486,9 +8514,10 @@ function renderObjectifsResult() {
         <div class="kpi neu"><div class="kpi-label">CA HT mensuel à atteindre</div><div class="kpi-val">${fmtE(caMensMin)}</div><div class="kpi-sub">= ${fmtE(caAnMin)} / an</div>${depTxtDetail}</div>
         <div class="kpi neu"><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
-        <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.remunerationNette||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
+        <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.objectifNetMensuel||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
       </div>
-      <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de ma rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + mes dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas mon net versé — c'est ce que la société doit encaisser pour tenir.${actMoisNote}</div>`;
+      <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de ma rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + mes dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas mon net versé — c'est ce que la société doit encaisser pour tenir.${actMoisNote}
+      <div class="ts mt6" style="color:var(--tl)">Simulation indépendante de votre rémunération réelle (${fmtE(p.remunerationNette||0)}/mois, configurable dans l'onglet Fiscalité) — n'affecte ni votre tableau de bord ni vos calculs de trésorerie.</div></div>`;
     return;
   }
   const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
@@ -10161,6 +10190,7 @@ document.addEventListener('keydown', function(e) {
   window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
   window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
+  window.getSasuCoutMensuelDepuisNet = (net) => { sync(); return Mode.getSasuCoutMensuelDepuisNet(net); };
   window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
   window.getTvaAVenirFinAnnee = () => { sync(); return Mode.getTvaAVenirFinAnnee(); };
   window.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };

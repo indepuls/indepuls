@@ -67,6 +67,7 @@ export const getUrssafProvisionMensuelle = () => C.getUrssafProvisionMensuelle(D
 export const getTauxHoraireMinCible   = () => C.getTauxHoraireMinCible(DATA);
 
 export const getSasuCoutRemuMensuel   = () => C.getSasuCoutRemuMensuel(DATA);
+export const getSasuCoutMensuelDepuisNet = (net) => C.getSasuCoutMensuelDepuisNet(DATA, net);
 export const getTresorerieDepart      = () => C.getTresorerieDepart(DATA);
 export const getSasuSoldeActuelEstime = () => C.getSasuSoldeActuelEstime(DATA);
 export const getSasuProjectionFinAnnee = () => C.getSasuProjectionFinAnnee(DATA);

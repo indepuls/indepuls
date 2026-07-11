@@ -445,10 +445,16 @@ export function getTauxHoraireMinCible(DATA) {
 
 // ── SASU ─────────────────────────────────────────────────────
 
-export function getSasuCoutRemuMensuel(DATA) {
-  const net = DATA.params.remunerationNette || 0;
+// Net → coût total pour la société (charges patronales/salariales comprises via
+// coutRemunerationPct). Pure fonction du net passé en paramètre — pas de lecture directe
+// de DATA.params.remunerationNette ici, pour pouvoir l'appliquer aussi à un net simulé
+// (calculateur d'objectifs) sans dupliquer la formule.
+export function getSasuCoutMensuelDepuisNet(DATA, net) {
   const pct = DATA.params.coutRemunerationPct || 80;
-  return net * (1 + pct / 100);
+  return (net || 0) * (1 + pct / 100);
+}
+export function getSasuCoutRemuMensuel(DATA) {
+  return getSasuCoutMensuelDepuisNet(DATA, DATA.params.remunerationNette || 0);
 }
 
 export function getTresorerieDepart(DATA) {
