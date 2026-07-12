@@ -925,8 +925,8 @@ html,body{overflow-x:hidden;}
             </div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" id="sasu-charges-tip" title="Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.">?</span></label>
-            <input type="number" id="p-cout-remu-pct" step="5" min="0" max="200" placeholder="Ex : 80" oninput="saveSasuParam('coutRemunerationPct',+this.value);updateSasuPreview()">
+            <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" id="sasu-charges-tip" title="Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.">?</span></label>
+            <input type="number" id="p-cout-remu-pct" step="5" min="0" max="200" placeholder="Ex : 82" oninput="saveSasuParam('coutRemunerationPct',+this.value);updateSasuPreview()">
             <div class="ts mt4" id="sasu-remu-preview" style="color:var(--tl)"></div>
           </div>
           <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimations simplifiées — IS, dividendes, DSN et amortissements non inclus. Ne remplace pas un expert-comptable.</div>
@@ -3184,7 +3184,7 @@ function getExampleData(metier) {
       objectifNetMensuel:3500, heuresParJour:7, joursParSemaine:4, semainesParAn:44,
       tva:true, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
       dateOuverture:mk4, impotsTaux:11,
-      remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
+      remunerationNette:0, coutRemunerationPct:82, tresorerieParAnnee:{},
       rentabClientSort:'ca', rentabCatSort:'ca', livreRecettesActif:true
     },
     categories: c.categories,
@@ -3398,7 +3398,7 @@ function getDefaultData() {
       seuilTVAPrestationBase:37500, seuilTVAPrestationMajore:41250,
       seuilTVAVenteBase:85000, seuilTVAVenteMajore:93500,
       impotsTaux:0,
-      remunerationNette:0, coutRemunerationPct:80, tresorerieParAnnee:{},
+      remunerationNette:0, coutRemunerationPct:82, tresorerieParAnnee:{},
       rentabClientSort:'ca', rentabCatSort:'ca',
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
@@ -7769,10 +7769,10 @@ function renderParams() {
   if(sasu){
     document.getElementById('sasu-pilotage-label').textContent=`🏢 Pilotage ${isEurl?'EURL':'SASU'}`;
     document.getElementById('sasu-remu-label').textContent=isEurl?'Rémunération du gérant / mois (€)':'Rémunération nette / mois (€)';
-    const defaultPct=isEurl?45:80;
+    const defaultPct=isEurl?45:82;
     document.getElementById('sasu-charges-tip').title=isEurl
       ?`Cotisations TNS du gérant majoritaire. Exemple : 45 % → 3 000 € nets = 4 350 € coût réel société.`
-      :`Cotisations patronales + salariales. Exemple : 80 % → 3 000 € nets = 5 400 € coût réel société.`;
+      :`Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.`;
     document.getElementById('eurl-fiscal-block').style.display=isEurl?'':'none';
     if(isEurl){
       const fiscal=DATA.params.eurlFiscal||'is';
@@ -7946,15 +7946,15 @@ function applyStatutParams(val) {
     // BOI-TVA-DECLA-20-20-30-10) — ne pas forcer p.tva ici, laisser l'utilisatrice choisir
     // librement dans Paramètres > Fiscalité, comme pour l'EURL ci-dessous.
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
-    // Forcer le taux de charges à 80 % par défaut en SASU (vs 45 % EURL) — symétrique
+    // Forcer le taux de charges à 82 % par défaut en SASU (vs 45 % EURL) — symétrique
     // à la logique EURL ci-dessous, sinon un aller-retour EURL→SASU garde le taux EURL.
-    if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===45) DATA.params.coutRemunerationPct=80;
+    if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===45) DATA.params.coutRemunerationPct=82;
   }
   if(val==='eurl'){
     // EURL : activité mixte non applicable, TVA libre (pas forcée)
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
-    // Forcer le taux de charges à 45 % par défaut en EURL (vs 80 % SASU)
-    if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===80) DATA.params.coutRemunerationPct=45;
+    // Forcer le taux de charges à 45 % par défaut en EURL (vs 82 % SASU)
+    if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===82) DATA.params.coutRemunerationPct=45;
   }
   if((val==='sasu'||val==='eurl')&&!DATA.params.objectifNetMensuel){
     // objectifNetMensuel devient en SASU/EURL un champ de simulation isolé (page Objectifs,
@@ -8302,7 +8302,7 @@ function renderObjectifsResult() {
         <div class="kpi neu"><div class="kpi-label">CA HT mensuel à atteindre</div><div class="kpi-val">${fmtE(caMensMin)}</div><div class="kpi-sub">= ${fmtE(caAnMin)} / an</div>${depTxtDetail}</div>
         <div class="kpi neu"><div class="kpi-label">Taux horaire minimum (brut) <span class="info-tip" title="Ce taux horaire est brut : c'est ce que la société doit facturer, avant charges. Il ne se compare pas directement à votre rémunération nette.">?</span></div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
-        <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.objectifNetMensuel||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
+        <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.objectifNetMensuel||0)} nets + ${p.coutRemunerationPct||82} %</div></div>
       </div>
       <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de ma rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + mes dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas mon net versé — c'est ce que la société doit encaisser pour tenir.${actMoisNote}
       <div class="ts mt6" style="color:var(--tl)">Simulation indépendante de votre rémunération réelle (${fmtE(p.remunerationNette||0)}/mois, configurable dans l'onglet Fiscalité) — n'affecte ni votre tableau de bord ni vos calculs de trésorerie.</div></div>`;

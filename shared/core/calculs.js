@@ -450,7 +450,7 @@ export function getTauxHoraireMinCible(DATA) {
 // de DATA.params.remunerationNette ici, pour pouvoir l'appliquer aussi à un net simulé
 // (calculateur d'objectifs) sans dupliquer la formule.
 export function getSasuCoutMensuelDepuisNet(DATA, net) {
-  const pct = DATA.params.coutRemunerationPct || 80;
+  const pct = DATA.params.coutRemunerationPct || 82;
   return (net || 0) * (1 + pct / 100);
 }
 export function getSasuCoutRemuMensuel(DATA) {

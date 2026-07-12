@@ -45,7 +45,7 @@ section('getSasuCoutMensuelDepuisNet — pure, indépendante de DATA.params.remu
 test('SASU 3000€ net, 80% → 5400€', getSasuCoutMensuelDepuisNet(mkData(), 3000), 5400);
 test('EURL 3000€ net, 45% → 4350€', getSasuCoutMensuelDepuisNet(mkData({ params: { coutRemunerationPct: 45 } }), 3000), 4350);
 test('net = 0 → coût = 0', getSasuCoutMensuelDepuisNet(mkData(), 0), 0);
-test('coutRemunerationPct absent → 80% par défaut', getSasuCoutMensuelDepuisNet(mkData({ params: { coutRemunerationPct: undefined } }), 1000), 1800);
+test('coutRemunerationPct absent → 82% par défaut', getSasuCoutMensuelDepuisNet(mkData({ params: { coutRemunerationPct: undefined } }), 1000), 1820);
 
 // ── 2. Coût de la rémunération réellement configurée ────────────
 
