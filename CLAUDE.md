@@ -90,6 +90,9 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 | `shared/tests/planning.test.js` | 73 tests ESM — moteur Planning, tous modes, valeurs limites |
 | `shared/tests/validation.js` | 73 tests — compare fonctions HTML locales vs core |
 | `shared/tests/unified_model.test.js` | 26 tests — modèle `montantDevis = prestation + vente` |
+| `shared/tests/tva.test.js` | 32 tests — zones, seuils, collecte encaiss./débits, déductible, provisions, régimes |
+| `shared/tests/sasu_tresorerie.test.js` | 11 tests — coût net→société SASU/EURL, trésorerie de départ, solde estimé |
+| `shared/tests/affaires.test.js` | 18 tests — marge, TH réel, % coût par affaire, agrégations portefeuille |
 | `.gitignore` | Exclut `.claude/` (fichiers de dev local) |
 
 ## Déploiement
@@ -227,7 +230,12 @@ $node = "C:\Program Files\nodejs\node.exe"
 & $node shared/tests/validation.js                        # 73 tests comparaison HTML/core
 & $node shared/tests/unified_model.test.js                # 26 tests modèle unifié
 & $node shared/tests/planning.test.js                     # 73 tests moteur Planning
+& $node shared/tests/tva.test.js                          # 32 tests TVA (zones, collecte, déductible, régimes)
+& $node shared/tests/sasu_tresorerie.test.js              # 11 tests trésorerie SASU/EURL
+& $node shared/tests/affaires.test.js                     # 18 tests marge/TH réel par affaire
 ```
+
+Total : 277 tests (7 suites).
 
 Total : environ **216 assertions** couvrant calculs, migrations, planning et règles fiscales 2026.
 
@@ -644,6 +652,19 @@ Bug remonté par Faustine : "en mode démo, les offres et catégories enregistr�
 - **Confirmé sain, non touchés** : `loadDemoWithCurrentParams()` et la branche `isExample` de `loadData()` (les deux autres sites `DATA = X` déjà patchés cette session pour `alertsDismissed`) réassignent `DATA = demoData` — un objet **frais généré par `getExampleData(metier)`**, qui a déjà les bonnes catégories pour le métier. Aucun de ces deux chemins n'écrase ensuite `.categories` : la fuite est strictement localisée à `clearExampleData()`.
 - **Fix** : capture de `DATA.categories` (clone JSON, même pattern que `.params`) juste avant `DATA = getDefaultData()`, restauration après (si non vide) — `clearExampleData()` (~ligne 3261).
 - **Vérifié** : profil démo `artisan_batiment` (famille "chantier"), catégorie personnalisée ajoutée en cours de démo, sortie de démo → catégories identiques avant/après (`Gros œuvre, Finitions, Plomberie / Sanitaire, Menuiserie, Peinture, Autre, Ma Catégorie Perso Test`), persistant après reload réel (`isExample:false`). 216 assertions (4 suites) toujours au vert.
+
+### Audit + comblement des trous de couverture de tests (2026-07)
+
+Faustine a demandé si les suites existantes vérifiaient "toutes les possibilités (TVA, SASU, EURL, micro, TH, TJM, Marge...)". Audit fait par recensement systématique : chaque fonction exportée de `shared/core/calculs.js`, `affaires.js`, `planning.js` cherchée (en substring, pas en mot entier — `validation.js` préfixe ses noms en `_orig_fl_`/`_core_`) dans les 4 suites existantes.
+
+- **Bien couvert avant cet audit** : `planning.js` (100 % des fonctions exportées), abattement micro-BNC/BIC/mixte + plafonds (`abattement_micro.test.js`), CA missions/récurrentes/taux de charges par statut (`validation.js`, 7 jeux de données).
+- **Trous confirmés à 0 test direct** : tout le module TVA (`getTVAZone`, `tvaZoneFill/Kpi`, seuils, collecte encaissements/débits, déductible, provisions, régimes — 12 fonctions) ; la trésorerie SASU/EURL (`getSasuCoutMensuelDepuisNet`, `getSasuCoutRemuMensuel`, `getTresorerieDepart`, `getSasuSoldeActuelEstime` — **exactement les fonctions modifiées/vérifiées à la main dans le chantier objectifs SASU/EURL de cette session, sans filet automatisé**) ; tout `shared/core/affaires.js` (Marge, TH réel, % coût par affaire, agrégations portefeuille — 0 test sur les 8 fonctions du module). TJM n'a pas de fonction dédiée dans le core (calcul inline dans `indepuls.html`, `_kpi()`) — hors de portée des suites Node tant qu'il n'est pas extrait.
+- **3 nouveaux fichiers de tests**, même harness que l'existant (`test()`/`testEq()`/`section()`, tolérance ±1€ sur les montants) :
+  - `shared/tests/tva.test.js` (32 tests) — zones de vigilance, seuils par statut, **divergence encaissements vs débits sur une même mission** (facturée en janvier, encaissée en mars : la TVA collectée n'est pas comptée le même mois selon le mode), déductible mensuel/annuel, régimes (franchise/mensuel/trimestriel/simplifié).
+  - `shared/tests/sasu_tresorerie.test.js` (11 tests) — `getSasuCoutMensuelDepuisNet` pur (SASU 80% et EURL 45%, même formule), délégation de `getSasuCoutRemuMensuel`, trésorerie de départ, solde estimé (SASU et EURL).
+  - `shared/tests/affaires.test.js` (18 tests) — dépenses liées par affaire, marge, TH réel (avec le cas `null` si 0 heure), % coût (avec le cas 0 si pas de devis), agrégations portefeuille et marge moyenne pondérée par CA.
+- **Fonctions dépendantes de `new Date()` (régime trimestriel/simplifié de `getTvaAVenirFinAnnee`)** : rendues déterministes sans mocker `Date` en décalant `DATA.currentYear` d'un an dans le passé — garantit que tous les mois de l'année testée sont antérieurs au mois réel, quel que soit le jour d'exécution du test (`getTVACollecteeMois`/`getTVADeductibleMois` ne dépendent que du `mk` exact passé, jamais de `DATA.currentYear`).
+- **Vérifié** : les 7 suites (216 + 61 = **277 assertions**) toutes au vert, aucune régression sur les 4 suites existantes.
 
 ## Points d'attention
 
