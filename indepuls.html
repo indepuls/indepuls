@@ -4416,7 +4416,14 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const _prevFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
     const _prevObjectif=DATA.params.modules?.objectif||'th';
     const _prevHj=DATA.params.heuresParJour||7;
-    const _prevNbM=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(prevMk))).length;
+    // Repli sur dateFact si pas d'encaissements détaillés (même angle mort démo-vs-réel corrigé
+    // ailleurs dans ce chantier) — sinon une mission facturée sans encaissement n'est jamais
+    // comptée, faussant le dénominateur du "Gain / commande" à la baisse (voire —).
+    const _prevNbM=DATA.missions.filter(m=>{
+      if(m.isManagement) return false;
+      const encs=m.encaissements||[];
+      return encs.length>0 ? encs.some(e=>(e.date||'').startsWith(prevMk)) : (m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===prevMk);
+    }).length;
     const _prevItemLbl=_prevFamily==='achat_revente'?'vente':'commande';
     const _prevBilanLbl=_prevObjectif==='tjm'?'TJM réel':_prevObjectif==='marge_commande'?`Gain / ${_prevItemLbl}`:'TH réel';
     const _prevBilanVal=_prevObjectif==='tjm'?(prevTH!==null?fmtE(prevTH*_prevHj,0)+'/j':'—'):_prevObjectif==='marge_commande'?(_prevNbM>0?fmtE(Math.round(prevNet/_prevNbM)):'—'):(prevTH!==null?fmtE(prevTH,0)+'/h':'—');
@@ -4684,7 +4691,12 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const _synIsMarge=_synObjectif==='marge_commande';
   const _synHj=DATA.params.heuresParJour||7;
   const _synTjm=Math.round(thR*_synHj), _synTjmMin=Math.round(thMin*_synHj);
-  const _synNbM=DATA.missions.filter(m=>!m.isManagement&&(m.encaissements||[]).some(e=>(e.date||'').startsWith(String(DATA.currentYear)))).length;
+  // Repli sur dateFact si pas d'encaissements détaillés — même correction que _prevNbM ci-dessus.
+  const _synNbM=DATA.missions.filter(m=>{
+    if(m.isManagement) return false;
+    const encs=m.encaissements||[];
+    return encs.length>0 ? encs.some(e=>(e.date||'').startsWith(String(DATA.currentYear))) : (m.statut==='fact'&&m.dateFact&&m.dateFact.startsWith(String(DATA.currentYear)));
+  }).length;
   const _synCaNet=getCaNetAnnuel();
   const _synGain=_synNbM>0?Math.round(_synCaNet/_synNbM):0;
   let _synLbl,_synVal,_synSub,_synColor;
@@ -4764,10 +4776,15 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   } else if(_objectifAlert==='marge_commande'){
     if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
       alerts.push({pr:2,cl:'al-info',txt:`⏱ Gain horaire insuffisant : ${fmtE(thR,0)}/h${_thMinAlert>0?` (obj. min. ${fmtE(_thMinAlert,0)}/h)`:''} — comparez le temps passé par ${_itemLblAlert}.`});
-    // Marge faible (coûts directs vs CA)
+    // Marge faible (coûts directs vs CA) — repli sur dateFact si pas d'encaissements détaillés,
+    // même angle mort démo-vs-réel que pour le pilier Rentabilité (audit demandé par Faustine) :
+    // sans ce repli, l'alerte ne se déclenchait jamais pour une mission facturée sans encaissement.
     const _cAgg=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
       const co=_buildAlertsCoutMap[m.id]||0;
-      const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
+      const encs=m.encaissements||[];
+      const en=encs.length>0
+        ? encs.reduce((a,e)=>a+(parseFloat(e.montant)||0),0)
+        : (m.statut==='fact'?(m.montantDevis||0):0);
       return {ca:s.ca+en,couts:s.couts+co};
     },{ca:0,couts:0});
     if(_cAgg.ca>0){
@@ -4856,9 +4873,21 @@ function getCaMissionsADate(mk, jour) {
   const cutoff=`${mk}-${String(jour).padStart(2,'0')}`;
   let total=getCaFromMissions(mk);
   DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring).forEach(m=>{
-    (m.encaissements||[]).forEach(e=>{
-      if(e.date&&e.date.slice(0,7)===mk&&e.date>cutoff) total-=parseFloat(e.montant)||0;
-    });
+    const encs=m.encaissements||[];
+    if(encs.length>0){
+      encs.forEach(e=>{
+        if(e.date&&e.date.slice(0,7)===mk&&e.date>cutoff) total-=parseFloat(e.montant)||0;
+      });
+    } else if(m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===mk&&m.dateFact>cutoff){
+      // Mission reconnue en une fois via dateFact (pas d'encaissements détaillés — cas courant
+      // d'un chantier saisi a posteriori, sans détail de règlement) : getCaFromMissions() compte
+      // son montant entier dès que le mois correspond, sans jamais regarder le jour. Sans cette
+      // branche, "au jour J" affichait le CA du mois entier même à J-1 par rapport à la
+      // facturation — comparaison "au jour J" totalement inopérante pour ce mode de saisie
+      // (repéré en auditant getCaMissionsADate() suite à une question sur données démo vs
+      // réelles : la démo ne s'appuie que sur des encaissements datés, jamais sur ce chemin).
+      total-=m.montantDevis||0;
+    }
   });
   return Math.max(0,total);
 }
@@ -5280,7 +5309,16 @@ function wScoreSante(d) {
   const _rentCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   const _rentCouts=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
     const co=_rentCoutMap[m.id]||0;
-    const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
+    const encs=m.encaissements||[];
+    // Repli sur dateFact (mission facturée) quand il n'y a pas d'encaissements détaillés —
+    // sinon son CA n'est jamais compté ici et la marge brute annuelle affiche "—" (aucune
+    // donnée) même quand des coûts directs et un CA réels existent bel et bien. Même angle
+    // mort que celui corrigé pour "ce mois" juste en dessous et pour getCaMissionsADate()
+    // (démo vs réel, audit demandé par Faustine — la démo ne s'appuie que sur des
+    // encaissements détaillés, jamais sur ce chemin).
+    const en=encs.length>0
+      ? encs.reduce((a,e)=>a+(parseFloat(e.montant)||0),0)
+      : (m.statut==='fact'?(m.montantDevis||0):0);
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
   const thBrut=hT>0?(caBrut-_rentCouts.couts)/hT:0;
@@ -5344,7 +5382,14 @@ function wScoreSante(d) {
   const caMoisCourant=getCaFromMissions(curMk)+getPonctuelsCA(curMk);
   const _rentCoutsMois=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
     const co=(DATA.depenses||[]).filter(dep=>dep.chantierId===m.id&&dep.date&&dep.date.slice(0,7)===curMk).reduce((a,dep)=>a+(dep.montant||0),0);
-    const en=(m.encaissements||[]).filter(e=>(e.date||'').slice(0,7)===curMk).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
+    const encs=m.encaissements||[];
+    // Repli sur dateFact quand la mission n'a pas d'encaissements détaillés (chantier saisi a
+    // posteriori) — sinon son CA n'est jamais compté ici (toujours 0), contrairement à
+    // caMoisCourant/getCaFromMissions qui gèrent déjà ce repli. Même angle mort que celui
+    // corrigé dans getCaMissionsADate() (démo vs réel), repéré à l'audit demandé par Faustine.
+    const en=encs.length>0
+      ? encs.filter(e=>(e.date||'').slice(0,7)===curMk).reduce((a,e)=>a+(parseFloat(e.montant)||0),0)
+      : (m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===curMk?(m.montantDevis||0):0);
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
   const _margePctMois=_rentCoutsMois.ca>0?Math.round((_rentCoutsMois.ca-_rentCoutsMois.couts)/_rentCoutsMois.ca*100):null;
