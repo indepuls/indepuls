@@ -79,16 +79,16 @@ Indépuls doit rester un outil de **pilotage et d'aide à la décision**.
 
 | Fichier / Dossier | Rôle |
 |---|---|
-| `indepuls.html` | **Point d'entrée unique** — app complète tous profils (SCHEMA_VERSION 30) |
+| `indepuls.html` | **Point d'entrée unique** — app complète tous profils (SCHEMA_VERSION 31) |
 | `index.html` | Redirection automatique vers `indepuls.html` (portail dual-session supprimé) |
-| `shared/modes/unified.js` | Pont ESM pour `indepuls.html` — STORAGE_KEY='indepuls', SCHEMA_VERSION=30 |
+| `shared/modes/unified.js` | Pont ESM pour `indepuls.html` — STORAGE_KEY='indepuls', SCHEMA_VERSION=31 |
 | `vercel.json` | Config déploiement Vercel |
 | `shared/` | Logique métier partagée (core + modes + tests) — voir `shared/README.md` |
 | `shared/core/calculs.js` | ~580 lignes, 54 fonctions exportées — calculs financiers uniquement |
 | `shared/core/affaires.js` | Rentabilité unitaire par affaire : dépenses liées, marge, TH réel, agrégations portefeuille |
 | `shared/core/planning.js` | Moteur Planning : capacité, remplissage, score — voir section dédiée ci-dessous |
 | `shared/core/taux.js` | Référentiel fiscal 2026 (TVA, URSSAF, abattements, plafonds micro) |
-| `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` |
+| `shared/core/storage.js` | `applyDefaults`, `migrate`, `getDefaultData` — **⚠️ non utilisé par `indepuls.html`** : ce dernier a ses propres copies inline de ces 3 fonctions (import `S` dans `unified.js` mort, jamais appelé). `storage.js` reste la source utilisée par `shared/tests/validation.js` et les archives freelance/artisan. Toute migration doit être faite dans **les deux endroits** si on veut les garder synchronisés (constaté lors du chantier "Temps prévu", 2026-07 — voir plus bas). |
 | `shared/tests/abattement_micro.test.js` | 44 tests ESM — abattements, plafonds micro, prorata |
 | `shared/tests/planning.test.js` | 73 tests ESM — moteur Planning, tous modes, valeurs limites |
 | `shared/tests/validation.js` | 73 tests — compare fonctions HTML locales vs core |
@@ -214,13 +214,17 @@ getCurrentMk()              // mois courant 'YYYY-MM'
 getCurrentYearMonths()      // ['2026-01', ..., '2026-12']
 fmtE(val, dec)              // formatage €
 saveData()                  // persist DATA en localStorage
+
+// Temps prévu (chantier 2026-07, Phase 1 — capture uniquement, pas de comparaison affichée)
+getMissionHeuresMois(m, mk)      // heures réelles d'UNE mission pour UN mois (tempsManuel daté)
+getTempsPrevuPourMois(m, mk)     // tempsPrevu applicable à un mois donné (lit tempsPrevuHistorique)
 ```
 
 ## SCHEMA_VERSION
 
-- `indepuls.html` est à `SCHEMA_VERSION = 30` (juin 2026 — fusion interfaces, clé localStorage unifiée `indepuls`)
-- `shared/modes/unified.js` porte aussi la version 30
-- `migrate()` dans `storage.js` est **idempotent** (pas de blocs conditionnels par version) — incrémenter la constante ne cause pas de migration risquée, mais reste nécessaire pour marquer un changement de structure `DATA`
+- `indepuls.html` est à `SCHEMA_VERSION = 31` (2026-07 — datation systématique du temps réel, chantier "Temps prévu")
+- `shared/modes/unified.js` porte aussi la version 31
+- `migrate()` **réellement exécuté en production est celui défini dans `indepuls.html`** (fonction locale, pas celui de `storage.js` — voir note dans "Fichiers & rôles"). Il est idempotent (pas de blocs conditionnels par version) — incrémenter la constante ne cause pas de migration risquée, mais reste nécessaire pour marquer un changement de structure `DATA`
 - À incrémenter dans **2 endroits** : `indepuls.html` + `shared/modes/unified.js`
 
 ## Suites de tests (Node.js)
@@ -784,6 +788,29 @@ Faustine a demandé un audit explicite : est-ce que des correctifs faits en s'ap
 - **2 endroits déjà corrects, non touchés, confirmant le bon pattern** : `caMoisCourant`/`getCaFromMissions()` (a toujours eu ce repli — c'est *son* comportement correct qui a servi de référence pour tous les fixes ci-dessus) et une agrégation de rentabilité par mission (ligne ~5696) qui avait déjà le repli `enc>0?enc:(m.statut==='fact'...)`.
 - **1 endroit intentionnellement non touché** : `getRecettesData()` (Livre des recettes) — reste strictement basé sur les encaissements par conception : c'est un registre légal des règlements réellement perçus (mode de règlement, référence justificative), qui n'existent pas pour une mission suivie via `dateFact` seul. Pas un bug, une distinction volontaire entre "CA reconnu" et "encaissement tracé".
 - **Vérifié** : 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js` touchée, les 6 fixes sont dans `indepuls.html` uniquement — logique d'affichage, pas le moteur de calcul partagé).
+
+### FEATURE — Chantier "Temps prévu", Phase 1 : fondations de données (2026-07)
+
+Nouvelle notion de temps, strictement séparée du planning existant : **planifié** (agenda, "Charge / semaine" → renommé **"Temps planifié / semaine"**, sert uniquement à la capacité), **prévu** (nouveau, budget de temps estimé pour une mission), **réel** (temps effectivement passé, chrono + saisie manuelle). Cette Phase 1 ne construit **aucune UI de comparaison prévu/réel** (badge, indicateur, message de clôture enrichi) — uniquement la capture et le stockage. Comparaison = Phase 2, une fois cette fondation vérifiée en usage réel.
+
+**Étape 1 — Renommage.** Label "Charge / semaine" → "Temps planifié / semaine" + note explicite "Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité." Texte seul, aucune logique touchée (`chargeEstimee`/`chargeUnit`, moteur `planning.js` intacts).
+
+**Étape 2 — Champ `tempsPrevu`.** Nouveau champ scalaire (heures, optionnel) sur chaque mission, indépendant de `chargeEstimee` (planning) et de `montantDevis`/`montantMensuel` (prix). UI : bloc séparé visuellement dans la modale mission (`#m-temps-prevu-zone`), libellé contextuel ponctuelle/récurrente ET heures/jours (`updateTempsPrevuLabel()`, calque de `sasu-remu-label` étendu à 2 axes). Stockage toujours en heures ; affichage en jours si `isJours()`, conversion via `heuresParJour` (même pattern que `m-charge`). Suggestion pré-remplie (prix ÷ `getTauxHoraireMinCible()`, toujours en €/h — fonctionne aussi en `marge_commande`, où ce taux sert déjà de repère secondaire), recalculée en live avec le même principe de debounce que `recalcObjectifsDebounced` (`updateTempsPrevuSuggestionDebounced()`, 350ms), **jamais si le champ est déjà renseigné**.
+
+**Étape 3 — Historisation `tempsPrevuHistorique` (récurrentes uniquement).** Quand `tempsPrevu` change sur une récurrente déjà en cours depuis au moins un mois clos, une modale (`#modal-temps-prevu-choice`, calquée sur `modal-profil-change`) demande "dès ce mois-ci / à partir du mois prochain" (défaut : mois prochain). L'ancienne valeur est poussée dans `tempsPrevuHistorique` comme période fermée `{valeur, dateDebut, dateFin}` — jamais de `dateFin` nulle ou déduite implicitement. Garde-fou anti-doublon : si la période calculée serait de longueur nulle/négative (2 modifications dans le même mois clos), aucune entrée n'est poussée, seule la valeur courante change. `tempsPrevuHistorique` reste **totalement absent** tant que `tempsPrevu` n'a jamais été modifié après coup (vérifié).
+
+**Étape 4 — Datation du temps réel.** `commitTimer()` ne verse plus dans `timerAccumulated` (jamais réincrémenté après ce chantier) mais pousse une entrée datée dans `tempsManuel` (`{id, date, ms}`, comme l'existant). `getMissionTotalMs()`/`getMissionHeures()` **inchangées** — elles lisent toujours les deux champs, donc le total reste strictement identique, seul l'endroit où atterrit le nouveau temps change. Migration (`migrate()` dans `indepuls.html`, `SCHEMA_VERSION` 30→31) : pour chaque mission avec `timerAccumulated > 0`, une entrée `tempsManuel` est créée avec la date du jour de la migration (approximation assumée — l'origine réelle du temps accumulé n'est pas connue, gap négligeable en pratique, bêta-testeuses depuis juillet) puis `timerAccumulated` est remis à 0.
+
+Nouvelles fonctions `shared/core/calculs.js` (bridge `window.*` + `unified.js` correspondants) : `getMissionHeuresMois(DATA, m, mk)` (heures réelles d'une mission pour un mois, filtre `tempsManuel` daté) et `getTempsPrevuPourMois(DATA, m, mk)` (valeur `tempsPrevu` applicable à un mois, tient compte de l'historique).
+
+**Extension délibérée au-delà de la lettre de la demande** : `resolveTimerGap()` (branche `'remove'` de la bannière "temps d'inactivité détecté") faisait le même anti-pattern inliné une deuxième fois (`m.timerAccumulated += workedMs`) — corrigé avec la même technique que `commitTimer`, aucune UI nouvelle nécessaire. **Volontairement non touchés** (hors périmètre explicite du chantier) : `confirmFacturation()` (`modal-fact-confirm`, exclu par consigne explicite "aucune modification du modal de clôture") et `saveCorrectTime()` (`modal-correct-time`) — ce dernier ferait une régression de scope, nécessiterait un nouveau sélecteur de date non prévu.
+
+**Points ambigus soumis, tranchés par défaut, à confirmer :**
+1. Un `tempsPrevu` passant de `null` à une valeur sur une récurrente déjà en cours ne déclenche **pas** l'historisation (traité comme une première saisie, appliqué immédiatement) — la consigne dit "modification" au sens large, mais pousser une entrée `{valeur: null, ...}` n'est pas anticipé par la forme de type donnée.
+2. `shared/core/storage.js` (`migrate`/`getDefaultData`/`applyDefaults`) — cité dans la demande comme emplacement de la migration — **n'est en réalité jamais appelé par `indepuls.html`** (import mort dans `unified.js`). La migration a donc été implémentée dans le `migrate()` local d'`indepuls.html`, le seul réellement exécuté en production ; `storage.js` n'a pas été touché (aucun bénéfice fonctionnel, risque de divergence avec les archives freelance/artisan pour rien). Voir note dans "Fichiers & rôles".
+3. Aucun texte explicatif n'a été ajouté sous le nouveau champ `#m-temps-prevu` (contrairement à Étape 1) — mentionner une comparaison au temps réel aurait anticipé la Phase 2, contraire à la consigne "aucun affichage de comparaison" de cette phase.
+
+**Vérifié** : les 12 points de la checklist demandée (pré-remplissage/non-écrasement sur th/tjm/marge_commande, conversion heures/jours, libellé contextuel, non-déclenchement sur récurrente neuve, déclenchement + dates calculées sur récurrente en cours, garde anti-doublon, `getTempsPrevuPourMois` sur 2 changements successifs, `commitTimer` daté, `getMissionHeures`/`getMissionTotalMs` strictement inchangés avant/après sur un jeu de données mixte chrono+manuel, migration avec exemple concret, `getMissionHeuresMois` sur plusieurs mois, suite `planning.test.js` non affectée par le renommage Étape 1) + 277 assertions (7 suites) toujours au vert. **Bug trouvé et corrigé pendant la vérification** : `_dayAfter()` utilisait `toISOString()` après construction d'une date locale, décalant d'un jour selon le fuseau horaire — corrigé pour rester en composants locaux (même pattern que `_mkLastDay`/`_mkPrev`).
 
 ## Points d'attention
 
