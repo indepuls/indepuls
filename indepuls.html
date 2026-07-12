@@ -3128,10 +3128,11 @@ function getExampleData(metier) {
     const d2 = `${yr}-${String(mo).padStart(2,'0')}-${String(Math.min(start+dur-1,28)).padStart(2,'0')}`;
     return [{debut:d1, fin:d2}];
   };
-  // Entrée de temps manuel datée — pour que getHeuresMoisMissions(mk) (lecture par date, pas
-  // par timerAccumulated qui n'est pas daté) retrouve des heures cohérentes avec le CA facturé
-  // chaque mois. Sans ça, "Ce mois-ci" divise le CA du mois par 0h dès qu'aucune mission n'a
-  // de tempsManuel daté dans ce mois-là (bug repéré : TJM du mois ≈ CA brut du mois, absurde).
+  // Entrée de temps manuel datée — utile pour les missions récurrentes de la démo (voir
+  // getHeuresMoisCoherentes, qui garde pour elles la seule portion datée à chaque mois, leurs
+  // heures s'accumulant mois après mois). Les non récurrentes n'en dépendent plus depuis le fix
+  // du même nom : leurs heures totales (heuresSaisies compris) sont désormais rattachées au
+  // mois où leur CA est reconnu, sans avoir besoin d'un tempsManuel daté.
   const tm = (id, mk, day, h) => ({id, date:`${mk}-${String(day).padStart(2,'0')}`, ms:h*3600000});
   // Sessions démo par mission pour les familles à planning calendrier
   const demoSessions = (family === 'chantier' || family === 'fabrication') ? {
@@ -4244,14 +4245,34 @@ function markInvalid(...ids) {
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────
-// Heures réellement travaillées (tempsManuel.ms) sur l'ensemble des missions, pour un mois donné.
-// Source unique pour tout calcul de TH/TJM mensuel — ne pas réinventer un pattern local par écran.
-function getHeuresMoisMissions(mk) {
-  let ms=0;
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
-    (m.tempsManuel||[]).forEach(t=>{ if((t.date||'').startsWith(mk)) ms+=t.ms||0; });
+// Heures du mois cohérentes avec le CA reconnu ce mois-là — source unique pour tout calcul de
+// TH/TJM mensuel, ne pas réinventer un pattern local par écran.
+// Un calcul naïf ne comptant que les heures DATÉES (tempsManuel/chrono) rate les heures d'une
+// mission non récurrente saisie a posteriori sans chrono (heuresSaisies seul, cas courant d'un
+// chantier terminé) : ses heures seraient silencieusement ignorées CE mois-ci ET tout autre
+// mois, alors que son CA, lui, est bien compté ce mois via dateFact/encaissement
+// (getCaFromMissions). Le CA du mois se retrouverait ainsi divisé par les heures d'un tout
+// autre sous-ensemble de missions (celles qui, par hasard, ont du temps daté ce mois précis),
+// produisant un TH/TJM "du mois" incohérent, voire absurde (repéré via retour de Faustine sur
+// le pilier Rentabilité du Score de Santé — ex. TJM du mois >> TJM annuel sans rapport avec le
+// taux réel de chaque affaire).
+// Fix : pour les missions non récurrentes dont le CA est reconnu au mois mk (même logique
+// d'inclusion que getCaFromMissions), on cumule leurs heures totales (getMissionHeures, datées
+// + heuresSaisies) plutôt que la seule portion datée — leur CA est reconnu en une fois, leurs
+// heures totales lui correspondent. Les récurrentes, elles, accumulent des heures mois après
+// mois : on garde pour elles la portion strictement datée à mk, sous peine de comptabiliser
+// tout leur historique contre le seul CA de ce mois-là.
+function getHeuresMoisCoherentes(mk) {
+  const missionsNonRec=DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring).filter(m=>{
+    const encs=m.encaissements||[];
+    if(encs.length>0) return encs.some(e=>e.date&&e.date.slice(0,7)===mk);
+    return m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===mk;
   });
-  return ms/3600000;
+  const hNonRec=missionsNonRec.reduce((s,m)=>s+getMissionHeures(m),0);
+  const hRecDatees=DATA.missions.filter(m=>!m.isManagement&&m.isRecurring).reduce((s,m)=>
+    s+(m.tempsManuel||[]).filter(t=>(t.date||'').startsWith(mk)).reduce((a,t)=>a+(t.ms||0),0)/3600000
+  ,0);
+  return hNonRec+hRecDatees;
 }
 function renderDashboard() {
 const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisActifsAnnee().length,1);
@@ -4390,7 +4411,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const prevBrut=getCaBreakdownMois(prevMk).prestation+(getCaBreakdownMois(prevMk).vente||0)+getPonctuelsCA(prevMk);
     const prevNet=getRevenuNetMois(prevMk);
     const prevDep=getDepensesMois(prevMk);
-    const prevH=getHeuresMoisMissions(prevMk);
+    const prevH=getHeuresMoisCoherentes(prevMk);
     const prevTH=prevH>0?Math.round(prevNet/prevH):null;
     const _prevFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
     const _prevObjectif=DATA.params.modules?.objectif||'th';
@@ -5315,14 +5336,11 @@ function wScoreSante(d) {
   }
 
   // ── Comparaison mensuelle (même métrique que l'annuel, jamais mélangée) ──
-  // Heures/CA du mois : recalculés nous-mêmes (getMissionTotalMs/tempsManuel n'ont pas de
-  // paramètre de mois — voir getHeuresMoisMissions), pas de fonction "mensuelle" existante
-  // à réutiliser telle quelle. getDepensesAffairesMap() n'est pas filtrable par mois non
-  // plus (somme sur toute la durée de vie de l'affaire) : pour la marge du mois, on filtre
-  // directement DATA.depenses par date plutôt que d'adapter cette fonction (les dépenses
-  // récurrentes rattachées à une affaire sont un cas marginal, ignoré ici — capté par le
-  // chiffre annuel qui reste la référence de fond).
-  const hMoisTotal=getHeuresMoisMissions(curMk)+((DATA.tempsInterne&&DATA.tempsInterne[curMk])||0)/3600000;
+  // Heures du mois : voir getHeuresMoisCoherentes() — corrige le CA du mois divisé par les
+  // heures d'un tout autre sous-ensemble de missions (celles qui, par hasard, ont du temps
+  // daté ce mois précis), qui produisait un TJM/TH "du mois" incohérent, voire absurde
+  // (repéré via retour de Faustine).
+  const hMoisTotal=getHeuresMoisCoherentes(curMk)+((DATA.tempsInterne&&DATA.tempsInterne[curMk])||0)/3600000;
   const caMoisCourant=getCaFromMissions(curMk)+getPonctuelsCA(curMk);
   const _rentCoutsMois=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
     const co=(DATA.depenses||[]).filter(dep=>dep.chantierId===m.id&&dep.date&&dep.date.slice(0,7)===curMk).reduce((a,dep)=>a+(dep.montant||0),0);
@@ -5330,7 +5348,10 @@ function wScoreSante(d) {
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
   const _margePctMois=_rentCoutsMois.ca>0?Math.round((_rentCoutsMois.ca-_rentCoutsMois.couts)/_rentCoutsMois.ca*100):null;
-  const thMoisBrut=hMoisTotal>0?caMoisCourant/hMoisTotal:0;
+  // Même déduction des dépenses liées que thBrut (annuel, plus haut) — _rentCoutsMois.couts
+  // était déjà calculé pour _margePctMois mais jamais appliqué ici, seul thBrut avait été
+  // corrigé (voir chantier "dépenses liées jamais déduites du Score de Santé").
+  const thMoisBrut=hMoisTotal>0?(caMoisCourant-_rentCoutsMois.couts)/hMoisTotal:0;
   const tjmMoisBrut=Math.round(thMoisBrut*hj);
   let diagRentMois=null, rowRentMois=null;
   if(_rentIsMarge){
