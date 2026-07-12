@@ -1160,11 +1160,30 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
 
+        <!-- Mode par jours — chantier uniquement (placé juste au-dessus du champ qu'il pilote,
+             pour que le lien entre le toggle et "Temps chantier estimé" soit immédiat) -->
+        <div id="sim-row-temps-mode-jours" style="display:none">
+          <div class="fgroup" style="margin-bottom:8px">
+            <label class="flabel">Mode de saisie du temps</label>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button type="button" id="sim-tmode-heures" onclick="switchSimTempsMode('total')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Temps total (h)</button>
+              <button type="button" id="sim-tmode-jours" onclick="switchSimTempsMode('jours')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Nombre de jours</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Temps de travail -->
         <div id="sim-row-temps">
           <div class="fgroup">
             <label class="flabel" id="sim-label-temps">Temps total estimé (h)</label>
             <input type="number" id="sim-temps-val" step="0.5" min="0" placeholder="Ex : 8" oninput="calcRentabilite()">
+          </div>
+        </div>
+        <div id="sim-row-temps-jours" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Nombre de jours</label>
+            <input type="number" id="sim-jours-val" step="0.5" min="0" placeholder="Ex : 3" oninput="calcRentabilite()">
+            <div class="ts mt4" id="sim-jours-conversion" style="color:var(--tl)"></div>
           </div>
         </div>
 
@@ -1190,24 +1209,6 @@ html,body{overflow-x:hidden;}
           <div class="frow">
             <div class="fgroup"><label class="flabel">Heures / semaine</label><input type="number" id="sim-h-sem" step="0.5" min="0" placeholder="Ex : 3" oninput="calcRentabilite()"></div>
             <div class="fgroup"><label class="flabel">Durée (semaines)</label><input type="number" id="sim-duree" step="1" min="0" placeholder="Ex : 6" oninput="calcRentabilite()"></div>
-          </div>
-        </div>
-
-        <!-- Mode par jours — chantier uniquement -->
-        <div id="sim-row-temps-mode-jours" style="display:none">
-          <div class="fgroup" style="margin-bottom:8px">
-            <label class="flabel">Mode de saisie du temps</label>
-            <div style="display:flex;gap:6px;margin-top:6px">
-              <button type="button" id="sim-tmode-heures" onclick="switchSimTempsMode('total')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Temps total (h)</button>
-              <button type="button" id="sim-tmode-jours" onclick="switchSimTempsMode('jours')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Nombre de jours</button>
-            </div>
-          </div>
-        </div>
-        <div id="sim-row-temps-jours" style="display:none">
-          <div class="fgroup">
-            <label class="flabel">Nombre de jours</label>
-            <input type="number" id="sim-jours-val" step="0.5" min="0" placeholder="Ex : 3" oninput="calcRentabilite()">
-            <div class="ts mt4" id="sim-jours-conversion" style="color:var(--tl)"></div>
           </div>
         </div>
 
