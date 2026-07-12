@@ -569,6 +569,22 @@ export function getTempsPrevuPourMois(DATA, m, mk) {
   return entry ? entry.valeur : (m.tempsPrevu ?? null);
 }
 
+// Temps prévu cumulé sur toute la durée déjà écoulée d'une récurrente (tient compte de
+// l'historique, mois par mois) — Chantier "Temps prévu" (Phase 2bis, clôture récurrente).
+export function getTempsPrevuCumule(DATA, m) {
+  if (!m.isRecurring || !m.dateDebutRec) return m.tempsPrevu || 0;
+  const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+  const now = new Date();
+  const moisEcoules = (now.getFullYear() - sy) * 12 + (now.getMonth() + 1 - sm) + 1;
+  let total = 0;
+  for (let i = 0; i < moisEcoules; i++) {
+    const d = new Date(sy, sm - 1 + i, 1);
+    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    total += getTempsPrevuPourMois(DATA, m, mk) || 0;
+  }
+  return total;
+}
+
 export function getHeuresFact(DATA) {
   return DATA.missions
     .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact'))

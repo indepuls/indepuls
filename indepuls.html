@@ -2320,6 +2320,22 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL QUALIFICATION DE CAUSE (chantier "Temps prévu", Phase 2bis) -->
+<div class="modal-ov hidden" id="modal-cause-depassement">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title mb4">Pourquoi ce dépassement ?</div>
+    <div class="ts mb14" style="color:var(--tl)">Comprendre la cause vous aide à mieux estimer la prochaine fois. Facultatif.</div>
+    <div class="modal-foot" style="flex-direction:column;gap:8px">
+      <button class="btn btn-out" style="width:100%;justify-content:flex-start" onclick="saveCauseDepassement('estimation_basse')">Estimation initiale trop basse</button>
+      <button class="btn btn-out" style="width:100%;justify-content:flex-start" onclick="saveCauseDepassement('hors_perimetre')">Demande hors périmètre</button>
+      <button class="btn btn-out" style="width:100%;justify-content:flex-start" onclick="saveCauseDepassement('imprevu_technique')">Imprévu technique</button>
+      <button class="btn btn-out" style="width:100%;justify-content:flex-start" onclick="saveCauseDepassement('temps_offert')">Temps offert volontairement</button>
+      <button class="btn btn-out" style="width:100%;justify-content:flex-start" onclick="saveCauseDepassement('oubli_chrono')">Oubli de mise en pause du chrono</button>
+      <button class="btn" style="width:100%;justify-content:center;color:var(--tl);background:transparent;border:none" onclick="closeModal('modal-cause-depassement')">Passer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ANALYSE PILIER -->
 <div class="modal-ov hidden" id="modal-pilier" onclick="if(event.target===this)closeModal('modal-pilier')">
   <div class="modal" style="max-width:500px">
@@ -6848,6 +6864,7 @@ function renderTrajectoireDetail(m) {
     <div class="ts" style="color:var(--tl);margin-top:2px">Réel${m.isRecurring?' ce mois-ci':''} : ${fmt(conv(reel),1)}${unit}</div>
     ${thImplicite!=null?`<div class="ts mt8">Taux horaire provisoire : <strong style="color:${thColor}">${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${thUnit}</strong> — hors dépenses non encore saisies. Le calcul définitif se fera à la clôture.</div>`:''}
     ${anticipTxt}
+    ${['orange','rouge'].includes(getTrajectoireTier(m))?`<div class="ts mt8"><span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="openCauseDepassementModal('${m.id}')">Pourquoi ce dépassement ?</span></div>`:''}
   </div>`;
 }
 function toggleRecurrenceFields(val) {
@@ -7019,6 +7036,33 @@ function confirmTempsPrevuChoice(choice) {
 function cancelTempsPrevuChoice() {
   closeModal('modal-temps-prevu-choice');
   _pendingTempsPrevuSave=null;
+}
+
+// ── TEMPS PRÉVU — qualification de cause d'un dépassement (chantier "Temps prévu", Phase 2bis) ──
+// Un seul champ scalaire pour une ponctuelle (une seule période à qualifier), un tableau indexé
+// par mois pour une récurrente — jamais de doublon : la dernière saisie pour un mois remplace
+// la précédente plutôt que de s'ajouter.
+let _causeDepassementMissionId=null;
+function openCauseDepassementModal(id) {
+  _causeDepassementMissionId=id;
+  document.getElementById('modal-cause-depassement').classList.remove('hidden');
+}
+function saveCauseDepassement(cause) {
+  const m=DATA.missions.find(x=>x.id===_causeDepassementMissionId);
+  if(m){
+    if(m.isRecurring){
+      const mk=getCurrentMk();
+      if(!m.causesDepassement) m.causesDepassement=[];
+      const entry=m.causesDepassement.find(c=>c.mk===mk);
+      if(entry) entry.cause=cause;
+      else m.causesDepassement.push({mk, cause});
+    } else {
+      m.causeDepassement=cause;
+    }
+    saveData();
+  }
+  closeModal('modal-cause-depassement');
+  _causeDepassementMissionId=null;
 }
 
 function finalizeSaveMission(editId, obj) {
@@ -7246,15 +7290,36 @@ function setMissionStatut(id,val) {
   saveData(); renderMissions(); if(currentPage==='revenus') renderRevenus(); if(currentPage==='dashboard') renderDashboard();
 }
 
-// ── TEMPS PRÉVU — écart à la clôture (chantier "Temps prévu", Phase 2) ────────
+// ── TEMPS PRÉVU — écart à la clôture (chantier "Temps prévu", Phase 2 + 2bis) ──
 // Silence si l'écart est faible (<10%, dans un sens ou l'autre) — un message systématique
-// userait le signal. Le "réel" ici est toujours le temps tel que saisi dans cette modale
-// (jamais une relecture de tempsManuel) — c'est la valeur que l'utilisatrice vient de confirmer.
+// userait le signal. Pour une ponctuelle, "réel" est le temps tel que saisi dans cette modale
+// (jamais une relecture de tempsManuel). Pour une récurrente, modal-fact-confirm ne se déclenche
+// qu'une fois (fin de la mission entière, jamais mensuellement) — comparer au seul mois courant
+// perdrait toute la mémoire des mois précédents pile au moment où ce message a le plus de valeur.
+// On compare donc le cumul sur toute la durée du contrat (Phase 2bis) : prevuCumule via
+// getTempsPrevuCumule() (somme mois par mois, tient compte de l'historique), reelCumule via
+// getMissionHeures() (temps total déjà existant, inchangé).
 function updateFactTempsPrevuComparaison() {
   const el=document.getElementById('fact-temps-prevu-compare');
   if(!el) return;
   const m=DATA.missions.find(x=>x.id===pendingFactId);
   if(!m||!(m.tempsPrevu>0)){ el.innerHTML=''; return; }
+  const _isJours=isJours(), _hj=DATA.params.heuresParJour||7, unit=_isJours?'j':'h';
+  const conv=v=>_isJours?v/_hj:v;
+  const _itemLow=tVocab('item').toLowerCase(), _masc=tVocabMasculin();
+  if(m.isRecurring){
+    if(!m.dateDebutRec){ el.innerHTML=''; return; }
+    const prevu=getTempsPrevuCumule(m);
+    if(!(prevu>0)){ el.innerHTML=''; return; }
+    const reel=getMissionHeures(m);
+    const ecartPct=(reel-prevu)/prevu*100;
+    if(Math.abs(ecartPct)<10){ el.innerHTML=''; return; }
+    const [sy,sm]=m.dateDebutRec.split('-').map(Number);
+    const now=new Date();
+    const nbMois=(now.getFullYear()-sy)*12+(now.getMonth()+1-sm)+1;
+    el.innerHTML=`<div class="ts mt6">Sur l'ensemble de ${_masc?'ce':'cette'} ${_itemLow} (${nbMois} mois), vous aviez prévu <strong>${fmt(conv(prevu),1)}${unit}</strong>. Vous y avez consacré <strong>${fmt(conv(reel),1)}${unit}</strong>, soit <strong>${Math.round(Math.abs(ecartPct))}%</strong> de ${ecartPct>0?'plus':'moins'} que prévu.</div>`;
+    return;
+  }
   const prevu=getTempsPrevuPourMois(m, getCurrentMk());
   if(!(prevu>0)){ el.innerHTML=''; return; }
   const h=parseInt(document.getElementById('fact-temps-h').value)||0;
@@ -7263,12 +7328,13 @@ function updateFactTempsPrevuComparaison() {
   if(reel<=0){ el.innerHTML=''; return; }
   const ecartPct=(reel-prevu)/prevu*100;
   if(Math.abs(ecartPct)<10){ el.innerHTML=''; return; }
-  const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
+  const prix=m.montantDevis||0;
   const thPrevu=prix/prevu, thReel=prix/reel;
-  const _isJours=isJours(), _hj=DATA.params.heuresParJour||7, unit=_isJours?'j':'h';
-  const conv=v=>_isJours?v/_hj:v;
-  const _art=tVocabMasculin()?'Ce':'Cette', _itemLow=tVocab('item').toLowerCase(), _acc=tVocabMasculin()?'':'e';
-  el.innerHTML=`<div class="ts mt6">${_art} ${_itemLow} avait été estimé${_acc} à <strong>${fmt(conv(prevu),1)}${unit}</strong>. Vous y avez consacré <strong>${fmt(conv(reel),1)}${unit}</strong>, soit <strong>${Math.round(Math.abs(ecartPct))}%</strong> de ${ecartPct>0?'plus':'moins'} que prévu. Votre taux horaire réel est de <strong>${fmtE(_isJours?thReel*_hj:thReel,1)}</strong> au lieu des <strong>${fmtE(_isJours?thPrevu*_hj:thPrevu,1)}</strong> prévus.</div>`;
+  const _art=_masc?'Ce':'Cette', _acc=_masc?'':'e';
+  // Point d'entrée pratique (Phase 2bis) vers la qualification de cause — uniquement en cas de
+  // vrai dépassement (temps réel > prévu), jamais quand la mission a été bouclée plus vite.
+  const causeLink=ecartPct>0?`<div class="ts mt6"><span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="openCauseDepassementModal('${m.id}')">Pourquoi ce dépassement ?</span></div>`:'';
+  el.innerHTML=`<div class="ts mt6">${_art} ${_itemLow} avait été estimé${_acc} à <strong>${fmt(conv(prevu),1)}${unit}</strong>. Vous y avez consacré <strong>${fmt(conv(reel),1)}${unit}</strong>, soit <strong>${Math.round(Math.abs(ecartPct))}%</strong> de ${ecartPct>0?'plus':'moins'} que prévu. Votre taux horaire réel est de <strong>${fmtE(_isJours?thReel*_hj:thReel,1)}</strong> au lieu des <strong>${fmtE(_isJours?thPrevu*_hj:thPrevu,1)}</strong> prévus.</div>${causeLink}`;
 }
 function confirmFacturation() {
   const m=DATA.missions.find(x=>x.id===pendingFactId);
@@ -7447,6 +7513,25 @@ function renderMissionsSummary(all) {
       ${(()=>{const src=wSourceAcq(actives,tVocab('item').toLowerCase()),ref=wMotifsRefus();return(src||ref)?`<div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">${src}${ref}</div>`:''})()}
     </div>
   </div>`;
+}
+// Palier de trajectoire ('vert'/'jaune'/'orange'/'rouge') pour la période en cours (mission
+// entière si ponctuelle, mois courant si récurrente) — factorisé pour être réutilisé par le
+// badge compact (tableau) et le lien "Pourquoi ce dépassement ?" (fiche, chantier Phase 2bis).
+// Retourne null si aucun calcul n'est possible (pas de tempsPrevu, ou prevu=0 — garde-fou).
+function getTrajectoireTier(m) {
+  if(!(m.tempsPrevu>0)) return null;
+  const mk=getCurrentMk();
+  const prevu=getTempsPrevuPourMois(m, mk);
+  if(!(prevu>0)) return null;
+  const reel=m.isRecurring?getMissionHeuresMois(m, mk):getMissionHeures(m);
+  const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
+  const thImplicite=reel>0?prix/reel:null;
+  const thMin=getTauxHoraireMinCible();
+  const pct=reel/prevu;
+  if(thImplicite!=null&&thMin>0&&thImplicite<thMin) return 'rouge';
+  if(pct<0.6) return 'vert';
+  if(pct<0.85) return 'jaune';
+  return 'orange';
 }
 // ── TEMPS PRÉVU — indicateur compact tableau missions (chantier "Temps prévu", Phase 2) ──
 // Réel vs Prévu + taux horaire implicite + couleur de trajectoire. N'apparaît que si
@@ -10351,6 +10436,7 @@ document.addEventListener('keydown', function(e) {
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
   window.getMissionHeuresMois   = (m, mk) => { sync(); return Mode.getMissionHeuresMois(m, mk); };
   window.getTempsPrevuPourMois  = (m, mk) => { sync(); return Mode.getTempsPrevuPourMois(m, mk); };
+  window.getTempsPrevuCumule    = (m)  => { sync(); return Mode.getTempsPrevuCumule(m); };
   window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
   window.getSasuCoutMensuelDepuisNet = (net) => { sync(); return Mode.getSasuCoutMensuelDepuisNet(net); };
   window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
