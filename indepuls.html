@@ -7489,7 +7489,11 @@ function openDepModalLinked(missionId) {
 function addDepenseLinked() {
   const id = document.getElementById('mission-edit-id').value;
   if (!id) return;
-  closeModal('modal-mission');
+  // Enregistrer la mission avant de basculer vers l'ajout d'un coût lié — sinon fermer la
+  // modale sans sauvegarder efface toute modification en cours (pré-remplissage perdu après
+  // validation d'un coût lié, signalé par Faustine).
+  saveMission();
+  if (!document.getElementById('modal-mission').classList.contains('hidden')) return; // client invalide, saveMission a annulé sans fermer
   openDepModalLinked(id);
 }
 function saveDepense(force) {
