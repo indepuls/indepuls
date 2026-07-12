@@ -760,6 +760,15 @@ Faustine a signalé une incohérence flagrante : dans le pilier Rentabilité, "T
 - **2 appelants mis à jour** : pilier Rentabilité (`wScoreSante()`, `hMoisTotal`) et carte "Bilan du mois précédent" (`renderDashboard()`, `prevH`) — même bug, même fix, un seul endroit désormais.
 - **Vérifié** : scénario reconstruit à l'identique du signalement (2 chantiers facturés le même mois, devis + dépenses liées + `heuresSaisies` seul, aucun `tempsManuel`) — confirmé reproductible avant fix (heures du mois = 0h ou heures d'un seul chantier selon les cas, TJM du mois totalement disproportionné) ; après fix, les heures du mois cumulent bien les deux chantiers, TJM "ce mois" redevient cohérent avec le TJM annuel et les taux réels par chantier. 277 assertions (7 suites) toujours au vert (fonction propre à `indepuls.html`, hors `shared/core` — pas de nouveau test dédié, comme pour les autres fixes UI-only de cette session ; vérification en navigateur uniquement).
 
+### FIX — Pré-remplissage d'une mission/chantier perdu après l'ajout d'un coût direct lié (2026-07)
+
+Faustine a signalé : en éditant une mission, si elle modifie des champs puis clique "+ Ajouter" (coûts directs liés), valider le coût effaçait ses modifications non enregistrées, l'obligeant à ressaisir.
+
+- **Root cause** : `addDepenseLinked()` (bouton "+ Ajouter" de la zone "Coûts directs liés", modale mission) faisait `closeModal('modal-mission')` **sans jamais sauvegarder** avant de basculer vers la modale Dépenses — perdant toute modification en cours. Après enregistrement de la dépense, `saveDepense()` rouvre la modale mission via `_pendingMissionReopen` → `openMissionModal(id)`, qui relit `DATA.missions` — donc l'état **d'avant** les modifications non sauvegardées, jamais celui affiché à l'écran juste avant.
+- **Fix** : `addDepenseLinked()` appelle désormais `saveMission()` (la même fonction que le bouton "Enregistrer" de la modale) avant de basculer vers l'ajout du coût lié — `saveMission()` ferme elle-même la modale une fois la sauvegarde faite. Garde ajoutée : si `saveMission()` refuse de fermer la modale (client vide → `markInvalid`), `addDepenseLinked()` s'arrête là et ne bascule pas vers la modale Dépenses, au lieu de continuer sur une mission non sauvegardée.
+- **Hors périmètre (non atteignable)** : ce bouton n'apparaît que pour une mission **existante** en cours d'édition (`m-couts-directs-zone` masquée tant qu'aucun `id` n'est passé à `openMissionModal`) — le cas "nouvelle mission jamais encore enregistrée" n'est donc jamais concerné.
+- **Vérifié** : mission existante éditée, notes et description modifiées sans sauvegarder, clic sur "+ Ajouter", dépense de 250€ enregistrée → modale mission rouverte avec les notes/description modifiées **conservées** (et non revenues à leur valeur d'origine) + coût lié de 250€ bien affiché dans le total. 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js` touchée, `indepuls.html` seul modifié).
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
