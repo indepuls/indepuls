@@ -685,6 +685,28 @@ Faustine a demandé si la colonne "Taux réel" était en brut ou net, et soupço
 - **Infobulle ajoutée** sur l'en-tête "Taux réel" (même pattern que celle déjà sur "Temps") : précise que c'est un taux brut (avant cotisations/impôts) et qu'il déduit désormais les dépenses directement liées à l'affaire.
 - **Vérifié** : 2 missions identiques (devis 2000€, 20h) avec 1000€ vs 50€ de dépenses liées → colonne affiche 50,0€/h vs 97,5€/h (au lieu de 100€/h pour les deux avant le fix) ; alerte "TH réel bas" testée sur une mission dont le devis seul donnait 40€/h (pas d'alerte avant fix) mais dont la marge réelle après 600€ de dépenses tombe à 10€/h → alerte désormais bien déclenchée. 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js`/`affaires.js` touchée, `indepuls.html` seul modifié).
 
+### FIX — "Top clients & offres" (page Missions) : TH imposé même en TJM/marge, et dépenses liées jamais déduites (2026-07)
+
+Suite au fix "Taux réel"/alertes (voir plus haut), Faustine a demandé si le comparateur de rentabilité (vert/orange/rouge) de "Top clients & offres" était bien basé sur du brut, et remarqué que le panneau reste en TH même en profil TJM (chantier). Vérification faite : **2 bugs confirmés, même famille que le précédent**.
+
+- **`rentabClientsBody()`/`rentabCatBody()`** (panneau "Statistiques" dépliant, page Missions) calculaient toujours `th=ca/h` en €/h — ni la déduction des dépenses liées (`chantierId`) comme dans `renderMissions()`/`buildAlerts()`, ni le respect de `modules.objectif` ('tjm'→€/jour, 'marge_commande'→%) déjà géré partout ailleurs dans le fichier (Score de Santé pilier Rentabilité, alertes, simulateur, archives — pattern `_XIsChantier`/`_XIsMarge` répété 6+ fois).
+- **`getRentabComparateur()`** (nouvelle fonction, juste avant `rentabClientsBody()`) : centralise la logique déjà dupliquée ailleurs — retourne `{value, fmt, color, sortLabel, moyLabel}` selon l'objectif configuré :
+  - `th` (défaut) : €/h, seuil = `getTauxHoraireMinCible()` (identique au comportement d'avant ce fix).
+  - `tjm` (chantier) : €/jour = `(ca-couts)/h×heuresParJour`, seuil = seuil TH ×heuresParJour (même technique que `_tjmMinAlert` dans `buildAlerts()`).
+  - `marge_commande` (achat_revente/fabrication) : % = `(ca-couts)/ca×100`, seuil 20% (achat_revente) ou 30% (autres) — mêmes seuils que le pilier Rentabilité du Score de Santé.
+  - Dans les 3 cas, `couts` = dépenses liées à l'affaire (`getDepensesAffairesMap()`, un seul passage sur `DATA.depenses` par appel), jamais le CA seul.
+- **`rentabClientsBody()`/`rentabCatBody()`** réécrites pour accumuler `couts` en plus de `ca`/`h` et déléguer value/couleur/libellés à `getRentabComparateur()`. Bouton de tri "Par TH" devient "Par TH"/"Par TJM"/"Par marge" selon le mode (même clé de tri interne `'th'` conservée en stockage — pas de migration nécessaire). Barre de progression clampée `[0,100]` (une marge négative, désormais possible depuis l'intégration des dépenses, ne doit pas produire une largeur CSS invalide).
+- **Vérifié** : profil chantier (`objectif:'tjm'`) → libellé "Par TJM", valeur en €/jour cohérente (2100€ CA − 700€ dépenses liées, 20h → 490€/j) ; profil achat_revente (`objectif:'marge_commande'`) → libellé "Par marge", valeur en % cohérente (1000€ CA − 600€ coûts → 40%) ; profil par défaut (`objectif:'th'`) → comportement strictement inchangé (80€/h sur un cas de contrôle). 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js`/`affaires.js` touchée, `indepuls.html` seul modifié).
+
+### FEATURE — Simulateur : saisie du temps en jours pour le profil chantier (2026-07)
+
+Faustine a remarqué qu'en mode TJM (profil chantier), le Simulateur ne demandait que des heures — précis, mais sans l'alternative "nombre de jours" déjà offerte au profil service ("Temps total" / "Par semaine").
+
+- **Nouveau toggle "Temps total (h)" / "Nombre de jours"**, chantier uniquement (`sim-row-temps-mode-jours`, `sim-row-temps-jours`) — même pattern DOM que le toggle "Par semaine" du profil service (éléments dédiés et non partagés, à l'image de `sim-row-serie`/`sim-row-lot` déjà spécifiques par preset), `_simTempsMode` réutilisé (`'total'|'sem'|'jours'`, un seul preset actif à la fois donc pas de conflit).
+- **Conversion** : jours × `heuresParJour` (Paramètres → Mes objectifs) → heures, avec indice affiché sous le champ ("= 21,0 h (base : 7 h/jour)"), mis à jour à la fois à l'ouverture du mode (`renderSimulateurPage()`) et à chaque frappe (`prepareSimInputs()`, même pattern que l'indice CA total du mode collectif).
+- **Affichage des résultats déjà correct sans changement** : `isJours()` (donc le format "/jour" affiché dans les résultats) dépend de `DATA.params.modules.uniteTemps`, un réglage de profil indépendant de la méthode de saisie choisie — seule l'entrée était à corriger.
+- **Vérifié** : profil chantier, bascule vers "Nombre de jours", 3 jours → conversion "21,0 h" affichée et calcul cohérent (CA 2100€/21h → TJM brut 700€/j) en mode Vérifier et en mode Calculer (objectif 4000€/mois → prix minimum 1390€ HT pour 21h) ; profil service : toggle "Par semaine" inchangé ; profil achat_revente/fabrication : aucun des deux toggles ne s'affiche (ni régression, ni fuite du nouveau toggle hors chantier). 277 assertions (7 suites) toujours au vert.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
