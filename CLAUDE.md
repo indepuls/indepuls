@@ -790,6 +790,15 @@ Faustine a demandé un audit explicite : est-ce que des correctifs faits en s'ap
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
 `indepuls_freelance.html` et `indepuls_artisan.html` (archives) ont été supprimés (2026-07, voir "Nettoyage archives Freelance/Artisan" plus bas). Tout bug ou feature va dans `indepuls.html` + `shared/core/` uniquement.
 
+### CHANGEMENT — "Ma trajectoire annuelle" : projection "meilleur mois" rendue réaliste, pas juste motivante (2026-07)
+
+Faustine a demandé d'où sortait le chiffre "En reproduisant mon meilleur mois : X€ de CA sur l'année" — en creusant, elle a fait remarquer que la formule (`bestMonth.brut × 12`) suppose implicitement qu'on peut aussi "remplacer" les mois déjà écoulés par le meilleur mois, ce qui n'a pas de sens : on ne rattrape jamais un mois déjà passé. Sa proposition — CA déjà réalisé + meilleur mois répété seulement sur les mois restants — jugée plus juste, actée telle quelle (moins motivante mais honnête, cohérent avec le principe déjà en place ailleurs dans l'app).
+
+- **`bestCaseAnnual`** (`caBrutRealise + bestMonth.brut×moisRestants`) existait déjà dans `getTrajectoireAnnuelleInfo()`, mais servait uniquement en interne à calculer `atteignable` pour le Score de Santé — jamais affiché directement. `wTrajectoireAnnuelle()` l'utilise désormais pour `projMeilleur` à la place de `bestMonth.brut×12`.
+- **Effet de bord positif** : les deux widgets ("Ma trajectoire annuelle" et le diagnostic `atteignable` du Score de Santé, qui utilisait déjà cette formule dans son propre texte — "il faudrait maintenir un rythme proche de votre meilleur mois sur les X mois restants") partagent désormais le **même chiffre**, alors qu'ils utilisaient jusqu'ici deux projections "meilleur mois" différentes sans que ce soit documenté ni voulu.
+- **Phrase reformulée** : "En reproduisant mon meilleur mois : X€ sur l'année" → "En gardant ce que j'ai déjà réalisé et en reproduisant mon meilleur mois (mois, Y€ net) sur les Z mois restants : X€ de CA sur l'année". La clause "sur les Z mois restants" est omise si `moisRestants===0` (décembre).
+- **Vérifié** : scénario avec CA réalisé 25 860€, meilleur mois 8 520€ brut, 5 mois restants → 25 860+8 520×5 = **68 460€**, phrase correctement générée avec accord singulier/pluriel sur "mois restant(s)". 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js` touchée, `indepuls.html` seul modifié — `bestCaseAnnual` était déjà calculé, seule sa consommation change).
+
 ### Module Affaires — `shared/core/affaires.js`
 
 Ce module répond à : **"Cette affaire est-elle rentable ?"** Il ne contient aucun calcul de flux mensuel (→ `calculs.js`), aucune logique de planning (→ `planning.js`), aucun rendu HTML.
