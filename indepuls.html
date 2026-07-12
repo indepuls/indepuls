@@ -4959,7 +4959,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const moisLabel=new Date(+cY,+cM-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   const p=DATA.params;
   const traj=getTrajectoireAnnuelleInfo(objNet);
-  const {chart12,moisR,mc,annualTarget,annualAtPace,bestMonth}=traj;
+  const {chart12,moisR,mc,annualTarget,annualAtPace,bestMonth,bestCaseAnnual,moisRestants}=traj;
 
   // ── KPI 1 : CA ANNUEL ─────────────────────────────────────────
   const pctAnnuel=annualTarget>0?Math.min(Math.round(caBrut/annualTarget*100),200):0;
@@ -5021,17 +5021,24 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   // le repli honnête ci-dessous sous 3 mois réalisés, plutôt qu'une fausse projection.
   // bestMonth vient de getTrajectoireAnnuelleInfo() (sélectionné sur le brut, cf. commentaire
   // sur la fonction) — ne pas le recalculer ici, wScoreSante() doit voir exactement le même mois.
+  // Retour Faustine (2026-07) : la projection reprenait bestMonth.brut×12 (comme si les mois déjà
+  // écoulés pouvaient eux aussi être "remplacés" par le meilleur mois) — plus motivant mais
+  // irréaliste, puisqu'on ne peut pas rattraper un mois déjà passé. bestCaseAnnual (déjà calculé
+  // par getTrajectoireAnnuelleInfo() pour "atteignable" côté Score de Santé, jamais affiché ici
+  // jusqu'alors) fait exactement ce qu'elle demande : CA déjà réalisé + meilleur mois répété
+  // uniquement sur les mois RESTANTS — les deux widgets partagent désormais le même chiffre.
   let phraseMeilleurAn;
   if(!bestMonth||bestMonth.brut<=0){
     phraseMeilleurAn='Pas encore assez de recul pour comparer — revenez dans quelques semaines.';
   } else {
     const [by,bm]=bestMonth.mk.split('-').map(Number);
     const moisLabelBest=new Date(by,bm-1,1).toLocaleDateString('fr-FR',{month:'long'});
-    const projMeilleur=bestMonth.brut*12;
+    const projMeilleur=bestCaseAnnual;
     const pctMeilleur=annualTarget>0?Math.round(projMeilleur/annualTarget*100):null;
+    const _restantsTxt=moisRestants>0?` sur les ${moisRestants} mois restant${moisRestants>1?'s':''}`:'';
     // bestMonth.net affiché entre parenthèses à titre de repère (ce que ce mois a réellement
     // rapporté), mais ne pilote plus ni la sélection du mois ni la projection.
-    phraseMeilleurAn=`En reproduisant mon meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net) : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> de CA sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de mon objectif`:''}.`;
+    phraseMeilleurAn=`En gardant ce que j'ai déjà réalisé et en reproduisant mon meilleur mois (${moisLabelBest}, ${fmtE(bestMonth.net,0)} net)${_restantsTxt} : <strong style="color:var(--pri)">${fmtE(Math.round(projMeilleur),0)}</strong> de CA sur l'année${pctMeilleur!==null?` — ${pctMeilleur} % de mon objectif`:''}.`;
   }
   let phraseMeilleurMois=null;
   if(bestMonth&&bestMonth.brut>0&&bestMonth.mk!==curMk){
