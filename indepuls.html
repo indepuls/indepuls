@@ -2445,6 +2445,18 @@ const BUSINESS_PROFILE_MAP = {
   createur_bijoux:'fabrication', fabricant_cosmetiques:'fabrication', fabricant_bougies:'fabrication',
   tapissier:'fabrication', maroquinier:'fabrication', ferronnier:'fabrication'
 };
+// Statut micro-entreprise par défaut, cohérent avec la nature de l'activité (micro-BIC pour
+// l'artisanat/la fabrication, micro-BIC commerce pour l'achat-revente, micro-BNC pour les
+// professions libérales) — le picker initial ne propose qu'un choix "Micro-entreprise"
+// générique, sans sous-régime : cette fonction résout vers le bon sous-régime selon la
+// famille du métier choisi. L'utilisateur reste libre de le modifier ensuite (Paramètres →
+// Fiscalité & charges).
+function getDefaultMicroStatut(metier) {
+  const family = BUSINESS_PROFILE_MAP[metier] || 'service';
+  if (family === 'achat_revente') return 'micro-achat';
+  if (family === 'chantier' || family === 'fabrication') return 'micro-bic';
+  return 'micro-bnc';
+}
 // Migration des anciennes valeurs vers les 7 nouveaux profils
 const METIER_MIGRATION_FL = {
   // Anciennes valeurs affichées (avant introduction des clés normalisées)
@@ -2995,10 +3007,13 @@ function getExampleData(metier) {
     return `${yr}-${String(mo).padStart(2,'0')}`;
   };
   const mk0=mk(0), mk1=mk(-1), mk2=mk(-2), mk3=mk(-3), mk4=mk(-4);
-  const _t=getTauxStatut('micro-bnc');
   const resolvedMetier = metier || 'prestataire_services';
   const family = BUSINESS_PROFILE_MAP[resolvedMetier] || 'service';
   const modules = getDefaultModules(resolvedMetier);
+  // Statut ET taux de cotisations cohérents avec le métier démo (artisan → BIC, achat-revente
+  // → BIC commerce) — auparavant figés en micro-BNC pour toutes les familles.
+  const _statutDemo = getDefaultMicroStatut(resolvedMetier);
+  const _t=getTauxStatut(_statutDemo);
 
   // ── Contenu adapté par famille ────────────────────────────────
   const C = {
@@ -3162,7 +3177,7 @@ function getExampleData(metier) {
     schemaVersion:SCHEMA_VERSION, theme:'obm', currentYear:y,
     lastSave:null, lastSaveReminder:null, isExample:true,
     params:{
-      nom:c.nom, statut:'micro-bnc', metier:resolvedMetier, modules,
+      nom:c.nom, statut:_statutDemo, metier:resolvedMetier, modules,
       tauxURSSAF:_t.urssafPresta, tauxCFP:_t.cfpPresta,
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
@@ -3225,10 +3240,11 @@ function pickerStep1Next() {
   const sel = document.getElementById('picker-metier-select');
   const metier = sel ? sel.value : '';
   if (!metier) { if (sel) sel.classList.add('field-invalid'); return; }
-  const statut = (document.getElementById('picker-statut-select')||{}).value || 'micro-bnc';
-  DATA.params.statut = statut;
-  if(statut==='sasu'){ DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||80; }
-  if(statut==='eurl'){ DATA.params.coutRemunerationPct=DATA.params.coutRemunerationPct||45; }
+  const statutChoisi = (document.getElementById('picker-statut-select')||{}).value || 'micro-bnc';
+  // Le picker ne propose qu'un choix "Micro-entreprise" générique (pas de sous-régime BIC/BNC) —
+  // résoudre vers le bon sous-régime selon le métier plutôt que de figer tout le monde en micro-BNC.
+  const statut = statutChoisi==='micro-bnc' ? getDefaultMicroStatut(metier) : statutChoisi;
+  applyStatutParams(statut);
   applyProfile(metier);
   loadDemoWithCurrentParams();
 }
@@ -5213,7 +5229,7 @@ function wScoreSante(d) {
         <div style="font-size:38px;margin-bottom:10px">⏳</div>
         <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre ${tVocab('item').toLowerCase()==='chantier'?'premier':'première'} ${tVocab('item').toLowerCase()}</div>
         <div style="font-size:12px;color:var(--tl);line-height:1.7;max-width:360px;margin:0 auto">Le score n'est calculé que lorsque vos données sont suffisantes pour produire une analyse pertinente.</div>
-        ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum estimé d'après mes paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
+        ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum (brut) estimé d'après mes paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
         <div style="margin-top:16px"><button class="btn btn-acc btn-sm" onclick="navigate('missions')">📋 ${tVocab('createButton')}</button></div>
       </div>
     </div>`;
@@ -5234,16 +5250,22 @@ function wScoreSante(d) {
   const _rentIsChantier=_rentObjectif==='tjm';
   const _rentIsMarge=_rentObjectif==='marge_commande';
   let sRent=0;
-  const thBrut=hT>0?caBrut/hT:0;
-  const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
-  const gapTjm=tjmMin-tjmBrut;
-  // ── Marge brute % (fabrication / achat_revente)
+  // Dépenses liées aux affaires (chantierId) — à déduire du CA brut avant de calculer un
+  // TH/TJM réel, sinon une affaire chère en coûts directs (matériaux, sous-traitance...)
+  // paraît aussi rentable qu'une affaire sans coût (même bug déjà corrigé pour "Top clients
+  // & offres", page Missions). hT (dénominateur) inclut déjà le temps interne (hF+hI, voir
+  // plus haut) : du temps passé en gestion/admin dilue mécaniquement le TH/TJM réel, ce qui
+  // reflète la réalité (ce temps a un coût d'opportunité, même non facturable).
   const _rentCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   const _rentCouts=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
     const co=_rentCoutMap[m.id]||0;
     const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
+  const thBrut=hT>0?(caBrut-_rentCouts.couts)/hT:0;
+  const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
+  const gapTjm=tjmMin-tjmBrut;
+  // ── Marge brute % (fabrication / achat_revente)
   const _margePct=_rentCouts.ca>0?Math.round((_rentCouts.ca-_rentCouts.couts)/_rentCouts.ca*100):null;
   const _seuilMargePct=_rentFamily==='achat_revente'?20:30;
   const pctObj=objNet>0?caNetMoy/objNet*100:null;
@@ -5713,8 +5735,8 @@ function wScoreSante(d) {
   const methRent=_rentIsMarge
     ?`<strong>Données ·</strong> Marge brute % = (CA encaissé − coûts directs) ÷ CA encaissé<br><strong>Comparaison ·</strong> Marge brute vs seuil recommandé (${_seuilMargePct}% pour ${_rentFamily==='achat_revente'?'achat/revente':'fabrication'})<br><strong>Barème ·</strong> ≥ 40 % → 25/25 &nbsp;·&nbsp; ≥ 25 % → 19/25 &nbsp;·&nbsp; ≥ 15 % → 11/25 &nbsp;·&nbsp; &lt; 15 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
     :_rentIsChantier
-      ?`<strong>Données ·</strong> TJM réel = CA brut annuel ÷ heures travaillées × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
-      :`<strong>Données ·</strong> TH réel = CA brut annuel ÷ heures travaillées<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
+      ?`<strong>Données ·</strong> TJM réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne) × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
+      :`<strong>Données ·</strong> TH réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne)<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
   const methRempBareme=`<strong>Barème ·</strong> 75–90 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–75 % ou 90–100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
   const methRemp=pilRemp.methode==='calendrier'
     ?`<strong>Données ·</strong> Sessions planifiées sur le calendrier vs jours ouvrables (ou capacité horaire) du mois<br><strong>Calcul ·</strong> Temps occupé ÷ capacité du mois × 100<br>${methRempBareme}`
@@ -7880,7 +7902,12 @@ function updateMixteChargesInfo() {
     </div>
     <div style="margin-top:8px;color:var(--tl)">Ces taux sont appliqués séparément à chaque part de votre CA selon sa nature.</div>`;
 }
-function onStatutChange(val) {
+// Mutations pures de DATA.params pour un changement de statut — sans les effets de bord
+// d'affichage (saveData/render*), pour être réutilisable aussi bien depuis Paramètres
+// (onStatutChange, ci-dessous) que depuis le picker initial (pickerStep1Next), qui doit
+// résoudre son choix "Micro-entreprise" générique vers le bon sous-régime sans déclencher
+// un rendu de la page Paramètres (pas encore affichée à ce stade de l'onboarding).
+function applyStatutParams(val) {
   DATA.params.statut=val;
   const pr=TAUX_URSSAF[val]; // lookup directe — 'sasu' reste undefined, le bloc if est sauté
   if(pr){
@@ -7899,8 +7926,9 @@ function onStatutChange(val) {
     }
     DATA.params.tauxCotisationsVente=pr.urssafVente;
     DATA.params.tauxCFPVente=pr.cfpVente;
-    document.getElementById('p-urssaf').value=pr.urssafPresta;
-    document.getElementById('p-cfp').value=pr.cfpPresta;
+    const _elUrssaf=document.getElementById('p-urssaf'), _elCfp=document.getElementById('p-cfp');
+    if(_elUrssaf) _elUrssaf.value=pr.urssafPresta;
+    if(_elCfp) _elCfp.value=pr.cfpPresta;
     // UX-5 — Mise à jour des seuils TVA params selon le statut (source : TVA_SEUILS)
     // Tous les statuts OBM partagent les mêmes seuils légaux — on les re-synchronise
     // à chaque changement pour garantir la cohérence avec getTVASeuilsStatut().
@@ -7934,6 +7962,9 @@ function onStatutChange(val) {
     // jamais écraser une valeur déjà saisie (profils existants dont celle-ci est utile telle quelle).
     DATA.params.objectifNetMensuel=DATA.params.remunerationNette||0;
   }
+}
+function onStatutChange(val) {
+  applyStatutParams(val);
   saveData(); recalcObjectifs();
   renderParams();
   updateNavRecettes();
