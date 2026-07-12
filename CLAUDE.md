@@ -215,9 +215,12 @@ getCurrentYearMonths()      // ['2026-01', ..., '2026-12']
 fmtE(val, dec)              // formatage €
 saveData()                  // persist DATA en localStorage
 
-// Temps prévu (chantier 2026-07, Phase 1 — capture uniquement, pas de comparaison affichée)
+// Temps prévu (chantier 2026-07)
 getMissionHeuresMois(m, mk)      // heures réelles d'UNE mission pour UN mois (tempsManuel daté)
 getTempsPrevuPourMois(m, mk)     // tempsPrevu applicable à un mois donné (lit tempsPrevuHistorique)
+getTrajectoireCompacte(m)        // Phase 2 — ligne Réel/Prévu + taux horaire + couleur (tableau missions)
+renderTrajectoireDetail(m)       // Phase 2 — bloc détaillé trajectoire (fiche mission, #m-trajectoire-detail)
+updateFactTempsPrevuComparaison() // Phase 2 — écart prévu/réel à la clôture (modal-fact-confirm)
 ```
 
 ## SCHEMA_VERSION
@@ -811,6 +814,27 @@ Nouvelles fonctions `shared/core/calculs.js` (bridge `window.*` + `unified.js` c
 3. Aucun texte explicatif n'a été ajouté sous le nouveau champ `#m-temps-prevu` (contrairement à Étape 1) — mentionner une comparaison au temps réel aurait anticipé la Phase 2, contraire à la consigne "aucun affichage de comparaison" de cette phase.
 
 **Vérifié** : les 12 points de la checklist demandée (pré-remplissage/non-écrasement sur th/tjm/marge_commande, conversion heures/jours, libellé contextuel, non-déclenchement sur récurrente neuve, déclenchement + dates calculées sur récurrente en cours, garde anti-doublon, `getTempsPrevuPourMois` sur 2 changements successifs, `commitTimer` daté, `getMissionHeures`/`getMissionTotalMs` strictement inchangés avant/après sur un jeu de données mixte chrono+manuel, migration avec exemple concret, `getMissionHeuresMois` sur plusieurs mois, suite `planning.test.js` non affectée par le renommage Étape 1) + 277 assertions (7 suites) toujours au vert. **Bug trouvé et corrigé pendant la vérification** : `_dayAfter()` utilisait `toISOString()` après construction d'une date locale, décalant d'un jour selon le fuseau horaire — corrigé pour rester en composants locaux (même pattern que `_mkLastDay`/`_mkPrev`).
+
+### FEATURE — Chantier "Temps prévu", Phase 2 : indicateur de trajectoire + clôture explicite (2026-07)
+
+Construit l'affichage sur les fondations de la Phase 1 — **aucune notification poussée, aucun pop-up, silence tant que tout va bien**. Règle de fiabilité respectée partout : pendant l'exécution, seuls le temps (réel vs prévu) et le taux horaire implicite hors dépenses sont affichés — **jamais de marge en €** (les dépenses liées à l'affaire ne sont pas garanties à jour avant clôture).
+
+**Étape 1 — `getTrajectoireCompacte(m)`** (appelée dans `renderMissions()`, sous le `timer-disp` existant, uniquement si `m.tempsPrevu > 0`) : `Réel {X}h / Prévu {Y}h · {th}€/h` (ponctuelle) ou `Réel ce mois-ci {X}h / Prévu {Y}h · {th}€/h` (récurrente, mention obligatoire). Couleur de trajectoire : 🟢 <60% de prévu, 🟡 60-85%, 🟠 ≥85% (couvre aussi tout dépassement dont le taux horaire reste correct), 🔴 dès que le taux horaire implicite passe sous `getTauxHoraireMinCible()` — **cette condition prime sur les seuils de %, testé explicitement** (mission à 90% de prévu mais taux horaire dégradé → rouge, pas orange). Faute de 4ᵉ variable CSS dédiée (seules `--ok`/`--warn`/`--err` existent), le vert et le jaune partagent `var(--tl)` — l'émoji porte seul la distinction entre ces deux paliers (décision de design, pas une négligence, à valider si Faustine veut une vraie 4ᵉ couleur par thème).
+
+**Étape 2 — `renderTrajectoireDetail(m)`** (appelée dans `openMissionModal(id)`, rendu dans `#m-trajectoire-detail`, même style de bloc que `#m-production-zone`/`#m-collectif-zone`) : "Il vous reste environ **Xh**" ou "Temps prévu dépassé de **Xh**" (formulation neutre, jamais "vous avez dépassé") ; taux horaire provisoire avec sa réserve explicite ("hors dépenses non encore saisies... calcul définitif à la clôture"), coloré `var(--ok)`/`var(--err)` selon `getTauxHoraireMinCible()` ; deux barres `prog-bar`/`prog-fill` (Prévu neutre, Réel coloré `ok`/`bd` selon le taux horaire) proportionnelles l'une à l'autre. Anticipation ("Au rythme actuel... environ X jours") **uniquement si le temps réel est réparti sur ≥2 dates distinctes** dans `tempsManuel` (scope : toute la mission pour une ponctuelle, mois courant seulement pour une récurrente) — sinon rien, pas d'estimation sur un seul point de données.
+
+**Étape 3 — `updateFactTempsPrevuComparaison()`** (dans `modal-fact-confirm`, mise à jour live via `oninput` sur `fact-temps-h`/`fact-temps-min`, même mécanisme que le reste de la modale) : message pédagogique fixe (toujours affiché, y compris sans `tempsPrevu`) + phrase d'écart prévu/réel (uniquement si `tempsPrevu` renseigné **et** écart ≥10% dans un sens ou l'autre — silence sinon, un message systématique userait le signal). Le "réel" de cette phrase est **toujours** le temps tel que saisi dans les champs `h`/`min` de cette modale, jamais une relecture de `tempsManuel`. Pour une récurrente, `prevu = getTempsPrevuPourMois(m, getCurrentMk())` limite la comparaison au mois en cours de clôture, pas au cumul de la mission entière.
+
+**Fix Phase 1 corrigé au passage** : `updateTempsPrevuLabel()` avait "cette mission" écrit en dur dans le libellé du champ `tempsPrevu` (ponctuelle) — repéré en relisant cette fonction pendant la revue vocabulaire de Phase 2, corrigé en `tVocab('item')`/`tVocabMasculin()`.
+
+**Bug trouvé et corrigé pendant la vérification** : le message d'écart de clôture (Étape 3) affichait `prevu`/`reel`/taux horaire toujours en heures, sans conversion `isJours()` — repéré au point 8 de la checklist ("conversion cohérente sur tableau, fiche, clôture"), corrigé pour convertir comme partout ailleurs (`heuresParJour`).
+
+**Points ambigus, tranchés par défaut :**
+1. La couleur de trajectoire (Étape 1) n'a que 3 teintes réellement distinctes visuellement (vert/jaune = `var(--tl)`, orange = `var(--warn)`, rouge = `var(--err)`) — pas de 4ᵉ variable CSS créée pour un jaune dédié par thème (7 thèmes × nouvelle variable pour un seul indicateur). L'émoji 🟡 vs 🟢 porte seul la distinction. À revoir si ce n'est pas assez lisible en usage réel.
+2. Pour une récurrente, `modal-fact-confirm` (statut → "Terminée") ne se déclenche qu'**une fois**, à la fin de vie de la récurrente entière — ce n'est pas un événement mensuel récurrent. "Le mois en train d'être clôturé" a donc été interprété comme le mois courant (`getCurrentMk()`) au moment de cette clôture finale, pas un mois arbitraire du passé. Si Faustine imaginait un point de clôture mensuel distinct pour les récurrentes (non trouvé dans le code existant), c'est un mécanisme qui n'existe pas encore et sort du périmètre de cette phase.
+3. Les barres de progression (Étape 2) ne reprennent pas les 4 paliers de couleur de l'Étape 1 — seulement un binaire ok/err aligné sur le taux horaire (`getTauxHoraireMinCible()`), la proportion des barres elles-mêmes portant l'information de dépassement. Choix délibéré pour éviter de dupliquer une logique de couleur à 4 états sur un composant qui n'en a que 3.
+
+**Vérifié** : les 10 points de la checklist (paliers de couleur à chaque seuil, priorité du rouge sur le %, mention "ce mois-ci" + isolement mensuel sans perte d'historique sous-jacent — testé avec `tempsManuel` réparti sur 2 mois, `getMissionHeuresMois` isole bien le mois courant pendant que `getMissionHeures` conserve le total historique —, absence totale sans `tempsPrevu` sur les 3 surfaces, formulation neutre restant/dépassé, anticipation fragile vs fiable, écart de clôture correct et absent si <10%, conversion jours cohérente partout, vocabulaire dynamique testé sur profil service et chantier) + 277 assertions (7 suites) toujours au vert, aucune régression (aucune fonction de `calculs.js` touchée).
 
 ## Points d'attention
 
