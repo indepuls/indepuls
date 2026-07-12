@@ -4278,7 +4278,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
       <div class="card" style="border-left:4px solid var(--ok);margin-top:16px">
         <div class="card-header"><div class="card-title">📊 Mes premiers indicateurs</div><div class="card-sub">Calculés à partir de mes paramètres — affinés après l'ajout de mes missions</div></div>
         <div class="g3" style="gap:12px">
-          <div class="kpi neu"><div class="kpi-ico">⏱</div><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${fmtE(thMin,0)}/h</div><div class="kpi-sub">Pour atteindre mon objectif</div></div>
+          <div class="kpi neu"><div class="kpi-ico">⏱</div><div class="kpi-label">Taux horaire minimum (brut)</div><div class="kpi-val">${fmtE(thMin,0)}/h</div><div class="kpi-sub">Pour atteindre mon objectif net</div></div>
           <div class="kpi neu"><div class="kpi-ico">🎯</div><div class="kpi-label">Objectif mensuel net</div><div class="kpi-val">${fmtE(objNet2,0)}</div><div class="kpi-sub">Net après charges</div></div>
           <div class="kpi neu"><div class="kpi-ico">📈</div><div class="kpi-label">CA annuel minimum</div><div class="kpi-val">${fmtE(caMinAnnuel,0)}</div><div class="kpi-sub">Pour couvrir charges + objectif</div></div>
         </div>
@@ -8269,7 +8269,7 @@ function renderObjectifsResult() {
     el.innerHTML=`
       <div class="g2">
         <div class="kpi neu"><div class="kpi-label">CA HT mensuel à atteindre</div><div class="kpi-val">${fmtE(caMensMin)}</div><div class="kpi-sub">= ${fmtE(caAnMin)} / an</div>${depTxtDetail}</div>
-        <div class="kpi neu"><div class="kpi-label">Taux horaire minimum</div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
+        <div class="kpi neu"><div class="kpi-label">Taux horaire minimum (brut) <span class="info-tip" title="Ce taux horaire est brut : c'est ce que la société doit facturer, avant charges. Il ne se compare pas directement à votre rémunération nette.">?</span></div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
         <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.objectifNetMensuel||0)} nets + ${p.coutRemunerationPct||80} %</div></div>
       </div>
@@ -8287,21 +8287,24 @@ function renderObjectifsResult() {
   const _objIsMarge=_objMod==='marge_commande';
   const _objHj=p.heuresParJour||7;
   const _tjmMin=Math.round(thMin*_objHj);
-  const _kpiRateLabel=_objIsChantier?'TJM minimum':_objIsMarge?'Gain horaire minimum':'Taux horaire minimum';
+  const _rateWord=_objIsChantier?'TJM':_objIsMarge?'gain horaire':'taux horaire';
+  const _kpiRateLabel=(_objIsChantier?'TJM minimum':_objIsMarge?'Gain horaire minimum':'Taux horaire minimum')+' (brut)';
+  const _kpiRateTooltip=`Ce ${_rateWord} est brut : vos cotisations sociales et vos impôts n'en sont pas encore déduits. Une fois ces charges réglées, il vous reste votre objectif net.`;
   const _kpiRateVal=_objIsChantier?(thMin>0?fmtE(_tjmMin,0)+'/j':'—'):(thMin>0?fmtE(thMin,0)+'/h':'—');
   const _kpiRateSub=_objIsChantier?`basé sur ${fmt(hAn/(_objHj||7),0)} j/an`:`basé sur ${fmt(hAn,0)} h/an`;
-  const _phraseRate=_objIsChantier?`→ TJM min. <strong>${fmtE(_tjmMin,0)}/j</strong>`:_objIsMarge?`→ gain horaire min. <strong>${fmtE(thMin,0)}/h</strong>`:`→ taux horaire min. <strong>${fmtE(thMin,0)}/h</strong>`;
+  const _rateValStr=_objIsChantier?fmtE(_tjmMin,0)+'/j':fmtE(thMin,0)+'/h';
+  const _phraseRate=`💡 <strong>${_rateValStr}</strong> est votre ${_rateWord} <strong>brut</strong> minimum à facturer — une fois vos cotisations sociales et impôts déduits, il vous reste votre objectif de <strong>${fmtE(p.objectifNetMensuel)}/mois nets</strong> (soit <strong>${fmtE(caMens)}/mois</strong> facturés au total pour l'atteindre).`;
   const _uniteLbl=_objIsChantier?'Jours facturables/mois':'Heures facturables/mois';
   const _uniteVal=_objIsChantier?`${fmt(hMens/_objHj,1)} j`:`${fmt(hMens,0)} h`;
   const _uniteSub=_objIsChantier?`${p.joursParSemaine}j × ${p.semainesParAn}/52 sem.`:`${p.joursParSemaine}j × ${p.heuresParJour}h`;
   el.innerHTML=`
     <div class="g2">
       <div class="kpi neu"><div class="kpi-label">CA mensuel à atteindre</div><div class="kpi-val">${fmtE(caMens)}</div><div class="kpi-sub">= ${fmtE(caAn)} / an</div>${depTxtDetail}</div>
-      <div class="kpi neu"><div class="kpi-label">${_kpiRateLabel}</div><div class="kpi-val">${_kpiRateVal}</div><div class="kpi-sub">${_kpiRateSub}</div></div>
+      <div class="kpi neu"><div class="kpi-label">${_kpiRateLabel} <span class="info-tip" title="${_kpiRateTooltip}">?</span></div><div class="kpi-val">${_kpiRateVal}</div><div class="kpi-sub">${_kpiRateSub}</div></div>
       <div class="kpi neu"><div class="kpi-label">${_uniteLbl}</div><div class="kpi-val">${_uniteVal}</div><div class="kpi-sub">${_uniteSub}</div></div>
       <div class="kpi neu"><div class="kpi-label">Charges + impôts</div><div class="kpi-val">${fmt((getTauxChargesPresta()+getImpotsTaux())*100,1)} %</div><div class="kpi-sub">URSSAF+CFP+impôts</div></div>
     </div>
-    <div class="alert al-info mt12">💡 Pour ${fmtE(p.objectifNetMensuel)}/mois nets, facturez <strong>${fmtE(caMens)}/mois</strong> ${_phraseRate}.${actMoisNote}</div>`;
+    <div class="alert al-info mt12">${_phraseRate}${actMoisNote}</div>`;
 }
 
 // ── CATÉGORIES ───────────────────────────────────────────────
