@@ -680,7 +680,7 @@ html,body{overflow-x:hidden;}
           <thead><tr>
             <th id="missions-th-client">Client / Mission</th><th>Catégorie</th>
             <th>Montant</th><th>Statut</th><th>Facturée le</th>
-            <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel</th><th>Notes</th><th>Chrono</th><th></th>
+            <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel <span class="info-tip" title="CA de cette affaire moins les dépenses qui lui sont directement liées (matériaux, sous-traitance…), divisé par le temps passé. C'est un taux brut : vos cotisations sociales et vos impôts n'en sont pas encore déduits.">?</span></th><th>Notes</th><th>Chrono</th><th></th>
           </tr></thead>
           <tbody id="missions-tbody"></tbody>
         </table>
@@ -4677,6 +4677,8 @@ function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
 // ── CALCUL CENTRALISÉ DES ALERTES ────────────────────────────
 function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   const p=DATA.params, mixte=isActiviteMixte(), alerts=[];
+  // Un seul passage sur DATA.depenses pour toute la fonction (voir getDepensesAffairesMap).
+  const _buildAlertsCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   if(!p.tva){
     const {franchise:fP,tolerance:tP}=getTVASeuilsStatut();
     const pctP=caP/fP*100;
@@ -4707,9 +4709,8 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     if(thR>0&&((_thMinAlert>0&&thR<_thMinAlert)||(_thMinAlert===0&&thR<40)))
       alerts.push({pr:2,cl:'al-info',txt:`⏱ Gain horaire insuffisant : ${fmtE(thR,0)}/h${_thMinAlert>0?` (obj. min. ${fmtE(_thMinAlert,0)}/h)`:''} — comparez le temps passé par ${_itemLblAlert}.`});
     // Marge faible (coûts directs vs CA)
-    const _coutMapAlert=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
     const _cAgg=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
-      const co=_coutMapAlert[m.id]||0;
+      const co=_buildAlertsCoutMap[m.id]||0;
       const en=(m.encaissements||[]).reduce((a,e)=>a+(parseFloat(e.montant)||0),0);
       return {ca:s.ca+en,couts:s.couts+co};
     },{ca:0,couts:0});
@@ -4735,7 +4736,8 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
   if(hI>hF*.5&&hI>2)
     alerts.push({pr:2,cl:'al-info',txt:`🔄 Temps interne élevé (${fmt(hI,1)} h) vs facturable (${fmt(hF,1)} h) — à surveiller.`});
   DATA.missions.filter(m=>!m.isManagement&&m.statut!=='ref').forEach(m=>{
-    const h=getMissionHeures(m),th=h>0&&m.montantDevis>0?m.montantDevis/h:null;
+    const h=getMissionHeures(m);
+    const th=h>0&&m.montantDevis>0?((m.montantDevis||0)-(_buildAlertsCoutMap[m.id]||0))/h:null;
     if(th!==null&&th<30&&h>2) alerts.push({pr:2,cl:'al-warn',txt:`📉 "${esc(m.description||m.client)}" — TH réel ${fmtE(th,0)}/h.`});
   });
   // Alerte relance individuelle pour devis en attente > 7 jours
@@ -7097,10 +7099,16 @@ function renderMissions() {
     return;
   }
   let totD=0,totF=0,totH=0;
+  // Un seul passage sur DATA.depenses pour tout le tableau (voir getDepensesAffairesMap).
+  const _missionsCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   filtered.forEach(m=>{
     const h=getMissionHeures(m),ms=getMissionTotalMs(m);
     const _isJours=DATA.params.modules?.uniteTemps==='jours', _hj=DATA.params.heuresParJour||7;
-    const th=m.montantDevis>0&&h>0?(_isJours?m.montantDevis/(h/_hj):m.montantDevis/h):null;
+    // Taux réel = marge brute (devis − dépenses directement liées à l'affaire), pas le devis
+    // seul — sinon une affaire avec de gros coûts directs (matériaux, sous-traitance...)
+    // paraît aussi rentable qu'une affaire sans coût, à devis et temps égaux.
+    const _margeM=(m.montantDevis||0)-(_missionsCoutMap[m.id]||0);
+    const th=m.montantDevis>0&&h>0?(_isJours?_margeM/(h/_hj):_margeM/h):null;
     const _thUnit=_isJours?'/j':'/h';
     if(!m.isManagement){ totD+=m.montantDevis||0; if(m.statut==='fact') totF+=m.montantDevis||0; }
     totH+=h;
