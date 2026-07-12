@@ -1193,6 +1193,24 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
 
+        <!-- Mode par jours — chantier uniquement -->
+        <div id="sim-row-temps-mode-jours" style="display:none">
+          <div class="fgroup" style="margin-bottom:8px">
+            <label class="flabel">Mode de saisie du temps</label>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button type="button" id="sim-tmode-heures" onclick="switchSimTempsMode('total')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Temps total (h)</button>
+              <button type="button" id="sim-tmode-jours" onclick="switchSimTempsMode('jours')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Nombre de jours</button>
+            </div>
+          </div>
+        </div>
+        <div id="sim-row-temps-jours" style="display:none">
+          <div class="fgroup">
+            <label class="flabel">Nombre de jours</label>
+            <input type="number" id="sim-jours-val" step="0.5" min="0" placeholder="Ex : 3" oninput="calcRentabilite()">
+            <div class="ts mt4" id="sim-jours-conversion" style="color:var(--tl)"></div>
+          </div>
+        </div>
+
         <!-- Coût d'achat -->
         <div id="sim-row-achat" style="display:none">
           <div class="fgroup">
@@ -6975,39 +6993,79 @@ function makeAccordeon(icon, titre, body, bodyId='') {
     <div ${bodyId?`id="${bodyId}" `:''}style="padding:4px 20px 14px;border-top:1px solid var(--brd)">${body}</div>
   </details>`;
 }
+// Comparateur "Top clients & offres" (page Missions) : le taux affiché et son code couleur
+// doivent suivre l'objectif configuré (Paramètres → Mes objectifs) — TH (€/h, défaut), TJM
+// (€/jour, profils chantier) ou marge (%, profils vente à la commande) — jamais un TH imposé
+// à un profil qui a choisi un autre objectif. `value()` reçoit toujours (ca, couts, h) où
+// couts = dépenses directement liées aux affaires agrégées (chantierId), jamais le CA seul.
+function getRentabComparateur() {
+  const p=DATA.params, obj=p.modules?.objectif||'th', hj=p.heuresParJour||7;
+  const family=BUSINESS_PROFILE_MAP[p.metier]||'service';
+  if(obj==='marge_commande'){
+    const seuil=family==='achat_revente'?20:30;
+    return {
+      sortLabel:'Par marge', moyLabel:'Marge moyenne',
+      value:(ca,couts)=>ca>0?(ca-couts)/ca*100:null,
+      fmt:v=>v===null?'—':Math.round(v)+' %',
+      color:v=>v===null?'wn':(v>=seuil*1.1?'ok':v>=seuil*.75?'wn':'bd'),
+    };
+  }
+  if(obj==='tjm'){
+    const ref=(getTauxHoraireMinCible()||0)*hj;
+    return {
+      sortLabel:'Par TJM', moyLabel:'TJM moyen',
+      value:(ca,couts,h)=>h>0?(ca-couts)/h*hj:null,
+      fmt:v=>v===null?'—':fmtE(v,0)+'/j',
+      color:v=>v===null?'wn':(ref>0?(v>=ref*1.1?'ok':v>=ref*.75?'wn':'bd'):(v>=420?'ok':v>=245?'wn':'bd')),
+    };
+  }
+  const ref=getTauxHoraireMinCible()||0;
+  return {
+    sortLabel:'Par TH', moyLabel:'TH moyen',
+    value:(ca,couts,h)=>h>0?(ca-couts)/h:null,
+    fmt:v=>v===null?'—':fmtE(v,0)+'/h',
+    color:v=>v===null?'wn':(ref>0?(v>=ref*1.1?'ok':v>=ref*.75?'wn':'bd'):(v>=60?'ok':v>=35?'wn':'bd')),
+  };
+}
 function rentabClientsBody() {
   const sort=DATA.params.rentabClientSort||'ca';
+  const cmp=getRentabComparateur();
+  const _depMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   const byC={};
   DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
     if(!m.client) return;
-    if(!byC[m.client]) byC[m.client]={h:0,ca:0,n:0};
+    if(!byC[m.client]) byC[m.client]={h:0,ca:0,couts:0,n:0};
     byC[m.client].h+=getMissionHeures(m);
-    if(m.isRecurring) byC[m.client].ca+=getCaRecurrenteADate(m);
-    else if(m.statut==='fact') byC[m.client].ca+=m.montantDevis||0;
+    let contrib=false;
+    if(m.isRecurring){ byC[m.client].ca+=getCaRecurrenteADate(m); contrib=true; }
+    else if(m.statut==='fact'){ byC[m.client].ca+=m.montantDevis||0; contrib=true; }
+    if(contrib) byC[m.client].couts+=_depMap[m.id]||0;
     byC[m.client].n++;
   });
   if(!Object.keys(byC).length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun client à afficher pour l\'instant.</div>';
-  const cls=Object.entries(byC).sort((a,b)=>sort==='th'?(b[1].h>0?b[1].ca/b[1].h:0)-(a[1].h>0?a[1].ca/a[1].h:0):b[1].ca-a[1].ca);
-  const maxCA=Math.max(...cls.map(c=>c[1].ca),1),maxTH=Math.max(...cls.map(c=>c[1].h>0?c[1].ca/c[1].h:0),1);
-  const thRef=getTauxHoraireMinCible()||0,colTH=(th,h)=>h===0?'wn':(thRef>0?(th>=thRef*1.1?'ok':th>=thRef*.75?'wn':'bd'):(th>=60?'ok':th>=35?'wn':'bd'));
-  const renderRow=([cl,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,c=colTH(th,d.h);return `<div class="rentab-row"><div style="flex:1"><div class="fb">${esc(cl)}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;};
-  const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('th')">Par TH</button></div>`;
+  const valOf=d=>cmp.value(d.ca,d.couts,d.h);
+  const cls=Object.entries(byC).sort((a,b)=>sort==='th'?(valOf(b[1])||0)-(valOf(a[1])||0):b[1].ca-a[1].ca);
+  const maxCA=Math.max(...cls.map(c=>c[1].ca),1),maxVal=Math.max(...cls.map(c=>valOf(c[1])||0),1);
+  const renderRow=([cl,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),c=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><div class="fb">${esc(cl)}</div><div class="ts">${d.n} mission${d.n>1?'s':''} · ${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${c}" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:90px"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${c==='ok'?'tok':c==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;};
+  const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabSort('th')">${cmp.sortLabel}</button></div>`;
   const top=cls.slice(0,5),rest=cls.slice(5);
   return sortBtns+top.map(renderRow).join('')+(rest.length?`<div class="ts mt8" style="cursor:pointer;color:var(--acc)" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${rest.length} autre${rest.length>1?'s':''} →</div><div style="display:none">${rest.map(renderRow).join('')}</div>`:'');
 }
 function rentabCatBody() {
   const sort=DATA.params.rentabCatSort||'ca';
+  const cmp=getRentabComparateur();
+  const _depMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   const byC={};
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{const c=m.categorie||'Non catégorisé';if(!byC[c])byC[c]={h:0,ca:0};byC[c].h+=getMissionHeures(m);if(m.statut==='fact')byC[c].ca+=m.montantDevis;});
-  const cats=Object.entries(byC).sort((a,b)=>sort==='th'?(b[1].h>0?b[1].ca/b[1].h:0)-(a[1].h>0?a[1].ca/a[1].h:0):b[1].ca-a[1].ca);
+  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{const c=m.categorie||'Non catégorisé';if(!byC[c])byC[c]={h:0,ca:0,couts:0};byC[c].h+=getMissionHeures(m);if(m.statut==='fact'){byC[c].ca+=m.montantDevis;byC[c].couts+=_depMap[m.id]||0;}});
+  const valOf=d=>cmp.value(d.ca,d.couts,d.h);
+  const cats=Object.entries(byC).sort((a,b)=>sort==='th'?(valOf(b[1])||0)-(valOf(a[1])||0):b[1].ca-a[1].ca);
   if(!cats.length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucune offre à afficher pour l\'instant.</div>';
-  const totalH=Object.values(byC).reduce((s,v)=>s+v.h,0),totalCA=Object.values(byC).reduce((s,v)=>s+v.ca,0);
-  const thMoy=totalH>0?totalCA/totalH:0;
-  const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxTH=Math.max(...cats.map(([,v])=>v.h>0?v.ca/v.h:0),1);
-  const thSub=thMoy>0?`<div class="ts mb10">TH moyen toutes offres : <strong>${fmtE(thMoy,0)}/h</strong></div>`:'';
-  const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">Par TH</button></div>`;
-  const thRef=getTauxHoraireMinCible()||0,colTH=(th,h)=>h===0?'wn':(thRef>0?(th>=thRef*1.1?'ok':th>=thRef*.75?'wn':'bd'):(th>=60?'ok':th>=35?'wn':'bd'));
-  return sortBtns+thSub+cats.map(([c,d])=>{const th=d.h>0?d.ca/d.h:0,pct=sort==='th'?(th/maxTH)*100:(d.ca/maxCA)*100,cl=colTH(th,d.h);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${d.h>0?fmtE(th,0)+'/h':'—'}</div></div></div>`;}).join('');
+  const totalH=Object.values(byC).reduce((s,v)=>s+v.h,0),totalCA=Object.values(byC).reduce((s,v)=>s+v.ca,0),totalCouts=Object.values(byC).reduce((s,v)=>s+(v.couts||0),0);
+  const moyVal=valOf({ca:totalCA,couts:totalCouts,h:totalH});
+  const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxVal=Math.max(...cats.map(([,v])=>valOf(v)||0),1);
+  const thSub=moyVal!==null?`<div class="ts mb10">${cmp.moyLabel} toutes offres : <strong>${cmp.fmt(moyVal)}</strong></div>`:'';
+  const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">${cmp.sortLabel}</button></div>`;
+  return sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
 }
 function renderMissionsSummary(all) {
   const sumEl=document.getElementById('missions-summary');
@@ -9097,21 +9155,30 @@ function renderSimulateurPage() {
   if (el('sim-label-ca')) el('sim-label-ca').textContent = cfg.labelCa;
   if (el('sim-label-temps')) el('sim-label-temps').textContent = cfg.labelTemps;
   if (el('sim-label-matieres')) el('sim-label-matieres').textContent = cfg.labelMatieres;
+  if (el('sim-jours-conversion')) {
+    const _hjConv = DATA.params.heuresParJour || 7;
+    const _joursConv = parseFloat(el('sim-jours-val')?.value) || 0;
+    el('sim-jours-conversion').textContent = _joursConv > 0 ? `= ${fmt(_joursConv * _hjConv, 1)} h (base : ${_hjConv} h/jour)` : `Base : ${_hjConv} h/jour`;
+  }
 
   const isService     = preset === 'service';
   const isFabrication = preset === 'fabrication';
+  const isChantier    = preset === 'chantier';
   const isCollectif   = fields.collectif && el('sim-collectif-sw')?.checked;
   const isLot         = fields.lot   && el('sim-lot-sw')?.checked;
   const isSerie       = fields.serie && el('sim-serie-sw')?.checked;
-  const isTempsSem    = isService && !isCollectif && fields.temps && _simTempsMode === 'sem';
+  const isTempsSem    = isService  && !isCollectif && fields.temps && _simTempsMode === 'sem';
+  const isTempsJours  = isChantier && fields.temps && _simTempsMode === 'jours';
 
   const rows = {
     'sim-row-ca':             !isCollectif && (!isCalculer || isAchatMax),
     'sim-row-collectif':      fields.collectif,
     'sim-row-collectif-detail': isCollectif,
-    'sim-row-temps':          fields.temps && !isCollectif && !isTempsSem,
+    'sim-row-temps':          fields.temps && !isCollectif && !isTempsSem && !isTempsJours,
     'sim-row-temps-mode':     isService && !isCollectif && fields.temps,
     'sim-row-temps-sem':      isTempsSem,
+    'sim-row-temps-mode-jours': isChantier && fields.temps,
+    'sim-row-temps-jours':    isTempsJours,
     'sim-row-trajet':         fields.trajet && !isCollectif,
     'sim-row-achat':          fields.achat && !isAchatMax,
     'sim-row-matieres':       fields.matieres,
@@ -9132,6 +9199,9 @@ function renderSimulateurPage() {
   const _bTot = el('sim-tmode-total'), _bSem = el('sim-tmode-sem');
   if (_bTot) _bTot.style.cssText = isTempsSem ? _tOff : _tOn;
   if (_bSem) _bSem.style.cssText = isTempsSem ? _tOn  : _tOff;
+  const _bHeures = el('sim-tmode-heures'), _bJours = el('sim-tmode-jours');
+  if (_bHeures) _bHeures.style.cssText = isTempsJours ? _tOff : _tOn;
+  if (_bJours)  _bJours.style.cssText  = isTempsJours ? _tOn  : _tOff;
 
   // Sync checkboxes personnaliser
   ['temps','trajet','achat','matieres','emballages','soustraitance','plateforme','autresfrais','serie','lot','collectif'].forEach(f => {
@@ -9204,6 +9274,13 @@ function prepareSimInputs() {
     if (_preset0 === 'service' && _simTempsMode === 'sem' && fields.temps) {
       const hSem = el('sim-h-sem'), dur = el('sim-duree');
       hTravail = hSem > 0 && dur > 0 ? hSem * dur : 0;
+    }
+    // Chantier par nombre de jours (basé sur Heures/jour, Paramètres → Mes objectifs)
+    if (_preset0 === 'chantier' && _simTempsMode === 'jours' && fields.temps) {
+      const jours = el('sim-jours-val'), _hj = DATA.params.heuresParJour || 7;
+      hTravail = jours > 0 ? jours * _hj : 0;
+      const convEl = document.getElementById('sim-jours-conversion');
+      if (convEl) convEl.textContent = jours > 0 ? `= ${fmt(hTravail, 1)} h (base : ${_hj} h/jour)` : `Base : ${_hj} h/jour`;
     }
     const hTrajet  = fields.trajet ? el('sim-trajet-val') : 0;
     heures = hTravail + hTrajet;
