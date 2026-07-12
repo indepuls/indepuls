@@ -9239,7 +9239,29 @@ function prepareSimInputs() {
   return { ca, heures, coutsDirects, participants, isCollectif, _isCalculer: false, preset, lotNb, serieNb };
 }
 
+// "Calculer un tarif" a besoin d'un taux horaire cible (getTauxHoraireMinCible), lui-même
+// dérivé de l'objectif configuré dans Paramètres. En SASU/EURL, cet objectif est la
+// rémunération nette réelle (onglet Fiscalité) — pas objectifNetMensuel, qui y est un champ
+// de simulation isolé (voir fix objectifs SASU/EURL, CLAUDE.md) — d'où le lien différent.
+function renderSimObjectifManquant() {
+  const cible = isSASU()
+    ? { label: 'votre rémunération nette', pronom: 'elle', tab: 'fiscalite', tabLabel: 'Fiscalité & charges' }
+    : { label: 'votre objectif de revenu net mensuel', pronom: 'lui', tab: 'objectifs', tabLabel: 'Mes objectifs' };
+  return `<div class="card" style="background:var(--bg)">
+    <div class="ts" style="color:var(--tl);padding:20px;text-align:center;line-height:1.6">
+      Pour calculer un tarif, complétez d'abord ${cible.label} — c'est ${cible.pronom} qui sert de référence à ce calcul.<br>
+      <span style="cursor:pointer;text-decoration:underline;font-weight:700;color:var(--pri)" onclick="navigate('params');setTimeout(()=>switchParamTab('${cible.tab}',document.querySelector('#page-params [onclick*=${cible.tab}]')),100)">Paramètres › ${cible.tabLabel}</span>
+    </div>
+  </div>`;
+}
+
 function calcRentabilite() {
+  if (_simMode === 'calculer' && !getTauxHoraireMinCible()) {
+    const zone = document.getElementById('sim-results-zone');
+    if (zone) zone.innerHTML = renderSimObjectifManquant();
+    document.getElementById('sim-create-zone').style.display = 'none';
+    return;
+  }
   const inputs = prepareSimInputs();
   if (!inputs) { document.getElementById('sim-create-zone').style.display = 'none'; return; }
 
