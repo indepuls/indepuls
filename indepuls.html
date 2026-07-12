@@ -7448,6 +7448,113 @@ function rentabCatBody() {
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">${cmp.sortLabel}</button></div>`;
   return sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
 }
+// ── TEMPS PRÉVU — "Ma précision d'estimation" (chantier "Temps prévu", Phase 3) ────────────
+// Analyse rétrospective multi-missions : dérive systématique par catégorie (Signal 1) et
+// dérive progressive / objectif horaire non couvert sur les récurrentes (Signal 2). Purement
+// informatif — n'alimente ni le Score de Santé ni aucune notification.
+// Libellés "à cause de/d'..." prêts à l'emploi (déjà accordés) pour la cause dominante.
+const CAUSE_DEPASSEMENT_LABELS = {
+  estimation_basse:  "d'une estimation initiale trop basse",
+  hors_perimetre:    'de demandes hors périmètre',
+  imprevu_technique: "d'imprévus techniques",
+  temps_offert:      'de temps offert volontairement',
+  oubli_chrono:      "d'oublis de mise en pause du chrono",
+};
+// Toujours 2-3 leviers, jamais un seul imposé — adaptés à la cause dominante si connue,
+// génériques sinon. Piochés dans la liste validée (jamais de chiffre imposé).
+function getLeviersRecommandation(causeDominante, isRecurrent) {
+  const parCause = {
+    estimation_basse:  ['revoir le temps prévu par défaut pour ce type de mission', 'prévoir une marge de sécurité', 'augmenter le prix'],
+    hors_perimetre:    ['mieux cadrer le périmètre', 'facturer un supplément le cas échéant', 'prévoir une marge de sécurité'],
+    imprevu_technique: ['prévoir une marge de sécurité', 'facturer un supplément le cas échéant'],
+    temps_offert:      ['mieux cadrer le périmètre', 'facturer un supplément le cas échéant'],
+    oubli_chrono:      ['revoir le temps prévu par défaut pour ce type de mission', 'prévoir une marge de sécurité'],
+  };
+  let leviers = (causeDominante && parCause[causeDominante]) ? [...parCause[causeDominante]] : ['augmenter le prix', 'revoir le temps prévu par défaut pour ce type de mission', 'prévoir une marge de sécurité'];
+  if (isRecurrent) leviers = ['renégocier le tarif du contrat', 'réduire le périmètre du contrat récurrent', ...leviers];
+  return leviers.slice(0, 3);
+}
+function precisionEstimationBody() {
+  const _itemLow=tVocab('item').toLowerCase(), _itemsLow=tVocab('items').toLowerCase(), _masc=tVocabMasculin();
+  const blocs=[];
+
+  // ── Signal 1 — dérive systématique par catégorie (ponctuelles clôturées, tempsPrevu>0) ──
+  const byCat={};
+  DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.tempsPrevu>0).forEach(m=>{
+    const c=m.categorie||'Non catégorisé';
+    (byCat[c]=byCat[c]||[]).push(m);
+  });
+  let uneCategorieBienCalibree=false;
+  Object.entries(byCat).forEach(([cat,missions])=>{
+    if(missions.length<3) return; // seuil minimum — sous ce seuil, silence total sur cette catégorie
+    const ecarts=missions.map(m=>(getMissionHeures(m)-m.tempsPrevu)/m.tempsPrevu*100);
+    const ecartMoyen=Math.round(ecarts.reduce((s,e)=>s+e,0)/ecarts.length);
+    if(Math.abs(ecartMoyen)<15){ uneCategorieBienCalibree=true; return; } // bien calibrée — pas de bruit individuel
+    if(ecartMoyen>0){
+      const avecCause=missions.filter(m=>m.causeDepassement);
+      let causeDominante=null;
+      if(avecCause.length/missions.length>=0.5){
+        const counts={};
+        avecCause.forEach(m=>{counts[m.causeDepassement]=(counts[m.causeDepassement]||0)+1;});
+        const top=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+        if(top[1]/avecCause.length>0.5) causeDominante=top[0];
+      }
+      let txt=`Mes ${_itemsLow} <strong>${esc(cat)}</strong> dépassent en moyenne de <strong>${ecartMoyen}%</strong> le temps prévu (sur ${missions.length} ${_itemsLow})`;
+      txt+=(causeDominante&&CAUSE_DEPASSEMENT_LABELS[causeDominante])?`, principalement à cause ${CAUSE_DEPASSEMENT_LABELS[causeDominante]}.`:'.';
+      const leviers=getLeviersRecommandation(causeDominante,false);
+      txt+=` <span style="color:var(--tl)">Pistes : ${leviers.join(', ')}.</span>`;
+      blocs.push(`<div class="ts mb10">${txt}</div>`);
+    } else {
+      blocs.push(`<div class="ts mb10">Mes ${_itemsLow} <strong>${esc(cat)}</strong> sont réalisées en moyenne <strong>${Math.abs(ecartMoyen)}%</strong> plus vite que prévu.</div>`);
+    }
+  });
+  if(uneCategorieBienCalibree){
+    blocs.push(`<div class="ts mb10" style="color:var(--tl)">Mes autres ${_itemsLow} sont globalement bien calibré${_masc?'s':'es'} : le temps prévu correspond au temps réel, à quelques % près.</div>`);
+  }
+
+  // ── Signal 2 — dérive progressive / objectif horaire non couvert (récurrentes) ──
+  const curMk=getCurrentMk();
+  DATA.missions.filter(m=>m.isRecurring&&m.dateDebutRec).forEach(m=>{
+    const [sy,sm]=m.dateDebutRec.split('-').map(Number);
+    const moisClos=[]; let y=sy,mo=sm;
+    while(`${y}-${String(mo).padStart(2,'0')}`<curMk){
+      moisClos.push(`${y}-${String(mo).padStart(2,'0')}`);
+      mo++; if(mo>12){ mo=1; y++; }
+    }
+    if(moisClos.length<3) return; // seuil minimum — au moins 3 mois clos
+    const reelParMois=moisClos.map(mk=>getMissionHeuresMois(m,mk));
+    const n=reelParMois.length;
+    const avgFirst2=(reelParMois[0]+reelParMois[1])/2, avgLast2=(reelParMois[n-2]+reelParMois[n-1])/2;
+    let deriveTxt='';
+    if(avgFirst2>0){
+      const haussePct=(avgLast2-avgFirst2)/avgFirst2*100;
+      if(haussePct>20){
+        const serie=moisClos.map((mk,i)=>`${mk} : ${fmt(reelParMois[i],1)}h`).join(', ');
+        deriveTxt=`${_masc?'Mon':'Ma'} ${_itemLow} « ${esc(m.client||'')} » demande de plus en plus de temps sans hausse de tarif — ${serie}.`;
+        const thDebut=reelParMois[0]>0?(m.montantMensuel||0)/reelParMois[0]:null;
+        const thFin=reelParMois[n-1]>0?(m.montantMensuel||0)/reelParMois[n-1]:null;
+        if(thDebut!=null&&thFin!=null) deriveTxt+=` Mon taux horaire réel est passé de ${fmtE(thDebut,1)} à ${fmtE(thFin,1)} sur cette période.`;
+      }
+    }
+    // Signal complémentaire, indépendant de la dérive progressive.
+    let objNonCouvertTxt='';
+    const thMin=getTauxHoraireMinCible();
+    const dernier3=reelParMois.slice(-3);
+    if(thMin>0&&dernier3.length===3&&dernier3.every(h=>h>0&&(m.montantMensuel||0)/h<thMin)){
+      objNonCouvertTxt=`Depuis 3 mois, ${_masc?'ce':'cette'} ${_itemLow} ne couvre pas mon objectif horaire.`;
+    }
+    if(deriveTxt||objNonCouvertTxt){
+      let bloc=deriveTxt?`<div class="ts mb4">${deriveTxt}</div>`:'';
+      if(objNonCouvertTxt) bloc+=`<div class="ts mb4">${objNonCouvertTxt}</div>`;
+      const leviers=getLeviersRecommandation(null,true);
+      bloc+=`<div class="ts mb10" style="color:var(--tl)">Pistes : ${leviers.join(', ')}.</div>`;
+      blocs.push(bloc);
+    }
+  });
+
+  if(!blocs.length) return `<div class="ts" style="padding:8px 0;color:var(--tl)">Pas encore assez de ${_itemsLow} avec un temps prévu renseigné pour en tirer des tendances fiables.</div>`;
+  return blocs.join('');
+}
 function renderMissionsSummary(all) {
   const sumEl=document.getElementById('missions-summary');
   if(!sumEl) return;
@@ -7510,6 +7617,7 @@ function renderMissionsSummary(all) {
         <div id="msn-top-clients">${rentabClientsBody()}</div>
         <div id="msn-top-cats">${rentabCatBody()}</div>
       </div>
+      <div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">📐 Ma précision d'estimation</div><div id="msn-precision-estimation">${precisionEstimationBody()}</div></div>
       ${(()=>{const src=wSourceAcq(actives,tVocab('item').toLowerCase()),ref=wMotifsRefus();return(src||ref)?`<div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">${src}${ref}</div>`:''})()}
     </div>
   </div>`;
