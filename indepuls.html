@@ -1604,6 +1604,7 @@ html,body{overflow-x:hidden;}
       <label class="flabel" id="m-temps-prevu-label">Temps prévu pour cette mission (h)</label>
       <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
     </div>
+    <div id="m-trajectoire-detail"></div>
     <div id="m-planning-zone">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
       <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
@@ -2120,12 +2121,14 @@ html,body{overflow-x:hidden;}
       <label class="flabel" id="fact-temps-label">Temps passé</label>
       <div id="fact-temps-msg" class="ts mb8" style="color:var(--tl)"></div>
       <div style="display:flex;gap:8px;align-items:center">
-        <input type="number" id="fact-temps-h" min="0" step="1" placeholder="h" style="width:72px;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;font-size:14px;background:var(--inp);color:var(--tx)">
+        <input type="number" id="fact-temps-h" min="0" step="1" placeholder="h" style="width:72px;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;font-size:14px;background:var(--inp);color:var(--tx)" oninput="updateFactTempsPrevuComparaison()">
         <span class="ts">h</span>
-        <input type="number" id="fact-temps-min" min="0" max="59" step="5" placeholder="min" style="width:72px;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;font-size:14px;background:var(--inp);color:var(--tx)">
+        <input type="number" id="fact-temps-min" min="0" max="59" step="5" placeholder="min" style="width:72px;padding:6px 8px;border:1px solid var(--brd);border-radius:6px;font-size:14px;background:var(--inp);color:var(--tx)" oninput="updateFactTempsPrevuComparaison()">
         <span class="ts">min</span>
       </div>
       <div id="fact-temps-hint" class="ts mt6" style="color:var(--tl)"></div>
+      <div id="fact-learn-msg" class="ts mt6" style="color:var(--tl)"></div>
+      <div id="fact-temps-prevu-compare"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-fact-confirm')">Annuler</button>
@@ -6665,6 +6668,7 @@ function openMissionModal(id, prefillDate) {
   }
   updateTempsPrevuLabel(isRec);
   updateTempsPrevuSuggestion();
+  renderTrajectoireDetail(m);
   // Type de mission
   const typeMission = m?(m.typeMission||'individuelle'):'individuelle';
   document.getElementById('m-type-mission').value = typeMission;
@@ -6765,7 +6769,7 @@ function updateTempsPrevuLabel(isRec) {
   const lbl=document.getElementById('m-temps-prevu-label');
   if(!lbl) return;
   const unit=isJours()?'(j)':'(h)';
-  lbl.textContent=(isRec?'Temps prévu chaque mois ':'Temps prévu pour cette mission ')+unit;
+  lbl.textContent=(isRec?'Temps prévu chaque mois ':`Temps prévu pour ${tVocabMasculin()?'ce':'cette'} ${tVocab('item').toLowerCase()} `)+unit;
 }
 // Suggestion en heures : prix ÷ taux horaire minimum cible (toujours en €/h, quel que soit le
 // profil — pertinent aussi en marge_commande, où getTauxHoraireMinCible() sert déjà de repère
@@ -6796,6 +6800,56 @@ function updateTempsPrevuSuggestion() {
 // la frappe du prix, sans relancer le calcul à chaque caractère.
 let _tempsPrevuTimer=null;
 function updateTempsPrevuSuggestionDebounced() { clearTimeout(_tempsPrevuTimer); _tempsPrevuTimer=setTimeout(updateTempsPrevuSuggestion, 350); }
+// ── TEMPS PRÉVU — détail trajectoire dans la fiche mission (chantier "Temps prévu", Phase 2) ──
+// Aucune marge en € ici (règle de fiabilité : seuls temps et taux horaire sont fiables en
+// cours d'exécution) — même style de bloc que #m-production-zone/#m-collectif-zone.
+function renderTrajectoireDetail(m) {
+  const box=document.getElementById('m-trajectoire-detail');
+  if(!box) return;
+  if(!m||!(m.tempsPrevu>0)){ box.innerHTML=''; return; }
+  const mk=getCurrentMk();
+  const prevu=getTempsPrevuPourMois(m, mk);
+  if(!(prevu>0)){ box.innerHTML=''; return; }
+  const reel=m.isRecurring?getMissionHeuresMois(m, mk):getMissionHeures(m);
+  const _isJours=isJours(), _hj=DATA.params.heuresParJour||7;
+  const unit=_isJours?'j':'h';
+  const conv=v=>_isJours?v/_hj:v;
+  const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
+  const thImplicite=reel>0?prix/reel:null;
+  const thMin=getTauxHoraireMinCible();
+  const thUnit=_isJours?'/j':'/h';
+  const thOk=thImplicite!=null&&thMin>0?thImplicite>=thMin:null;
+  const thColor=thOk===null?'var(--text)':(thOk?'var(--ok)':'var(--err)');
+  const restant=prevu-reel;
+  const restantTxt=restant>=0
+    ?`Il vous reste environ <strong>${fmt(conv(restant),1)}${unit}</strong>.`
+    :`Temps prévu dépassé de <strong>${fmt(conv(-restant),1)}${unit}</strong>.`;
+  const maxVal=Math.max(prevu,reel)||1;
+  const pctPrevuBar=Math.round(prevu/maxVal*100), pctReelBar=Math.round(reel/maxVal*100);
+  const reelBarCls=thOk===null?'':(thOk?'ok':'bd');
+  // Anticipation : seulement si le temps réel (de la mission, ou du mois pour une récurrente)
+  // est réparti sur au moins 2 dates distinctes — sinon pas de calcul hasardeux affiché.
+  const entriesScope=(m.tempsManuel||[]).filter(e=>m.isRecurring?(e.date||'').startsWith(mk):true);
+  const joursActifs=new Set(entriesScope.map(e=>e.date)).size;
+  let anticipTxt='';
+  if(joursActifs>=2&&prevu>reel){
+    const rythme=reel/joursActifs;
+    if(rythme>0){
+      const joursRestants=Math.ceil((prevu-reel)/rythme);
+      anticipTxt=`<div class="ts mt8">Au rythme actuel, le temps prévu sera atteint dans environ <strong>${joursRestants} jour${joursRestants>1?'s':''}</strong>.</div>`;
+    }
+  }
+  box.innerHTML=`<div style="background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:12px">
+    <div class="ts" style="font-weight:600;color:var(--text);margin-bottom:6px">⏱ Trajectoire de temps</div>
+    <div class="ts">${restantTxt}</div>
+    <div class="prog-bar mt8"><div class="prog-fill" style="width:${pctPrevuBar}%"></div></div>
+    <div class="ts" style="color:var(--tl);margin-top:2px">Prévu : ${fmt(conv(prevu),1)}${unit}</div>
+    <div class="prog-bar mt8"><div class="prog-fill ${reelBarCls}" style="width:${pctReelBar}%"></div></div>
+    <div class="ts" style="color:var(--tl);margin-top:2px">Réel${m.isRecurring?' ce mois-ci':''} : ${fmt(conv(reel),1)}${unit}</div>
+    ${thImplicite!=null?`<div class="ts mt8">Taux horaire provisoire : <strong style="color:${thColor}">${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${thUnit}</strong> — hors dépenses non encore saisies. Le calcul définitif se fera à la clôture.</div>`:''}
+    ${anticipTxt}
+  </div>`;
+}
 function toggleRecurrenceFields(val) {
   const isRec=val==='mensuelle';
   const mixte=isActiviteMixte();
@@ -7174,6 +7228,9 @@ function setMissionStatut(id,val) {
       if(msgEl) msgEl.textContent='Aucun temps enregistré. Combien d\'heures avez-vous passé sur cette mission ?';
       if(hintEl) hintEl.textContent=charge?'Charge prévue : '+charge+' — à titre indicatif.':'';
     }
+    const learnEl=document.getElementById('fact-learn-msg');
+    if(learnEl) learnEl.textContent=`Indépuls apprend de ${tVocabMasculin()?'ce':'cette'} ${tVocab('item').toLowerCase()}. Plus vous renseignez le temps réellement passé, plus vos prochains indicateurs seront précis.`;
+    updateFactTempsPrevuComparaison();
     openModal('modal-fact-confirm'); return;
   }
   if(val==='ref'&&m.statut!=='ref'){
@@ -7189,6 +7246,30 @@ function setMissionStatut(id,val) {
   saveData(); renderMissions(); if(currentPage==='revenus') renderRevenus(); if(currentPage==='dashboard') renderDashboard();
 }
 
+// ── TEMPS PRÉVU — écart à la clôture (chantier "Temps prévu", Phase 2) ────────
+// Silence si l'écart est faible (<10%, dans un sens ou l'autre) — un message systématique
+// userait le signal. Le "réel" ici est toujours le temps tel que saisi dans cette modale
+// (jamais une relecture de tempsManuel) — c'est la valeur que l'utilisatrice vient de confirmer.
+function updateFactTempsPrevuComparaison() {
+  const el=document.getElementById('fact-temps-prevu-compare');
+  if(!el) return;
+  const m=DATA.missions.find(x=>x.id===pendingFactId);
+  if(!m||!(m.tempsPrevu>0)){ el.innerHTML=''; return; }
+  const prevu=getTempsPrevuPourMois(m, getCurrentMk());
+  if(!(prevu>0)){ el.innerHTML=''; return; }
+  const h=parseInt(document.getElementById('fact-temps-h').value)||0;
+  const min=parseInt(document.getElementById('fact-temps-min').value)||0;
+  const reel=h+min/60;
+  if(reel<=0){ el.innerHTML=''; return; }
+  const ecartPct=(reel-prevu)/prevu*100;
+  if(Math.abs(ecartPct)<10){ el.innerHTML=''; return; }
+  const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
+  const thPrevu=prix/prevu, thReel=prix/reel;
+  const _isJours=isJours(), _hj=DATA.params.heuresParJour||7, unit=_isJours?'j':'h';
+  const conv=v=>_isJours?v/_hj:v;
+  const _art=tVocabMasculin()?'Ce':'Cette', _itemLow=tVocab('item').toLowerCase(), _acc=tVocabMasculin()?'':'e';
+  el.innerHTML=`<div class="ts mt6">${_art} ${_itemLow} avait été estimé${_acc} à <strong>${fmt(conv(prevu),1)}${unit}</strong>. Vous y avez consacré <strong>${fmt(conv(reel),1)}${unit}</strong>, soit <strong>${Math.round(Math.abs(ecartPct))}%</strong> de ${ecartPct>0?'plus':'moins'} que prévu. Votre taux horaire réel est de <strong>${fmtE(_isJours?thReel*_hj:thReel,1)}</strong> au lieu des <strong>${fmtE(_isJours?thPrevu*_hj:thPrevu,1)}</strong> prévus.</div>`;
+}
 function confirmFacturation() {
   const m=DATA.missions.find(x=>x.id===pendingFactId);
   if(m){
@@ -7367,6 +7448,33 @@ function renderMissionsSummary(all) {
     </div>
   </div>`;
 }
+// ── TEMPS PRÉVU — indicateur compact tableau missions (chantier "Temps prévu", Phase 2) ──
+// Réel vs Prévu + taux horaire implicite + couleur de trajectoire. N'apparaît que si
+// m.tempsPrevu est renseigné (garde-fou : jamais de placeholder incitant à le remplir).
+// Aucune marge en € ici — seuls le temps et le taux horaire sont fiables en cours d'exécution
+// (dépenses liées non garanties à jour tant que la mission n'est pas clôturée).
+function getTrajectoireCompacte(m) {
+  if(!(m.tempsPrevu>0)) return '';
+  const mk=getCurrentMk();
+  const prevu=getTempsPrevuPourMois(m, mk);
+  if(!(prevu>0)) return '';
+  const reel=m.isRecurring?getMissionHeuresMois(m, mk):getMissionHeures(m);
+  const _isJours=DATA.params.modules?.uniteTemps==='jours', _hj=DATA.params.heuresParJour||7;
+  const unit=_isJours?'j':'h';
+  const prevuDisp=_isJours?prevu/_hj:prevu, reelDisp=_isJours?reel/_hj:reel;
+  const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
+  const thImplicite=reel>0?prix/reel:null; // toujours calculé en heures (unité canonique)
+  const thMin=getTauxHoraireMinCible();
+  const pct=reel/prevu;
+  let emoji,color;
+  if(thImplicite!=null&&thMin>0&&thImplicite<thMin){ emoji='🔴'; color='var(--err)'; }
+  else if(pct<0.6){ emoji='🟢'; color='var(--tl)'; }
+  else if(pct<0.85){ emoji='🟡'; color='var(--tl)'; }
+  else { emoji='🟠'; color='var(--warn)'; }
+  const reelLabel=m.isRecurring?'Réel ce mois-ci':'Réel';
+  const thTxt=thImplicite!=null?` · ${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${_isJours?'/j':'/h'}`:'';
+  return `<div class="ts" style="color:${color};margin-top:2px">${emoji} ${reelLabel} ${fmt(reelDisp,1)}${unit} / Prévu ${fmt(prevuDisp,1)}${unit}${thTxt}</div>`;
+}
 function renderMissions() {
   renderMissionsSummary(DATA.missions);
   const tbody=document.getElementById('missions-tbody'); tbody.innerHTML='';
@@ -7414,7 +7522,7 @@ function renderMissions() {
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>En attente</option><option value="cours" ${m.statut==='cours'?'selected':''}>En cours</option><option value="ref" ${m.statut==='ref'?'selected':''}>${m.isRecurring?'Refusée':'Refusé'}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${m.isRecurring?'Terminée':'Facturé'}</option></select></td>
       <td class="ts">${dateFactCell}</td>
-      <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div><div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
+      <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
       <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
