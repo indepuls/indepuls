@@ -1498,7 +1498,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="fgroup" id="m-montant-zone">
       <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
-      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
+      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000" oninput="updateTempsPrevuSuggestionDebounced()">
     </div>
     <div id="m-couts-directs-zone" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--brd)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1555,11 +1555,11 @@ html,body{overflow-x:hidden;}
       <div class="frow">
         <div class="fgroup">
           <label class="flabel">Prestation / service (€ HT)</label>
-          <input type="number" id="m-presta" step="10" min="0" placeholder="Ex : 1 500" oninput="updateMontantMixteTotal()">
+          <input type="number" id="m-presta" step="10" min="0" placeholder="Ex : 1 500" oninput="updateMontantMixteTotal();updateTempsPrevuSuggestionDebounced()">
         </div>
         <div class="fgroup">
           <label class="flabel">Vente / produit (€ HT)</label>
-          <input type="number" id="m-vente" step="10" min="0" placeholder="Ex : 500" oninput="updateMontantMixteTotal()">
+          <input type="number" id="m-vente" step="10" min="0" placeholder="Ex : 500" oninput="updateMontantMixteTotal();updateTempsPrevuSuggestionDebounced()">
         </div>
       </div>
       <div class="ts" id="m-mixte-total" style="font-weight:700;color:var(--pri)"></div>
@@ -1573,7 +1573,7 @@ html,body{overflow-x:hidden;}
         </label>
       </div>
       <div class="frow" id="m-rec-amounts-row">
-        <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500"></div>
+        <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500" oninput="updateTempsPrevuSuggestionDebounced()"></div>
         <div class="fgroup" id="m-nb-mois-zone"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
       </div>
       <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec"></div>
@@ -1585,9 +1585,10 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="frow" id="m-charge-zone">
       <div class="fgroup">
-        <label class="flabel">Charge / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
+        <label class="flabel">Temps planifié / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
         <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
         <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5">
+        <div class="ts mt4" style="color:var(--tl)">Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.</div>
       </div>
       <div class="fgroup">
         <label class="flabel">Unité</label>
@@ -1597,6 +1598,11 @@ html,body{overflow-x:hidden;}
           <option value="h_mois">h / mois</option>
         </select>
       </div>
+    </div>
+    <div class="divider" style="margin:10px 0"></div>
+    <div class="fgroup" id="m-temps-prevu-zone">
+      <label class="flabel" id="m-temps-prevu-label">Temps prévu pour cette mission (h)</label>
+      <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
     </div>
     <div id="m-planning-zone">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
@@ -2298,6 +2304,19 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL CHOIX APPLICATION TEMPS PRÉVU (chantier "Temps prévu", Étape 3) -->
+<div class="modal-ov hidden" id="modal-temps-prevu-choice">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title mb4">Nouveau temps prévu</div>
+    <div class="ts mb14" style="color:var(--tl)">Vous avez modifié le temps prévu de cette mission récurrente. À partir de quand ce nouveau temps doit-il s'appliquer ?</div>
+    <div class="modal-foot" style="flex-direction:column;gap:8px">
+      <button class="btn btn-acc" style="width:100%;justify-content:center" onclick="confirmTempsPrevuChoice('prochain')">À partir du mois prochain</button>
+      <button class="btn btn-out" style="width:100%;justify-content:center" onclick="confirmTempsPrevuChoice('immediat')">Dès ce mois-ci</button>
+      <button class="btn" style="width:100%;justify-content:center;color:var(--tl);background:transparent;border:none" onclick="cancelTempsPrevuChoice()">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ANALYSE PILIER -->
 <div class="modal-ov hidden" id="modal-pilier" onclick="if(event.target===this)closeModal('modal-pilier')">
   <div class="modal" style="max-width:500px">
@@ -2337,7 +2356,7 @@ html,body{overflow-x:hidden;}
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
-const SCHEMA_VERSION = 30; // v30 : clé localStorage unifiée 'indepuls', fusion interfaces
+const SCHEMA_VERSION = 31; // v31 : datation systématique du temps réel (tempsManuel), chantier "Temps prévu"
 const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Coworking & bureau','Outils IA','Hébergement & nom de domaine','Livres & ressources professionnelles','Autre'];
 const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#0e7490','#6d28d9','#4338ca','#b45309','#6b7280'];
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
@@ -3451,6 +3470,17 @@ function migrate(data) {
     data.params.modules.estimation = p !== 'calendrier';
     delete data.params.modules.planning;
   }
+  // Datation systématique du temps réel (chantier "Temps prévu", Étape 4) : le chrono ne verse
+  // plus dans timerAccumulated (voir commitTimer) mais dans tempsManuel, daté. On ne connaît pas
+  // la date réelle d'origine du temps déjà accumulé — approximation assumée (date du jour de la
+  // migration) plutôt qu'une perte d'historique ; le gap est négligeable en pratique.
+  (data.missions || []).forEach(m => {
+    if (m.timerAccumulated > 0) {
+      if (!m.tempsManuel) m.tempsManuel = [];
+      m.tempsManuel.push({ id: uuid(), date: today(), ms: m.timerAccumulated });
+      m.timerAccumulated = 0;
+    }
+  });
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -6627,6 +6657,14 @@ function openMissionModal(id, prefillDate) {
   const capH=(DATA.params.heuresParJour||7)*(DATA.params.joursParSemaine||4);
   const chargeTip=document.querySelector('#m-charge-zone .info-tip');
   if(chargeTip) chargeTip.title=`Heures (ou jours) que cette mission occupe chaque semaine. Comparé à votre capacité de ${capH} h/sem pour calculer le taux d'occupation dans le Score de Santé.`;
+  // Temps prévu — stocké en heures, affiché en jours si isJours() (chantier "Temps prévu")
+  {
+    const _hjTP=DATA.params.heuresParJour||7;
+    const _tp=m&&m.tempsPrevu!=null?m.tempsPrevu:null;
+    document.getElementById('m-temps-prevu').value=_tp!=null?Math.round((isJours()?_tp/_hjTP:_tp)*10)/10:'';
+  }
+  updateTempsPrevuLabel(isRec);
+  updateTempsPrevuSuggestion();
   // Type de mission
   const typeMission = m?(m.typeMission||'individuelle'):'individuelle';
   document.getElementById('m-type-mission').value = typeMission;
@@ -6720,6 +6758,44 @@ function updateMargeProduction() {
   } else { el.style.display='none'; }
 }
 function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.display=v==='fact'?'':'none'; }
+// ── TEMPS PRÉVU (chantier "Temps prévu", Phase 1) ──────────────
+// Libellé contextuel selon isRecurring (ponctuelle/récurrente) et selon l'unité du profil
+// (isJours()) — même principe que sasu-remu-label, mais avec 2 axes de bascule au lieu d'un.
+function updateTempsPrevuLabel(isRec) {
+  const lbl=document.getElementById('m-temps-prevu-label');
+  if(!lbl) return;
+  const unit=isJours()?'(j)':'(h)';
+  lbl.textContent=(isRec?'Temps prévu chaque mois ':'Temps prévu pour cette mission ')+unit;
+}
+// Suggestion en heures : prix ÷ taux horaire minimum cible (toujours en €/h, quel que soit le
+// profil — pertinent aussi en marge_commande, où getTauxHoraireMinCible() sert déjà de repère
+// secondaire). Lit le prix selon le mode courant (ponctuelle simple/mixte, ou récurrente).
+function getTempsPrevuSuggestionHeures() {
+  const isRec=document.getElementById('m-type-fact').value==='mensuelle';
+  const mixte=isActiviteMixte();
+  let prix=0;
+  if(isRec) prix=parseFloat(document.getElementById('m-montant-mens').value)||0;
+  else if(mixte) prix=(parseFloat(document.getElementById('m-presta').value)||0)+(parseFloat(document.getElementById('m-vente').value)||0);
+  else prix=parseFloat(document.getElementById('m-montant').value)||0;
+  const thMin=getTauxHoraireMinCible();
+  if(prix<=0||!thMin||thMin<=0) return null;
+  return prix/thMin;
+}
+// Ne s'applique que si le champ est encore vide — ne jamais écraser une saisie déjà faite
+// (ou déjà suggérée puis laissée telle quelle, ce qui compte comme "déjà renseigné").
+function updateTempsPrevuSuggestion() {
+  const champ=document.getElementById('m-temps-prevu');
+  if(!champ||champ.value!=='') return;
+  const heures=getTempsPrevuSuggestionHeures();
+  if(heures==null) return;
+  const _hjTP=DATA.params.heuresParJour||7;
+  const val=isJours()?heures/_hjTP:heures;
+  champ.value=Math.round(val*10)/10;
+}
+// Même principe de debounce que recalcObjectifsDebounced (350ms) — recalcul en live pendant
+// la frappe du prix, sans relancer le calcul à chaque caractère.
+let _tempsPrevuTimer=null;
+function updateTempsPrevuSuggestionDebounced() { clearTimeout(_tempsPrevuTimer); _tempsPrevuTimer=setTimeout(updateTempsPrevuSuggestion, 350); }
 function toggleRecurrenceFields(val) {
   const isRec=val==='mensuelle';
   const mixte=isActiviteMixte();
@@ -6728,6 +6804,8 @@ function toggleRecurrenceFields(val) {
   document.getElementById('m-rec-zone').style.display=isRec?'':'none';
   if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
   updateModaleMissionCopy(isRec);
+  updateTempsPrevuLabel(isRec);
+  updateTempsPrevuSuggestion();
 }
 // Copy contextuelle Charge estimée / Sessions — uniquement quand modules.calendrier ET
 // modules.estimation sont actifs simultanément (sinon un seul des deux champs existe dans
@@ -6813,12 +6891,15 @@ function saveMission() {
   if(!client){ markInvalid('m-client'); return; }
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
+  const tempsPrevuRaw=parseFloat(document.getElementById('m-temps-prevu').value);
+  const _hjSave=DATA.params.heuresParJour||7;
+  const tempsPrevu=isNaN(tempsPrevuRaw)?null:(isJours()?tempsPrevuRaw*_hjSave:tempsPrevuRaw);
   const sessions = editingSessions.map(s => {
     const o = {debut:s.debut, fin:s.fin||s.debut};
     if (s.heures > 0) { o.heures = s.heures; o.heuresAuto = !!s.heuresAuto; }
     return o;
   });
-  const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit, sessions,
+  const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit, tempsPrevu, sessions,
     typeMission:document.getElementById('m-type-mission').value||'individuelle',
     nbParticipants:parseInt(document.getElementById('m-participants').value)||0,
     prixParParticipant:parseFloat(document.getElementById('m-prix-part').value)||0,
@@ -6833,6 +6914,60 @@ function saveMission() {
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
     obj.montantPrestation=obj.montantDevis; obj.montantVente=0;
   }
+  // Historisation tempsPrevu (chantier "Temps prévu", Étape 3) : uniquement si une récurrente
+  // déjà en cours depuis au moins un mois clos voit son tempsPrevu réellement changer de valeur.
+  // Un tempsPrevu jusqu'ici jamais renseigné (null→valeur) s'applique immédiatement, sans historique.
+  const mExisting=editId?DATA.missions.find(x=>x.id===editId):null;
+  if(mExisting&&obj.isRecurring&&mExisting.isRecurring&&mExisting.tempsPrevu!=null&&obj.tempsPrevu!=null&&obj.tempsPrevu!==mExisting.tempsPrevu&&mExisting.dateDebutRec&&mExisting.dateDebutRec.slice(0,7)<getCurrentMk()){
+    _pendingTempsPrevuSave={editId, obj, oldTempsPrevu:mExisting.tempsPrevu, historique:mExisting.tempsPrevuHistorique||[], dateDebutRec:mExisting.dateDebutRec};
+    document.getElementById('modal-temps-prevu-choice').classList.remove('hidden');
+    return;
+  }
+  finalizeSaveMission(editId, obj);
+}
+
+// ── TEMPS PRÉVU — historisation récurrentes (chantier "Temps prévu", Étape 3) ──
+let _pendingTempsPrevuSave=null;
+
+function _mkLastDay(mk) {
+  const [y,mo]=mk.split('-').map(Number);
+  const d=new Date(y, mo, 0);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function _mkPrev(mk) {
+  const [y,mo]=mk.split('-').map(Number);
+  const d=new Date(y, mo-2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function _dayAfter(dateStr) {
+  const [y,mo,d]=dateStr.split('-').map(Number);
+  const dt=new Date(y, mo-1, d+1);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+
+function confirmTempsPrevuChoice(choice) {
+  const p=_pendingTempsPrevuSave;
+  if(!p) return;
+  const curMk=getCurrentMk();
+  const dateFin=choice==='prochain'?_mkLastDay(curMk):_mkLastDay(_mkPrev(curMk));
+  const dateDebut=p.historique.length?_dayAfter(p.historique[p.historique.length-1].dateFin):`${p.dateDebutRec}-01`;
+  if(dateFin>=dateDebut){
+    p.obj.tempsPrevuHistorique=[...p.historique, {valeur:p.oldTempsPrevu, dateDebut, dateFin}];
+  } else {
+    // Garde-fou anti-doublon : modification 2 fois dans le même mois clos, aucune période à pousser.
+    p.obj.tempsPrevuHistorique=p.historique;
+  }
+  closeModal('modal-temps-prevu-choice');
+  finalizeSaveMission(p.editId, p.obj);
+  _pendingTempsPrevuSave=null;
+}
+
+function cancelTempsPrevuChoice() {
+  closeModal('modal-temps-prevu-choice');
+  _pendingTempsPrevuSave=null;
+}
+
+function finalizeSaveMission(editId, obj) {
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
   saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
@@ -6992,7 +7127,10 @@ function commitTimer(x) {
     addTempsInterne(mk, elapsed);
     x.timerAccumulated=0;
   } else {
-    x.timerAccumulated=(x.timerAccumulated||0)+elapsed;
+    // Daté (chantier "Temps prévu", Étape 4) : timerAccumulated n'est plus jamais incrémenté,
+    // seulement lu pour compat rétro (getMissionTotalMs) sur les missions migrées.
+    if(!x.tempsManuel) x.tempsManuel=[];
+    x.tempsManuel.push({id:uuid(), date:today(), ms:elapsed});
   }
   x.timerRunning=false; x.timerStart=null;
 }
@@ -9121,7 +9259,12 @@ function resolveTimerGap(choice) {
   } else if(choice==='remove'){
     const workedMs=Math.max(0, lastActivity-m.timerStart);
     if(m.isManagement) addTempsInterne(getCurrentMk(), workedMs);
-    else m.timerAccumulated=(m.timerAccumulated||0)+workedMs;
+    else {
+      // Même datation que commitTimer (chantier "Temps prévu", Étape 4) — même anti-pattern
+      // inliné ici, aucune UI nouvelle requise pour le corriger.
+      if(!m.tempsManuel) m.tempsManuel=[];
+      m.tempsManuel.push({id:uuid(), date:today(), ms:workedMs});
+    }
     m.timerRunning=false; m.timerStart=null;
     saveData();
   } else if(choice==='manual'){
@@ -10098,6 +10241,8 @@ document.addEventListener('keydown', function(e) {
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
   window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
+  window.getMissionHeuresMois   = (m, mk) => { sync(); return Mode.getMissionHeuresMois(m, mk); };
+  window.getTempsPrevuPourMois  = (m, mk) => { sync(); return Mode.getTempsPrevuPourMois(m, mk); };
   window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
   window.getSasuCoutMensuelDepuisNet = (net) => { sync(); return Mode.getSasuCoutMensuelDepuisNet(net); };
   window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };

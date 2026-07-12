@@ -552,6 +552,23 @@ export function getMissionHeures(DATA, m) {
   return chrono;
 }
 
+// Heures réelles d'UNE mission pour UN mois donné (filtre sur tempsManuel daté).
+// Distincte de getHeuresMoisMissions(mk), qui agrège TOUTES les missions pour un mois —
+// celle-ci fait l'inverse : une mission, un mois. Chantier "Temps prévu" (Phase 1).
+export function getMissionHeuresMois(DATA, m, mk) {
+  return (m.tempsManuel || [])
+    .filter(e => (e.date || '').startsWith(mk))
+    .reduce((s, e) => s + e.ms, 0) / 3600000;
+}
+
+// Valeur de tempsPrevu applicable à un mois donné, en tenant compte de l'historique
+// (tempsPrevuHistorique). Chantier "Temps prévu" (Phase 1).
+export function getTempsPrevuPourMois(DATA, m, mk) {
+  const entry = (m.tempsPrevuHistorique || [])
+    .find(h => mk >= h.dateDebut.slice(0, 7) && mk <= h.dateFin.slice(0, 7));
+  return entry ? entry.valeur : (m.tempsPrevu ?? null);
+}
+
 export function getHeuresFact(DATA) {
   return DATA.missions
     .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact'))

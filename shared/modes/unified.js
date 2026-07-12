@@ -12,7 +12,7 @@ import * as S from '../core/storage.js';
 import { getTauxStatut } from '../core/taux.js';
 
 export const STORAGE_KEY    = 'indepuls';
-export const SCHEMA_VERSION = 30;
+export const SCHEMA_VERSION = 31;
 
 let DATA = null;
 
@@ -78,6 +78,8 @@ export const getResteAEncaisser       = C.getResteAEncaisser;
 
 export const getMissionTotalMs        = (m) => C.getMissionTotalMs(DATA, m);
 export const getMissionHeures         = (m) => C.getMissionHeures(DATA, m);
+export const getMissionHeuresMois     = (m, mk) => C.getMissionHeuresMois(DATA, m, mk);
+export const getTempsPrevuPourMois    = (m, mk) => C.getTempsPrevuPourMois(DATA, m, mk);
 export const getHeuresFact            = () => C.getHeuresFact(DATA);
 export const getHeuresInterne         = () => C.getHeuresInterne(DATA);
 
