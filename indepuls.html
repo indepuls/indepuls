@@ -6797,6 +6797,12 @@ function getTempsPrevuSuggestionHeures() {
   if(isRec) prix=parseFloat(document.getElementById('m-montant-mens').value)||0;
   else if(mixte) prix=(parseFloat(document.getElementById('m-presta').value)||0)+(parseFloat(document.getElementById('m-vente').value)||0);
   else prix=parseFloat(document.getElementById('m-montant').value)||0;
+  // Garde-fou : en SASU/EURL sans rémunération nette cible configurée (remunerationNette=0),
+  // getTauxHoraireMinCible() ne reflète plus que les dépenses — un chiffre techniquement défini
+  // mais économiquement absurde une fois divisé dans un prix (ex. 700h pour une mission à 1800€).
+  // Le dashboard signale déjà ce cas ailleurs ("Configurer la rémunération") ; on l'applique ici
+  // aussi plutôt que de produire une suggestion trompeuse.
+  if(isSASU()&&!DATA.params.remunerationNette) return null;
   const thMin=getTauxHoraireMinCible();
   if(prix<=0||!thMin||thMin<=0) return null;
   return prix/thMin;
