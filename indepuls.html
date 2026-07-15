@@ -10696,7 +10696,14 @@ document.addEventListener('keydown', function(e) {
     _analyticsUserId = user.id;
     try {
       var res = await sb.from('user_data').select('data').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
-      if (res.data && res.data.data && !DATA.isExample) {
+      // BUG CRITIQUE CORRIGÉ (2026-07) : "!DATA.isExample" bloquait le chargement des vraies
+      // données cloud dès que le navigateur avait localement du résidu de mode démo (ex. un
+      // utilisateur qui explore la démo avant de se connecter à son vrai compte, sur le même
+      // appareil — un parcours normal). Résultat : le compte restait bloqué en mode démo, et le
+      // prochain saveData() écrasait les vraies données cloud avec la démo locale (voir aussi le
+      // garde-fou ajouté dans syncToCloud() juste en dessous). Une session authentifiée avec des
+      // données cloud existantes doit TOUJOURS l'emporter sur l'état local, sans exception.
+      if (res.data && res.data.data) {
         var payload = res.data.data;
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch(e) {}
         if (typeof migrate === 'function' && typeof applyDefaults === 'function') {
@@ -10737,6 +10744,13 @@ document.addEventListener('keydown', function(e) {
 
   async function syncToCloud() {
     if (!_cloudLoaded) return;
+    // GARDE-FOU CRITIQUE (2026-07) : ne jamais envoyer de données de démo vers le cloud, quelle
+    // qu'en soit la raison (résidu local, échec de loadFromCloud, etc.) — c'est le dernier rempart
+    // contre l'écrasement des vraies données d'une utilisatrice par de la démo. Voir la note dans
+    // loadFromCloud() juste au-dessus : les deux corrections vont ensemble, ne pas retirer l'une
+    // sans l'autre. Ne JAMAIS réintroduire de chemin qui laisse syncToCloud() tourner alors que
+    // DATA.isExample est vrai.
+    if (DATA.isExample) return;
     try {
       var res = await sb.auth.getSession();
       if (!res.data || !res.data.session) return;
