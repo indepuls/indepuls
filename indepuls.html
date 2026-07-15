@@ -2686,8 +2686,13 @@ function initEditingSessions(m, prefillDate) {
 
 function renderEditSessions() {
   const el = document.getElementById('m-sessions-list'); if (!el) return;
+  // Rafraîchit aussi la valeur dérivée de tempsPrevu (ponctuelle en mode calendrier) — seul point
+  // de sortie commun à l'ouverture de la modale (via initEditingSessions) et à chaque ajout/retrait
+  // de session, donc l'endroit le plus fiable pour garder l'affichage synchronisé avec editingSessions.
+  const _refreshTempsPrevu = () => { if (typeof updateTempsPrevuZone === 'function') updateTempsPrevuZone(document.getElementById('m-type-fact')?.value==='mensuelle'); };
   if (editingSessions.length === 0) {
     el.innerHTML = `<div class="ts" style="color:var(--tl);padding:4px 0 2px">Aucune session — la mission n'apparaîtra pas dans le calendrier.</div>`;
+    _refreshTempsPrevu();
     return;
   }
   el.innerHTML = editingSessions.map((s,i) => {
@@ -2704,6 +2709,7 @@ function renderEditSessions() {
       <button class="btn btn-del btn-xs" onclick="removeSessionFromEdit(${i})">🗑</button>
     </div>`;
   }).join('');
+  _refreshTempsPrevu();
 }
 
 function _joursOuvrésSemaine(debut, fin) {
@@ -6794,15 +6800,23 @@ function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.d
 // ── TEMPS PRÉVU (chantier "Temps prévu", Phase 1) ──────────────
 // Libellé contextuel selon isRecurring (ponctuelle/récurrente) et selon l'unité du profil
 // (isJours()) — même principe que sasu-remu-label, mais avec 2 axes de bascule au lieu d'un.
-// Étendue (chantier "Temps prévu", correctif récurrentes) : pour une récurrente, le champ de
-// saisie manuelle disparaît — remplacé par un affichage lecture seule dérivé de "Temps planifié /
-// semaine" (chargeEstimee), puisqu'un contrat sans date de fin n'a jamais de total à saisir,
-// seulement un rythme. Pour une ponctuelle, comportement Phase 1 inchangé (label + saisie manuelle).
+// Étendue (correctif récurrentes + calendrier, "zéro donnée inventée") : 3 cas.
+// - Récurrente : champ manuel masqué, valeur dérivée de "Temps planifié / semaine" (chargeEstimee)
+//   — un contrat sans date de fin n'a jamais de total à saisir, seulement un rythme.
+// - Ponctuelle en mode calendrier : champ manuel masqué, valeur dérivée de la somme des sessions
+//   (editingSessions) — la donnée la plus précise déjà saisie par ailleurs pour le Planning.
+// - Ponctuelle sans calendrier : comportement Phase 1 inchangé (label + saisie manuelle).
+// Dans les deux premiers cas, si aucune source n'existe encore (chargeEstimee vide / aucune
+// session), on n'invente RIEN — ni repli sur le prix, ni valeur par défaut — un message explique
+// pourquoi la comparaison n'est pas encore possible, plutôt qu'un chiffre halluciné (retour de
+// Faustine : le repli prix ÷ objectif horaire n'est pas une estimation du travail à faire, c'est
+// un calcul de rentabilité déguisé en temps prévu — contraire à la philosophie "zéro boîte noire").
 function updateTempsPrevuZone(isRec) {
   const zone=document.getElementById('m-temps-prevu-zone');
   const divider=document.getElementById('m-temps-prevu-divider');
   const deriveEl=document.getElementById('m-charge-tempsprevu-derive');
   const noteEl=document.getElementById('m-charge-note');
+  const isCalendrier=!!DATA.params.modules?.calendrier;
   if(isRec){
     if(zone) zone.style.display='none';
     if(divider) divider.style.display='none';
@@ -6816,10 +6830,26 @@ function updateTempsPrevuZone(isRec) {
         const val=isJours()?heuresMois/_hjTP:heuresMois;
         const unit=isJours()?'j':'h';
         deriveEl.textContent=`≈ ${fmt(val,1)} ${unit}/mois pour le calcul de rentabilité (prévu vs réel).`;
-        deriveEl.style.display='';
       } else {
-        deriveEl.textContent=''; deriveEl.style.display='none';
+        deriveEl.textContent='La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps planifié ci-dessus.';
       }
+      deriveEl.style.display='';
+    }
+  } else if(isCalendrier){
+    if(zone) zone.style.display='none';
+    if(divider) divider.style.display='none';
+    if(noteEl) noteEl.textContent='Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.';
+    if(deriveEl){
+      const totalSessions=(typeof editingSessions!=='undefined'?editingSessions:[]).reduce((s,x)=>s+(x.heures||0),0);
+      if(totalSessions>0){
+        const _hjTP=DATA.params.heuresParJour||7;
+        const val=isJours()?totalSessions/_hjTP:totalSessions;
+        const unit=isJours()?'j':'h';
+        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit} (somme de vos sessions) pour le calcul de rentabilité (prévu vs réel).`;
+      } else {
+        deriveEl.textContent="La comparaison prévu/réel sera possible dès qu'une session sera ajoutée ci-dessous.";
+      }
+      deriveEl.style.display='';
     }
   } else {
     if(zone) zone.style.display='';
@@ -6856,14 +6886,16 @@ function getTempsPrevuSuggestionHeures() {
 // tempsPrevu (mensuel, en heures) pour une récurrente : dérivé de chargeEstimee/chargeUnit
 // converti en heures/mois — une récurrente est par nature un engagement continu, donc "X h/semaine"
 // se convertit en un total mensuel sans avoir besoin de connaître sa durée (contrairement à une
-// ponctuelle). Repli sur getTempsPrevuSuggestionHeures() (prix ÷ objectif horaire) si chargeEstimee
-// n'est pas renseigné (ex. profil sans le module "estimation", type artisan bâtiment).
+// ponctuelle). Retourne null si chargeEstimee n'est pas renseigné — jamais de repli sur le prix :
+// prix ÷ objectif horaire n'est pas une estimation du travail, c'est un calcul de rentabilité
+// déguisé en temps prévu (retour de Faustine, "zéro donnée inventée"). Sans chargeEstimee, la
+// comparaison prévu/réel reste honnêtement indisponible plutôt que basée sur un chiffre halluciné.
 function computeTempsPrevuRecurrente(chargeRaw, chargeUnit) {
   if(chargeRaw>0){
     const hSem=toHeuresSem(chargeRaw, chargeUnit);
     return hSem*(DATA.params.semainesParAn||44)/12;
   }
-  return getTempsPrevuSuggestionHeures();
+  return null;
 }
 // Ne s'applique que si le champ est encore vide — ne jamais écraser une saisie déjà faite
 // (ou déjà suggérée puis laissée telle quelle, ce qui compte comme "déjà renseigné").
@@ -7027,12 +7059,21 @@ function saveMission() {
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
   const _hjSave=DATA.params.heuresParJour||7;
-  // Récurrente : tempsPrevu (mensuel) est dérivé de chargeEstimee, plus de saisie manuelle
-  // (correctif "durée illimitée" — un contrat sans fin n'a jamais de total, seulement un rythme).
-  // Ponctuelle : comportement Phase 1 inchangé.
-  const tempsPrevu = isRec
-    ? computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit)
-    : (isNaN(parseFloat(document.getElementById('m-temps-prevu').value))?null:(isJours()?parseFloat(document.getElementById('m-temps-prevu').value)*_hjSave:parseFloat(document.getElementById('m-temps-prevu').value)));
+  // Récurrente : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli sur le prix
+  // (correctif "durée illimitée" + "zéro donnée inventée").
+  // Ponctuelle en mode calendrier : dérivé de la somme des sessions, jamais de repli non plus —
+  // tant qu'aucune session n'est ajoutée, tempsPrevu reste null (même principe).
+  // Ponctuelle sans calendrier : comportement Phase 1 inchangé (saisie manuelle).
+  let tempsPrevu;
+  if(isRec){
+    tempsPrevu=computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit);
+  } else if(DATA.params.modules?.calendrier){
+    const _totalSessions=editingSessions.reduce((s,x)=>s+(x.heures||0),0);
+    tempsPrevu=_totalSessions>0?_totalSessions:null;
+  } else {
+    const _tpRaw=parseFloat(document.getElementById('m-temps-prevu').value);
+    tempsPrevu=isNaN(_tpRaw)?null:(isJours()?_tpRaw*_hjSave:_tpRaw);
+  }
   const sessions = editingSessions.map(s => {
     const o = {debut:s.debut, fin:s.fin||s.debut};
     if (s.heures > 0) { o.heures = s.heures; o.heuresAuto = !!s.heuresAuto; }
