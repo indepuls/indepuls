@@ -1587,19 +1587,20 @@ html,body{overflow-x:hidden;}
       <div class="fgroup">
         <label class="flabel">Temps planifié / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
         <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
-        <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5">
-        <div class="ts mt4" style="color:var(--tl)">Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.</div>
+        <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
+        <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.</div>
+        <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
       </div>
       <div class="fgroup">
         <label class="flabel">Unité</label>
-        <select id="m-charge-unit">
+        <select id="m-charge-unit" onchange="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
           <option value="h_sem">h / semaine</option>
           <option value="j_mois">jours / mois</option>
           <option value="h_mois">h / mois</option>
         </select>
       </div>
     </div>
-    <div class="divider" style="margin:10px 0"></div>
+    <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
     <div class="fgroup" id="m-temps-prevu-zone">
       <label class="flabel" id="m-temps-prevu-label">Temps prévu pour cette mission (h)</label>
       <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
@@ -6694,7 +6695,7 @@ function openMissionModal(id, prefillDate) {
     const _tp=m&&m.tempsPrevu!=null?m.tempsPrevu:null;
     document.getElementById('m-temps-prevu').value=_tp!=null?Math.round((isJours()?_tp/_hjTP:_tp)*10)/10:'';
   }
-  updateTempsPrevuLabel(isRec);
+  updateTempsPrevuZone(isRec);
   updateTempsPrevuSuggestion();
   renderTrajectoireDetail(m);
   // Type de mission
@@ -6793,11 +6794,44 @@ function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.d
 // ── TEMPS PRÉVU (chantier "Temps prévu", Phase 1) ──────────────
 // Libellé contextuel selon isRecurring (ponctuelle/récurrente) et selon l'unité du profil
 // (isJours()) — même principe que sasu-remu-label, mais avec 2 axes de bascule au lieu d'un.
-function updateTempsPrevuLabel(isRec) {
-  const lbl=document.getElementById('m-temps-prevu-label');
-  if(!lbl) return;
-  const unit=isJours()?'(j)':'(h)';
-  lbl.textContent=(isRec?'Temps prévu chaque mois ':`Temps prévu pour ${tVocabMasculin()?'ce':'cette'} ${tVocab('item').toLowerCase()} `)+unit;
+// Étendue (chantier "Temps prévu", correctif récurrentes) : pour une récurrente, le champ de
+// saisie manuelle disparaît — remplacé par un affichage lecture seule dérivé de "Temps planifié /
+// semaine" (chargeEstimee), puisqu'un contrat sans date de fin n'a jamais de total à saisir,
+// seulement un rythme. Pour une ponctuelle, comportement Phase 1 inchangé (label + saisie manuelle).
+function updateTempsPrevuZone(isRec) {
+  const zone=document.getElementById('m-temps-prevu-zone');
+  const divider=document.getElementById('m-temps-prevu-divider');
+  const deriveEl=document.getElementById('m-charge-tempsprevu-derive');
+  const noteEl=document.getElementById('m-charge-note');
+  if(isRec){
+    if(zone) zone.style.display='none';
+    if(divider) divider.style.display='none';
+    if(noteEl) noteEl.textContent='Sert à organiser votre agenda et votre capacité — et sert aussi de temps prévu pour comparer à votre temps réel chaque mois.';
+    if(deriveEl){
+      const chargeRaw=parseFloat(document.getElementById('m-charge').value)||0;
+      const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
+      const heuresMois=computeTempsPrevuRecurrente(chargeRaw, chargeUnit);
+      if(heuresMois!=null&&heuresMois>0){
+        const _hjTP=DATA.params.heuresParJour||7;
+        const val=isJours()?heuresMois/_hjTP:heuresMois;
+        const unit=isJours()?'j':'h';
+        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit}/mois pour le calcul de rentabilité (prévu vs réel).`;
+        deriveEl.style.display='';
+      } else {
+        deriveEl.textContent=''; deriveEl.style.display='none';
+      }
+    }
+  } else {
+    if(zone) zone.style.display='';
+    if(divider) divider.style.display='';
+    if(noteEl) noteEl.textContent='Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.';
+    if(deriveEl){ deriveEl.textContent=''; deriveEl.style.display='none'; }
+    const lbl=document.getElementById('m-temps-prevu-label');
+    if(lbl){
+      const unit=isJours()?'(j)':'(h)';
+      lbl.textContent=`Temps prévu pour ${tVocabMasculin()?'ce':'cette'} ${tVocab('item').toLowerCase()} `+unit;
+    }
+  }
 }
 // Suggestion en heures : prix ÷ taux horaire minimum cible (toujours en €/h, quel que soit le
 // profil — pertinent aussi en marge_commande, où getTauxHoraireMinCible() sert déjà de repère
@@ -6818,6 +6852,18 @@ function getTempsPrevuSuggestionHeures() {
   const thMin=getTauxHoraireMinCible();
   if(prix<=0||!thMin||thMin<=0) return null;
   return prix/thMin;
+}
+// tempsPrevu (mensuel, en heures) pour une récurrente : dérivé de chargeEstimee/chargeUnit
+// converti en heures/mois — une récurrente est par nature un engagement continu, donc "X h/semaine"
+// se convertit en un total mensuel sans avoir besoin de connaître sa durée (contrairement à une
+// ponctuelle). Repli sur getTempsPrevuSuggestionHeures() (prix ÷ objectif horaire) si chargeEstimee
+// n'est pas renseigné (ex. profil sans le module "estimation", type artisan bâtiment).
+function computeTempsPrevuRecurrente(chargeRaw, chargeUnit) {
+  if(chargeRaw>0){
+    const hSem=toHeuresSem(chargeRaw, chargeUnit);
+    return hSem*(DATA.params.semainesParAn||44)/12;
+  }
+  return getTempsPrevuSuggestionHeures();
 }
 // Ne s'applique que si le champ est encore vide — ne jamais écraser une saisie déjà faite
 // (ou déjà suggérée puis laissée telle quelle, ce qui compte comme "déjà renseigné").
@@ -6893,7 +6939,7 @@ function toggleRecurrenceFields(val) {
   document.getElementById('m-rec-zone').style.display=isRec?'':'none';
   if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
   updateModaleMissionCopy(isRec);
-  updateTempsPrevuLabel(isRec);
+  updateTempsPrevuZone(isRec);
   updateTempsPrevuSuggestion();
 }
 // Copy contextuelle Charge estimée / Sessions — uniquement quand modules.calendrier ET
@@ -6980,9 +7026,13 @@ function saveMission() {
   if(!client){ markInvalid('m-client'); return; }
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
-  const tempsPrevuRaw=parseFloat(document.getElementById('m-temps-prevu').value);
   const _hjSave=DATA.params.heuresParJour||7;
-  const tempsPrevu=isNaN(tempsPrevuRaw)?null:(isJours()?tempsPrevuRaw*_hjSave:tempsPrevuRaw);
+  // Récurrente : tempsPrevu (mensuel) est dérivé de chargeEstimee, plus de saisie manuelle
+  // (correctif "durée illimitée" — un contrat sans fin n'a jamais de total, seulement un rythme).
+  // Ponctuelle : comportement Phase 1 inchangé.
+  const tempsPrevu = isRec
+    ? computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit)
+    : (isNaN(parseFloat(document.getElementById('m-temps-prevu').value))?null:(isJours()?parseFloat(document.getElementById('m-temps-prevu').value)*_hjSave:parseFloat(document.getElementById('m-temps-prevu').value)));
   const sessions = editingSessions.map(s => {
     const o = {debut:s.debut, fin:s.fin||s.debut};
     if (s.heures > 0) { o.heures = s.heures; o.heuresAuto = !!s.heuresAuto; }
@@ -7007,9 +7057,21 @@ function saveMission() {
   // déjà en cours depuis au moins un mois clos voit son tempsPrevu réellement changer de valeur.
   // Un tempsPrevu jusqu'ici jamais renseigné (null→valeur) s'applique immédiatement, sans historique.
   const mExisting=editId?DATA.missions.find(x=>x.id===editId):null;
-  if(mExisting&&obj.isRecurring&&mExisting.isRecurring&&mExisting.tempsPrevu!=null&&obj.tempsPrevu!=null&&obj.tempsPrevu!==mExisting.tempsPrevu&&mExisting.dateDebutRec&&mExisting.dateDebutRec.slice(0,7)<getCurrentMk()){
+  const _tpHistoEligible = mExisting&&obj.isRecurring&&mExisting.isRecurring&&mExisting.tempsPrevu!=null&&obj.tempsPrevu!=null&&obj.tempsPrevu!==mExisting.tempsPrevu&&mExisting.dateDebutRec&&mExisting.dateDebutRec.slice(0,7)<getCurrentMk();
+  if(_tpHistoEligible){
     _pendingTempsPrevuSave={editId, obj, oldTempsPrevu:mExisting.tempsPrevu, historique:mExisting.tempsPrevuHistorique||[], dateDebutRec:mExisting.dateDebutRec};
-    document.getElementById('modal-temps-prevu-choice').classList.remove('hidden');
+    // tempsPrevu étant désormais dérivé (correctif récurrentes), il peut changer sans que
+    // l'utilisatrice ait touché à une notion de temps (ex. simple correction du prix, sur le repli
+    // prix ÷ objectif horaire). On n'interrompt avec la popup de choix que si c'est bien
+    // chargeEstimee qui a changé — un vrai choix délibéré sur le temps. Sinon, on historise quand
+    // même (silencieusement, "à partir du mois prochain" par défaut) pour ne jamais perdre
+    // l'intégrité du calcul cumulé (Phase 2bis) sans pour autant déranger l'utilisatrice.
+    const _chargeChanged = chargeRaw!=null && chargeRaw!==mExisting.chargeEstimee;
+    if(_chargeChanged){
+      document.getElementById('modal-temps-prevu-choice').classList.remove('hidden');
+    } else {
+      confirmTempsPrevuChoice('prochain');
+    }
     return;
   }
   finalizeSaveMission(editId, obj);
@@ -10211,7 +10273,8 @@ function renderSimOutputs(r) {
     heures > 0 ? ['Temps estimé', `${fmt(heures,1)} h`] : null,
     !_isJ && thBrut !== null ? ['TH brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(Math.round(thBrut),0)}/h</span><span class="ts"> avant URSSAF</span>`] : null,
     _isJ && tjmBrut !== null ? ['TJM brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(tjmBrut,0)}/j</span><span class="ts"> avant URSSAF</span>`] : null,
-    thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['Net / heure estimé', `<strong>${fmtE(thNet,0)}/h</strong><span class="ts"> dans ma poche</span>`] : null,
+    _isJ && thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['TJM net estimé', `<strong>${fmtE(Math.round(thNet*_hj),0)}/j</strong><span class="ts"> dans ma poche</span>`] : null,
+    !_isJ && thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['Net / heure estimé', `<strong>${fmtE(thNet,0)}/h</strong><span class="ts"> dans ma poche</span>`] : null,
     thCible > 0 ? (_isJ
       ? ['TJM cible (brut)', `${fmtE(Math.round(thCible*_hj),0)}/j · confort ${fmtE(Math.round(thCible*_hj*1.1),0)}/j`]
       : ['TH cible (brut)', `${fmtE(thCible,0)}/h · confort ${fmtE(Math.round(thCible*1.1),0)}/h`]) : null,
