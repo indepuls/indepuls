@@ -909,6 +909,16 @@ Faustine a signalé une perte totale des données de son mari : compte configur�
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
 `indepuls_freelance.html` et `indepuls_artisan.html` (archives) ont été supprimés (2026-07, voir "Nettoyage archives Freelance/Artisan" plus bas). Tout bug ou feature va dans `indepuls.html` + `shared/core/` uniquement.
 
+### FIX — Écouteur `resize` global réinitialisait le Simulateur à chaque scroll mobile (2026-07)
+
+Faustine a signalé que "Calculer un tarif" repassait tout seul sur "Vérifier un prix" dès qu'elle descendait la page sur mobile pour voir le résultat (comportement identique mais plus rare sur ordinateur).
+
+**Cause racine, sans rapport avec le Simulateur lui-même** : `window.addEventListener('resize', ...)` (fin de fichier, juste après `DOMContentLoaded`) redessinait `renderPage(currentPage)` 200ms après **tout** événement `resize`. Or sur mobile, faire défiler la page replie/déplie souvent la barre d'adresse du navigateur — ce qui change la **hauteur** de la fenêtre et déclenche un `resize`, sans qu'il y ait de vrai redimensionnement. `renderPage()`'s `case 'simulateur'` réinitialise systématiquement `_simMode='verifier'` et `_simUserFields=null` à chaque appel (comportement voulu pour une vraie navigation vers la page, pas pour un simple redessin) — d'où la perte silencieuse de la saisie en cours.
+
+**Fix** : l'écouteur ne déclenche plus le redessin que si `window.innerWidth` a réellement changé (comparé à la dernière valeur connue) — un changement de hauteur seule (barre d'adresse mobile) est ignoré, un vrai redimensionnement/rotation d'écran (changement de largeur) continue de fonctionner normalement. Vérifié : `dispatchEvent(new Event('resize'))` à largeur inchangée → `_simMode` préservé ; après un vrai changement de largeur (`resize_window` à 400px puis resize) → redessin déclenché comme avant. 277/277 tests toujours au vert (comportement non couvert par la suite existante, vérifié uniquement en navigateur).
+
+**Point d'attention pour le futur** : cet écouteur redessine `currentPage` en entier — toute page qui ajouterait un état transitoire non persisté (comme `_simMode`/`_simUserFields` du Simulateur) dans son `case` de `renderPage()` serait exposée au même risque si elle est affichée pendant un vrai redimensionnement de largeur. À garder en tête plutôt qu'à corriger préventivement partout.
+
 ### CHANGEMENT — "Ma trajectoire annuelle" : projection "meilleur mois" rendue réaliste, pas juste motivante (2026-07)
 
 Faustine a demandé d'où sortait le chiffre "En reproduisant mon meilleur mois : X€ de CA sur l'année" — en creusant, elle a fait remarquer que la formule (`bestMonth.brut × 12`) suppose implicitement qu'on peut aussi "remplacer" les mois déjà écoulés par le meilleur mois, ce qui n'a pas de sens : on ne rattrape jamais un mois déjà passé. Sa proposition — CA déjà réalisé + meilleur mois répété seulement sur les mois restants — jugée plus juste, actée telle quelle (moins motivante mais honnête, cohérent avec le principe déjà en place ailleurs dans l'app).
