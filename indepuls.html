@@ -10441,7 +10441,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const _lastPage = localStorage.getItem('indepuls_last_page');
   if (_lastPage && document.getElementById('page-'+_lastPage)) navigate(_lastPage);
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200); });
+  let _lastResizeWidth = window.innerWidth;
+  // Ne réagir qu'à un vrai changement de largeur (rotation d'écran, redimensionnement de fenêtre) —
+  // pas à un simple changement de hauteur, qui survient sur mobile à chaque scroll quand la barre
+  // d'adresse se replie/déplie. Sinon renderPage(currentPage) redessine la page en cours à chaque
+  // scroll, ce qui réinitialise silencieusement l'état transitoire de certaines pages (ex. le
+  // Simulateur : renderPage('simulateur') remet _simMode à 'verifier' et efface _simUserFields à
+  // chaque appel — bug remonté en bêta, "Calculer un tarif" repassait sur "Vérifier un prix" dès
+  // qu'on scrollait pour voir le résultat, 2026-07).
+  window.addEventListener('resize', () => {
+    if (window.innerWidth === _lastResizeWidth) return;
+    _lastResizeWidth = window.innerWidth;
+    clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200);
+  });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState==='visible') checkTimerGapOnResume(); });
   window.addEventListener('focus', checkTimerGapOnResume);
 });
