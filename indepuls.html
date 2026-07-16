@@ -11120,6 +11120,26 @@ document.addEventListener('keydown', function(e) {
         if(msg){ msg.style.color='#e55'; msg.textContent = e.message||'Erreur, réessayez.'; }
       }
     };
+    window.authSetNewPassword = async function() {
+      var pwd = (document.getElementById('auth-recovery-pwd')?.value||'');
+      var msg = document.getElementById('auth-recovery-msg');
+      var btn = document.getElementById('auth-recovery-btn');
+      if (pwd.length < 8) { if(msg){ msg.style.color='#e55'; msg.textContent='Le mot de passe doit faire au moins 8 caractères.'; } return; }
+      if(btn){ btn.disabled=true; btn.textContent='Enregistrement…'; }
+      if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Enregistrement en cours…'; }
+      try {
+        var res = await sb.auth.updateUser({ password: pwd });
+        if(res.error) throw res.error;
+        if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
+        _isRecoveryFlow = false;
+        if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Mot de passe mis à jour ! Connexion…'; }
+        var user = res.data?.user || _recoverySession?.user;
+        setTimeout(function(){ _enterApp(user); }, 600);
+      } catch(e) {
+        if(msg){ msg.style.color='#e55'; msg.textContent = e.message||'Erreur, réessayez.'; }
+        if(btn){ btn.disabled=false; btn.textContent='Enregistrer le nouveau mot de passe'; }
+      }
+    };
     window.authLoadDemo = function() {
       hideOverlay();
       if (typeof loadDemoWithCurrentParams === 'function') {
@@ -11167,10 +11187,39 @@ document.addEventListener('keydown', function(e) {
     };
   }
 
+  function showRecoveryForm() {
+    var overlay = document.getElementById('auth-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+    overlay.innerHTML = `
+      <div style="text-align:center;font-family:'Lato',system-ui,sans-serif;max-width:320px;padding:0 16px">
+        <div style="font-size:13px;color:#9a9aaa;margin-bottom:24px">Choisissez un nouveau mot de passe pour votre compte Indépuls</div>
+        <div style="position:relative;margin-bottom:16px">
+          <input type="password" id="auth-recovery-pwd" placeholder="Nouveau mot de passe (8 caractères min.)"
+            style="width:100%;box-sizing:border-box;padding:12px 40px 12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:#fff"
+            onkeydown="if(event.key==='Enter')authSetNewPassword()">
+          <button type="button" onclick="togglePwdVisibility('auth-recovery-pwd',this)" aria-label="Afficher le mot de passe"
+            style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:#9a9aaa;font-size:15px;line-height:1;font-family:inherit">👁</button>
+        </div>
+        <button id="auth-recovery-btn" onclick="authSetNewPassword()"
+          style="width:100%;background:#5B2C4A;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
+          Enregistrer le nouveau mot de passe
+        </button>
+        <div id="auth-recovery-msg" style="margin-top:14px;font-size:13px;color:#e55;min-height:18px"></div>
+      </div>`;
+  }
+
   // ── MACHINE D'ÉTAT AUTH ──────────────────────────────────────
   // États : 'init' → 'app' (connecté) | 'login' (formulaire)
-  // Transitions : INITIAL_SESSION / SIGNED_IN / SIGNED_OUT
+  // Transitions : INITIAL_SESSION / SIGNED_IN / SIGNED_OUT / PASSWORD_RECOVERY
   var _authState = 'init';
+  var _recoverySession = null;
+  // Lien de réinitialisation cliqué : Supabase crée une session valide avant même
+  // que l'utilisateur ait choisi un nouveau mot de passe — on le détecte via l'URL
+  // pour ne jamais laisser passer directement dans l'app sur cette session-là,
+  // même si INITIAL_SESSION/SIGNED_IN arrive avant (ou au lieu de) PASSWORD_RECOVERY.
+  var _isRecoveryFlow = /type=recovery/.test(window.location.hash) || /type=recovery/.test(window.location.search);
   // Fallback si le CDN Supabase ne répond pas du tout (>8s depuis le chargement)
   var _cdnFallback = setTimeout(function() {
     if (_authState === 'init') { _authState = 'login'; showLoginForm(); }
@@ -11191,9 +11240,21 @@ document.addEventListener('keydown', function(e) {
     showLoginForm();
   }
 
+  function _enterRecovery(session) {
+    clearTimeout(_cdnFallback);
+    _authState = 'recovery';
+    _recoverySession = session;
+    showRecoveryForm();
+  }
+
   sb.auth.onAuthStateChange(function(event, session) {
     console.log('[AUTH]', event, session ? 'user='+session.user?.email : 'no session');
+    if (event === 'PASSWORD_RECOVERY' || (_isRecoveryFlow && session && _authState !== 'app')) {
+      _enterRecovery(session);
+      return;
+    }
     if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+      if (_authState === 'recovery') return; // reste sur le formulaire tant que le nouveau mot de passe n'est pas enregistré
       if (session) { _enterApp(session.user); }
       else if (_authState !== 'login') { _enterLogin(); }
     }
