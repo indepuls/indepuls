@@ -11019,9 +11019,13 @@ document.addEventListener('keydown', function(e) {
           <input type="email" id="auth-email" placeholder="Adresse email"
             style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff"
             onkeydown="if(event.key==='Enter')document.getElementById('auth-pwd').focus()">
-          <input type="password" id="auth-pwd" placeholder="Mot de passe"
-            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:16px;font-family:inherit;outline:none;background:#fff"
-            onkeydown="if(event.key==='Enter')authLogin()">
+          <div style="position:relative;margin-bottom:16px">
+            <input type="password" id="auth-pwd" placeholder="Mot de passe"
+              style="width:100%;box-sizing:border-box;padding:12px 40px 12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:#fff"
+              onkeydown="if(event.key==='Enter')authLogin()">
+            <button type="button" onclick="togglePwdVisibility('auth-pwd',this)" aria-label="Afficher le mot de passe"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:#9a9aaa;font-size:15px;line-height:1;font-family:inherit">👁</button>
+          </div>
           <button id="auth-login-btn" onclick="authLogin()"
             style="width:100%;background:#5B2C4A;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
             Se connecter
@@ -11047,8 +11051,12 @@ document.addEventListener('keydown', function(e) {
           <div style="font-size:13px;color:#9a9aaa;margin-bottom:24px">Créez votre compte Indépuls</div>
           <input type="email" id="auth-signup-email" placeholder="Adresse email"
             style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff">
-          <input type="password" id="auth-signup-pwd" placeholder="Mot de passe (8 caractères min.)"
-            style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:16px;font-family:inherit;outline:none;background:#fff">
+          <div style="position:relative;margin-bottom:16px">
+            <input type="password" id="auth-signup-pwd" placeholder="Mot de passe (8 caractères min.)"
+              style="width:100%;box-sizing:border-box;padding:12px 40px 12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:#fff">
+            <button type="button" onclick="togglePwdVisibility('auth-signup-pwd',this)" aria-label="Afficher le mot de passe"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:#9a9aaa;font-size:15px;line-height:1;font-family:inherit">👁</button>
+          </div>
           <button id="auth-signup-btn" onclick="authSignUp()"
             style="width:100%;background:#5B2C4A;color:#fff;padding:13px 24px;border-radius:9px;border:none;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .15s">
             Créer mon compte
@@ -11060,6 +11068,13 @@ document.addEventListener('keydown', function(e) {
         </div>
       </div>`;
 
+    window.togglePwdVisibility = function(id, btn) {
+      var el = document.getElementById(id);
+      var show = el.type === 'password';
+      el.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁';
+      btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+    };
     window.authShowSignup = function() {
       document.getElementById('auth-login-panel').style.display = 'none';
       document.getElementById('auth-signup-panel').style.display = '';

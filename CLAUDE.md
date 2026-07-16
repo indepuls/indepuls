@@ -736,6 +736,14 @@ Faustine a demandé d'ajouter le TJM net sous/à côté du TJM brut dans les ré
 - **Ligne "Net / heure estimé" scindée en deux branches** dans `renderSimOutputs()` (~ligne 10214) : profils jours → nouvelle ligne "TJM net estimé" en `€/j` (`Math.round(thNet*_hj)`, même conversion que la ligne "TJM brut estimé" juste au-dessus) ; profils heures → comportement inchangé ("Net / heure estimé" en `€/h`). Pas de nouveau calcul : `thNet` (net/heure) était déjà calculé plus haut dans `calcRentabilite()`, seule la conversion d'affichage manquait pour les profils jours.
 - **Vérifié en navigateur** (démo, profil basculé en `modules.uniteTemps='jours'` + `objectif='tjm'` via Paramètres → Mes objectifs) : CA 17947,04€/150h → "TJM brut estimé 838€/j" suivi de "TJM net estimé 595€/j" (cohérent : net/heure 85€/h × 7h/jour) ; rebasculé en `'heures'` → ligne redevient "Net / heure estimé 85€/h" comme avant, aucune régression. 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js` touchée, `indepuls.html` seul modifié).
 
+### FEATURE — Bouton "afficher/masquer" sur les champs mot de passe (connexion/inscription) (2026-07-15)
+
+Faustine a remarqué que Chrome n'affichait pas son icône native de révélation du mot de passe sur les champs de connexion — ce n'était pas un blocage navigateur mais l'absence pure et simple d'un bouton dédié côté Indépuls (`<input type="password">` nu, sans contrôle).
+
+- **`window.togglePwdVisibility(id, btn)`** (nouvelle fonction, à côté de `window.authShowSignup`) : bascule `input.type` entre `password`/`text`, change l'icône du bouton (👁 ↔ 🙈) et son `aria-label` (`Afficher`/`Masquer le mot de passe`).
+- **Bouton œil ajouté aux deux champs** (`auth-pwd` connexion, `auth-signup-pwd` inscription) : chaque input est désormais dans un `<div style="position:relative">`, bouton positionné en absolu à droite (`padding-right:40px` sur l'input pour ne pas chevaucher le texte tapé).
+- **Vérifié en navigateur** : saisie d'un mot de passe test → champ masqué par défaut (`type="password"`) ; clic sur le bouton → texte affiché en clair (`type="text"`, valeur confirmée), icône passée à 🙈, `aria-label` mis à jour. 277 assertions (7 suites) toujours au vert (aucune fonction de `calculs.js` touchée, `indepuls.html` seul modifié).
+
 ### FEATURE — Clarifier que le TJM/TH minimum du Calculateur d'objectifs est brut (2026-07)
 
 Faustine (challengée par son mari) ne savait plus toujours répondre si le "TJM minimum"/"Taux horaire minimum" affiché dans `renderObjectifsResult()` (Paramètres → Mes objectifs) était brut ou net. Vérifié : **c'est bien du brut** — `thMin`/`_tjmMin` dérivent de `caMens` (CA HT à facturer, déjà grossi des charges et impôts via `r=1-getTauxChargesPresta()-getImpotsTaux()`), jamais du net.
