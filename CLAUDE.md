@@ -956,6 +956,19 @@ Faustine a repéré (capture d'écran, mission récurrente "Groupe Horizon" en m
 
 **Portée** : uniquement `getExampleData()` (données fictives affichées en mode démo, jamais persistées). Aucune interaction avec `loadFromCloud`/`syncToCloud`/le compte d'un vrai utilisateur — vérifié explicitement suite à la vigilance demandée par Faustine sur le bug cloud précédent.
 
+### Temps prévu — programme collectif dérivé de Création/Animation/Suivi (2026-07-16)
+
+Faustine a repéré le même type d'incohérence sur la mission démo "Programme collectif" (`ex-collectif`) : `Création(8h) + Animation(12h) + Suivi(6h) = 26h` affiché, mais `tempsPrevu:24` codé en dur sans lien. Elle a proposé de dériver `tempsPrevu` de ce détail, comme pour les récurrentes/calendrier.
+
+**Contrainte découverte avant d'implémenter** : contrairement aux sessions calendrier, Création/Animation/Suivi ne sont **pas** une estimation — `getMissionHeures(DATA, m)` (`shared/core/calculs.js:548-553`) les additionne directement au temps **réel** (`chrono`) pour les missions `typeMission==='collectif'`. Une dérivation totale automatique (`tempsPrevu = somme`) aurait rendu le réel structurellement toujours ≥ prévu dès la création de la mission — le badge trajectoire n'aurait plus jamais pu afficher 🟢 pour un collectif, cassant le signal prévu/réel construit en Phases 1 à 3. Choix validé avec Faustine : **pré-remplissage éditable**, pas dérivation totale (même principe que la suggestion prix→TH déjà existante sur le champ manuel).
+
+**Fix** (`indepuls.html`) :
+- `updateCollectifTemps()` : si `#m-temps-prevu` est encore vide, le pré-remplit avec `tempsCreation+tempsAnimation+tempsSupport` (converti en jours si `isJours()`) dès que ces 3 champs changent. Ne jamais écraser une valeur déjà saisie (même règle que `updateTempsPrevuSuggestion`).
+- Donnée démo `ex-collectif` : `tempsPrevu:24` → `tempsPrevu:26` (cohérent avec la somme).
+- Copy ajoutée dans `#m-collectif-zone` : précise que ces heures comptent déjà comme temps réel et que le chrono (bouton ▶ liste missions) ajoute du temps par-dessus, sans catégorisation — point de confusion signalé par Faustine en testant ("je n'avais pas compris que dans cet encadré c'était du temps réel"). `commitTimer()`/`startTimer()` n'ont pas de notion de catégorie collectif : tout chrono/temps manuel s'ajoute globalement, quel que soit `typeMission` — comportement inchangé, seulement mieux documenté à l'écran.
+
+**Vérifié** : 277/277 tests toujours au vert. En navigateur : nouvelle mission collective → champ Temps prévu vide → saisie 8/12/6 → pré-rempli à 26 automatiquement ; valeur déjà saisie manuellement (ex. 30) jamais écrasée par une modification ultérieure des 3 champs ; édition de `ex-collectif` (démo) → champ affiche bien 26, cohérent avec le total.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
