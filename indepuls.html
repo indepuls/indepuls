@@ -7776,14 +7776,19 @@ function renderMissionsSummary(all) {
         ${card('🎯','Taux de transformation',txT+' %',okM+' accepté'+(_masc?'':'e')+(okM>1?'s':'')+' sur '+totM+' '+(totM>1?_itemsLow:_itemLow),'')}
         ${card('📭','Pertes sèches',fmt(pS,1)+' h','sur '+_itemsLow+' refusé'+(_masc?'s':'es'),pS>5?'var(--warn)':'')}
       </div>
-      ${(_hF>0||_hI>0)?`<div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">⏱ Répartition du temps travaillé</div><canvas id="chart-temps" style="width:100%" height="70"></canvas></div>`:''}
       <div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">🏆 Top clients & offres</div></div>
       <div class="g2" style="gap:12px">
         <div id="msn-top-clients">${rentabClientsBody()}</div>
         <div id="msn-top-cats">${rentabCatBody()}</div>
       </div>
-      <div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">📐 Ma précision d'estimation</div><div id="msn-precision-estimation">${precisionEstimationBody()}</div></div>
-      ${(()=>{const src=wSourceAcq(actives,tVocab('item').toLowerCase()),ref=wMotifsRefus();return(src||ref)?`<div style="display:flex;flex-wrap:wrap;gap:24px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">${src}${ref}</div>`:''})()}
+      ${(()=>{
+        const temps=(_hF>0||_hI>0)?`<div><div class="card-title" style="margin-bottom:10px;font-size:13px">⏱ Répartition du temps travaillé</div><canvas id="chart-temps" style="width:100%" height="70"></canvas></div>`:'';
+        const ref=wMotifsRefus();
+        const src=wSourceAcq(actives,tVocab('item').toLowerCase());
+        const precision=`<div><div class="card-title" style="margin-bottom:10px;font-size:13px">📐 Ma précision d'estimation</div><div id="msn-precision-estimation">${precisionEstimationBody()}</div></div>`;
+        const items=[temps,ref,src,precision].filter(Boolean);
+        return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px;align-items:start">${items.join('')}</div>`;
+      })()}
     </div>
   </div>`;
 }
@@ -9446,15 +9451,25 @@ function getSourceAcqStats(missions) {
 function wSourceAcq(actives, noun) {
   const {entries,total}=getSourceAcqStats(actives);
   if(!entries.length) return '';
-  const cx=70,cy=70,R=50; let angle=-90;
-  const slices=entries.map(([src,val])=>{
-    const span=(val.n/total)*360;
-    const [x1,y1]=polarToCartesian(cx,cy,R,angle); angle+=span;
-    const [x2,y2]=polarToCartesian(cx,cy,R,angle);
-    const large=span>180?1:0, color=SRC_COLORS[src]||'#9E9E9E';
-    return `<path d="M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${color}" stroke="var(--card)" stroke-width="2"/>`;
-  }).join('');
-  const svg=`<svg width="140" height="140" viewBox="0 0 140 140" style="flex-shrink:0">${slices}<circle cx="${cx}" cy="${cy}" r="28" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:13px;font-weight:700;fill:var(--text)">${total}</text></svg>`;
+  const cx=48,cy=48,R=34;
+  // Même correctif que _buildPieChart : 1 seule source = arc dégénéré, cercle plein direct.
+  // Taille réduite (96px, avant 140px) pour que pie + légende tiennent côte à côte dans une
+  // colonne de grille 4 colonnes (~250-260px) sans faire passer la légende à la ligne.
+  let svg;
+  if(entries.length===1){
+    const color=SRC_COLORS[entries[0][0]]||'#9E9E9E';
+    svg=`<svg width="96" height="96" viewBox="0 0 96 96" style="flex-shrink:0"><circle cx="${cx}" cy="${cy}" r="${R}" fill="${color}"/><circle cx="${cx}" cy="${cy}" r="19" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:11px;font-weight:700;fill:var(--text)">${total}</text></svg>`;
+  } else {
+    let angle=-90;
+    const slices=entries.map(([src,val])=>{
+      const span=(val.n/total)*360;
+      const [x1,y1]=polarToCartesian(cx,cy,R,angle); angle+=span;
+      const [x2,y2]=polarToCartesian(cx,cy,R,angle);
+      const large=span>180?1:0, color=SRC_COLORS[src]||'#9E9E9E';
+      return `<path d="M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${color}" stroke="var(--card)" stroke-width="2"/>`;
+    }).join('');
+    svg=`<svg width="96" height="96" viewBox="0 0 96 96" style="flex-shrink:0">${slices}<circle cx="${cx}" cy="${cy}" r="19" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:11px;font-weight:700;fill:var(--text)">${total}</text></svg>`;
+  }
   const legend=entries.map(([src,val])=>{
     const color=SRC_COLORS[src]||'#9E9E9E', lbl=SRC_LABELS[src]||src;
     const pct=Math.round(val.n/total*100);
@@ -9464,9 +9479,9 @@ function wSourceAcq(actives, noun) {
   const top=entries[0], topLbl=(SRC_LABELS[top[0]]||top[0]).toLowerCase(), topPct=Math.round(top[1].n/total*100);
   const _masc=tVocabMasculin();
   let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de mes ${_masc?'nouveaux':'nouvelles'} ${noun}s.`:`Ma principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
-  return `<div style="margin-top:16px;border-top:1px solid var(--brd);padding-top:14px">
+  return `<div>
     <div class="card-title" style="font-size:13px;margin-bottom:12px">📡 Sources d'acquisition</div>
-    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:140px;padding-top:4px">${legend}</div></div>
+    <div style="display:flex;gap:10px;align-items:flex-start">${svg}<div style="flex:1;min-width:0;padding-top:4px">${legend}</div></div>
     <div style="margin-top:10px;font-size:12px;color:var(--tl);line-height:1.6;background:var(--bg);padding:10px 12px;border-radius:8px">${phrase}</div>
   </div>`;
 }
@@ -9477,7 +9492,16 @@ const REF_MOTIF_COLORS={'prix':'#e53935','concurrent':'#f57c00','delai':'#fbc02d
 function _buildPieChart(entries, colorMap) {
   const total=entries.reduce((s,[,v])=>s+v,0);
   if(!total) return {svg:''};
-  const cx=70,cy=70,R=50; let angle=-90;
+  const cx=48,cy=48,R=34;
+  // Cas 1 seule entrée (100%) : l'arc SVG M→L→A→Z dégénère quand angle de départ = angle
+  // d'arrivée - 360° (point de départ ≈ point d'arrivée), le path ne se dessine pas dans
+  // la plupart des moteurs de rendu. Cercle plein direct à la place, pas d'arc.
+  // Taille réduite (96px, avant 120px) pour tenir dans une colonne de grille 4 colonnes.
+  if(entries.length===1){
+    const color=colorMap[entries[0][0]]||'#9E9E9E';
+    return {svg:`<svg width="96" height="96" viewBox="0 0 96 96" style="flex-shrink:0"><circle cx="${cx}" cy="${cy}" r="${R}" fill="${color}"/><circle cx="${cx}" cy="${cy}" r="19" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:11px;font-weight:700;fill:var(--text)">${total}</text></svg>`};
+  }
+  let angle=-90;
   const slices=entries.map(([key,val])=>{
     const span=(val/total)*360;
     const [x1,y1]=polarToCartesian(cx,cy,R,angle); angle+=span;
@@ -9485,7 +9509,7 @@ function _buildPieChart(entries, colorMap) {
     const large=span>180?1:0, color=colorMap[key]||'#9E9E9E';
     return `<path d="M ${cx} ${cy} L ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${color}" stroke="var(--card)" stroke-width="2"/>`;
   }).join('');
-  return {svg:`<svg width="120" height="120" viewBox="0 0 140 140" style="flex-shrink:0">${slices}<circle cx="${cx}" cy="${cy}" r="28" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:13px;font-weight:700;fill:var(--text)">${total}</text></svg>`};
+  return {svg:`<svg width="96" height="96" viewBox="0 0 96 96" style="flex-shrink:0">${slices}<circle cx="${cx}" cy="${cy}" r="19" fill="var(--card)"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:11px;font-weight:700;fill:var(--text)">${total}</text></svg>`};
 }
 
 function wMotifsRefus() {
@@ -9505,9 +9529,9 @@ function wMotifsRefus() {
   const phrase=total===1?`1 devis refusé renseigné — motif : <strong>${topLbl}</strong>.`
     :top[1]/total>=0.5?`Le motif principal de refus est <strong>${topLbl}</strong> (${Math.round(top[1]/total*100)} % des cas).`
     :`${total} refus renseignés — principal motif : <strong>${topLbl}</strong>.`;
-  return `<div style="flex:1;min-width:260px">
+  return `<div>
     <div class="card-title" style="font-size:13px;margin-bottom:12px">❌ Motifs de refus</div>
-    <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">${svg}<div style="flex:1;min-width:140px;padding-top:4px">${legend}</div></div>
+    <div style="display:flex;gap:10px;align-items:flex-start">${svg}<div style="flex:1;min-width:0;padding-top:4px">${legend}</div></div>
     <div style="margin-top:10px;font-size:12px;color:var(--tl);line-height:1.6;background:var(--bg);padding:10px 12px;border-radius:8px">${phrase}</div>
   </div>`;
 }
