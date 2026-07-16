@@ -9819,6 +9819,11 @@ async function confirmReset() {
   DATA = getDefaultData();
   DATA._needsProfilePick = true;
   closeModal('modal-reset');
+  // Le reset ne recharge pas la page (cf. ci-dessus) : currentParamTab et les classes
+  // .active des onglets Paramètres restent tels quels si l'utilisateur avait consulté un
+  // autre onglet avant de réinitialiser (ex. "Personnalisation" pour changer de thème) —
+  // remis explicitement sur "Mon activité" pour un nouvel espace de travail.
+  switchParamTab('activite', document.querySelector('#page-params [onclick*="activite"]'));
   document.body.setAttribute('data-theme', DATA.theme || 'obm');
   renderAll();
   applyVocabUI();
