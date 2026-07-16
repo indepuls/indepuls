@@ -11047,6 +11047,31 @@ document.addEventListener('keydown', function(e) {
     btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
   };
 
+  // Même raison que togglePwdVisibility ci-dessus : showRecoveryForm peut être le tout
+  // premier écran affiché (lien de récupération), sans jamais passer par showLoginForm —
+  // cette fonction doit donc aussi exister dès le départ, pas seulement une fois
+  // showLoginForm() déjà exécuté au moins une fois.
+  window.authSetNewPassword = async function() {
+    var pwd = (document.getElementById('auth-recovery-pwd')?.value||'');
+    var msg = document.getElementById('auth-recovery-msg');
+    var btn = document.getElementById('auth-recovery-btn');
+    if (pwd.length < 8) { if(msg){ msg.style.color='#e55'; msg.textContent='Le mot de passe doit faire au moins 8 caractères.'; } return; }
+    if(btn){ btn.disabled=true; btn.textContent='Enregistrement…'; }
+    if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Enregistrement en cours…'; }
+    try {
+      var res = await sb.auth.updateUser({ password: pwd });
+      if(res.error) throw res.error;
+      if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
+      _isRecoveryFlow = false;
+      if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Mot de passe mis à jour ! Connexion…'; }
+      var user = res.data?.user || _recoverySession?.user;
+      setTimeout(function(){ _enterApp(user); }, 600);
+    } catch(e) {
+      if(msg){ msg.style.color='#e55'; msg.textContent = e.message||'Erreur, réessayez.'; }
+      if(btn){ btn.disabled=false; btn.textContent='Enregistrer le nouveau mot de passe'; }
+    }
+  };
+
   function showLoginForm() {
     var overlay = document.getElementById('auth-overlay');
     if (!overlay) return;
@@ -11152,26 +11177,6 @@ document.addEventListener('keydown', function(e) {
         if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Email envoyé ! Vérifiez votre boîte mail.'; }
       } catch(e) {
         if(msg){ msg.style.color='#e55'; msg.textContent = e.message||'Erreur, réessayez.'; }
-      }
-    };
-    window.authSetNewPassword = async function() {
-      var pwd = (document.getElementById('auth-recovery-pwd')?.value||'');
-      var msg = document.getElementById('auth-recovery-msg');
-      var btn = document.getElementById('auth-recovery-btn');
-      if (pwd.length < 8) { if(msg){ msg.style.color='#e55'; msg.textContent='Le mot de passe doit faire au moins 8 caractères.'; } return; }
-      if(btn){ btn.disabled=true; btn.textContent='Enregistrement…'; }
-      if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Enregistrement en cours…'; }
-      try {
-        var res = await sb.auth.updateUser({ password: pwd });
-        if(res.error) throw res.error;
-        if (window.history && history.replaceState) history.replaceState(null, '', window.location.pathname);
-        _isRecoveryFlow = false;
-        if(msg){ msg.style.color='#2a7a2a'; msg.textContent='✅ Mot de passe mis à jour ! Connexion…'; }
-        var user = res.data?.user || _recoverySession?.user;
-        setTimeout(function(){ _enterApp(user); }, 600);
-      } catch(e) {
-        if(msg){ msg.style.color='#e55'; msg.textContent = e.message||'Erreur, réessayez.'; }
-        if(btn){ btn.disabled=false; btn.textContent='Enregistrer le nouveau mot de passe'; }
       }
     };
     window.authLoadDemo = function() {
