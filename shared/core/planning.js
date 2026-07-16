@@ -203,19 +203,19 @@ function resultatHSemaine(methode, cap, charge) {
   const score = scorerRemplissage(pct);
   let diagnostic, conseil;
   if (pct > 100) {
-    diagnostic = `🔴 Votre capacité facturable est dépassée (${pct} %). Risque de surcharge ou d'épuisement à moyen terme.`;
+    diagnostic = `Votre capacité facturable est dépassée (${pct} %). Risque de surcharge ou d'épuisement à moyen terme.`;
     conseil    = "Envisagez de déléguer, d'augmenter vos tarifs ou de refuser les missions les moins rentables.";
   } else if (pct >= 90) {
-    diagnostic = `🟠 Votre planning est presque plein (${pct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
+    diagnostic = `Votre planning est presque plein (${pct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
     conseil    = 'Évitez d\'accepter de nouvelles missions sans ajuster votre organisation ou vos tarifs.';
   } else if (pct >= 75) {
-    diagnostic = '🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
+    diagnostic = 'Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
     conseil    = `${fmt1(libre)} h disponibles par semaine — idéal pour le pilotage et les opportunités ponctuelles.`;
   } else if (pct >= 40) {
-    diagnostic = "🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
+    diagnostic = "Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
     conseil    = `${fmt1(libre)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;
   } else {
-    diagnostic = `🔴 Votre capacité est largement sous-utilisée (${pct} %). Le principal enjeu est actuellement de développer votre activité.`;
+    diagnostic = `Votre capacité est largement sous-utilisée (${pct} %). Le principal enjeu est actuellement de développer votre activité.`;
     conseil    = "Priorité à la prospection. L'objectif de revenu est difficile à atteindre dans ces conditions.";
   }
 
@@ -344,19 +344,19 @@ export function getPilierRemplissage(DATA) {
     let diagnostic, conseil;
     const uniteLibre = isH ? 'h' : `jour${libres > 1 ? 's' : ''}`;
     if (t > 100) {
-      diagnostic = `🔴 Votre capacité facturable est dépassée (${t} %). Risque de surcharge ou d'épuisement à moyen terme.`;
-      conseil    = 'Envisagez de déléguer ou de refuser les chantiers les moins rentables.';
+      diagnostic = `Votre capacité facturable est dépassée (${t} %). Risque de surcharge ou d'épuisement à moyen terme.`;
+      conseil    = 'Envisagez de déléguer ou de refuser les activités les moins rentables.';
     } else if (t >= 90) {
-      diagnostic = `🟠 Votre planning est presque plein (${t} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
-      conseil    = "Évitez d'accepter de nouveaux chantiers sans ajuster votre organisation.";
+      diagnostic = `Votre planning est presque plein (${t} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
+      conseil    = "Évitez d'accepter de nouvelles activités sans ajuster votre organisation.";
     } else if (t >= 75) {
-      diagnostic = '🟢 Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
+      diagnostic = 'Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
       conseil    = libres > 0 ? `${fmt1(libres)} ${uniteLibre} disponibles ce mois — idéal pour le pilotage et les opportunités ponctuelles.` : '';
     } else if (t >= 40) {
-      diagnostic = "🟠 Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
+      diagnostic = "Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
       conseil    = `${fmt1(libres)} ${uniteLibre} encore disponibles ce mois — cherchez à consolider votre portefeuille client.`;
     } else {
-      diagnostic = `🔴 Votre capacité est largement sous-utilisée (${t} %). Le principal enjeu est actuellement de développer votre activité.`;
+      diagnostic = `Votre capacité est largement sous-utilisée (${t} %). Le principal enjeu est actuellement de développer votre activité.`;
       conseil    = "Priorité à la prospection et aux relances. L'objectif de revenu est en danger.";
     }
 

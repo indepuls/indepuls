@@ -5363,10 +5363,10 @@ function wScoreSante(d) {
     const tjmMinP = Math.round(thMinP * hjP);
     const hasParamsP = DATA.params.objectifNetMensuel > 0 && thMinP > 0;
     return `<div class="card">
-      <div class="card-header"><div><div class="card-title">Score de Santé</div><div class="card-sub">Analyse de mon activité en 4 piliers</div></div></div>
+      <div class="card-header"><div><div class="card-title">Santé de l'activité</div><div class="card-sub">Basé sur 4 piliers : rentabilité, remplissage, trésorerie, horizon</div></div></div>
       <div style="text-align:center;padding:28px 16px">
         <div style="font-size:38px;margin-bottom:10px">⏳</div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre ${tVocab('item').toLowerCase()==='chantier'?'premier':'première'} ${tVocab('item').toLowerCase()}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre ${tVocabMasculin()?'premier':'première'} ${tVocab('item').toLowerCase()}</div>
         <div style="font-size:12px;color:var(--tl);line-height:1.7;max-width:360px;margin:0 auto">Le score n'est calculé que lorsque vos données sont suffisantes pour produire une analyse pertinente.</div>
         ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum (brut) estimé d'après mes paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
         <div style="margin-top:16px"><button class="btn btn-acc btn-sm" onclick="navigate('missions')">📋 ${tVocab('createButton')}</button></div>
@@ -5437,29 +5437,29 @@ function wScoreSante(d) {
     vRent=_margePct!==null?_margePct+'%':'—';
     subRent=`seuil recommandé ≥${_seuilMargePct}%`;
     if(_margePct===null){diagRent='○ Aucun coût direct saisi — ajoutez vos coûts sur vos affaires.';advRent='';}
-    else if(sRent>=20){diagRent=`🟢 Marge brute de ${_margePct}% — au-dessus du seuil recommandé (${_seuilMargePct}%).`;advRent='Votre structure de coûts est saine. Continuez à suivre vos coûts directs.';}
-    else if(sRent>=14){diagRent=`🟠 Marge brute de ${_margePct}% — proche du seuil (${_seuilMargePct}%).`;advRent='Optimisez vos coûts d\'achat ou augmentez légèrement vos prix de vente.';}
-    else if(sRent>=7){diagRent=`🔴 Marge brute de ${_margePct}% — en dessous du seuil recommandé (${_seuilMargePct}%).`;advRent='Revoyez votre politique de prix ou réduisez vos coûts directs.';}
-    else{diagRent=`🔴 Marge brute très faible (${_margePct}%) — risque sur la viabilité de l'activité.`;advRent='Action urgente : analysez les affaires les moins rentables et réévaluez vos prix.';}
+    else if(sRent>=20){diagRent=`Marge brute de ${_margePct}% — au-dessus du seuil recommandé (${_seuilMargePct}%).`;advRent='Votre structure de coûts est saine. Continuez à suivre vos coûts directs.';}
+    else if(sRent>=14){diagRent=`Marge brute de ${_margePct}% — proche du seuil (${_seuilMargePct}%).`;advRent='Optimisez vos coûts d\'achat ou augmentez légèrement vos prix de vente.';}
+    else if(sRent>=7){diagRent=`Marge brute de ${_margePct}% — en dessous du seuil recommandé (${_seuilMargePct}%).`;advRent='Revoyez votre politique de prix ou réduisez vos coûts directs.';}
+    else{diagRent=`Marge brute très faible (${_margePct}%) — risque sur la viabilité de l'activité.`;advRent='Action urgente : analysez les affaires les moins rentables et réévaluez vos prix.';}
   } else if(_rentIsChantier){
     vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
     subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
-    if(!hT){diagRent='○ Aucune heure saisie — renseignez vos chantiers.';advRent='';}
+    if(!hT){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
     else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
-    else if(sRent>=20){diagRent=`🟢 TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à mon seuil minimum.`;advRent='Vos chantiers sont rentables. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`🟠 TJM réel proche de la cible — il manque encore ${fmtE(gapTjm,0)}/j.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
-    else if(sRent>=7){diagRent=`🔴 TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos chantiers.';}
-    else{diagRent=`🔴 TJM réel très faible — objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les chantiers les moins rentables.';}
+    else if(sRent>=20){diagRent=`TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à mon seuil minimum.`;advRent='Vos '+tVocab('items').toLowerCase()+' sont rentables. Continuez ainsi.';}
+    else if(sRent>=14){diagRent=`TJM réel proche de la cible — il reste ${fmtE(gapTjm,0)}/j à trouver.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=7){diagRent=`TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos '+tVocab('items').toLowerCase()+'.';}
+    else{diagRent=`TJM réel très faible — objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les '+tVocab('items').toLowerCase()+' les moins rentables.';}
   } else {
     vRent=hT>0?fmtE(thBrut,0)+'/h':'—';
     subRent=thMin>0?`obj. min. ${fmtE(thMin,0)}/h`:'Cible non définie';
     const gapTh=thMin-thBrut;
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos missions.';advRent='';}
     else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
-    else if(sRent>=20){diagRent=`🟢 TH réel supérieur de ${fmtE(-gapTh,0)}/h à mon seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`🟠 TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
-    else if(sRent>=7){diagRent=`🔴 TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
-    else{diagRent=`🔴 TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+    else if(sRent>=20){diagRent=`TH réel supérieur de ${fmtE(-gapTh,0)}/h à mon seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
+    else if(sRent>=14){diagRent=`TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=7){diagRent=`TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos missions les moins rentables.';}
+    else{diagRent=`TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
   }
 
   // ── Comparaison mensuelle (même métrique que l'annuel, jamais mélangée) ──
@@ -5531,23 +5531,23 @@ function wScoreSante(d) {
   let vTreso,subTreso,diagTreso,advTreso;
   if(mtTotalNonEnc===0){
     vTreso='Saine';subTreso='Aucun impayé';
-    diagTreso='🟢 Aucun risque identifié sur ma trésorerie.';advTreso='Continuez à facturer régulièrement.';
+    diagTreso='Aucun risque identifié sur ma trésorerie.';advTreso='Continuez à facturer régulièrement.';
   } else if(mtImpaye===0){
     vTreso=fmtE(mtTotalNonEnc);subTreso='À encaisser';
-    diagTreso=`🟢 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Aucun retard de paiement identifié à ce jour.`;
+    diagTreso=`${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Aucun retard de paiement identifié à ce jour.`;
     advTreso='Les délais de paiement sont respectés. Vérifiez vos règlements à échéance.';
   } else if(sTreso>=18){
     vTreso=fmtE(mtTotalNonEnc);subTreso=`${impayees.length} en attente`;
-    diagTreso=`🟠 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} présentent un retard supérieur à 14 jours.`;
+    diagTreso=`${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} présentent un retard supérieur à 14 jours.`;
     advTreso='Surveillez les règlements à venir. Pas d\'urgence immédiate.';
   } else if(sTreso>=10){
     const ol=impayees[0];
     vTreso=fmtE(mtTotalNonEnc);subTreso=`${impayees.length} facture${impayees.length>1?'s':''} en retard`;
-    diagTreso=`🔴 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} en retard — facture la plus ancienne : ${ol.days} j (${esc(ol.m.client)}).`;
+    diagTreso=`${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} en retard — facture la plus ancienne : ${ol.days} j (${esc(ol.m.client)}).`;
     advTreso=`Relancez ${esc(ol.m.client)} en priorité (${fmtE(ol.reste)} en attente).`;
   } else {
     vTreso=fmtE(mtTotalNonEnc);subTreso='Risque de tension';
-    diagTreso=`🔴 ${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Dont ${fmtE(gravesArr.reduce((s,x)=>s+x.reste,0))} en retard depuis plus de 60 jours.`;
+    diagTreso=`${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>Dont ${fmtE(gravesArr.reduce((s,x)=>s+x.reste,0))} en retard depuis plus de 60 jours.`;
     advTreso='Contactez vos clients dès aujourd\'hui. Envisagez un rappel formel si nécessaire.';
   }
 
@@ -5602,7 +5602,7 @@ function wScoreSante(d) {
     if(_ech.total>0){
       const _couvert=mtTotalNonEnc>=_ech.total;
       let _ligne=`<strong>${fmtE(_ech.total)}</strong> à provisionner${_dateProchaine?` d'ici le ${_dateProchaine}`:''}. J'ai <strong>${fmtE(mtTotalNonEnc)}</strong> dû (facturé, en attente de paiement)`;
-      _ligne+=mtTotalNonEnc>0?(_couvert?' — largement couvert.':` — insuffisant, il manque ${fmtE(_ech.total-mtTotalNonEnc)}.`):'.';
+      _ligne+=mtTotalNonEnc>0?(_couvert?' — largement couvert.':` — il reste ${fmtE(_ech.total-mtTotalNonEnc)} à trouver pour couvrir cette échéance.`):'.';
       if(_argentProbable>0) _ligne+=` + <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur mes ${tVocab('items').toLowerCase()} en cours (non garantis).`;
       diagTreso+=`<br>${_ligne}`;
       _tresoExtraRows.push({lbl:'Prochaines échéances'+(_dateProchaine?` (d'ici le ${_dateProchaine})`:''), val:fmtE(_ech.total), c:_couvert?'var(--ok)':'var(--err)'});
@@ -5657,16 +5657,16 @@ function wScoreSante(d) {
   const subComm=nbDevis>0?`${nbDevis} ${_itemWord} · ${fmtE(pipelineVal)}`:`Aucun${_masc?'':'e'} ${_itemLow} en attente`;
   let diagComm,advComm;
   if(sComm>=25){
-    diagComm='🟢 Mon activité dispose d\'une visibilité commerciale confortable.';
+    diagComm='Mon activité dispose d\'une visibilité commerciale confortable.';
     advComm=nbDevis>0?`${nbDevis} ${_itemWord} en attente (${fmtE(pipelineVal)}) — relancez-${nbDevis===1?(_masc?'le':'la'):'les'} avant qu${nbDevis===1?(_masc?'\'il':'\'elle'):'\'ils'} refroidiss${nbDevis===1?'e':'ent'}.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
   } else if(sComm>=18){
-    diagComm='🟠 Votre activité reste sécurisée mais il est temps d\'alimenter votre prospection.';
+    diagComm='Votre activité reste sécurisée mais il est temps d\'alimenter votre prospection.';
     advComm=nbDevis>0?`Relancez ${nbDevis===1?'votre':'vos'} ${nbDevis} ${_itemWord} en attente et cherchez de nouvelles opportunités.`:`Créez de nouve${_masc?'aux':'lles'} ${_itemsLow} pour renforcer votre visibilité commerciale.`;
   } else if(sComm>=10){
-    diagComm=`🟠 Visibilité commerciale limitée — ${_masc?'un seul':'une seule'} ${_itemLow} ${_masc?'actif':'active'}, aucun${_masc?'':'e'} ${_itemLow} en attente.`;
+    diagComm=`Visibilité commerciale limitée — ${_masc?'un seul':'une seule'} ${_itemLow} ${_masc?'actif':'active'}, aucun${_masc?'':'e'} ${_itemLow} en attente.`;
     advComm='Priorité à la prospection pour sécuriser les prochaines semaines.';
   } else {
-    diagComm='🔴 Aucune activité future identifiée. Priorité à la prospection.';
+    diagComm='Aucune activité future identifiée. Priorité à la prospection.';
     advComm=`Créez au moins ${_masc?'un nouveau':'une nouvelle'} ${_itemLow} cette semaine pour sécuriser votre activité future.`;
   }
   // Bouton "Relancer" — uniquement quand advComm désigne une mission précise et unique
@@ -5711,7 +5711,7 @@ function wScoreSante(d) {
   // de répéter en substance ce que priorite développe déjà (doublon repéré en retour bêta sur
   // la branche score>=85+annualAtRisk, où les deux textes disaient presque la même chose).
   if(score>=85) diagGlobal=annualAtRisk
-    ?'Mon activité tourne très bien aujourd\'hui. Votre CA annuel est à risque.'
+    ?'Votre activité tourne très bien aujourd\'hui. Votre CA annuel est à risque.'
     :'Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
   else if(score>=70) diagGlobal=`Mon activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.`;
   else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.`;
@@ -5727,9 +5727,15 @@ function wScoreSante(d) {
   if(gravesArr.length>0){
     const g=gravesArr[0];
     priorite=`Relancer <strong>${esc(g.m.client)}</strong> — ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
-  } else if(worst.n==='trésorerie'&&moyensArr.length>0){
-    const m0=moyensArr[0];
-    priorite=`Relancer <strong>${esc(m0.m.client)}</strong> — ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
+  } else if(worst.n==='trésorerie'){
+    if(moyensArr.length>0){
+      const m0=moyensArr[0];
+      priorite=`Relancer <strong>${esc(m0.m.client)}</strong> — ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
+    } else if(isSASU()){
+      priorite=`Votre trésorerie prévisionnelle est fragile. Revoyez vos charges ou augmentez votre activité pour la renforcer.`;
+    } else {
+      priorite=`Surveillez vos encaissements à venir pour sécuriser votre trésorerie.`;
+    }
   } else if(worst.n==='horizon'){
     if(attM.length>0){
       const oldest=[...attM].sort((a,b)=>(a.dateFact||'z')<(b.dateFact||'z')?-1:1)[0];
@@ -5737,13 +5743,17 @@ function wScoreSante(d) {
     } else {
       priorite=`Créer <strong>au moins ${tVocabMasculin()?'un nouveau':'une nouvelle'} ${tVocab('item').toLowerCase()} cette semaine</strong> pour sécuriser vos prochaines semaines.`;
     }
-  } else if(worst.n==='remplissage'&&cap>0){
-    const hManq=Math.max(1,Math.round((cap*0.6)-charge));
-    const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
-    const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
-    const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
-    priorite=`Mon remplissage a de la place. Combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
-    prioriteNavPage=_navPageByPilier.remplissage;
+  } else if(worst.n==='remplissage'){
+    if(cap>0){
+      const hManq=Math.max(1,Math.round((cap*0.6)-charge));
+      const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
+      const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
+      const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
+      priorite=`Mon remplissage a de la place. Combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
+    } else {
+      priorite=`Configurez votre temps planifié par semaine dans Paramètres pour activer les recommandations de remplissage.`;
+    }
+    prioriteNavPage=cap>0?_navPageByPilier.remplissage:'params';
   } else if(worst.n==='rentabilité'&&hT>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
@@ -5751,6 +5761,10 @@ function wScoreSante(d) {
       priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
     else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin)
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
+    else
+      priorite=_rentIsMarge
+        ?`Ajoutez vos coûts directs sur vos ${tVocab('items').toLowerCase()} pour calculer votre marge et activer les recommandations de rentabilité.`
+        :`Définissez votre objectif de revenu net dans Paramètres → Mes objectifs pour activer les recommandations de rentabilité.`;
     if(priorite) prioriteNavPage=_navPageByPilier.rentabilité;
   } else if(score>=85){
     if(annualAtRisk){
@@ -8714,7 +8728,7 @@ function renderSasuCard(d) {
   const ecartNet=capaciteNetteEquiv-remuNet;
   const statut=ecart>=0?'ok':ecart>=-500?'warn':'err';
   const accentC=statut==='ok'?'var(--ok)':statut==='warn'?'var(--warn)':'var(--err)';
-  const badgeLbl=statut==='ok'?'🟢 Soutenable':statut==='warn'?'🟠 Fragile':'🔴 Non soutenable';
+  const badgeLbl=statut==='ok'?'Soutenable':statut==='warn'?'Fragile':'Non soutenable';
   const badgeCls=statut==='ok'?'al-ok':statut==='warn'?'al-warn':'al-err';
 
   // Messages dynamiques. Le chiffre net (capaciteNetteEquiv) et l'écart (ecartNet) sont déjà
@@ -8736,8 +8750,8 @@ function renderSasuCard(d) {
     if(statut==='err'){
       const caManquant=Math.round(Math.abs(ecart)*12);
       msgPrincipal=capaciteBrute<=0
-        ?`Vos dépenses dépassent vos encaissements — il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour couvrir vos charges et vous verser une rémunération.`
-        :`Il manque environ <strong>${fmtE(caManquant)} de CA annuel</strong> pour maintenir votre rémunération cible.`;
+        ?`Vos dépenses dépassent vos encaissements — il reste environ <strong>${fmtE(caManquant)} de CA annuel</strong> à trouver pour couvrir vos charges et vous verser une rémunération.`
+        :`Il reste environ <strong>${fmtE(caManquant)} de CA annuel</strong> à trouver pour maintenir votre rémunération cible.`;
     }
     msgProjection=(tresoEstimee>=0&&moisCoussin>0)
       ?`Le pilier Trésorerie reste serein cette année — votre solde actuel absorbe l'écart. Mais à ce rythme, ce coussin s'épuisera dans environ <strong>${moisCoussin} mois</strong> si rien ne change. Trésorerie prévisionnelle fin ${DATA.currentYear} : <strong style="color:${accentC}">${fmtE(tresoEstimee)}</strong>.`
@@ -9205,7 +9219,7 @@ function buildArchInterpretation(curr,ref){
     if(kpiTrend!==null&&kpiTrend>0.1&&hTrend!==null&&hTrend<-0.05)
       return "Votre TJM moyen progresse et vous travaillez moins de jours — excellente rentabilité.";
     if(kpiTrend!==null&&kpiTrend<-0.1)
-      return "Votre TJM moyen baisse — vérifiez la tarification de vos chantiers.";
+      return "Votre TJM moyen baisse — vérifiez la tarification de vos "+tVocab('items').toLowerCase()+".";
     if(kpiTrend!==null&&kpiTrend>0.15)
       return "Votre TJM moyen est en forte hausse — vous valorisez mieux vos journées.";
   } else if(_archObjectif==='marge_commande'){
