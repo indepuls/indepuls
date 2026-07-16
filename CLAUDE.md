@@ -941,6 +941,21 @@ Faustine a signalé une perte totale des données de son mari : compte configur�
 
 **⚠️ Vigilance permanente exigée** — voir la note dédiée en tout début de ce fichier ("Instructions pour Claude Code"), à relire avant toute modification de `loadData()`, `loadFromCloud()`, `syncToCloud()`, `loadDemoWithCurrentParams()` ou `authLoadDemo()`.
 
+### Cohérence des données démo — temps prévu vs sessions/charge estimée (2026-07-16)
+
+Faustine a repéré (capture d'écran, mission récurrente "Groupe Horizon" en mode démo) une incohérence : "Temps planifié / semaine : 5" mais "Temps prévu chaque mois (h) : 9" — deux chiffres sans lien mathématique, alors que `computeTempsPrevuRecurrente` est censé dériver l'un de l'autre. Demande explicite de vérifier la cohérence de **tous** les exemples démo, tout en restant vigilant à ne pas retoucher le mécanisme de sync cloud (cf. fix ci-dessus).
+
+**Trois causes trouvées dans `getExampleData(metier)`**, toutes dans `indepuls.html`, aucune dans `shared/core/` :
+1. `ex-rec` (récurrente) avait un `tempsPrevu:9` codé en dur, jamais recalculé depuis `chargeEstimee:5` — désormais `tempsPrevu:5*44/12` (≈18,33h/mois), cohérent avec la formule réelle de `computeTempsPrevuRecurrente`.
+2. Le helper `sess(mk, start, dur)` qui génère les sessions démo ne renseignait jamais `heures` — désormais calculé via `_joursOuvrésSemaine(d1,d2)*7`, la même formule que pour une vraie session utilisateur.
+3. Les missions ponctuelles démo (`ex-jan` à `ex-att`) avaient un `tempsPrevu` codé en dur, partagé identiquement entre les 4 familles de contenu — alors que seule la famille `chantier` (`artisan_batiment`) a réellement `modules.calendrier` actif, et doit donc dériver `tempsPrevu` de la somme des sessions (règle "zéro donnée inventée" ci-dessus), pas afficher une valeur inventée sans lien avec les sessions.
+
+**Fix** : nouveaux helpers `_isChantierFamily` (= `family === 'chantier'`), `_sessH(id)` (somme des heures de `demoSessions[id]`), `_tp(id, fallback)` (retourne la somme des sessions si famille chantier, sinon la valeur historique). Appliqué à `ex-jan`, `ex-fev`, `ex-mar`, `ex-avr`, `ex-mai`, `ex-juin`, `ex-cours`, `ex-att` — pour ces 3 dernières (`ex-mar`/`ex-avr`/`ex-mai`), `causeDepassement:'estimation_basse'` est également retiré en famille chantier (n'a plus de sens dès que `tempsPrevu` colle exactement aux sessions). Les 3 autres familles (`service`, `fabrication`, `achat_revente`) conservent leurs valeurs historiques inchangées — narrative Phase 3 (dérive 24%) préservée là où elle a du sens.
+
+**Vérifié** : 277/277 tests toujours au vert. En navigateur, pour les 4 familles : égalité stricte `tempsPrevu === somme des heures de sessions` pour chaque ponctuelle chantier (`ex-jan:21=21`, `ex-mar:35=35`, etc.), `ex-rec` (récurrente) reste dérivée de `chargeEstimee` et ignore ses sessions (49h) comme attendu, les 3 familles non-chantier restent identiques à avant (`ex-mar.tempsPrevu:13, causeDepassement:'estimation_basse'`). Badge trajectoire (`getTrajectoireCompacte`) revérifié sur `ex-mar` en famille chantier : 🟢 au lieu d'un signal de dérive fabriqué, cohérent avec un `tempsPrevu` désormais fidèle aux sessions réelles.
+
+**Portée** : uniquement `getExampleData()` (données fictives affichées en mode démo, jamais persistées). Aucune interaction avec `loadFromCloud`/`syncToCloud`/le compte d'un vrai utilisateur — vérifié explicitement suite à la vigilance demandée par Faustine sur le bug cloud précédent.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
