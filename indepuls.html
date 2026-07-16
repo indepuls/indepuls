@@ -1589,7 +1589,6 @@ html,body{overflow-x:hidden;}
         <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
         <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
         <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.</div>
-        <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
       </div>
       <div class="fgroup">
         <label class="flabel">Unité</label>
@@ -1605,6 +1604,7 @@ html,body{overflow-x:hidden;}
       <label class="flabel" id="m-temps-prevu-label">Temps prévu pour cette mission (h)</label>
       <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
     </div>
+    <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
     <div id="m-trajectoire-detail"></div>
     <div id="m-planning-zone">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
