@@ -900,7 +900,7 @@ html,body{overflow-x:hidden;}
         <div class="card-title mb16">Statut & charges sociales</div>
         <div class="frow">
           <div class="fgroup">
-            <label class="flabel">Statut juridique <span class="info-tip" title="Vos taux URSSAF et CFP sont pré-remplis selon le statut choisi. Vous pouvez les ajuster manuellement dans la section ci-dessous si nécessaire.">?</span></label>
+            <label class="flabel">Statut <span class="info-tip" title="Vos taux URSSAF et CFP sont pré-remplis selon le statut choisi. Vous pouvez les ajuster manuellement dans la section ci-dessous si nécessaire.">?</span></label>
             <select id="p-statut" onchange="onStatutChange(this.value)">
               <option value="micro-bnc">Micro libérale (BNC) — professions libérales</option>
               <option value="micro-bic">Micro prestation de service (BIC)</option>
@@ -1328,7 +1328,7 @@ html,body{overflow-x:hidden;}
 
   <!-- PREMIERS PAS -->
   <div class="page" id="page-notice">
-    <div style="max-width:1040px;margin:0 auto;">
+    <div style="max-width:1400px;margin:0 auto;">
 
       <!-- En-tête -->
       <div style="margin-bottom:28px;">
@@ -1368,7 +1368,7 @@ html,body{overflow-x:hidden;}
         <div class="step-num">3</div>
         <div class="step-body" style="flex:1">
           <h3 id="onboarding-step3-title">Créez vos premières missions</h3>
-          <p id="onboarding-step3-desc">Ajoutez un client ou un programme dès la création de votre mission. Suivez votre temps avec le chronomètre intégré.</p>
+          <p id="onboarding-step3-desc">Ajoutez un client dès la création de votre mission. Suivez votre temps avec le chronomètre intégré.</p>
           <span class="step-cta" id="onboarding-cta-1" onclick="navigate('missions')">→ Aller dans Missions</span>
         </div>
       </div>
@@ -1425,6 +1425,11 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       </div>
+      </div>
+
+      <div class="card mt16" style="text-align:center;">
+        <div style="font-size:13px;color:var(--tl)">Vous n'avez pas trouvé la réponse à votre question ?</div>
+        <div style="font-size:13px;margin-top:4px"><a href="mailto:fpatissier.pro@gmail.com" style="color:var(--sec);font-weight:700;text-decoration:none">fpatissier.pro@gmail.com</a></div>
       </div>
 
     </div>
@@ -2205,7 +2210,7 @@ html,body{overflow-x:hidden;}
     <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--brd)">
       <p class="picker-sub" style="margin-bottom:8px;font-weight:600;font-size:14px;color:var(--text)">Votre statut juridique</p>
       <select id="picker-statut-select" class="picker-select">
-        <option value="micro-bnc">Micro-entreprise</option>
+        <option value="micro-bnc">Entreprise individuelle micro</option>
         <option value="sasu">SASU</option>
         <option value="eurl">EURL</option>
       </select>
@@ -2631,7 +2636,7 @@ function applyVocabUI() {
   const ob3title = document.getElementById('onboarding-step3-title');
   if (ob3title) ob3title.textContent = tVocab('firstItem');
   const ob3desc = document.getElementById('onboarding-step3-desc');
-  if (ob3desc) ob3desc.textContent = `Ajoutez un client ou un programme dès la création de votre ${tVocab('item').toLowerCase()}. Suivez votre temps avec le chronomètre intégré.`;
+  if (ob3desc) ob3desc.textContent = `Ajoutez un ${tVocab('client').toLowerCase()} dès la création de votre ${tVocab('item').toLowerCase()}. Suivez votre temps avec le chronomètre intégré.`;
   const obCta1 = document.getElementById('onboarding-cta-1');
   if (obCta1) obCta1.textContent = tVocab('goTo');
   const obCta2 = document.getElementById('onboarding-cta-2');
