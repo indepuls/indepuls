@@ -11020,6 +11020,18 @@ document.addEventListener('keydown', function(e) {
   }, 0);
   // ────────────────────────────────────────────────────────────
 
+  // Définie ici (pas dans showLoginForm) : la page de récupération de mot de passe
+  // (showRecoveryForm) peut s'afficher en tout premier, sans jamais passer par
+  // showLoginForm — le bouton oeil doit exister dès le départ, pas seulement une fois
+  // l'écran de connexion déjà rendu au moins une fois.
+  window.togglePwdVisibility = function(id, btn) {
+    var el = document.getElementById(id);
+    var show = el.type === 'password';
+    el.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁';
+    btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+  };
+
   function showLoginForm() {
     var overlay = document.getElementById('auth-overlay');
     if (!overlay) return;
@@ -11082,13 +11094,6 @@ document.addEventListener('keydown', function(e) {
         </div>
       </div>`;
 
-    window.togglePwdVisibility = function(id, btn) {
-      var el = document.getElementById(id);
-      var show = el.type === 'password';
-      el.type = show ? 'text' : 'password';
-      btn.textContent = show ? '🙈' : '👁';
-      btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
-    };
     window.authShowSignup = function() {
       document.getElementById('auth-login-panel').style.display = 'none';
       document.getElementById('auth-signup-panel').style.display = '';
@@ -11264,7 +11269,8 @@ document.addEventListener('keydown', function(e) {
   sb.auth.onAuthStateChange(function(event, session) {
     console.log('[AUTH]', event, session ? 'user='+session.user?.email : 'no session');
     if (event === 'PASSWORD_RECOVERY' || (_isRecoveryFlow && session && _authState !== 'app')) {
-      _enterRecovery(session);
+      if (_authState !== 'recovery') { _enterRecovery(session); }
+      else { _recoverySession = session; } // session rafraîchie (focus, auto-refresh…) : on garde le formulaire tel quel, sans le reconstruire
       return;
     }
     if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
