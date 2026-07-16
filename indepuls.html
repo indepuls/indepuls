@@ -236,6 +236,9 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 .glossary-item:last-child{border-bottom:none;}
 .gterm{font-weight:700;color:var(--acc);font-size:13px;margin-bottom:2px;}
 .gdef{font-size:12px;color:var(--tl);line-height:1.5;}
+.notice-cols{display:flex;gap:24px;align-items:flex-start;}
+.notice-cols>div{flex:1;min-width:0;}
+@media(max-width:768px){.notice-cols{display:block;}}
 .notice-hero{background:linear-gradient(135deg,var(--pri),var(--acc));color:#fff;border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden;}
 .notice-hero h2{font-family:'Playfair Display',Georgia,serif;font-size:22px;margin-bottom:8px;}
 .notice-hero p{font-size:13px;opacity:.85;line-height:1.6;}
@@ -1325,7 +1328,7 @@ html,body{overflow-x:hidden;}
 
   <!-- PREMIERS PAS -->
   <div class="page" id="page-notice">
-    <div style="max-width:640px;margin:0 auto;">
+    <div style="max-width:1040px;margin:0 auto;">
 
       <!-- En-tête -->
       <div style="margin-bottom:28px;">
@@ -1340,7 +1343,9 @@ html,body{overflow-x:hidden;}
         <div style="font-size:12px;font-weight:600;color:var(--text);padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--brd);display:inline-block">⏱ Configuration estimée : moins de 10 minutes</div>
       </div>
 
-      <!-- Checklist -->
+      <div class="notice-cols">
+      <!-- Colonne gauche : Checklist -->
+      <div>
       <div class="step-card">
         <div class="step-num">1</div>
         <div class="step-body" style="flex:1">
@@ -1394,15 +1399,17 @@ html,body{overflow-x:hidden;}
           <span class="step-cta" onclick="exportData()">→ Exporter une sauvegarde locale</span>
         </div>
       </div>
+      </div>
 
-      <!-- Glossaire repliable -->
-      <div class="card mt16" style="border-top:3px solid var(--sec);">
+      <!-- Colonne droite : Glossaire (déplié par défaut, repliable) -->
+      <div>
+      <div class="card" style="border-top:3px solid var(--sec);">
         <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;"
              onclick="var b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.gloss-arrow').textContent=b.style.display==='none'?'▸':'▾';">
           <div class="card-title" style="font-size:13px;">📖 Glossaire des indicateurs</div>
-          <span class="gloss-arrow ts" style="font-size:15px;">▸</span>
+          <span class="gloss-arrow ts" style="font-size:15px;">▾</span>
         </div>
-        <div style="display:none;margin-top:12px;">
+        <div style="display:block;margin-top:12px;">
           <div class="glossary-item"><div class="gterm">CA brut</div><div class="gdef">Chiffre d'affaires total, avant toutes charges.</div></div>
           <div class="glossary-item"><div class="gterm">Revenu net réel</div><div class="gdef">Ce qu'il vous reste après URSSAF, CFP, impôts estimés et dépenses pro.</div></div>
           <div class="glossary-item"><div class="gterm">Taux horaire réel</div><div class="gdef">Revenu net ÷ heures totales travaillées (missions + gestion). L'indicateur le plus honnête sur votre rentabilité.</div></div>
@@ -1416,6 +1423,8 @@ html,body{overflow-x:hidden;}
           <div class="glossary-item"><div class="gterm">Capacité de travail</div><div class="gdef">Heures disponibles vs charge estimée de vos missions en cours — pour savoir si vous pouvez accepter un nouveau client.</div></div>
           <div class="glossary-item"><div class="gterm">Charge estimée</div><div class="gdef">Temps approximatif qu'une mission représente chaque semaine ou mois. Valeur indicative, pas besoin d'être précis.</div></div>
         </div>
+      </div>
+      </div>
       </div>
 
     </div>
