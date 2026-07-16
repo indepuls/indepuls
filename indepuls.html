@@ -1549,6 +1549,7 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="ts mb4" style="color:var(--tl);font-style:italic">Suivi = réponses aux questions, feedback individuel, relectures, office hours entre les séances.</div>
         <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
+        <div class="ts mt4" style="color:var(--tl)">⏱️ Ces heures comptent déjà comme temps réel de cette mission. Si vous lancez le chrono (bouton ▶ depuis la liste), le temps s'ajoutera par-dessus — inutile de le répartir dans ces 3 champs.</div>
       </div>
     <div id="m-montant-mixte-zone" style="display:none">
       <div class="ts mb8" style="color:var(--tl)">En activité mixte, distinguez la part prestation et la part vente pour suivre vos seuils TVA correctement.</div>
@@ -3216,7 +3217,7 @@ function getExampleData(metier) {
     {id:'ex-avr', sessions:demoSessions['ex-avr']||[], client:c.m4.client,categorie:c.m4.cat,description:c.m4.desc,montantDevis:1600,montantPrestation:1600,montantVente:0,statut:'fact',dateFact:mk1+'-17',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-avr',mk1,15,11)],isManagement:false,isExample:true,encaissements:[{id:'enc-a1',date:mk1+'-17',montant:800,note:'Acompte 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-18'},{id:'enc-a2',date:mk1+'-28',montant:800,note:'Solde 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-28'}],sourceAcquisition:'client_existant',tempsPrevu:_tp('ex-avr',9),...(_isChantierFamily?{}:{causeDepassement:'estimation_basse'}),...(c.m4.quantite!=null?{quantite:c.m4.quantite}:{}),...(c.m4.prixAchat!=null?{prixAchat:c.m4.prixAchat}:{})},
     {id:'ex-mai', sessions:demoSessions['ex-mai']||[], client:c.m5.client,categorie:c.m5.cat,description:c.m5.desc,montantDevis:2000,montantPrestation:2000,montantVente:0,statut:'fact',dateFact:mk1+'-20',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-mai',mk1,18,14)],isManagement:false,isExample:true,encaissements:[{id:'enc-mai1',date:mk1+'-20',montant:2000,note:''}],sourceAcquisition:'client_existant',tempsPrevu:_tp('ex-mai',11),...(_isChantierFamily?{}:{causeDepassement:'estimation_basse'}),...(c.m5.quantite!=null?{quantite:c.m5.quantite}:{}),...(c.m5.prixAchat!=null?{prixAchat:c.m5.prixAchat}:{})},
     {id:'ex-juin',sessions:demoSessions['ex-juin']||[], client:c.m6.client,categorie:c.m6.cat,description:c.m6.desc,montantDevis:1900,montantPrestation:1900,montantVente:0,statut:'fact',dateFact:mk0+'-12',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-juin',mk0,10,9)],isManagement:false,isExample:true,encaissements:[{id:'enc-juin1',date:mk0+'-12',montant:1900,note:''}],sourceAcquisition:'client_existant',tempsPrevu:_tp('ex-juin',8.5),...(c.m6.quantite!=null?{quantite:c.m6.quantite}:{}),...(c.m6.prixAchat!=null?{prixAchat:c.m6.prixAchat}:{})},
-    ...(c.col ? [{id:'ex-collectif',sessions:[],client:c.col.client,categorie:c.col.cat,description:c.col.desc,montantDevis:7200,montantPrestation:7200,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'6 séances de 2h — démarré ce mois',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],typeMission:'collectif',nbParticipants:6,prixParParticipant:1200,tempsCreation:8,tempsAnimation:12,tempsSupport:6,sourceAcquisition:'social',tempsPrevu:24}] : []),
+    ...(c.col ? [{id:'ex-collectif',sessions:[],client:c.col.client,categorie:c.col.cat,description:c.col.desc,montantDevis:7200,montantPrestation:7200,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'6 séances de 2h — démarré ce mois',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],typeMission:'collectif',nbParticipants:6,prixParParticipant:1200,tempsCreation:8,tempsAnimation:12,tempsSupport:6,sourceAcquisition:'social',tempsPrevu:26}] : []),
     {id:'ex-cours',sessions:demoSessions['ex-cours']||[], client:c.mc.client,categorie:c.mc.cat,description:c.mc.desc,montantDevis:650,montantPrestation:650,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-cours',mk0,5,2)],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'social',chargeEstimee:4,chargeUnit:'h_sem',tempsPrevu:_tp('ex-cours',8)},
     {id:'ex-att', sessions:[], client:c.att.client,categorie:c.att.cat,description:c.att.desc,montantDevis:2200,montantPrestation:2200,montantVente:0,statut:'att',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'Devis envoyé le '+mk0+'-22, en attente de validation',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'reseau',chargeEstimee:10,chargeUnit:'h_sem',tempsPrevu:_tp('ex-att',15)},
     {id:'ex-ref', sessions:[], client:c.ref.client,categorie:c.ref.cat,description:c.ref.desc,montantDevis:1400,montantPrestation:1400,montantVente:0,statut:'ref',dateFact:null,heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'Budget insuffisant — concurrent retenu.',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'prospection',motifRefus:'prix'}
@@ -6665,6 +6666,16 @@ function updateCollectifTemps() {
   const t=c+a+s;
   const el=document.getElementById('m-collectif-temps');
   if(el) el.textContent = t>0 ? `Total : ${fmt(t,1)} h` : '';
+  // Pré-remplissage éditable du temps prévu — jamais si déjà renseigné (même règle
+  // que updateTempsPrevuSuggestion). Ces heures comptent déjà comme temps réel
+  // (getMissionHeures), donc les reprendre comme base du prévu est cohérent avec
+  // "zéro donnée inventée" : ce n'est pas un prix converti, c'est la même saisie réelle.
+  const tpChamp=document.getElementById('m-temps-prevu');
+  if(tpChamp && tpChamp.value==='' && t>0){
+    const _hjTP=DATA.params.heuresParJour||7;
+    const val=isJours()?t/_hjTP:t;
+    tpChamp.value=Math.round(val*10)/10;
+  }
 }
 function openMissionModal(id, prefillDate) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
