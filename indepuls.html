@@ -1404,12 +1404,8 @@ html,body{overflow-x:hidden;}
       <!-- Colonne droite : Glossaire (déplié par défaut, repliable) -->
       <div>
       <div class="card" style="border-top:3px solid var(--sec);">
-        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;"
-             onclick="var b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.gloss-arrow').textContent=b.style.display==='none'?'▸':'▾';">
-          <div class="card-title" style="font-size:13px;">📖 Glossaire des indicateurs</div>
-          <span class="gloss-arrow ts" style="font-size:15px;">▾</span>
-        </div>
-        <div style="display:block;margin-top:12px;">
+        <div class="card-title" style="font-size:13px;">📖 Glossaire des indicateurs</div>
+        <div style="margin-top:12px;">
           <div class="glossary-item"><div class="gterm">CA brut</div><div class="gdef">Chiffre d'affaires total, avant toutes charges.</div></div>
           <div class="glossary-item"><div class="gterm">Revenu net réel</div><div class="gdef">Ce qu'il vous reste après URSSAF, CFP, impôts estimés et dépenses pro.</div></div>
           <div class="glossary-item"><div class="gterm">Taux horaire réel</div><div class="gdef">Revenu net ÷ heures totales travaillées (missions + gestion). L'indicateur le plus honnête sur votre rentabilité.</div></div>
