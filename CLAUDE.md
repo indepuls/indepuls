@@ -969,6 +969,20 @@ Faustine a repéré le même type d'incohérence sur la mission démo "Programme
 
 **Vérifié** : 277/277 tests toujours au vert. En navigateur : nouvelle mission collective → champ Temps prévu vide → saisie 8/12/6 → pré-rempli à 26 automatiquement ; valeur déjà saisie manuellement (ex. 30) jamais écrasée par une modification ultérieure des 3 champs ; édition de `ex-collectif` (démo) → champ affiche bien 26, cohérent avec le total.
 
+### Statistiques Missions — regroupement 4 colonnes + fix pie chart 1 seule entrée (2026-07-16)
+
+Faustine a signalé un widget "Motifs de refus" peu lisible (capture d'écran : un "1" flottant sans couleur, légende décalée) et a proposé de regrouper "Répartition du temps travaillé", "Motifs de refus", "Sources d'acquisition" et "Ma précision d'estimation" sur une ligne de 4 colonnes en desktop, juste sous "Top clients & offres", plutôt que dispersés à différents endroits du panneau Statistiques.
+
+**Root cause du bug de lisibilité** : `_buildPieChart()` (et sa variante inline dans `wSourceAcq()`) construit chaque part du camembert via un path SVG arc (`M cx,cy L x1,y1 A r r 0 large,1 x2,y2 Z`). Avec une seule entrée à 100 %, l'angle de départ égale l'angle d'arrivée − 360° : point de départ ≈ point d'arrivée, l'arc dégénère et la plupart des moteurs de rendu SVG ne dessinent rien — d'où l'anneau invisible et le total "1" qui semblait flotter sans lien avec la légende.
+
+**Fix bug** (`indepuls.html`) : `_buildPieChart()` et `wSourceAcq()` dessinent désormais un `<circle>` plein directement quand `entries.length===1`, sans passer par un arc. Plus robuste que corriger l'arc lui-même (ex. angle epsilon) — un cercle plein est visuellement identique à un anneau 100 % un seul segment, sans dépendre du moteur de rendu.
+
+**Réorganisation layout** : les 4 widgets sont retirés de leurs emplacements dispersés (avant "Top clients & offres", après, et dans une rangée flex séparée) et regroupés dans une seule grille CSS `display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))` placée juste après le `.g2` "Top clients & offres". `auto-fit`/`minmax` plutôt que la classe `.g4` existante (4 colonnes fixes) : le nombre de colonnes s'adapte à la largeur ET au nombre de widgets réellement affichés (Répartition et Motifs de refus sont conditionnels — pas de données = pas de widget), sans laisser de colonnes vides comme l'aurait fait une grille à 4 pistes fixes. Testé : 4 colonnes à 1400px, 3 à 800px, 1 en dessous de ~480px (collapse naturel d'`auto-fit`, aucune media query ajoutée).
+
+**Ajustement de taille des camemberts** : à la largeur d'une colonne sur 4 (~255px desktop), le camembert (140px) + sa légende (min-width 140px) ne tenaient plus côte à côte et la légende retombait sous le camembert, gonflant la hauteur de la carte (jusqu'à 375px contre ~100-127px pour les cartes voisines — l'écart de hauteur que "Sources d'acquisition" prend aujourd'hui, avec 5 sources, reste réel mais vient du contenu, plus d'un bug de mise en page). Camemberts réduits à 96px (`_buildPieChart`, `wSourceAcq`) et `flex-wrap` retiré des conteneurs pie+légende — les deux tiennent désormais côte à côte à cette largeur.
+
+**Vérifié** : 277/277 tests toujours au vert. En navigateur : cercle plein coloré (2 `<circle>`, 0 `<path>`) confirmé sur "Motifs de refus" avec 1 seul motif ; grille à 255px×4 colonnes égales à 1400px ; 3 colonnes à 800px ; 1 colonne à 420px ; aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
