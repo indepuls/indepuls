@@ -5755,11 +5755,13 @@ function wScoreSante(d) {
     }
   } else if(worst.n==='remplissage'){
     if(cap>0){
-      // Capacité libre totale (identique au champ "Heures libres" affiché dans la modale du
-      // pilier, pilRemp.details.libre) — pas le delta minimal pour franchir le prochain palier
-      // de score : ce dernier donnait des écarts dérisoires (ex. "1h") sans rapport avec la
-      // marge réellement disponible, jugé trop peu ambitieux par Faustine (2026-07).
-      const hManq=Math.max(1,Math.round(cap-charge));
+      // pilRemp.details.libre = capacité restante à partir d'AUJOURD'HUI jusqu'à la fin de la
+      // période (mois en calendrier, semaine en estimation) — pas cap-charge sur la période
+      // entière : un jour déjà passé sans mission ne peut plus être rempli a posteriori
+      // (retour Faustine, 2026-07 : "il ne me reste pas 77h, la semaine dernière je n'avais
+      // aucun client, ces heures-là sont perdues"). Voir _restantCalendrierMois/
+      // _joursRestantsSemaine dans shared/core/planning.js.
+      const hManq=Math.max(1,Math.round(pilRemp.details?.libre??0));
       // pilRemp.details.unite/methode reflètent le mode réel (estime/additif → h/semaine ;
       // calendrier → h ou j **du mois**) — "par semaine" était affiché même en mode calendrier,
       // où cap/charge sont des totaux mensuels : "Combler 1h/semaine" à côté d'un pilier
@@ -5881,21 +5883,26 @@ function wScoreSante(d) {
   const rempUnite=pilRemp.details?.unite||'h/sem';
   const cRemp=v=>sRemp>=20?'var(--ok)':sRemp>=10?'var(--warn)':'var(--err)';
   const cLibre=capPct<=90?'var(--ok)':capPct<=100?'var(--warn)':'var(--err)';
+  // "Restant(es)" et non "libres" : pilRemp.details.libre est désormais compté à partir
+  // d'aujourd'hui jusqu'à la fin de la période (mois en calendrier, semaine en estimation),
+  // pas cap-charge sur la période entière — cap/charge (capacité/charge totales) restent des
+  // totaux de période complète, gardés pour le taux d'occupation affiché juste en dessous.
+  const libreRestant=pilRemp.details?.libre??0;
   const rowsRemp=cap<=0?[{lbl:'Capacité',val:'Non configurée',c:'var(--tl)'}]
     :rempUnite==='j'?[
       {lbl:'Jours planifiés',    val:fmt(charge,0)+' j',              c:cRemp()},
       {lbl:'Jours ouvrables',    val:fmt(cap,0)+' j',                 c:'var(--tl)'},
-      {lbl:'Jours libres',       val:fmt(Math.max(0,cap-charge),0)+' j', c:cLibre},
+      {lbl:'Jours restants',     val:fmt(libreRestant,0)+' j',        c:cLibre},
       {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
     ]:rempUnite==='h'?[
       {lbl:'Heures planifiées',  val:fmt(charge,1)+' h',              c:cRemp()},
       {lbl:'Capacité du mois',   val:fmt(cap,0)+' h',                 c:'var(--tl)'},
-      {lbl:'Heures libres',      val:fmt(Math.max(0,cap-charge),1)+' h', c:cLibre},
+      {lbl:'Heures restantes',   val:fmt(libreRestant,1)+' h',        c:cLibre},
       {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
     ]:[
       {lbl:pilRemp.methode==='additif'?'Charge combinée (estimée + sessions)':'Charge estimée', val:fmt(charge,1)+' h/sem', c:cRemp()},
       {lbl:'Capacité maximale',  val:fmt(cap,0)+' h/sem',             c:'var(--tl)'},
-      {lbl:'Heures libres',      val:fmt(Math.max(0,cap-charge),1)+' h/sem', c:cLibre},
+      {lbl:'Heures restantes (semaine en cours)', val:fmt(libreRestant,1)+' h', c:cLibre},
       {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
     ];
 

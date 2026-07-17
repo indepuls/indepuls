@@ -184,12 +184,32 @@ export function scorerRemplissage(pct) {
 //
 // Mode 'aucun' ou modePlanning absent → details: null, score neutre 12.
 
+// Jours travaillés restants dans la semaine ISO en cours (aujourd'hui inclus), en supposant
+// une semaine travaillée du lundi au (joursParSemaine)e jour — seule information disponible en
+// mode estimation, qui ne date aucune mission jour par jour (contrairement au calendrier, voir
+// _restantCalendrierMois plus bas). Hypothèse nécessaire, pas une vérité terrain.
+function _joursRestantsSemaine(DATA) {
+  const joursParSemaine = Math.max(1, DATA.params.joursParSemaine || 4);
+  const now = new Date();
+  const isoDow = now.getDay() === 0 ? 7 : now.getDay(); // 1=lundi..7=dimanche
+  let restants = 0;
+  for (let d = isoDow; d <= 7; d++) { if (d <= joursParSemaine) restants++; }
+  return restants;
+}
+
 // Résultat commun aux modes 'estime' et 'additif' — même unité (h/sem), même barème,
 // mêmes textes. Seul le calcul de `charge` en amont diffère entre les deux modes.
-function resultatHSemaine(methode, cap, charge) {
+function resultatHSemaine(DATA, methode, cap, charge) {
   const fmt1 = v => Math.round(v * 10) / 10;
   const pct   = cap > 0 ? Math.round(charge / cap * 100) : 0;
-  const libre = Math.max(0, cap - charge);
+  // Capacité encore disponible CETTE semaine (pas une semaine "type") : un jour déjà passé sans
+  // mission ne peut plus être rempli a posteriori (retour Faustine, 2026-07 : "il ne me reste
+  // pas 77h, la semaine dernière je n'avais aucun client, ces heures-là sont perdues"). Le
+  // score/taux restent basés sur la semaine complète — comparaison stable dans le temps.
+  const libreTotal        = Math.max(0, cap - charge);
+  const joursParSemaine   = Math.max(1, DATA.params.joursParSemaine || 4);
+  const joursRestants     = _joursRestantsSemaine(DATA);
+  const libre = Math.round(libreTotal * (joursRestants / joursParSemaine) * 10) / 10;
 
   if (cap === 0 || charge === 0) {
     return {
@@ -290,6 +310,54 @@ function _getChargeAdditiveMois(DATA) {
   return Math.round(total * 10) / 10;
 }
 
+// Capacité et occupation restantes du mois EN COURS, comptées à partir d'AUJOURD'HUI (inclus)
+// jusqu'à la fin du mois — un jour déjà passé sans mission ne peut plus être rempli a
+// posteriori (retour Faustine, 2026-07 : "il ne me reste pas 77h, la semaine dernière je
+// n'avais aucun client, ces heures-là sont perdues"). Exact (mode calendrier = missions datées),
+// contrairement à l'approximation nécessaire en mode estimation (_joursRestantsSemaine
+// ci-dessus). Le score/taux du pilier restent basés sur le mois complet (comparaison stable).
+function _restantCalendrierMois(DATA, isH, heuresParJour) {
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth() + 1;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const pad = n => String(n).padStart(2, '0');
+  const today = `${year}-${pad(month)}-${pad(now.getDate())}`;
+  const mLast = `${year}-${pad(month)}-${pad(daysInMonth)}`;
+  const joursRestants = joursOuvrésSemaine(today, mLast);
+
+  const sessRestantes = [];
+  DATA.missions.forEach(m => {
+    if (m.isManagement || !(m.sessions || []).length) return;
+    m.sessions.forEach(s => {
+      if (s.debut <= mLast && (s.fin || s.debut) >= today) sessRestantes.push(s);
+    });
+  });
+
+  if (isH) {
+    let occupeH = 0;
+    sessRestantes.forEach(s => {
+      const fin = s.fin || s.debut;
+      const clipDebut = s.debut < today ? today : s.debut;
+      const clipFin   = fin > mLast ? mLast : fin;
+      const joursTotal = joursOuvrésSemaine(s.debut, fin);
+      const joursClip  = joursOuvrésSemaine(clipDebut, clipFin);
+      occupeH += (s.heures / joursTotal) * joursClip;
+    });
+    return Math.max(0, Math.round((joursRestants * heuresParJour - occupeH) * 10) / 10);
+  }
+
+  let occupe = 0;
+  for (let d = now.getDate(); d <= daysInMonth; d++) {
+    const ds = `${year}-${pad(month)}-${pad(d)}`;
+    const hit = DATA.missions.some(m => {
+      if (m.isManagement || !(m.sessions || []).length) return false;
+      return m.sessions.some(s => ds >= s.debut && ds <= (s.fin || s.debut));
+    });
+    if (hit) occupe++;
+  }
+  return Math.max(0, joursRestants - occupe);
+}
+
 export function getPilierRemplissage(DATA) {
   const mods = DATA.params.modules || {};
   // Rétrocompat : ancienne clé planning
@@ -301,13 +369,13 @@ export function getPilierRemplissage(DATA) {
   if (mode === 'additif') {
     const cap    = getCapaciteHSem(DATA);
     const charge = _getChargeAdditiveMois(DATA);
-    return resultatHSemaine('additif', cap, charge);
+    return resultatHSemaine(DATA, 'additif', cap, charge);
   }
 
   if (mode === 'estime') {
     const cap    = getCapaciteHSem(DATA);
     const charge = getChargeEstimeeTotal(DATA);
-    return resultatHSemaine('estime', cap, charge);
+    return resultatHSemaine(DATA, 'estime', cap, charge);
   }
 
   if (mode === 'calendrier') {
@@ -320,9 +388,8 @@ export function getPilierRemplissage(DATA) {
 
     // Adapte les labels et details selon le mode retourné (heures ou jours)
     const isH    = rm.mode === 'heures';
-    const libres = isH
-      ? Math.max(0, rm.capaciteH - rm.occupiedH)
-      : Math.max(0, rm.ouvrables - (rm.occupied || 0));
+    const heuresParJour = DATA.params.heuresParJour || 7;
+    const libres = _restantCalendrierMois(DATA, isH, heuresParJour);
     const sousTitre = isH
       ? `${fmt1(rm.occupiedH)} h / ${rm.capaciteH} h capacité`
       : `${rm.occupied} j / ${rm.ouvrables} j ouvrables`;
