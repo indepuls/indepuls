@@ -826,10 +826,8 @@ html,body{overflow-x:hidden;}
               <option value="artisan_batiment">Artisan bâtiment</option>
               <option value="artisan_commande">Fabricant sur commande</option>
             </optgroup>
-            <optgroup label="Fabrication">
+            <optgroup label="Fabrication &amp; commerce">
               <option value="fabricant_serie">Fabricant série</option>
-            </optgroup>
-            <optgroup label="Achat / Revente">
               <option value="achat_revente">Achat / Revente</option>
             </optgroup>
           </select>
@@ -4453,12 +4451,10 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
             </optgroup>
             <optgroup label="Artisan">
               <option value="artisan_batiment"${selAttr('artisan_batiment')}>Artisan bâtiment</option>
-            </optgroup>
-            <optgroup label="Fabrication">
-              <option value="fabricant_serie"${selAttr('fabricant_serie')}>Fabricant série</option>
               <option value="artisan_commande"${selAttr('artisan_commande')}>Fabricant sur commande</option>
             </optgroup>
-            <optgroup label="Achat / Revente">
+            <optgroup label="Fabrication &amp; commerce">
+              <option value="fabricant_serie"${selAttr('fabricant_serie')}>Fabricant série</option>
               <option value="achat_revente"${selAttr('achat_revente')}>Achat / Revente</option>
             </optgroup>
           </select>
