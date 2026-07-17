@@ -2593,6 +2593,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-17', titre:'Une confirmation "✓ Enregistré" s\'affiche désormais dans Paramètres', icon:'✅', merci:null },
   { date:'2026-07-17', titre:'Suivez votre remplissage et votre rentabilité mois par mois dans les Archives', icon:'📈', merci:null },
   { date:'2026-07-13', titre:'Comparez votre temps prévu à votre temps réel', icon:'⏱', merci:null },
   { date:'2026-07-13', titre:'Repérez vos dérives avec "Ma précision d\'estimation"', icon:'📐', merci:null },
@@ -3701,6 +3702,7 @@ function confirmMigration(source) {
   showToast('✅ Données migrées. L\'autre jeu de données est conservé en sauvegarde.');
 }
 
+let _saveToastTimer=null;
 function saveData() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
@@ -3710,6 +3712,14 @@ function saveData() {
       } else {
         showToast('⚠️ Vous modifiez des données d\'exemple — elles ne seront pas conservées lorsque vous créerez votre espace de travail.', 'var(--acc)');
       }
+    } else if (currentPage === 'params') {
+      // Retour bêta (Pauline, 2026-07) : aucune confirmation visuelle après une modif dans
+      // Paramètres sur un compte réel (contrairement au mode démo ci-dessus) — la sauvegarde
+      // est bien automatique et réelle, mais invisible, ce qui laisse planer le doute ("est-ce
+      // vraiment enregistré ?"). Anti-rebond 900ms pour ne pas clignoter à chaque frappe sur
+      // les champs en oninput (taux URSSAF, CFP…) — un seul toast une fois la saisie stabilisée.
+      clearTimeout(_saveToastTimer);
+      _saveToastTimer=setTimeout(()=>showToast('✓ Enregistré', 'var(--ok)'), 900);
     }
   } catch(e) {
     showToast('⚠️ Sauvegarde impossible — exportez vos données maintenant.', 'var(--err)');
