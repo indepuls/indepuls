@@ -6569,9 +6569,11 @@ function toggleAnnulationRecette(origine, id, missionId) {
   if(currentPage==='recettes') renderRecettes();
 }
 
+// Même principe de traçabilité que exportRecettesPDF() ci-dessous : toujours 'tout' (jamais le
+// filtre "Statut" à l'écran), la colonne "Statut" du CSV distingue déjà les recettes annulées.
 function exportRecettesCSV() {
   const periode=(document.getElementById('lr-filtre-periode')||{}).value||'annee';
-  const recettes=filtrerRecettes(getRecettesData(),periode,'valides');
+  const recettes=filtrerRecettes(getRecettesData(),periode,'tout');
   const lines=[['Date','Client','Libellé','Montant HT (€)','Mode de règlement','Référence','Statut','Origine'].join(';')];
   recettes.forEach(r=>{
     lines.push([
@@ -6581,7 +6583,7 @@ function exportRecettesCSV() {
       String(r.montant).replace('.',','),
       LR_MODES[r.modeReglement]||r.modeReglement||'',
       `"${(r.refJustificative||'').replace(/"/g,'""')}"`,
-      r.statut||'valide',
+      r.statut==='annulee'?'Annulée':recetteComplete(r)?'Complète':'Incomplète',
       r.origine||'auto',
     ].join(';'));
   });
@@ -6648,10 +6650,15 @@ function sauvegarderEditionRecette() {
 }
 
 // ── Export PDF ───────────────────────────────────────────────
+// L'export doit toujours refléter l'intégralité du registre, y compris les recettes annulées
+// (rayées, jamais effacées — art. L123-28 du Code de commerce et principe d'intangibilité :
+// une correction/annulation doit rester tracée, pas disparaître). Le filtre "Statut" à l'écran
+// (valides/complètes/incomplètes/annulées) est une commodité de consultation, jamais appliqué
+// à l'export — sinon le document remis à l'administration ou à l'expert-comptable ne serait
+// plus fidèle au registre réel (retour Faustine, 2026-07).
 function exportRecettesPDF() {
   const periode=(document.getElementById('lr-filtre-periode')||{}).value||'annee';
-  const statut=(document.getElementById('lr-filtre-statut')||{}).value||'valides';
-  const recettes=filtrerRecettes(getRecettesData(),periode,statut);
+  const recettes=filtrerRecettes(getRecettesData(),periode,'tout');
   const annee=DATA.currentYear||new Date().getFullYear();
   const periodeLabel={'annee':'Année '+annee,'t1':'T1 — Jan/Mar '+annee,'t2':'T2 — Avr/Jun '+annee,'t3':'T3 — Jul/Sep '+annee,'t4':'T4 — Oct/Déc '+annee,'tout':'Tout l\'historique'}[periode]||periode;
   const rows=recettes.map(r=>`<tr class="${r.statut==='annulee'?'ann':''}">
