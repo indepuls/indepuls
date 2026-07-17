@@ -6318,6 +6318,7 @@ function getRecettesData() {
         statut:enc.statutLivre||'valide',
         dateCreation:enc.dateCreation||enc.date,
         dateModif:enc.dateModif||null,
+        historique:enc.historique||[],
       });
     });
   });
@@ -6333,8 +6334,29 @@ function getRecettesData() {
       });
     });
   });
+  // Recettes d'une mission/chantier depuis supprimé(e) : un encaissement réellement enregistré
+  // (montant, date) est un fait déclaré — le supprimer avec la mission ferait disparaître une
+  // écriture du livre des recettes, contraire au principe d'intangibilité (voir deleteMission()
+  // plus bas, qui migre ici les encaissements existants avant de supprimer la mission). Une
+  // mission sans aucun encaissement ne laisse elle, volontairement, aucune trace ici.
+  (DATA.recettesMissionSupprimee||[]).forEach(r => recettes.push({...r,origine:'mission_supprimee'}));
   recettes.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   return recettes;
+}
+
+// Résumé lisible de l'historique d'une recette pour l'export (PDF/CSV) — l'administration doit
+// pouvoir lire la valeur d'origine, pas seulement la valeur corrigée (principe d'intangibilité :
+// "barrer d'un trait, porter la correction sur la ligne suivante avec sa date"). Une ligne par
+// état antérieur, la plus ancienne en premier.
+function formatHistoriqueExport(historique) {
+  if(!historique||!historique.length) return '';
+  return historique.map(h=>{
+    const champs=[];
+    if(h.montant!==undefined) champs.push(fmtE(h.montant));
+    if(h.modeReglement!==undefined) champs.push(LR_MODES[h.modeReglement]||h.modeReglement||'—');
+    if(h.refJustificative!==undefined) champs.push(h.refJustificative||'(réf. vide)');
+    return `${h.date||'—'} : ${champs.join(' · ')||'—'}`;
+  }).join(' | ');
 }
 
 function recetteComplete(r) {
@@ -6431,6 +6453,8 @@ function renderRecettes() {
       const modifBadge=r.dateModif
         ?(r.origine==='manuel'
           ?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirRecetteManuelle('${r.id}')" title="Voir l'historique et modifier">Modifiée</span>`
+          :r.origine==='mission_supprimee'
+            ?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirEditionRecette('__supprimee__','${r.id}')" title="Voir l'historique et modifier">Modifiée</span>`
           :`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirEditionRecette('${r.missionId||''}','${r.id}')" title="Voir l'historique et modifier">Modifiée</span>`)
         :'';
       const statutBadge=ann
@@ -6442,6 +6466,8 @@ function renderRecettes() {
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Modifier</button>`
         :r.origine==='ponctuel'
           ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPoncLREdit('${r.id}')">Modifier</button>`
+        :r.origine==='mission_supprimee'
+          ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirEditionRecette('__supprimee__','${r.id}')">Modifier</button>`
         :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirEditionRecette('${r.missionId||''}','${r.id}')">Modifier</button>`;
       const btnAnn=!ann
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px;color:var(--err)" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Annuler</button>`
@@ -6559,6 +6585,10 @@ function toggleAnnulationRecette(origine, id, missionId) {
     });
     if(!found) return;
     found.statut=found.statut==='annulee'?'valide':'annulee';
+  } else if(origine==='mission_supprimee'){
+    const r=(DATA.recettesMissionSupprimee||[]).find(x=>x.id===id); if(!r) return;
+    r.statut=r.statut==='annulee'?'valide':'annulee';
+    r.dateModif=now;
   } else {
     const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
     const enc=(m.encaissements||[]).find(x=>x.id===id); if(!enc) return;
@@ -6574,7 +6604,7 @@ function toggleAnnulationRecette(origine, id, missionId) {
 function exportRecettesCSV() {
   const periode=(document.getElementById('lr-filtre-periode')||{}).value||'annee';
   const recettes=filtrerRecettes(getRecettesData(),periode,'tout');
-  const lines=[['Date','Client','Libellé','Montant HT (€)','Mode de règlement','Référence','Statut','Origine'].join(';')];
+  const lines=[['Date','Client','Libellé','Montant HT (€)','Mode de règlement','Référence','Statut','Historique des modifications','Origine'].join(';')];
   recettes.forEach(r=>{
     lines.push([
       r.date||'',
@@ -6584,7 +6614,8 @@ function exportRecettesCSV() {
       LR_MODES[r.modeReglement]||r.modeReglement||'',
       `"${(r.refJustificative||'').replace(/"/g,'""')}"`,
       r.statut==='annulee'?'Annulée':recetteComplete(r)?'Complète':'Incomplète',
-      r.origine||'auto',
+      `"${formatHistoriqueExport(r.historique).replace(/"/g,'""')}"`,
+      r.origine==='mission_supprimee'?'auto':(r.origine||'auto'),
     ].join(';'));
   });
   const blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
@@ -6626,8 +6657,11 @@ function updateLrEdTTC() {
 }
 
 function ouvrirEditionRecette(missionId, encId) {
-  const m=DATA.missions.find(x=>x.id===missionId);
-  const enc=m&&(m.encaissements||[]).find(x=>x.id===encId);
+  // '__supprimee__' : recette issue d'une mission depuis supprimée (voir deleteMission()) —
+  // l'encaissement vit désormais dans DATA.recettesMissionSupprimee, plus dans une mission.
+  const isSupprimee=missionId==='__supprimee__';
+  const m=isSupprimee?null:DATA.missions.find(x=>x.id===missionId);
+  const enc=isSupprimee?(DATA.recettesMissionSupprimee||[]).find(x=>x.id===encId):m&&(m.encaissements||[]).find(x=>x.id===encId);
   if(!enc) return;
   document.getElementById('lr-ed-mission-id').value=missionId;
   document.getElementById('lr-ed-enc-id').value=encId;
@@ -6649,8 +6683,11 @@ function sauvegarderEditionRecette() {
   const montant=parseFloat(document.getElementById('lr-ed-montant').value);
   const mode=document.getElementById('lr-ed-mode').value;
   const ref=document.getElementById('lr-ed-ref').value.trim();
-  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
-  const enc=(m.encaissements||[]).find(x=>x.id===encId); if(!enc) return;
+  const isSupprimee=missionId==='__supprimee__';
+  const m=isSupprimee?null:DATA.missions.find(x=>x.id===missionId);
+  if(!isSupprimee&&!m) return;
+  const enc=isSupprimee?(DATA.recettesMissionSupprimee||[]).find(x=>x.id===encId):(m.encaissements||[]).find(x=>x.id===encId);
+  if(!enc) return;
   if(!(montant>0)){ showToast('⚠️ Montant invalide.'); return; }
   const now=new Date().toISOString().slice(0,10);
   if(!enc.historique) enc.historique=[];
@@ -6679,13 +6716,17 @@ function exportRecettesPDF() {
   const recettes=filtrerRecettes(getRecettesData(),periode,'tout');
   const annee=DATA.currentYear||new Date().getFullYear();
   const periodeLabel={'annee':'Année '+annee,'t1':'T1 — Jan/Mar '+annee,'t2':'T2 — Avr/Jun '+annee,'t3':'T3 — Jul/Sep '+annee,'t4':'T4 — Oct/Déc '+annee,'tout':'Tout l\'historique'}[periode]||periode;
-  const rows=recettes.map(r=>`<tr class="${r.statut==='annulee'?'ann':''}">
+  const rows=recettes.map(r=>{
+    const histo=formatHistoriqueExport(r.historique);
+    return `<tr class="${r.statut==='annulee'?'ann':''}">
     <td>${r.date||'—'}</td><td>${r.client||'—'}</td><td>${r.libelle||'—'}</td>
     <td class="num">${r.montant?r.montant.toFixed(2).replace('.',',')+' €':'—'}</td>
     <td>${LR_MODES[r.modeReglement]||r.modeReglement||'—'}</td>
     <td>${r.refJustificative||'—'}</td>
     <td>${r.statut==='annulee'?'Annulée':recetteComplete(r)?'Complète':'Incomplète'}</td>
-  </tr>`).join('');
+    <td class="histo">${histo||'—'}</td>
+  </tr>`;
+  }).join('');
   const total=recettes.filter(r=>r.statut!=='annulee').reduce((s,r)=>s+r.montant,0);
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livre des recettes</title><style>
@@ -6695,14 +6736,15 @@ function exportRecettesPDF() {
     th{background:#f0f4ff;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #ddd}
     td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}
     .num{text-align:right}.ann{opacity:.45;text-decoration:line-through}
+    .histo{font-size:10px;color:#666}
     tfoot td{font-weight:700;border-top:2px solid #ddd;padding-top:8px}
     @media print{body{margin:8px}button{display:none}}
   </style></head><body>
   <h1>📒 Livre des recettes — ${periodeLabel}</h1>
   <p class="sub">Exporté le ${new Date().toLocaleDateString('fr-FR')} · ${DATA.params&&DATA.params.nom?DATA.params.nom:''}</p>
-  <table><thead><tr><th>Date</th><th>Client</th><th>Libellé</th><th>Montant HT</th><th>Règlement</th><th>Référence</th><th>Statut</th></tr></thead>
+  <table><thead><tr><th>Date</th><th>Client</th><th>Libellé</th><th>Montant HT</th><th>Règlement</th><th>Référence</th><th>Statut</th><th>Historique des modifications</th></tr></thead>
   <tbody>${rows}</tbody>
-  <tfoot><tr><td colspan="3">Total encaissé</td><td class="num">${total.toFixed(2).replace('.',',')} €</td><td colspan="3"></td></tr></tfoot>
+  <tfoot><tr><td colspan="3">Total encaissé</td><td class="num">${total.toFixed(2).replace('.',',')} €</td><td colspan="4"></td></tr></tfoot>
   </table>
   <script>window.onload=function(){window.print()}<\/script>
   </body></html>`);
@@ -7462,10 +7504,41 @@ function duplicateMission(id) {
 }
 function deleteMission(id) {
   const m=DATA.missions.find(x=>x.id===id);
-  if(m&&m.isManagement) return;
-  if(!confirm('Supprimer cette mission ?')) return;
+  if(!m||m.isManagement) return;
+  // Un encaissement réellement enregistré (montant, date) est un fait déclaré — le supprimer
+  // avec la mission ferait disparaître une écriture du livre des recettes, contraire au
+  // principe d'intangibilité (retour Faustine, 2026-07 : "si je crée un encaissement à une
+  // date, elle doit rester"). Une mission SANS aucun encaissement ne laisse elle,
+  // volontairement, aucune trace — rien n'a jamais été déclaré.
+  const encs=(m.encaissements||[]).filter(e=>e.montant>0);
+  const _item=tVocab('item').toLowerCase(), _demo=tVocabMasculin()?'ce':'cette';
+  const msg=encs.length>0
+    ?`Supprimer ${_demo} ${_item} ? ${encs.length} encaissement${encs.length>1?'s':''} déjà enregistré${encs.length>1?'s':''} — conservé${encs.length>1?'s':''} dans le Livre des recettes (obligation légale de traçabilité).`
+    :`Supprimer ${_demo} ${_item} ?`;
+  if(!confirm(msg)) return;
+  if(encs.length>0){
+    if(!DATA.recettesMissionSupprimee) DATA.recettesMissionSupprimee=[];
+    encs.forEach(enc=>{
+      DATA.recettesMissionSupprimee.push({
+        id:enc.id,
+        missionIdOrigine:m.id,
+        client:m.client||'',
+        libelle:(m.description?m.description+' — ':'')+_item+' supprimé'+(tVocabMasculin()?'':'e'),
+        date:enc.date,
+        type:enc.type,
+        montant:enc.montant||0,
+        modeReglement:enc.modeReglement||'',
+        refJustificative:enc.refJustificative||'',
+        statut:enc.statutLivre||'valide',
+        dateCreation:enc.dateCreation||enc.date,
+        dateModif:enc.dateModif||null,
+        historique:enc.historique||[],
+      });
+    });
+  }
   removeMission(id);
   saveData(); renderMissions();
+  if(currentPage==='recettes') renderRecettes();
 }
 
 function filterMissions(f, btn) {
