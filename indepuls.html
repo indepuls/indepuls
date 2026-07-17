@@ -5756,10 +5756,16 @@ function wScoreSante(d) {
   } else if(worst.n==='remplissage'){
     if(cap>0){
       const hManq=Math.max(1,Math.round((cap*0.6)-charge));
+      // pilRemp.details.unite/methode reflètent le mode réel (estime/additif → h/semaine ;
+      // calendrier → h ou j **du mois**) — "par semaine" était affiché même en mode calendrier,
+      // où cap/charge sont des totaux mensuels : "Combler 1h/semaine" à côté d'un pilier
+      // affichant "63h libres ce mois-ci" ne voulait rien dire (bug remonté par Faustine, 2026-07).
+      const _rempUnite=pilRemp.details?.unite==='j'?'j':'h';
+      const _rempPeriode=pilRemp.methode==='calendrier'?'ce mois-ci':'par semaine';
       const attPipe=DATA.missions.filter(m=>!m.isManagement&&m.statut==='att').length;
       const _itemsLowPipe=tVocab('items').toLowerCase(), _itemLowPipe=tVocab('item').toLowerCase();
       const relanceHint=attPipe>0?` Commencez par relancer ${attPipe===1?'votre':'vos'} <strong>${attPipe} ${attPipe===1?_itemLowPipe:_itemsLowPipe} en attente</strong>.`:` Pensez à relancer votre prospection ou vos ${_itemsLowPipe} en attente.`;
-      priorite=`Mon remplissage a de la place. Combler <strong>${hManq} h supplémentaire${hManq>1?'s':''} par semaine</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
+      priorite=`Mon remplissage a de la place. Combler <strong>${hManq} ${_rempUnite} supplémentaire${hManq>1?'s':''} ${_rempPeriode}</strong> suffirait à sécuriser votre objectif de revenu.`+relanceHint;
     } else {
       priorite=`Configurez votre temps planifié par semaine dans Paramètres pour activer les recommandations de remplissage.`;
     }
