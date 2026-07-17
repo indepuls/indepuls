@@ -1008,6 +1008,7 @@ html,body{overflow-x:hidden;}
           <span class="info-tip" title="Le livre des recettes liste tous vos encaissements dans l'ordre chronologique. Obligatoire pour les micro-entreprises. Les données sont conservées même si vous désactivez l'option.">?</span>
         </div>
         <div class="ts mt6" style="color:var(--tl);line-height:1.6">Recommandé pour les micro-entreprises. Une fois activé, chaque encaissement peut être complété avec le mode de règlement et la référence de facture.</div>
+        <div class="ts mt6" style="color:var(--tl);line-height:1.6">Vous pouvez ensuite l'exporter en PDF ou CSV pour le transmettre à votre expert-comptable ou à l'administration.</div>
       </div>
     </div>
 
@@ -1797,6 +1798,7 @@ html,body{overflow-x:hidden;}
       <input type="text" id="lr-ed-ref" placeholder="Ex : FAC-2026-042, Devis signé…">
       <div id="lr-ed-hint" class="ts" style="color:var(--tl);margin-top:5px;font-size:11px"></div>
     </div>
+    <div id="lr-ed-historique" class="mt12"></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-lr-edition')">Annuler</button>
       <button class="btn btn-acc" data-enter-action onclick="sauvegarderEditionRecette()">Enregistrer</button>
@@ -1829,6 +1831,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="lr-m-libelle" placeholder="Description de la prestation"></div>
     <div class="fgroup mt4"><label class="flabel">Référence justificative</label><input type="text" id="lr-m-ref" placeholder="Ex : FAC-2026-042"></div>
+    <div id="lr-m-historique" class="mt12"></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-lr-manuelle')">Annuler</button>
       <button class="btn btn-acc" data-enter-action onclick="saveRecetteManuelle()">Enregistrer</button>
@@ -6621,7 +6624,8 @@ function ouvrirEditionRecette(missionId, encId) {
   const hints={acompte:'💡 Acompte : référencez le devis signé ou le bon de commande.',solde:'💡 Solde : indiquez le numéro de facture finale.',paiement:'💡 Indiquez le numéro de facture ou de reçu correspondant.'};
   const hintEl=document.getElementById('lr-ed-hint');
   if(hintEl) hintEl.textContent=hints[enc.type]||hints.paiement;
-  document.getElementById('lr-ed-historique').innerHTML=_renderLRHistorique(enc.historique||[], enc.dateModif||'');
+  const histEdEl=document.getElementById('lr-ed-historique');
+  if(histEdEl) histEdEl.innerHTML=_renderLRHistorique(enc.historique||[], enc.dateModif||'');
   openModal('modal-lr-edition');
 }
 
