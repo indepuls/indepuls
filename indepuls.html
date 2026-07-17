@@ -5661,6 +5661,20 @@ function wScoreSante(d) {
       ?`Vos ${_itemsFix} n'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des ${_itemsFix} complémentaires.`
       :`Vous avez de la visibilité client, mais vos ${_itemsFix} actuels ne remplissent pas assez votre capacité disponible. Cherchez à augmenter leur scope ou à en ajouter.`;
   }
+  // Explique pourquoi le taux de remplissage peut sembler bas malgré une capacité restante
+  // correcte : du temps déjà écoulé sans mission planifiée n'est pas rattrapable, contrairement
+  // au temps restant (philosophie "jamais de boîte noire" — toujours expliquer un chiffre,
+  // demande Faustine 2026-07). Placé après l'override ci-dessus pour s'appliquer quel que soit
+  // le texte de base retenu. Seuil charge>0 : évite les cas "pas encore de données" où perdu
+  // peut être non nul sans qu'il y ait de vraie activité à comparer.
+  if(cap>0&&charge>0&&(pilRemp.details?.perdu||0)>0){
+    const _pu=pilRemp.details.unite;
+    const _pPeriode=_pu==='h/sem'?'cette semaine':'ce mois-ci';
+    const _pTxt=_pu==='j'
+      ?`Déjà ${fmt(pilRemp.details.perdu,0)} jour${pilRemp.details.perdu>1?'s':''} écoulé${pilRemp.details.perdu>1?'s':''} ${_pPeriode} sans ${tVocab('item').toLowerCase()} planifié${tVocabMasculin()?'':'e'} — non rattrapable${pilRemp.details.perdu>1?'s':''}, ce qui pèse sur votre taux de remplissage.`
+      :`Déjà ${fmt(pilRemp.details.perdu,1)} h écoulées ${_pPeriode} sans ${tVocab('item').toLowerCase()} planifié${tVocabMasculin()?'':'e'} — non rattrapables, ce qui pèse sur votre taux de remplissage.`;
+    advRemp=(advRemp?advRemp+' ':'')+_pTxt;
+  }
   const vComm=nbActives>0?`${nbActives} active${nbActives>1?'s':''}`:'Aucune';
   const _itemLow=tVocab('item').toLowerCase(), _itemsLow=tVocab('items').toLowerCase(), _masc=tVocabMasculin();
   const _itemWord=nbDevis===1?_itemLow:_itemsLow;
@@ -5888,22 +5902,31 @@ function wScoreSante(d) {
   // pas cap-charge sur la période entière — cap/charge (capacité/charge totales) restent des
   // totaux de période complète, gardés pour le taux d'occupation affiché juste en dessous.
   const libreRestant=pilRemp.details?.libre??0;
+  const perduRestant=pilRemp.details?.perdu??0;
+  // Le taux d'occupation reste calculé sur la période COMPLÈTE (mois ou semaine), jamais sur
+  // les seuls jours restants — sinon il varierait chaque jour sans rapport avec l'activité
+  // réelle, et ne serait plus comparable d'une période à l'autre (philosophie "jamais de boîte
+  // noire" : toujours expliquer d'où vient un chiffre, demande Faustine 2026-07).
+  const _occTip=rempUnite==='h/sem'
+    ?'Calculé sur la semaine complète, pas seulement les jours restants — pour rester comparable d\'une semaine à l\'autre.'
+    :'Calculé sur le mois complet, pas seulement les jours restants — pour rester comparable d\'un mois à l\'autre.';
+  const _occLbl=`Taux d'occupation <span class="info-tip" title="${_occTip}">?</span>`;
   const rowsRemp=cap<=0?[{lbl:'Capacité',val:'Non configurée',c:'var(--tl)'}]
     :rempUnite==='j'?[
       {lbl:'Jours planifiés',    val:fmt(charge,0)+' j',              c:cRemp()},
       {lbl:'Jours ouvrables',    val:fmt(cap,0)+' j',                 c:'var(--tl)'},
       {lbl:'Jours restants',     val:fmt(libreRestant,0)+' j',        c:cLibre},
-      {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
+      {lbl:_occLbl,              val:Math.min(capPct,999)+' %',       c:cRemp()},
     ]:rempUnite==='h'?[
       {lbl:'Heures planifiées',  val:fmt(charge,1)+' h',              c:cRemp()},
       {lbl:'Capacité du mois',   val:fmt(cap,0)+' h',                 c:'var(--tl)'},
       {lbl:'Heures restantes',   val:fmt(libreRestant,1)+' h',        c:cLibre},
-      {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
+      {lbl:_occLbl,              val:Math.min(capPct,999)+' %',       c:cRemp()},
     ]:[
       {lbl:pilRemp.methode==='additif'?'Charge combinée (estimée + sessions)':'Charge estimée', val:fmt(charge,1)+' h/sem', c:cRemp()},
       {lbl:'Capacité maximale',  val:fmt(cap,0)+' h/sem',             c:'var(--tl)'},
       {lbl:'Heures restantes (semaine en cours)', val:fmt(libreRestant,1)+' h', c:cLibre},
-      {lbl:'Taux d\'occupation', val:Math.min(capPct,999)+' %',       c:cRemp()},
+      {lbl:_occLbl,              val:Math.min(capPct,999)+' %',       c:cRemp()},
     ];
 
   // Trésorerie

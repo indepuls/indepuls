@@ -210,13 +210,16 @@ function resultatHSemaine(DATA, methode, cap, charge) {
   const joursParSemaine   = Math.max(1, DATA.params.joursParSemaine || 4);
   const joursRestants     = _joursRestantsSemaine(DATA);
   const libre = Math.round(libreTotal * (joursRestants / joursParSemaine) * 10) / 10;
+  // Portion de capacité libre déjà "perdue" (jours de la semaine déjà écoulés sans mission,
+  // sous l'hypothèse d'une charge répartie uniformément — même hypothèse que libre ci-dessus).
+  const perdu = Math.max(0, Math.round((libreTotal - libre) * 10) / 10);
 
   if (cap === 0 || charge === 0) {
     return {
       score: 12, valeur: '—', sousTitre: 'Aucune charge renseignée',
       diagnostic: '○ Renseignez vos missions pour activer cet indicateur.',
       conseil: '', methode,
-      details: { capacite: cap, utilise: charge, libre, taux: pct, unite: 'h/sem' },
+      details: { capacite: cap, utilise: charge, libre, perdu: 0, taux: pct, unite: 'h/sem' },
     };
   }
 
@@ -244,7 +247,7 @@ function resultatHSemaine(DATA, methode, cap, charge) {
     valeur: Math.min(pct, 999) + ' %',
     sousTitre: `${fmt1(libre)} h libres / sem`,
     diagnostic, conseil,
-    details: { capacite: cap, utilise: charge, libre, taux: pct, unite: 'h/sem' },
+    details: { capacite: cap, utilise: charge, libre, perdu, taux: pct, unite: 'h/sem' },
   };
 }
 
@@ -316,7 +319,11 @@ function _getChargeAdditiveMois(DATA) {
 // n'avais aucun client, ces heures-là sont perdues"). Exact (mode calendrier = missions datées),
 // contrairement à l'approximation nécessaire en mode estimation (_joursRestantsSemaine
 // ci-dessus). Le score/taux du pilier restent basés sur le mois complet (comparaison stable).
-function _restantCalendrierMois(DATA, isH, heuresParJour) {
+// capaciteTotale/utiliseTotale = totaux du mois complet (rm.capaciteH/occupiedH ou
+// rm.ouvrables/occupied) — nécessaires pour dériver `perdu` : la part de capacité des jours
+// DÉJÀ ÉCOULÉS qui n'a pas été occupée (donc irrattrapable), distincte de `libre` (capacité
+// des jours restants). Retourne { libre, perdu }.
+function _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotale, utiliseTotale) {
   const now = new Date();
   const year = now.getFullYear(), month = now.getMonth() + 1;
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -333,29 +340,37 @@ function _restantCalendrierMois(DATA, isH, heuresParJour) {
     });
   });
 
+  let capaciteRestante, occupeRestante;
   if (isH) {
-    let occupeH = 0;
+    occupeRestante = 0;
     sessRestantes.forEach(s => {
       const fin = s.fin || s.debut;
       const clipDebut = s.debut < today ? today : s.debut;
       const clipFin   = fin > mLast ? mLast : fin;
       const joursTotal = joursOuvrésSemaine(s.debut, fin);
       const joursClip  = joursOuvrésSemaine(clipDebut, clipFin);
-      occupeH += (s.heures / joursTotal) * joursClip;
+      occupeRestante += (s.heures / joursTotal) * joursClip;
     });
-    return Math.max(0, Math.round((joursRestants * heuresParJour - occupeH) * 10) / 10);
+    occupeRestante = Math.round(occupeRestante * 10) / 10;
+    capaciteRestante = joursRestants * heuresParJour;
+  } else {
+    occupeRestante = 0;
+    for (let d = now.getDate(); d <= daysInMonth; d++) {
+      const ds = `${year}-${pad(month)}-${pad(d)}`;
+      const hit = DATA.missions.some(m => {
+        if (m.isManagement || !(m.sessions || []).length) return false;
+        return m.sessions.some(s => ds >= s.debut && ds <= (s.fin || s.debut));
+      });
+      if (hit) occupeRestante++;
+    }
+    capaciteRestante = joursRestants;
   }
 
-  let occupe = 0;
-  for (let d = now.getDate(); d <= daysInMonth; d++) {
-    const ds = `${year}-${pad(month)}-${pad(d)}`;
-    const hit = DATA.missions.some(m => {
-      if (m.isManagement || !(m.sessions || []).length) return false;
-      return m.sessions.some(s => ds >= s.debut && ds <= (s.fin || s.debut));
-    });
-    if (hit) occupe++;
-  }
-  return Math.max(0, joursRestants - occupe);
+  const libre = Math.max(0, Math.round((capaciteRestante - occupeRestante) * 10) / 10);
+  const capacitePassee = Math.max(0, capaciteTotale - capaciteRestante);
+  const utilisePassee  = Math.max(0, utiliseTotale - occupeRestante);
+  const perdu = Math.max(0, Math.round((capacitePassee - utilisePassee) * 10) / 10);
+  return { libre, perdu };
 }
 
 export function getPilierRemplissage(DATA) {
@@ -389,13 +404,15 @@ export function getPilierRemplissage(DATA) {
     // Adapte les labels et details selon le mode retourné (heures ou jours)
     const isH    = rm.mode === 'heures';
     const heuresParJour = DATA.params.heuresParJour || 7;
-    const libres = _restantCalendrierMois(DATA, isH, heuresParJour);
+    const capaciteTotaleMois = isH ? rm.capaciteH : rm.ouvrables;
+    const utiliseTotaleMois  = isH ? rm.occupiedH  : (rm.occupied || 0);
+    const {libre: libres, perdu} = _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotaleMois, utiliseTotaleMois);
     const sousTitre = isH
       ? `${fmt1(rm.occupiedH)} h / ${rm.capaciteH} h capacité`
       : `${rm.occupied} j / ${rm.ouvrables} j ouvrables`;
     const details = isH
-      ? { capacite: rm.capaciteH, utilise: rm.occupiedH, libre: libres, taux: rm.taux, unite: 'h' }
-      : { capacite: rm.ouvrables, utilise: rm.occupied || 0, libre: libres, taux: rm.taux, unite: 'j' };
+      ? { capacite: rm.capaciteH, utilise: rm.occupiedH, libre: libres, perdu, taux: rm.taux, unite: 'h' }
+      : { capacite: rm.ouvrables, utilise: rm.occupied || 0, libre: libres, perdu, taux: rm.taux, unite: 'j' };
 
     if (!hasSessions || rm.ouvrables === 0) {
       return {
