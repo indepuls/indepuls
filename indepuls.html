@@ -5755,7 +5755,11 @@ function wScoreSante(d) {
     }
   } else if(worst.n==='remplissage'){
     if(cap>0){
-      const hManq=Math.max(1,Math.round((cap*0.6)-charge));
+      // Capacité libre totale (identique au champ "Heures libres" affiché dans la modale du
+      // pilier, pilRemp.details.libre) — pas le delta minimal pour franchir le prochain palier
+      // de score : ce dernier donnait des écarts dérisoires (ex. "1h") sans rapport avec la
+      // marge réellement disponible, jugé trop peu ambitieux par Faustine (2026-07).
+      const hManq=Math.max(1,Math.round(cap-charge));
       // pilRemp.details.unite/methode reflètent le mode réel (estime/additif → h/semaine ;
       // calendrier → h ou j **du mois**) — "par semaine" était affiché même en mode calendrier,
       // où cap/charge sont des totaux mensuels : "Combler 1h/semaine" à côté d'un pilier
