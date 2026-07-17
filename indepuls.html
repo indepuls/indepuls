@@ -6602,6 +6602,7 @@ function _renderLRHistorique(historique, dateModif) {
     <div style="font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Historique</div>`;
   historique.forEach((h,i)=>{
     const champs=[];
+    if(h.montant!==undefined) champs.push(fmtE(h.montant));
     if(h.modeReglement!==undefined) champs.push(LR_MODES[h.modeReglement]||h.modeReglement||'—');
     if(h.refJustificative!==undefined) champs.push(h.refJustificative||'(réf. vide)');
     const val=champs.length?champs.join(' · '):(h.refJustificative||'(réf. vide)');
@@ -6615,14 +6616,25 @@ function _renderLRHistorique(historique, dateModif) {
   return html;
 }
 
+function updateLrEdTTC() {
+  const el=document.getElementById('lr-ed-ttc');
+  if(!el) return;
+  const ht=parseFloat(document.getElementById('lr-ed-montant').value)||0;
+  if(!DATA.params.tva||ht<=0){ el.textContent=''; return; }
+  const ttc=Math.round(ht*(1+(DATA.params.tauxTVA||20)/100)*100)/100;
+  el.textContent=`TTC : ${fmtE(ttc)}`;
+}
+
 function ouvrirEditionRecette(missionId, encId) {
   const m=DATA.missions.find(x=>x.id===missionId);
   const enc=m&&(m.encaissements||[]).find(x=>x.id===encId);
   if(!enc) return;
   document.getElementById('lr-ed-mission-id').value=missionId;
   document.getElementById('lr-ed-enc-id').value=encId;
+  document.getElementById('lr-ed-montant').value=enc.montant??'';
   document.getElementById('lr-ed-mode').value=enc.modeReglement||'';
   document.getElementById('lr-ed-ref').value=enc.refJustificative||'';
+  updateLrEdTTC();
   const hints={acompte:'💡 Acompte : référencez le devis signé ou le bon de commande.',solde:'💡 Solde : indiquez le numéro de facture finale.',paiement:'💡 Indiquez le numéro de facture ou de reçu correspondant.'};
   const hintEl=document.getElementById('lr-ed-hint');
   if(hintEl) hintEl.textContent=hints[enc.type]||hints.paiement;
@@ -6634,13 +6646,19 @@ function ouvrirEditionRecette(missionId, encId) {
 function sauvegarderEditionRecette() {
   const missionId=document.getElementById('lr-ed-mission-id').value;
   const encId=document.getElementById('lr-ed-enc-id').value;
+  const montant=parseFloat(document.getElementById('lr-ed-montant').value);
   const mode=document.getElementById('lr-ed-mode').value;
   const ref=document.getElementById('lr-ed-ref').value.trim();
   const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
   const enc=(m.encaissements||[]).find(x=>x.id===encId); if(!enc) return;
+  if(!(montant>0)){ showToast('⚠️ Montant invalide.'); return; }
   const now=new Date().toISOString().slice(0,10);
   if(!enc.historique) enc.historique=[];
-  enc.historique.push({date:now, modeReglement:enc.modeReglement||'', refJustificative:enc.refJustificative||''});
+  // Le montant fait désormais partie de la trace conservée (même logique de traçabilité que le
+  // fix conformité ci-dessus : toute correction, y compris le montant, doit rester tracée).
+  enc.historique.push({date:now, montant:enc.montant, modeReglement:enc.modeReglement||'', refJustificative:enc.refJustificative||''});
+  enc.montant=montant;
+  if(DATA.params.tva) enc.montantTTC=Math.round(montant*(1+(DATA.params.tauxTVA||20)/100)*100)/100;
   enc.modeReglement=mode;
   enc.refJustificative=ref;
   enc.dateModif=now;
