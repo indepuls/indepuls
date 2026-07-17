@@ -787,6 +787,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div id="archives-progress-zone"></div>
     </div>
+    <div id="archives-mensuel-zone" class="mt16"></div>
     <div id="archives-retro-zone" class="mt16"></div>
   </div>
 
@@ -2592,6 +2593,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-17', titre:'Suivez votre remplissage et votre rentabilité mois par mois dans les Archives', icon:'📈', merci:null },
   { date:'2026-07-13', titre:'Comparez votre temps prévu à votre temps réel', icon:'⏱', merci:null },
   { date:'2026-07-13', titre:'Repérez vos dérives avec "Ma précision d\'estimation"', icon:'📐', merci:null },
   { date:'2026-07-11', titre:'Le menu Nouveautés est arrivé', icon:'✨', merci:null },
@@ -5524,6 +5526,28 @@ function wScoreSante(d) {
   const {score:sRemp,valeur:vRemp,sousTitre:subRemp,diagnostic:diagRemp}=pilRemp;
   let advRemp=pilRemp.conseil;
   const cap=pilRemp.details?.capacite??0,charge=pilRemp.details?.utilise??0,capPct=pilRemp.details?.taux??0;
+
+  // ── SNAPSHOT MENSUEL (rétrospective) ─────────────────────────
+  // Persiste les KPIs de performance de CE mois précis (remplissage, CA, rentabilité) pour
+  // permettre leur suivi mois par mois dans les Archives — impossible à reconstituer a
+  // posteriori en mode estimation (charge en h/semaine, sans dates), contrairement au mode
+  // calendrier. Écrase uniquement l'entrée du mois EN COURS : une fois un mois clos (curMk a
+  // changé), son entrée n'est plus jamais retouchée (demande Faustine, 2026-07). Ignoré en
+  // mode démo (DATA.isExample) — la démo n'a pas vocation à construire un historique réel, et
+  // saveData() y déclenche un toast à chaque sauvegarde, bruyant si répété à chaque rendu.
+  // Trésorerie/Horizon volontairement absents : ce sont des indicateurs d'état présent (factures
+  // en attente, pipeline commercial), pas des mesures de performance d'un mois clos.
+  if(!DATA.isExample){
+    if(!DATA.snapshotsMensuels) DATA.snapshotsMensuels={};
+    const _snapKpiType=_rentIsMarge?'marge':_rentIsChantier?'tjm':'th';
+    const _snapKpiValeur=_rentIsMarge?_margePctMois:hMoisTotal>0?(_rentIsChantier?tjmMoisBrut:Math.round(thMoisBrut)):null;
+    const _snapNew={caBrut:caMoisCourant,caNet:getRevenuNetMois(curMk),tauxRemplissage:pilRemp.details?.taux??null,kpiType:_snapKpiType,kpiValeur:_snapKpiValeur};
+    const _snapOld=DATA.snapshotsMensuels[curMk];
+    if(!_snapOld||JSON.stringify(_snapOld)!==JSON.stringify(_snapNew)){
+      DATA.snapshotsMensuels[curMk]=_snapNew;
+      saveData();
+    }
+  }
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
   // Total non encaissé = toutes facturées avec reste > 0, sans délai minimum (pour l'affichage)
@@ -9210,6 +9234,30 @@ function renderArchives() {
   const kpiD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length}:(DATA.archives[y]||{}); return _archKpiVal(d); });
   requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:`${_archKpiLbl} (€${_archKpiUnit})`,data:kpiD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
   renderArchCompare(); renderArchProgress();
+
+  // Évolution mensuelle — snapshots persistés par wScoreSante() (voir "SNAPSHOT MENSUEL"),
+  // un mois à la fois, jamais reconstitué a posteriori. N'affiche que les mois réellement
+  // snapshotés (silence plutôt que "—" pour les mois sans donnée, ex. avant l'activation
+  // de la fonctionnalité, ou mode estimation avant le premier rendu du dashboard ce mois-là).
+  const _snapKpiLbl=t=>t==='marge'?'Marge':t==='tjm'?'TJM réel':'TH réel';
+  const _snapKpiFmt=(t,v)=>v==null?'—':t==='marge'?v+'%':t==='tjm'?fmtE(v,0)+'/j':fmtE(v,0)+'/h';
+  const snapKeys=Object.keys(DATA.snapshotsMensuels||{}).sort().reverse();
+  const mensuelZone=document.getElementById('archives-mensuel-zone');
+  if(mensuelZone){
+    let mensuelHTML;
+    if(snapKeys.length>0){
+      const mRows=snapKeys.map(mk=>{
+        const s=DATA.snapshotsMensuels[mk];
+        const label=new Date(mk+'-01T12:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+        return `<tr><td data-label="Mois" style="font-weight:600">${label}</td><td data-label="CA Brut">${fmtE(s.caBrut||0)}</td><td data-label="Revenu net">${fmtE(s.caNet||0)}</td><td data-label="Remplissage">${s.tauxRemplissage!=null?s.tauxRemplissage+' %':'—'}</td><td data-label="${_snapKpiLbl(s.kpiType)}">${_snapKpiFmt(s.kpiType,s.kpiValeur)}</td></tr>`;
+      }).join('');
+      mensuelHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mois</th><th>CA Brut</th><th>Revenu net</th><th>Remplissage</th><th>Rentabilité</th></tr></thead><tbody>${mRows}</tbody></table></div>`;
+    } else {
+      mensuelHTML=`<div style="color:var(--tl);font-size:13px;padding:16px 0;text-align:center">Aucune donnée mensuelle pour l'instant — vos KPIs du mois apparaîtront ici au fil du temps.</div>`;
+    }
+    mensuelZone.innerHTML=`<div class="card"><div class="card-header"><div><div class="card-title">Évolution mensuelle</div><div class="card-sub">Vos KPIs de performance, mois par mois</div></div></div>${mensuelHTML}</div>`;
+  }
+
   const bilanKeys=Object.keys(DATA.bilans||{}).sort().reverse();
   let retroHTML='';
   if(bilanKeys.length>0){
