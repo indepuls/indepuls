@@ -1330,6 +1330,13 @@ Faustine trouvait les 2 icônes séparées sur la ligne de mission ("+ temps" et
 - **Aucune logique de correction dupliquée ou modifiée** — `openCorrectTimeModal`/`saveCorrectTime` sont réutilisées telles quelles, seul le point d'entrée change.
 - **Vérifié** : bouton unique `⏱️ Temps` sur toutes les lignes (management et non) ; clic → ouvre `modal-add-time` ; lien "Corriger le temps total" visible et fonctionnel pour une mission non-management (clic → ferme "Temps", ouvre "Corriger le temps" pré-rempli avec le bon id) ; lien absent pour la mission de gestion interne. 73 assertions + 6 suites `.test.js` toujours au vert.
 
+### FIX — Bouton "⏱️ Temps" invisible sur mobile (2026-07-21, suite du point précédent)
+
+Faustine a signalé juste après la fusion ci-dessus que le bouton "⏱️ Temps" n'apparaissait nulle part sur téléphone. Root cause : la colonne "Temps" du tableau missions (celle qui contenait le bouton) est explicitement masquée en CSS sous 640px (`#page-missions .tbl-wrap td:nth-child(6){display:none!important}`, avec Facturée le/Taux réel/Notes — règle déjà en place bien avant cette session, pour ne garder que Client/Montant/Statut/Chrono/Actions sur les cartes mobiles). Le bouton avait été ajouté dans cette colonne masquée sans vérifier son sort sur petit écran.
+
+**Fix** (`indepuls.html`, `renderMissions()`) : le bouton "⏱️ Temps" (et son équivalent "✏️ temps" pour les missions collectives, qui ouvre `openMissionModal` au lieu de `openAddTimeModal`) est déplacé de la colonne "Temps" (masquée sur mobile) vers la colonne Actions — celle qui contient déjà ✏️/💰/⧉/🗑 et qui, elle, reste visible et passe en rangée flex pleine largeur sur mobile (`td:nth-child(10)`, jamais masquée). Pour la mission de gestion interne (`isManagement`), le bouton est ajouté juste avant "📊 Historique mensuel", qui vivait déjà dans cette même colonne. La colonne "Temps" elle-même ne garde que l'affichage informatif (chrono, total, trajectoire) — plus aucune action n'y vit, cohérent avec la demande de Faustine de tout regrouper "à côté des autres" (répond à la fois au problème mobile et à l'esprit de la fusion précédente).
+- **Vérifié** : à 375px, colonne "Temps" bien `display:none`, colonne Actions `display:flex` et visible, bouton "⏱️ Temps" présent et cliquable (ouvre `modal-add-time`) dans toutes les lignes (missions normales, collective, gestion interne). Desktop inchangé au fonctionnel (mêmes actions disponibles, juste regroupées). 73 assertions + 6 suites `.test.js` toujours au vert.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
