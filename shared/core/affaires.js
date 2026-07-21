@@ -144,10 +144,14 @@ export function getLotStats(DATA, lotId) {
   const revenusNets = caBrut - remboursements;
   const resultat = revenusNets - coutTotal;
   const pourcentRecupere = coutTotal > 0 ? (revenusNets / coutTotal) * 100 : null;
+  // Même convention que getRentabComparateur() (Missions, objectif "marge de chaque commande") :
+  // marge = (CA - coûts) / CA × 100. Ici CA = revenusNets (déjà net des retours remboursés),
+  // pour rester cohérent avec "Résultat" juste à côté, qui est lui aussi calculé sur revenusNets.
+  const margePct = revenusNets > 0 ? (resultat / revenusNets) * 100 : null;
   const statut = (lot && lot.statutManuel === 'cloture')
     ? 'cloture'
     : (revenusNets >= coutTotal ? 'rentabilise' : 'en_cours');
-  return { coutTotal, caBrut, remboursements, revenusNets, resultat, pourcentRecupere, statut };
+  return { coutTotal, caBrut, remboursements, revenusNets, resultat, margePct, pourcentRecupere, statut };
 }
 
 // Rentabilité d'UNE vente à l'intérieur d'un lot — uniquement ce qui est rattaché directement à

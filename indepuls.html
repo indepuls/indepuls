@@ -8214,6 +8214,10 @@ function ouvrirFicheLot(lotId) {
   const depensesLot=(DATA.depenses||[]).filter(d=>d.lotId===lotId);
   document.getElementById('lot-detail-title').textContent=`📦 ${l.nom}`;
   const pct=stats.pourcentRecupere===null?'—':Math.round(stats.pourcentRecupere)+'%';
+  // Seuils identiques à getRentabComparateur() (objectif "marge de chaque commande",
+  // achat_revente) — même lecture couleur partout où une marge est affichée dans Indépuls.
+  const margeTxt=stats.margePct===null?'—':Math.round(stats.margePct)+' %';
+  const margeCl=stats.margePct===null?'var(--tl)':(stats.margePct>=22?'var(--ok)':stats.margePct>=15?'var(--warn)':'var(--err)');
   const ventesRows=ventes.length?ventes.map(m=>{
     const retour=(DATA.retours||[]).find(r=>r.missionId===m.id);
     const resVente=getResultatVente(m);
@@ -8235,8 +8239,8 @@ function ouvrirFicheLot(lotId) {
     <div class="g2" style="margin-bottom:14px">
       <div class="kpi neu"><div class="kpi-label">Coût total</div><div class="kpi-val">${fmtE(stats.coutTotal)}</div></div>
       <div class="kpi neu"><div class="kpi-label">CA brut</div><div class="kpi-val">${fmtE(stats.caBrut)}</div></div>
-      ${stats.remboursements>0?`<div class="kpi neu"><div class="kpi-label">Remboursements</div><div class="kpi-val" style="color:var(--err)">-${fmtE(stats.remboursements)}</div></div>`:''}
-      <div class="kpi neu"><div class="kpi-label">Revenus nets</div><div class="kpi-val">${fmtE(stats.revenusNets)}</div></div>
+      ${stats.remboursements>0?`<div class="kpi neu"><div class="kpi-label">Remboursements</div><div class="kpi-val" style="color:var(--err)">-${fmtE(stats.remboursements)}</div></div><div class="kpi neu"><div class="kpi-label">CA après retours</div><div class="kpi-val">${fmtE(stats.revenusNets)}</div></div>`:''}
+      <div class="kpi neu"><div class="kpi-label">Marge</div><div class="kpi-val" style="color:${margeCl}">${margeTxt}</div></div>
       <div class="kpi neu"><div class="kpi-label">Résultat</div><div class="kpi-val" style="color:${stats.resultat>=0?'var(--ok)':'var(--err)'}">${fmtE(stats.resultat)}</div></div>
       <div class="kpi neu"><div class="kpi-label">% récupéré</div><div class="kpi-val">${pct}</div></div>
     </div>
