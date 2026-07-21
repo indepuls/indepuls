@@ -598,8 +598,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
-  <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours</div>
-  <div class="nav-item" id="nav-lots" onclick="navigate('lots')" style="display:none"><span class="nav-icon">📦</span> Lots</div>
+  <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours clients</div>
   <div class="nav-section">Paramètres</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
   <div class="nav-item" onclick="navigate('notice')"><span class="nav-icon">📖</span> Guide & glossaire</div>
@@ -727,12 +726,16 @@ html,body{overflow-x:hidden;}
       <span id="dep-info-toggle" style="cursor:pointer;text-decoration:underline;margin-left:4px" onclick="document.getElementById('dep-info-detail').style.display='';this.style.display='none'">En savoir plus</span>
       <div id="dep-info-detail" style="display:none;margin-top:8px;line-height:1.6"><strong>Mensuelles</strong> et <strong>annuelles</strong> → alimentent votre objectif de CA automatiquement. <strong>Ponctuelles</strong> → visibles dans le revenu net réel uniquement (trop variables pour l'objectif). Pour les provisionner : <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('params');setTimeout(()=>switchParamTab('objectifs',document.querySelector('[onclick*=objectifs]')),100)">Paramètres › Objectifs</span>.</div>
     </div>
+    <div id="depenses-tabs-wrap" style="display:none;margin-bottom:12px;gap:6px">
+      <button class="btn btn-out btn-sm" id="depenses-tab-btn-depenses" onclick="switchDepensesTab('depenses')">Dépenses professionnelles</button>
+      <button class="btn btn-out btn-sm" id="depenses-tab-btn-lots" onclick="switchDepensesTab('lots')">📦 Achats en lots</button>
+    </div>
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Dépenses professionnelles</div>
-        <button class="btn btn-acc" onclick="openDepModal()">+ Ajouter</button>
+        <div class="card-title" id="depenses-card-title">Dépenses professionnelles</div>
+        <button class="btn btn-acc" id="depenses-add-btn" onclick="openDepModal()">+ Ajouter</button>
       </div>
-      <div style="padding:6px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--brd)">
+      <div id="depenses-filters-row" style="padding:6px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--brd)">
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:11px;color:var(--tl);white-space:nowrap">Récurrence</span>
           <select id="dep-rec-select" class="s-select" onchange="filterDep(this.value,null)">
@@ -740,7 +743,7 @@ html,body{overflow-x:hidden;}
             <option value="mensuelle">Mensuelles</option>
             <option value="annuelle">Annuelles</option>
             <option value="ponctuelle">Ponctuelles</option>
-            <option value="mission">Liées à une mission</option>
+            <option value="mission" id="dep-filter-liees">Liées à une mission</option>
           </select>
         </div>
         <div id="dep-cat-select-wrap" style="display:flex;align-items:center;gap:6px;display:none">
@@ -750,13 +753,14 @@ html,body{overflow-x:hidden;}
           </select>
         </div>
       </div>
-      <div class="tbl-wrap">
+      <div class="tbl-wrap" id="depenses-tbl-wrap">
         <table>
           <thead id="dep-thead"></thead>
           <tbody id="dep-tbody"></tbody>
           <tfoot id="dep-tfoot"></tfoot>
         </table>
       </div>
+      <div id="depenses-lots-content" style="display:none"></div>
     </div>
   </div>
 
@@ -1481,7 +1485,7 @@ html,body{overflow-x:hidden;}
     <div style="max-width:960px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
         <div>
-          <h2 style="margin:0;font-size:20px;color:var(--pri)">↩️ Retours</h2>
+          <h2 style="margin:0;font-size:20px;color:var(--pri)">↩️ Retours clients</h2>
           <div style="font-size:13px;color:var(--tl);margin-top:4px">Suivi des retours et remboursements — la vente concernée reste confirmée, seul le retour évolue.</div>
         </div>
       </div>
@@ -1489,18 +1493,6 @@ html,body{overflow-x:hidden;}
     </div>
   </div>
 
-  <div class="page" id="page-lots">
-    <div style="max-width:960px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-        <div>
-          <h2 style="margin:0;font-size:20px;color:var(--pri)">📦 Lots</h2>
-          <div style="font-size:13px;color:var(--tl);margin-top:4px">Suivi de rentabilité par lot acheté groupé — coût, CA, marge, retours.</div>
-        </div>
-        <button class="btn btn-acc btn-sm" onclick="ouvrirLotModal()">+ Créer un lot</button>
-      </div>
-      <div id="lots-content"></div>
-    </div>
-  </div>
 
 </div><!-- /.main -->
 
@@ -1546,9 +1538,20 @@ html,body{overflow-x:hidden;}
       <div id="m-cout-direct-detail" style="font-size:12px;color:var(--tl)"></div>
     </div>
     <div class="divider" style="margin:10px 0"></div>
+    <!-- Rattacher à un lot — achat_revente uniquement, toujours visible (jamais masqué même
+         sans lot existant, pour que la fonctionnalité reste découvrable) -->
+    <div id="m-lot-zone" style="display:none">
+      <div class="fgroup">
+        <label class="flabel">Rattacher à un lot <span class="ts">(optionnel)</span></label>
+        <select id="m-lot-id" onchange="toggleProductionZoneSelonLot()">
+          <option value="">— Aucun —</option>
+        </select>
+        <div class="ts" id="m-lot-empty-hint" style="display:none;margin-top:4px;color:var(--tl)">Aucun lot pour l'instant — créez-en un depuis l'onglet Dépenses ("Achats en lots").</div>
+      </div>
+    </div>
     <!-- Zone production — fabrication & achat_revente -->
     <div id="m-production-zone" style="display:none;background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:12px">
-      <div class="ts mb10" style="font-weight:700;color:var(--pri)" id="m-production-title">Détails de la commande</div>
+      <div class="ts mb10" style="font-weight:700;color:var(--pri);display:flex;align-items:center;gap:5px" id="m-production-title">Détails de la commande <span class="info-tip" id="m-production-tip" title="">?</span></div>
       <div class="frow">
         <div class="fgroup" id="m-quantite-zone">
           <label class="flabel" id="m-quantite-label">Quantité produite</label>
@@ -1560,14 +1563,6 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div id="m-marge-display" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;border-left:3px solid var(--ok);font-size:13px;line-height:1.5"></div>
-    </div>
-    <div id="m-lot-zone" style="display:none">
-      <div class="fgroup">
-        <label class="flabel">Rattacher à un lot <span class="ts">(optionnel)</span></label>
-        <select id="m-lot-id">
-          <option value="">— Aucun —</option>
-        </select>
-      </div>
     </div>
     <div class="frow">
       <div class="fgroup">
@@ -2205,7 +2200,7 @@ html,body{overflow-x:hidden;}
 <!-- MODAL CRÉER/MODIFIER UN LOT (achat_revente) -->
 <div class="modal-ov hidden" id="modal-lot">
   <div class="modal" style="max-width:420px">
-    <div class="modal-title" id="lot-modal-title">Créer un lot</div>
+    <div class="modal-title">Modifier le lot</div>
     <input type="hidden" id="lot-edit-id">
     <div class="fgroup">
       <label class="flabel">Nom du lot</label>
@@ -2223,9 +2218,44 @@ html,body{overflow-x:hidden;}
       <label class="flabel">Temps passé non rattaché à une vente précise (h) <span class="info-tip" title="Tri du lot, séance photo groupée, sourcing... Le temps propre à un article précis se saisit sur sa vente, pas ici.">?</span></label>
       <input type="number" id="lot-temps-passe" min="0" step="0.5" placeholder="Ex : 3">
     </div>
+    <div class="ts" style="color:var(--tl);margin-top:4px">Le montant de l'achat est une dépense liée à ce lot — modifiez-la depuis l'onglet "Achats en lots" (fiche du lot).</div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-lot')">Annuler</button>
       <button class="btn btn-acc" data-enter-action onclick="sauvegarderLot()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AJOUTER UN ACHAT DE LOT (création lot + dépense en une fois, achat_revente) -->
+<div class="modal-ov hidden" id="modal-achat-lot">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Ajouter un achat de lot</div>
+    <div class="ts mb12" style="color:var(--tl);line-height:1.5">Pour un achat groupé (déstockage, brocante, fournisseur...) revendu ensuite en plusieurs ventes séparées. Inutile d'ajouter une dépense en plus — elle est créée automatiquement avec ce lot.</div>
+    <div class="fgroup">
+      <label class="flabel">Nom du lot</label>
+      <input type="text" id="achat-lot-nom" placeholder="Ex : Lot de mars, Palette 18, Collection été...">
+    </div>
+    <div class="frow">
+      <div class="fgroup">
+        <label class="flabel">Date d'achat</label>
+        <input type="date" id="achat-lot-date">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Montant de l'achat (€ HT)</label>
+        <input type="number" id="achat-lot-montant" min="0" step="0.01" placeholder="Ex : 200">
+      </div>
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Description <span style="font-weight:400;color:var(--tl)">(facultatif)</span></label>
+      <input type="text" id="achat-lot-description">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Temps passé non rattaché à une vente précise (h) <span class="info-tip" title="Tri du lot, séance photo groupée, sourcing... Le temps propre à un article précis se saisit sur sa vente, pas ici.">?</span></label>
+      <input type="number" id="achat-lot-temps-passe" min="0" step="0.5" placeholder="Ex : 3">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-achat-lot')">Annuler</button>
+      <button class="btn btn-acc" data-enter-action onclick="sauvegarderAchatLot()">Enregistrer</button>
     </div>
   </div>
 </div>
@@ -2815,7 +2845,7 @@ function applyVocabUI() {
   const depFilterHors = document.getElementById('dep-filter-hors');
   if (depFilterHors) depFilterHors.textContent = 'Ponctuelles hors ' + tVocab('item').toLowerCase();
   const depFilterLiees = document.getElementById('dep-filter-liees');
-  if (depFilterLiees) depFilterLiees.textContent = 'Liées à un ' + tVocab('item').toLowerCase();
+  if (depFilterLiees) depFilterLiees.textContent = 'Liées à ' + (tVocabMasculin()?'un ':'une ') + tVocab('item').toLowerCase();
   const depChanLabel = document.getElementById('dep-chantier-label');
   if (depChanLabel) depChanLabel.firstChild.textContent = 'Rattacher à un ' + tVocab('item').toLowerCase() + ' ';
   // Devis — labels dynamiques (unité de temps et vocabulaire)
@@ -2828,7 +2858,7 @@ function applyVocabUI() {
   updateNavPlanning();
   updateNavSimulateur();
   updateNavRetours();
-  updateNavLots();
+  updateDepensesLotsTabVisibility();
   // sb-profil-label géré par updateDemoUI()
   // Planning : label sessions dans la modale + visibilité de la zone
   const sessLabel = document.getElementById('modal-sessions-label');
@@ -4304,7 +4334,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours',lots:'Lots'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours clients'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -4340,19 +4370,9 @@ function updateNavRetours() {
   if (!el) return;
   el.style.display = DATA.params.modules?.objectif === 'marge_commande' ? '' : 'none';
 }
-// Lots d'investissement : n'a de sens QUE pour achat_revente (pas fabrication, malgré le même
-// modules.objectif='marge_commande') — vérification directe de family autorisée ici pour
-// l'affichage de cette fonctionnalité, cohérent avec le fait qu'elle est propre à ce profil.
-function updateNavLots() {
-  const el = document.getElementById('nav-lots');
-  if (!el) return;
-  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
-  el.style.display = family === 'achat_revente' ? '' : 'none';
-}
 function navigate(page) {
   if (page === 'planning' && !DATA.params.modules?.calendrier) { navigate('dashboard'); return; }
   if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
-  if (page === 'lots' && (BUSINESS_PROFILE_MAP[DATA.params?.metier]!=='achat_revente')) { navigate('dashboard'); return; }
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4399,7 +4419,6 @@ function renderPage(page) {
     case 'simulateur': renderSimulateurPage(); break;
     case 'recettes': renderRecettes(); break;
     case 'retours': renderRetours(); break;
-    case 'lots': renderLots(); break;
   }
 }
 
@@ -7095,11 +7114,13 @@ function openMissionModal(id, prefillDate) {
   // Zone production (fabrication / achat_revente)
   const _prodFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
   const _isFab=_prodFamily==='fabrication', _isAchat=_prodFamily==='achat_revente';
-  const prodZone=document.getElementById('m-production-zone');
-  if(prodZone) prodZone.style.display=(_isFab||_isAchat)?'':'none';
   if(_isFab||_isAchat){
     const titleEl=document.getElementById('m-production-title');
-    if(titleEl) titleEl.textContent=_isAchat?'Détails de la vente':'Détails de la commande';
+    if(titleEl) titleEl.firstChild.textContent=(_isAchat?'Détails de la vente':'Détails de la commande')+' ';
+    const tipEl=document.getElementById('m-production-tip');
+    if(tipEl) tipEl.title=_isAchat
+      ?'Utile uniquement si vous vendez plusieurs pièces identiques à un même acheteur en une seule vente (ex. 10 bijoux identiques à un revendeur) — le coût total (quantité × prix d\'achat unitaire) est enregistré automatiquement comme dépense liée à cette vente. Pour un article unique, ajoutez directement une dépense liée. Pour un achat groupé revendu en plusieurs fois, rattachez cette vente à un lot ci-dessus.'
+      :'Quantité produite et gain moyen par pièce, à titre indicatif.';
     const qLbl=document.getElementById('m-quantite-label');
     if(qLbl) qLbl.textContent=_isAchat?'Quantité vendue':'Quantité produite';
     const paZone=document.getElementById('m-prix-achat-zone');
@@ -7111,16 +7132,26 @@ function openMissionModal(id, prefillDate) {
     if(montantInp) montantInp.oninput=(function(orig){return function(){if(orig)orig.call(this);updateMargeProduction();};})(montantInp.oninput||null);
     updateMargeProduction();
   }
-  // Lots d'investissement — achat_revente uniquement (n'a de sens que pour ce profil)
+  // Lots d'investissement — achat_revente uniquement (n'a de sens que pour ce profil). Toujours
+  // visible (jamais masqué, même sans lot existant) pour rester découvrable — état vide guidé
+  // vers l'onglet Dépenses plutôt que de disparaître silencieusement.
   const lotZone=document.getElementById('m-lot-zone');
   if(lotZone){
-    if(_isAchat&&(DATA.lots||[]).length){
+    if(_isAchat){
       const lotSel=document.getElementById('m-lot-id');
-      lotSel.innerHTML='<option value="">— Aucun —</option>'+
-        DATA.lots.map(l=>`<option value="${l.id}"${(m&&m.lotId===l.id)?' selected':''}>${esc(l.nom)}</option>`).join('');
+      const hint=document.getElementById('m-lot-empty-hint');
+      if((DATA.lots||[]).length){
+        lotSel.innerHTML='<option value="">— Aucun —</option>'+
+          DATA.lots.map(l=>`<option value="${l.id}"${(m&&m.lotId===l.id)?' selected':''}>${esc(l.nom)}</option>`).join('');
+        if(hint) hint.style.display='none';
+      } else {
+        lotSel.innerHTML='<option value="">— Aucun —</option>';
+        if(hint) hint.style.display='';
+      }
       lotZone.style.display='';
     } else lotZone.style.display='none';
   }
+  toggleProductionZoneSelonLot();
   initEditingSessions(m, prefillDate);
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
@@ -7143,6 +7174,18 @@ function openMissionModal(id, prefillDate) {
   openModal('modal-mission');
 }
 
+// Masque "Détails de la vente" dès qu'un lot est choisi — le coût vient alors du lot, pas d'un
+// prix unitaire (mutuellement exclusifs, même logique que pour les dépenses). Toujours visible
+// sinon, pour fabrication comme pour achat_revente sans lot.
+function toggleProductionZoneSelonLot() {
+  const family=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
+  const isFab=family==='fabrication', isAchat=family==='achat_revente';
+  const prodZone=document.getElementById('m-production-zone');
+  if(!prodZone) return;
+  if(!(isFab||isAchat)){ prodZone.style.display='none'; return; }
+  const lotChosen=isAchat && !!document.getElementById('m-lot-id')?.value;
+  prodZone.style.display=lotChosen?'none':'';
+}
 function updateMargeProduction() {
   const family=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
   const el=document.getElementById('m-marge-display'); if(!el) return;
@@ -7156,7 +7199,7 @@ function updateMargeProduction() {
       const margePct=Math.round(marge/montant*100);
       const cl=margePct>=20?'var(--ok)':margePct>=10?'var(--warn)':'var(--err)';
       el.style.display='';el.style.borderLeftColor=cl;
-      el.innerHTML=`Marge brute : <strong style="color:${cl}">${fmtE(marge,0)} (${margePct}%)</strong> — coût total : ${fmtE(coutTotal,0)} pour ${quantite} article${quantite>1?'s':''}.`;
+      el.innerHTML=`Marge brute : <strong style="color:${cl}">${fmtE(marge,0)} (${margePct}%)</strong> — coût total : ${fmtE(coutTotal,0)} pour ${quantite} article${quantite>1?'s':''}, enregistré automatiquement comme dépense liée à cette vente.`;
     } else { el.style.display='none'; }
   } else if(family==='fabrication'){
     if(montant>0&&quantite>0){
@@ -7557,9 +7600,35 @@ function saveCauseDepassement(cause) {
   _causeDepassementMissionId=null;
 }
 
+// "Détails de la vente" (quantité × prix d'achat unitaire, achat_revente uniquement) : rend le
+// coût réel en le matérialisant comme dépense liée à cette vente (chantierId), au lieu d'un
+// aperçu affiché mais jamais enregistré. Marqueur `origineAuto` pour retrouver/mettre à
+// jour/supprimer cette dépense précisément, sans toucher une dépense ajoutée manuellement par
+// ailleurs sur la même vente. Ne s'applique jamais si un lot est choisi (le coût vient alors du
+// lot, pas d'un prix unitaire — mutuellement exclusif).
+function syncAutoDepenseVente(mission, obj) {
+  const family=BUSINESS_PROFILE_MAP[DATA.params?.metier];
+  if(family!=='achat_revente') return;
+  const existing=DATA.depenses.find(d=>d.chantierId===mission.id&&d.origineAuto==='vente_quantite');
+  const applicable=!obj.lotId&&obj.quantite>0&&obj.prixAchat>0;
+  if(!applicable){
+    if(existing) DATA.depenses=DATA.depenses.filter(d=>d.id!==existing.id);
+    return;
+  }
+  const montant=obj.quantite*obj.prixAchat;
+  if(existing){ existing.montant=montant; existing.date=mission.dateFact||existing.date||today(); }
+  else DATA.depenses.push({
+    id:uuid(), chantierId:mission.id, montant, date:mission.dateFact||today(),
+    libelle:'Coût d\'achat — '+(mission.client||'vente'),
+    categorie:'Autre', recurrence:'ponctuelle', dateDebut:'',
+    origineAuto:'vente_quantite',
+  });
+}
 function finalizeSaveMission(editId, obj) {
-  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); } }
-  else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); }
+  let mission=null;
+  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); mission=m; } }
+  else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); mission=DATA.missions[DATA.missions.length-1]; }
+  if(mission) syncAutoDepenseVente(mission, obj);
   saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
 }
 
@@ -7967,31 +8036,64 @@ function renderRetours() {
 // clôture (seule valeur écrite manuellement, voir getLotStats() dans shared/core/affaires.js).
 const LOT_STATUT_LABELS={cloture:'Clôturé',rentabilise:'Rentabilisé',en_cours:'En cours'};
 const LOT_STATUT_COLORS={cloture:'#6b7280',rentabilise:'#2d7a4f',en_cours:'#92400e'};
+// Édition des métadonnées d'un lot existant uniquement (nom/date/description/temps) — le
+// montant de l'achat est une dépense (voir sauvegarderAchatLot), éditable depuis la fiche lot,
+// pas ici : un lot ne peut plus être créé sans son achat initial (voir "Ajouter un achat de lot").
 function ouvrirLotModal(id) {
-  const l=id?(DATA.lots||[]).find(x=>x.id===id):null;
-  document.getElementById('lot-modal-title').textContent=l?'Modifier le lot':'Créer un lot';
-  document.getElementById('lot-edit-id').value=l?l.id:'';
-  document.getElementById('lot-nom').value=l?l.nom:'';
-  document.getElementById('lot-date-achat').value=l?l.dateAchat:today();
-  document.getElementById('lot-description').value=l?(l.description||''):'';
-  document.getElementById('lot-temps-passe').value=l?(l.tempsPasse||''):'';
+  const l=(DATA.lots||[]).find(x=>x.id===id); if(!l) return;
+  document.getElementById('lot-edit-id').value=l.id;
+  document.getElementById('lot-nom').value=l.nom;
+  document.getElementById('lot-date-achat').value=l.dateAchat;
+  document.getElementById('lot-description').value=l.description||'';
+  document.getElementById('lot-temps-passe').value=l.tempsPasse||'';
   openModal('modal-lot');
 }
 function sauvegarderLot() {
   const nom=document.getElementById('lot-nom').value.trim();
   if(!nom){ showToast('⚠️ Indiquez un nom pour ce lot.','var(--err)'); return; }
   const editId=document.getElementById('lot-edit-id').value;
-  const obj={
+  const l=(DATA.lots||[]).find(x=>x.id===editId); if(!l) return;
+  Object.assign(l,{
     nom,
     dateAchat:document.getElementById('lot-date-achat').value||today(),
     description:document.getElementById('lot-description').value.trim(),
     tempsPasse:parseFloat(document.getElementById('lot-temps-passe').value)||0,
-  };
-  if(!DATA.lots) DATA.lots=[];
-  if(editId){ const l=DATA.lots.find(x=>x.id===editId); if(l) Object.assign(l,obj); }
-  else DATA.lots.push({id:uuid(), statutManuel:null, ...obj});
+  });
   saveData(); closeModal('modal-lot'); renderLots();
   showToast('✅ Lot enregistré.');
+}
+// Création combinée : un lot n'existe jamais sans sa dépense d'achat initiale — évite le lot
+// fantôme à coût 0€ (affiché "Rentabilisé" par erreur) et le risque de double saisie (dépense
+// ajoutée en plus, en double, par une utilisatrice qui ne saurait pas que la dépense est déjà
+// créée avec le lot).
+function ouvrirAchatLotModal() {
+  document.getElementById('achat-lot-nom').value='';
+  document.getElementById('achat-lot-date').value=today();
+  document.getElementById('achat-lot-montant').value='';
+  document.getElementById('achat-lot-description').value='';
+  document.getElementById('achat-lot-temps-passe').value='';
+  openModal('modal-achat-lot');
+}
+function sauvegarderAchatLot() {
+  const nom=document.getElementById('achat-lot-nom').value.trim();
+  const montant=parseFloat(document.getElementById('achat-lot-montant').value)||0;
+  if(!nom){ showToast('⚠️ Indiquez un nom pour ce lot.','var(--err)'); return; }
+  if(montant<=0){ showToast('⚠️ Indiquez le montant de cet achat.','var(--err)'); return; }
+  const dateAchat=document.getElementById('achat-lot-date').value||today();
+  const lotId=uuid();
+  if(!DATA.lots) DATA.lots=[];
+  DATA.lots.push({
+    id:lotId, nom, dateAchat,
+    description:document.getElementById('achat-lot-description').value.trim(),
+    tempsPasse:parseFloat(document.getElementById('achat-lot-temps-passe').value)||0,
+    statutManuel:null,
+  });
+  DATA.depenses.push({
+    id:uuid(), lotId, montant, date:dateAchat,
+    libelle:'Achat — '+nom, categorie:'Autre', recurrence:'ponctuelle', dateDebut:'',
+  });
+  saveData(); closeModal('modal-achat-lot'); renderLots();
+  showToast('✅ Achat de lot enregistré.');
 }
 function clotureLot(lotId) {
   const l=(DATA.lots||[]).find(x=>x.id===lotId); if(!l) return;
@@ -8000,10 +8102,10 @@ function clotureLot(lotId) {
   saveData(); closeModal('modal-lot-detail'); renderLots();
 }
 function renderLots() {
-  const zone=document.getElementById('lots-content'); if(!zone) return;
+  const zone=document.getElementById('depenses-lots-content'); if(!zone) return;
   const lots=(DATA.lots||[]).slice().sort((a,b)=>(b.dateAchat||'').localeCompare(a.dateAchat||''));
   if(!lots.length){
-    zone.innerHTML=`<div class="empty"><div class="ei">📦</div><p>Aucun lot pour l'instant.</p><button class="btn btn-acc btn-sm" onclick="ouvrirLotModal()">+ Créer un lot</button></div>`;
+    zone.innerHTML=`<div class="empty"><div class="ei">📦</div><p>Aucun achat en lot pour l'instant.</p><button class="btn btn-acc btn-sm" onclick="ouvrirAchatLotModal()">+ Ajouter un achat de lot</button></div>`;
     return;
   }
   const rows=lots.map(l=>{
@@ -8040,7 +8142,13 @@ function ouvrirFicheLot(lotId) {
     </div>`;
   }).join(''):'<div class="ts">Aucune vente rattachée pour l\'instant.</div>';
   const depensesRows=depensesLot.length?depensesLot.map(d=>
-    `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:13px"><span>${esc(d.libelle||'—')}</span><span>${fmtE(d.montant)}</span></div>`
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd);font-size:13px">
+      <span>${esc(d.libelle||'—')}</span>
+      <span style="display:flex;align-items:center;gap:8px"><span>${fmtE(d.montant)}</span>
+        <button class="btn btn-out btn-xs" onclick="closeModal('modal-lot-detail');openDepModal('${d.id}')">✏️</button>
+        <button class="btn btn-del btn-xs" onclick="deleteDepense('${d.id}');closeModal('modal-lot-detail')">🗑</button>
+      </span>
+    </div>`
   ).join(''):'<div class="ts">Aucune dépense rattachée au lot entier.</div>';
   document.getElementById('lot-detail-body').innerHTML=`
     <div class="g2" style="margin-bottom:14px">
@@ -8941,9 +9049,45 @@ function renderDepDonut() {
   const toggleHtml=`<div style="display:flex;gap:4px;margin-bottom:10px"><button onclick="setDepDonutBase('annuel')" style="padding:3px 10px;font-size:11px;border-radius:12px;border:1.5px solid var(--brd);background:${depDonutBase==='annuel'?'var(--pri)':'var(--card)'};color:${depDonutBase==='annuel'?'#fff':'var(--tl)'};cursor:pointer;font-family:inherit">Annuel</button><button onclick="setDepDonutBase('mensuel')" style="padding:3px 10px;font-size:11px;border-radius:12px;border:1.5px solid var(--brd);background:${depDonutBase==='mensuel'?'var(--pri)':'var(--card)'};color:${depDonutBase==='mensuel'?'#fff':'var(--tl)'};cursor:pointer;font-family:inherit">Mensuel</button></div>`;
   return `<div style="padding:12px 0 4px">${toggleHtml}<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap"><svg viewBox="0 0 160 160" width="140" height="140" style="flex-shrink:0">${slices.join('')}<circle cx="${cx}" cy="${cy}" r="34" fill="var(--card)"/><text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="8" fill="var(--tl)">${totalLabel}</text><text x="${cx}" y="${cy+9}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--pri)">${fmtE(total,0)}</text></svg><div style="flex:1;min-width:160px">${legend}</div></div></div>`;
 }
+let depensesTab='depenses';
+function switchDepensesTab(tab) {
+  depensesTab=tab;
+  const btnDep=document.getElementById('depenses-tab-btn-depenses'), btnLots=document.getElementById('depenses-tab-btn-lots');
+  if(btnDep) btnDep.classList.toggle('btn-acc',tab==='depenses');
+  if(btnLots) btnLots.classList.toggle('btn-acc',tab==='lots');
+  renderDepenses();
+}
+// Achats en lots (achat_revente uniquement) : visible seulement si la famille correspond —
+// vérification directe autorisée ici, la fonctionnalité n'a de sens que pour ce profil (voir
+// ARCHITECTURE_PRODUIT.md, "LOTS D'INVESTISSEMENT").
+function updateDepensesLotsTabVisibility() {
+  const wrap=document.getElementById('depenses-tabs-wrap');
+  if(!wrap) return;
+  const family=BUSINESS_PROFILE_MAP[DATA.params?.metier];
+  wrap.style.display=family==='achat_revente'?'flex':'none';
+  if(family!=='achat_revente'&&depensesTab==='lots') depensesTab='depenses';
+}
 function renderDepenses() {
   const tbody=document.getElementById('dep-tbody'), tfoot=document.getElementById('dep-tfoot');
   if(!tbody) return;
+  const cardTitle=document.getElementById('depenses-card-title');
+  const addBtn=document.getElementById('depenses-add-btn');
+  const tblWrap=document.getElementById('depenses-tbl-wrap');
+  const filtersRow=document.getElementById('depenses-filters-row');
+  const lotsContent=document.getElementById('depenses-lots-content');
+  if(depensesTab==='lots'){
+    if(cardTitle) cardTitle.textContent='Achats en lots';
+    if(addBtn){ addBtn.textContent='+ Ajouter un achat de lot'; addBtn.onclick=()=>ouvrirAchatLotModal(); }
+    if(tblWrap) tblWrap.style.display='none';
+    if(filtersRow) filtersRow.style.display='none';
+    if(lotsContent){ lotsContent.style.display='block'; renderLots(); }
+    return;
+  }
+  if(cardTitle) cardTitle.textContent='Dépenses professionnelles';
+  if(addBtn){ addBtn.textContent='+ Ajouter'; addBtn.onclick=()=>openDepModal(); }
+  if(tblWrap) tblWrap.style.display='';
+  if(filtersRow) filtersRow.style.display='';
+  if(lotsContent) lotsContent.style.display='none';
   // ── Cat filter buttons ──
   const catWrap=document.getElementById('dep-cat-select-wrap');
   const catSel=document.getElementById('dep-cat-select');
@@ -8973,7 +9117,10 @@ function renderDepenses() {
   </tr>`;
 
   // ── Récapitulatif (toutes dépenses, non filtré) ──
-  const all=DATA.depenses;
+  // Les dépenses rattachées à un lot entier (lotId) sont exclues de cette vue — visibles
+  // uniquement via l'onglet "Achats en lots" (fiche lot), pour ne pas les compter deux fois
+  // dans les totaux et ne pas encombrer la liste générale.
+  const all=DATA.depenses.filter(d=>!d.lotId);
   const sumEl=document.getElementById('dep-summary');
   if(sumEl){
     if(all.length){
@@ -8989,6 +9136,8 @@ function renderDepenses() {
       const st=(ico,lbl,val,clr)=>`<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><span>${ico}</span><span style="font-size:11px;color:var(--tl)">${lbl}</span><span style="font-weight:700;font-size:13px;${clr?'color:'+clr+';':''}">${val}</span></span>`;
       const donutHtml=renderDepDonut();
       const hasDonut=!!donutHtml;
+      const _lots=DATA.lots||[];
+      const _lotsRentab=_lots.filter(l=>{const s=getLotStats(l.id);return s.statut==='rentabilise'||s.statut==='cloture'&&s.revenusNets>=s.coutTotal;}).length;
       sumEl.innerHTML=`<div style="background:var(--card);border:1px solid var(--brd);border-radius:12px;overflow:hidden">
         <div style="padding:9px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;${hasDonut?'cursor:pointer':''}" ${hasDonut?'onclick="toggleDepDonut()"':''}>
           <span style="font-size:11px;color:var(--tl);font-weight:600;white-space:nowrap">📅 ${DATA.currentYear}</span>
@@ -8996,6 +9145,7 @@ function renderDepenses() {
           ${sep}${st('📆','Annuelles',fmtE(totAnn)+'/an','')}
           ${sep}${st('⚡','Ponctuelles',fmtE(totPonct),'')}
           ${totMiss>0?sep+st('🔗','Missions',fmtE(totMiss),''):''}
+          ${_lots.length>0?sep+st('📦','Lots',`${_lotsRentab}/${_lots.length} rentabilisés`,''):''}
           ${hasDonut?`<span id="dep-donut-btn" style="margin-left:auto;font-size:11px;color:var(--tl);white-space:nowrap">${depDonutOpen?'Répartition ▲':'Répartition ▼'}</span>`:''}
         </div>
         ${hasDonut?`<div id="dep-donut-panel" style="display:${depDonutOpen?'':'none'};padding:0 20px 16px;border-top:1px solid var(--brd)">${donutHtml}</div>`:''}
