@@ -1051,13 +1051,24 @@ html,body{overflow-x:hidden;}
 
     <!-- MES OFFRES -->
     <div class="tab-pane" id="tab-offres">
-      <div class="card">
-        <div class="card-header"><div class="card-title" id="cat-section-title">Mes offres & catégories de missions</div></div>
-        <div class="ts mb12" id="cat-section-desc">Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.</div>
-        <div id="categories-list"></div>
-        <div class="frow mt14" style="align-items:flex-end">
-          <div class="fgroup" style="margin:0"><input type="text" id="new-cat-input" placeholder="Nouvelle catégorie..." onkeydown="if(event.key==='Enter')addCatInline()"></div>
-          <button class="btn btn-acc btn-sm" onclick="addCatInline()" style="white-space:nowrap;height:37px">+ Ajouter</button>
+      <div class="g2" style="align-items:start">
+        <div class="card">
+          <div class="card-header"><div class="card-title" id="cat-section-title">Mes offres & catégories de missions</div></div>
+          <div class="ts mb12" id="cat-section-desc">Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.</div>
+          <div id="categories-list"></div>
+          <div class="frow mt14" style="align-items:flex-end">
+            <div class="fgroup" style="margin:0"><input type="text" id="new-cat-input" placeholder="Nouvelle catégorie..." onkeydown="if(event.key==='Enter')addCatInline()"></div>
+            <button class="btn btn-acc btn-sm" onclick="addCatInline()" style="white-space:nowrap;height:37px">+ Ajouter</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Mes catégories de tâches</div></div>
+          <div class="ts mb12">Pour catégoriser le temps saisi sur vos missions (facultatif) — visible dans la modale "Temps manuel" et dans le suivi du temps travaillé.</div>
+          <div id="categories-temps-list"></div>
+          <div class="frow mt14" style="align-items:flex-end">
+            <div class="fgroup" style="margin:0"><input type="text" id="new-cat-temps-input" placeholder="Nouvelle catégorie de tâche..." onkeydown="if(event.key==='Enter')addCatTempsInline()"></div>
+            <button class="btn btn-acc btn-sm" onclick="addCatTempsInline()" style="white-space:nowrap;height:37px">+ Ajouter</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2057,6 +2068,7 @@ html,body{overflow-x:hidden;}
     <div class="modal-title">Temps manuel</div>
     <input type="hidden" id="add-time-mission-id">
     <div id="add-time-log"></div>
+    <div id="add-time-cat-breakdown"></div>
     <div id="add-time-sep" class="divider" style="display:none;margin:12px 0"></div>
     <div class="card-sub mb10" style="font-weight:700">Ajouter une entrée</div>
     <div class="frow">
@@ -2064,6 +2076,7 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Minutes</label><input type="number" id="add-time-min" min="0" max="59" step="5" placeholder="0"></div>
     </div>
     <div class="fgroup"><label class="flabel">Date <span class="ts">(facultatif)</span></label><input type="date" id="add-time-date"></div>
+    <div class="fgroup" id="add-time-cat-wrap" style="display:none"><label class="flabel">Catégorie <span class="ts">(facultatif)</span></label><select id="add-time-cat"><option value="">— Aucune —</option></select></div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-add-time')">Fermer</button>
       <button class="btn btn-acc" data-enter-action onclick="saveAddTime()">Ajouter</button>
@@ -2565,7 +2578,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     coutDirectLabel:'Fournitures & matériaux',
-    defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre']
+    defaultCategories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
+    defaultCategoriesTemps:['Administratif','Stratégie & conseil','Production & exécution','Communication','Reporting','Autre']
   },
   chantier: {
     item:'Chantier', items:'Chantiers', addItem:'+ Ajouter un chantier',
@@ -2583,7 +2597,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes offres & catégories de chantiers',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     coutDirectLabel:'Fournitures & matériaux',
-    defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre']
+    defaultCategories:['Création / Fabrication','Réparation / Restauration','Installation / Pose','Entretien / Maintenance','Sur mesure','Conseil / Devis','Formation / Atelier','Autre'],
+    defaultCategoriesTemps:['Prise de côtes','Préparation','Nettoyage chantier','Déchèterie','Autre']
   },
   fabrication: {
     item:'Commande', items:'Commandes', addItem:'+ Ajouter une commande',
@@ -2601,7 +2616,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
     coutDirectLabel:'Matières premières & fournitures',
-    defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre']
+    defaultCategories:['Produit standard','Produit personnalisé','Série / lot','Fabrication sur mesure','Matières premières','Conditionnement','Livraison','Autre'],
+    defaultCategoriesTemps:['Sourcing matières','Fabrication','Finition','Emballage','Envoi','Autre']
   },
   achat_revente: {
     item:'Vente', items:'Ventes', addItem:'+ Ajouter une vente',
@@ -2619,7 +2635,8 @@ const VOCABULARY_FAMILIES = {
     catTitle:'Mes catégories de ventes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de ventes. Vous pouvez y renseigner vos types de produits ou catégories.',
     coutDirectLabel:'Coût d\'achat',
-    defaultCategories:['Vêtements','Accessoires','Décoration','Électronique','Livres & média','Loisirs & sport','Autre']
+    defaultCategories:['Vêtements','Accessoires','Décoration','Électronique','Livres & média','Loisirs & sport','Autre'],
+    defaultCategoriesTemps:['Shooting','Emballage','Envoi','Service client','Autre']
   }
 };
 const BUSINESS_PROFILE_MAP = {
@@ -2760,6 +2777,9 @@ function migrateMetierParam() {
 function getDefaultCategoriesForFamily() {
   return tVocab('defaultCategories') || [];
 }
+function getDefaultCategoriesTempsForFamily() {
+  return tVocab('defaultCategoriesTemps') || [];
+}
 const PROFIL_DESCRIPTIONS = {
   prestataire_services: "💼 Consultant, coach, formateur, développeur, assistant virtuel, juriste, RH… Vous vendez votre expertise ou votre temps. Indépuls suit votre taux horaire, vos missions et votre rentabilité.",
   creatif_com:          "🎨 Graphiste, designer, community manager, vidéaste, rédacteur, photographe de studio… Vous réalisez des prestations créatives. Indépuls suit vos missions, votre taux horaire et la rentabilité de chaque prestation.",
@@ -2848,6 +2868,13 @@ function applyVocabUI() {
     saveData();
     renderCategoriesList();
   }
+  // Catégories de tâches (temps par catégorie) — même filet de sécurité que ci-dessus
+  if (!DATA.categoriesTemps) DATA.categoriesTemps = [];
+  if (DATA.categoriesTemps.length === 0) {
+    DATA.categoriesTemps = getDefaultCategoriesTempsForFamily().slice();
+    saveData();
+  }
+  if (typeof renderCategoriesTempsList === 'function') renderCategoriesTempsList();
   // Dépenses — filtres et formulaire
   const depFilterHors = document.getElementById('dep-filter-hors');
   if (depFilterHors) depFilterHors.textContent = 'Ponctuelles hors ' + tVocab('item').toLowerCase();
@@ -3576,12 +3603,14 @@ function clearExampleData() {
   // correspond pas forcément au métier, et sans jamais déclencher le filet de sécurité de
   // applyVocabUI() (qui ne corrige que les listes vides).
   const categories = JSON.parse(JSON.stringify(DATA.categories || []));
+  const categoriesTemps = JSON.parse(JSON.stringify(DATA.categoriesTemps || []));
   DATA = getDefaultData();
   DATA.params    = params;
   DATA.theme     = theme;
   DATA.currentYear = curYear;
   DATA.isExample = false;
   if (categories.length) DATA.categories = categories;
+  if (categoriesTemps.length) DATA.categoriesTemps = categoriesTemps;
   document.body.setAttribute('data-theme', theme);
   saveData();
   closeModal('modal-clear-example');
@@ -3678,6 +3707,7 @@ function getDefaultData() {
       livreRecettesActif:false
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
+    categoriesTemps:['Administratif','Stratégie & conseil','Production & exécution','Communication','Reporting','Autre'],
     missions:[{
       id:'mgmt-interne', client:'Mon entreprise', categorie:'Gestion interne',
       description:'Temps passé pour la gestion de mon activité',
@@ -8383,6 +8413,25 @@ function rentabCatBody() {
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">${cmp.sortLabel}</button></div>`;
   return sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
 }
+// ── TEMPS PAR CATÉGORIE DE TÂCHE — tous clients confondus, purement informatif (temps saisi
+// via tempsManuel[].categorie, voir saveAddTime()). N'entre jamais dans un calcul de
+// rentabilité — ni CA, ni TH, ni Score de Santé. Masqué tant qu'aucune entrée n'est catégorisée.
+function tempsCategorieBody() {
+  const parMs={};
+  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
+    (m.tempsManuel||[]).forEach(e=>{ if(!e.categorie) return; parMs[e.categorie]=(parMs[e.categorie]||0)+(e.ms||0); });
+  });
+  const cles=Object.keys(parMs);
+  if(!cles.length) return '';
+  const totalMs=cles.reduce((s,c)=>s+parMs[c],0);
+  const maxMs=Math.max(...cles.map(c=>parMs[c]),1);
+  const rows=cles.sort((a,b)=>parMs[b]-parMs[a]).map(c=>{
+    const pct=Math.max(0,Math.min(100,parMs[c]/maxMs*100));
+    const partTotal=totalMs>0?Math.round(parMs[c]/totalMs*100):0;
+    return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ok" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:80px"><div class="fb">${fmt(parMs[c]/3600000,1)} h</div><div class="ts">${partTotal} %</div></div></div>`;
+  }).join('');
+  return `<div><div class="card-title" style="margin-bottom:10px;font-size:13px">🗂️ Temps par catégorie</div>${rows}</div>`;
+}
 // ── TEMPS PRÉVU — "Ma précision d'estimation" (chantier "Temps prévu", Phase 3) ────────────
 // Analyse rétrospective multi-missions : dérive systématique par catégorie (Signal 1) et
 // dérive progressive / objectif horaire non couvert sur les récurrentes (Signal 2). Purement
@@ -8573,10 +8622,11 @@ function renderMissionsSummary(all) {
       </div>
       ${(()=>{
         const temps=(_hF>0||_hI>0)?`<div><div class="card-title" style="margin-bottom:10px;font-size:13px">⏱ Répartition du temps travaillé</div><canvas id="chart-temps" style="width:100%" height="70"></canvas></div>`:'';
+        const tpsCat=tempsCategorieBody();
         const ref=wMotifsRefus();
         const src=wSourceAcq(actives,tVocab('item').toLowerCase());
         const precision=`<div><div class="card-title" style="margin-bottom:10px;font-size:13px">📐 Ma précision d'estimation</div><div id="msn-precision-estimation">${precisionEstimationBody()}</div></div>`;
-        const items=[temps,ref,src,precision].filter(Boolean);
+        const items=[temps,tpsCat,ref,src,precision].filter(Boolean);
         return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:16px;border-top:1px solid var(--brd);padding-top:14px;align-items:start">${items.join('')}</div>`;
       })()}
     </div>
@@ -9274,7 +9324,7 @@ function switchParamTab(tab, btn) {
   if(btn) btn.classList.add('active');
   currentParamTab=tab;
   if(tab==='objectifs') renderObjectifsResult();
-  if(tab==='offres') renderCategoriesList();
+  if(tab==='offres') { renderCategoriesList(); renderCategoriesTempsList(); }
   if(tab==='fiscalite'||tab==='avance') renderTvaParams();
   if(tab==='perso') renderThemes();
   if(tab==='activite') renderModulesUI();
@@ -9355,7 +9405,7 @@ function renderParams() {
   // Modules
   renderModulesUI();
   if(currentParamTab==='objectifs') renderObjectifsResult();
-  if(currentParamTab==='offres') renderCategoriesList();
+  if(currentParamTab==='offres') { renderCategoriesList(); renderCategoriesTempsList(); }
   if(currentParamTab==='fiscalite'||currentParamTab==='avance') renderTvaParams();
   if(currentParamTab==='perso') renderThemes();
 }
@@ -9709,6 +9759,18 @@ function openAddTimeModal(id) {
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
   document.getElementById('add-time-date').value=today();
+  const m=DATA.missions.find(x=>x.id===id);
+  const catWrap=document.getElementById('add-time-cat-wrap');
+  const catSel=document.getElementById('add-time-cat');
+  const cats=DATA.categoriesTemps||[];
+  if(catWrap&&catSel){
+    if(!m||m.isManagement||!cats.length){
+      catWrap.style.display='none';
+    } else {
+      catSel.innerHTML='<option value="">— Aucune —</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+      catWrap.style.display='';
+    }
+  }
   renderAddTimeLog(id);
   openModal('modal-add-time');
 }
@@ -9718,13 +9780,29 @@ function renderAddTimeLog(id) {
   const el=document.getElementById('add-time-log');
   const sep=document.getElementById('add-time-sep');
   if(!el) return;
-  if(!log.length){ el.innerHTML=''; if(sep) sep.style.display='none'; return; }
+  if(!log.length){ el.innerHTML=''; if(sep) sep.style.display='none'; renderAddTimeCatBreakdown(id); return; }
   if(sep) sep.style.display='';
   el.innerHTML=`<div class="card-sub mb8" style="font-weight:700">Entrées enregistrées</div>`+
     log.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--brd)">
-      <span style="font-size:13px">📅 ${e.date||'—'} — <strong>${heuresMs(e.ms)}</strong></span>
+      <span style="font-size:13px">📅 ${e.date||'—'}${e.categorie?` · ${e.categorie}`:''} — <strong>${heuresMs(e.ms)}</strong></span>
       <button class="btn btn-out btn-sm" style="color:var(--err);border-color:var(--err);padding:2px 8px" onclick="deleteTempsManuel('${id}','${e.id}')">🗑</button>
     </div>`).join('');
+  renderAddTimeCatBreakdown(id);
+}
+// Répartition du temps de CETTE mission par catégorie — purement informatif dans la modale,
+// ne fait jamais partie du calcul de rentabilité (voir saveAddTime()).
+function renderAddTimeCatBreakdown(id) {
+  const el=document.getElementById('add-time-cat-breakdown'); if(!el) return;
+  const m=DATA.missions.find(x=>x.id===id);
+  const log=(m&&m.tempsManuel)||[];
+  const parMs={};
+  log.forEach(e=>{ const c=e.categorie||null; if(!c) return; parMs[c]=(parMs[c]||0)+(e.ms||0); });
+  const cles=Object.keys(parMs);
+  if(!cles.length){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="card-sub mb8" style="font-weight:700">Répartition par catégorie</div>`+
+    cles.sort((a,b)=>parMs[b]-parMs[a]).map(c=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:13px">
+      <span>${c}</span><strong>${heuresMs(parMs[c])}</strong>
+    </div>`).join('')+`<div class="divider" style="margin:10px 0"></div>`;
 }
 function deleteTempsManuel(missionId, entryId) {
   const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
@@ -9739,15 +9817,18 @@ function saveAddTime() {
   const min=parseInt(document.getElementById('add-time-min').value)||0;
   const ms=(h*3600+min*60)*1000; if(ms<=0) return;
   const date=document.getElementById('add-time-date').value||today();
+  const catEl=document.getElementById('add-time-cat');
+  const categorie=(catEl&&!m.isManagement)?(catEl.value||undefined):undefined;
   if(m.isManagement){
     addTempsInterne(getCurrentMk(), ms);
   } else {
     if(!m.tempsManuel) m.tempsManuel=[];
-    m.tempsManuel.push({id:uuid(),date,ms});
+    m.tempsManuel.push({id:uuid(),date,ms,...(categorie?{categorie}:{})});
   }
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
   document.getElementById('add-time-date').value=today();
+  if(catEl) catEl.value='';
   saveData(); renderAddTimeLog(id); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
 }
@@ -9931,6 +10012,49 @@ function addCatInline() {
   addCategorie(val); saveData(); inp.value=''; renderCategoriesList();
 }
 function deleteCat(i) { DATA.categories.splice(i,1); saveData(); renderCategoriesList(); }
+
+// ── CATÉGORIES DE TÂCHES (temps par catégorie) ────────────────
+// Miroir exact des catégories ci-dessus, sur DATA.categoriesTemps — permet de catégoriser le
+// temps saisi (tempsManuel[].categorie), jamais utilisé dans un calcul de rentabilité (voir
+// saveAddTime()). Renommer une catégorie répercute sur toutes les entrées de temps existantes,
+// comme le renommage d'une catégorie de vente répercute sur les missions.
+let _editCatTempsIdx = -1;
+function renderCategoriesTempsList() {
+  const el=document.getElementById('categories-temps-list'); if(!el) return;
+  const cats=DATA.categoriesTemps||[];
+  if(!cats.length){ el.innerHTML=`<div class="ts" style="color:var(--tl)">Aucune catégorie de tâches pour l'instant.</div>`; return; }
+  el.innerHTML=cats.map((c,i)=>{
+    if(i===_editCatTempsIdx) return `<div class="flex gap6 mb8">
+      <input type="text" id="edit-cat-temps-inp" value="${c.replace(/"/g,'&quot;')}" style="flex:1;padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--acc)" onkeydown="if(event.key==='Enter')saveCatTempsEdit(${i});if(event.key==='Escape')cancelCatTempsEdit()">
+      <button class="btn btn-acc btn-xs" onclick="saveCatTempsEdit(${i})" title="Enregistrer">✓</button>
+      <button class="btn btn-out btn-xs" onclick="cancelCatTempsEdit()" title="Annuler">✗</button>
+    </div>`;
+    return `<div class="flex gap6 mb8">
+      <span style="flex:1;padding:7px 12px;background:var(--bg);border-radius:8px;font-size:13px">${c}</span>
+      <button class="btn btn-out btn-xs" onclick="startEditCatTemps(${i})" title="Modifier">✏️</button>
+      <button class="btn btn-del btn-xs" onclick="deleteCatTemps(${i})">🗑</button>
+    </div>`;
+  }).join('');
+  if(_editCatTempsIdx>=0){ const inp=document.getElementById('edit-cat-temps-inp'); if(inp){inp.focus();inp.select();} }
+}
+function startEditCatTemps(i) { _editCatTempsIdx=i; renderCategoriesTempsList(); }
+function cancelCatTempsEdit() { _editCatTempsIdx=-1; renderCategoriesTempsList(); }
+function saveCatTempsEdit(i) {
+  const inp=document.getElementById('edit-cat-temps-inp'); if(!inp) return;
+  const val=inp.value.trim(); if(!val) return;
+  const old=DATA.categoriesTemps[i];
+  DATA.categoriesTemps[i]=val;
+  // Répercuter le renommage sur toutes les entrées de temps déjà saisies
+  DATA.missions.forEach(m=>{ (m.tempsManuel||[]).forEach(e=>{ if(e.categorie===old) e.categorie=val; }); });
+  saveData(); _editCatTempsIdx=-1; renderCategoriesTempsList();
+}
+function addCatTempsInline() {
+  const inp=document.getElementById('new-cat-temps-input'), val=inp.value.trim();
+  if(!val||(DATA.categoriesTemps||[]).includes(val)) return;
+  if(!DATA.categoriesTemps) DATA.categoriesTemps=[];
+  DATA.categoriesTemps.push(val); saveData(); inp.value=''; renderCategoriesTempsList();
+}
+function deleteCatTemps(i) { DATA.categoriesTemps.splice(i,1); saveData(); renderCategoriesTempsList(); }
 
 // ── THÈMES ───────────────────────────────────────────────────
 function setTheme(t) { document.body.setAttribute('data-theme',t); DATA.theme=t; saveData(); renderThemes(); }
