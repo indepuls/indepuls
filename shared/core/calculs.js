@@ -219,15 +219,22 @@ function monthKeyOf(dateStr) {
 // de la vente/commande ne change jamais à cause d'un retour (voir DATA.retours, indepuls.html) ;
 // cette fonction est le seul point d'entrée pour déduire un remboursement du CA sur un mois
 // donné, plutôt que de dupliquer la somme dans chaque consommateur de KPI.
+// dateRemboursement = date d'encaissement effectif du remboursement (peut être postérieure à
+// `date`, qui reste la date de signalement du retour) — c'est elle qui compte en comptabilité
+// de caisse, pas la date de la demande. Repli sur `date` pour les retours créés avant l'ajout
+// de ce champ (rétrocompatibilité, pas de migration nécessaire — le champ est optionnel).
+function dateEncaissementRetour(r) {
+  return r.dateRemboursement || r.date;
+}
 export function getMontantRembourseMois(DATA, mk) {
   return (DATA.retours || [])
-    .filter(r => r.statut === 'rembourse' && monthKeyOf(r.date) === mk)
+    .filter(r => r.statut === 'rembourse' && monthKeyOf(dateEncaissementRetour(r)) === mk)
     .reduce((t, r) => t + (r.montant || 0), 0);
 }
 export function getMontantRembourseAnnuel(DATA, year = DATA.currentYear) {
   const y = String(year);
   return (DATA.retours || [])
-    .filter(r => r.statut === 'rembourse' && (r.date || '').startsWith(y))
+    .filter(r => r.statut === 'rembourse' && (dateEncaissementRetour(r) || '').startsWith(y))
     .reduce((t, r) => t + (r.montant || 0), 0);
 }
 // Tous les remboursements confondus, sans filtre de période — pour les calculs "depuis toujours"

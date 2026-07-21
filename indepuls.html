@@ -4645,7 +4645,26 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     </div></div>`;
   }
 
-  document.getElementById('dashboard-content').innerHTML=bilanCard+fixed+bottomRow;
+  // ── Alerte déclaration rectificative URSSAF (retours encaissés après la période de la vente) ──
+  // Uniquement fabrication/achat_revente (DATA.retours n'existe que pour ces profils). Chaque
+  // alerte se ferme définitivement via "✓ Fait" (r.alerteRectifTraitee), jamais un simple masquage
+  // de session — cohérent avec le principe "jamais de boîte noire" : le chiffre affiché ailleurs
+  // (CA net) est une métrique interne de rentabilité, pas le CA à déclarer à l'URSSAF (qui suit
+  // une logique de déclaration rectificative distincte — voir CLAUDE.md pour les sources).
+  const _retoursRectif=typeof getRetoursNecessitantRectificative==='function'?getRetoursNecessitantRectificative():[];
+  const retourAlertCard=_retoursRectif.length?`<div class="card mb16" style="padding:14px 18px;border-left:4px solid var(--warn)">
+    ${_retoursRectif.map(r=>{
+      const m=DATA.missions.find(x=>x.id===r.missionId);
+      const venteMk=getVenteCaMonth(m), rembMk=(r.dateRemboursement||r.date||'').slice(0,7);
+      const client=m?(m.client||tVocab('item')):'(vente supprimée)';
+      return `<div class="alert al-warn" style="margin-bottom:6px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>⚠️ Remboursement de « ${esc(client)} » encaissé en ${rembMk}, après la vente déclarée en ${venteMk} — une déclaration rectificative URSSAF de ${venteMk} peut être nécessaire.</span>
+        <button class="btn btn-out btn-xs" onclick="marquerRectifTraitee('${r.id}')" style="flex-shrink:0">✓ Fait</button>
+      </div>`;
+    }).join('')}
+  </div>`:'';
+
+  document.getElementById('dashboard-content').innerHTML=bilanCard+retourAlertCard+fixed+bottomRow;
 }
 
 // ── WIDGET : PROVISIONS (côté droit du donut) ────────────────
@@ -6375,6 +6394,25 @@ function getRecettesData() {
   // plus bas, qui migre ici les encaissements existants avant de supprimer la mission). Une
   // mission sans aucun encaissement ne laisse elle, volontairement, aucune trace ici.
   (DATA.recettesMissionSupprimee||[]).forEach(r => recettes.push({...r,origine:'mission_supprimee'}));
+  // Retours remboursés (fabrication/achat_revente) : un remboursement modifie un fait financier
+  // déjà enregistré — il doit rester tracé dans le livre des recettes (principe d'intangibilité,
+  // même logique que les annulations/missions supprimées ci-dessus), pas seulement visible dans
+  // la page Retours dédiée au pilotage interne. Montant négatif : s'additionne naturellement aux
+  // totaux/exports existants (CA net = somme de toutes les lignes, sans logique séparée à écrire).
+  (DATA.retours||[]).filter(r=>r.statut==='rembourse').forEach(r=>{
+    const m=DATA.missions.find(x=>x.id===r.missionId);
+    recettes.push({
+      id:'retour-'+r.id, missionId:r.missionId,
+      date:r.dateRemboursement||r.date,
+      client:m?(m.client||''):'(vente supprimée)',
+      libelle:'Remboursement'+(r.motif?' — '+r.motif:'')+(r.type==='partiel'?' (partiel)':''),
+      montant:-(r.montant||0),
+      modeReglement:'', refJustificative:'',
+      origine:'retour', statut:'valide',
+      dateCreation:r.dateCreation||r.date, dateModif:r.dateModif||null,
+      historique:[],
+    });
+  });
   recettes.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
   return recettes;
 }
@@ -6395,6 +6433,7 @@ function formatHistoriqueExport(historique) {
 }
 
 function recetteComplete(r) {
+  if(r.origine==='retour') return true;
   if(r.origine==='ponctuel') return !!(r.montant && r.modeReglement && r.refJustificative);
   return !!(r.date && r.client && r.montant && r.modeReglement && r.refJustificative);
 }
@@ -6485,7 +6524,7 @@ function renderRecettes() {
     g.items.forEach(r=>{
       const ann=r.statut==='annulee';
       const cpl=recetteComplete(r);
-      const modifBadge=r.dateModif
+      const modifBadge=(r.dateModif&&r.origine!=='retour')
         ?(r.origine==='manuel'
           ?`<span style="font-size:10px;background:var(--brd);border-radius:3px;padding:1px 4px;margin-left:4px;color:var(--pri);cursor:pointer;text-decoration:underline dotted" onclick="ouvrirRecetteManuelle('${r.id}')" title="Voir l'historique et modifier">Modifiée</span>`
           :r.origine==='mission_supprimee'
@@ -6497,14 +6536,18 @@ function renderRecettes() {
         :cpl
           ?`<span style="font-size:11px;color:var(--ok)">✔ Complète</span>`
           :`<span style="font-size:10px;color:var(--warn);white-space:nowrap">🟠 Infos complémentaires recommandées</span>`;
-      const btnEditer=r.origine==='manuel'
+      const btnEditer=r.origine==='retour'
+        ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="navigate('retours')">Voir dans Retours</button>`
+        :r.origine==='manuel'
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirRecetteManuelle('${r.id}')">Modifier</button>`
         :r.origine==='ponctuel'
           ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirPoncLREdit('${r.id}')">Modifier</button>`
         :r.origine==='mission_supprimee'
           ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirEditionRecette('__supprimee__','${r.id}')">Modifier</button>`
         :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="ouvrirEditionRecette('${r.missionId||''}','${r.id}')">Modifier</button>`;
-      const btnAnn=!ann
+      // Un retour se pilote depuis la page Retours (son propre cycle de statuts), pas via
+      // Annuler/Rétablir du livre des recettes — cette ligne n'est qu'une trace en lecture seule.
+      const btnAnn=r.origine==='retour'?'':!ann
         ?`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px;color:var(--err)" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Annuler</button>`
         :`<button class="btn btn-out btn-sm" style="font-size:11px;padding:2px 7px" onclick="toggleAnnulationRecette('${r.origine}','${r.id}','${r.missionId||''}')">Rétablir</button>`;
       const rowStyle=ann?'opacity:.45':'';
@@ -7730,6 +7773,9 @@ function sauvegarderRetour() {
 function changerStatutRetour(retourId, nouveauStatut) {
   const r=(DATA.retours||[]).find(x=>x.id===retourId); if(!r) return;
   r.statut=nouveauStatut; r.dateModif=today();
+  // dateRemboursement = date d'encaissement effectif (par défaut aujourd'hui, éditable ensuite
+  // dans la page Retours) — distincte de `date` qui reste la date de signalement du retour.
+  if(nouveauStatut==='rembourse'&&!r.dateRemboursement) r.dateRemboursement=today();
   saveData(); renderRetours(); renderMissions();
   if(currentPage==='dashboard') renderDashboard();
 }
@@ -7740,6 +7786,42 @@ function modifierMontantRetour(retourId, val) {
   r.montant=montant; r.dateModif=today();
   saveData();
   if(currentPage==='dashboard') renderDashboard();
+}
+function modifierDateRembourseRetour(retourId, val) {
+  const r=(DATA.retours||[]).find(x=>x.id===retourId); if(!r||!val) return;
+  r.dateRemboursement=val; r.dateModif=today();
+  saveData(); renderMissions();
+  if(currentPage==='dashboard') renderDashboard();
+}
+// Vente d'origine liée à un retour : mois où son CA a été reconnu (dernier encaissement daté,
+// ou dateFact à défaut) — sert à détecter si un remboursement encaissé plus tard qu'une
+// déclaration URSSAF déjà faite nécessite une déclaration rectificative.
+function getVenteCaMonth(m) {
+  if(!m) return null;
+  const encs=m.encaissements||[];
+  if(encs.length>0){
+    const dates=encs.map(e=>e.date).filter(Boolean).sort();
+    return dates.length?dates[dates.length-1].slice(0,7):null;
+  }
+  return m.dateFact?m.dateFact.slice(0,7):null;
+}
+// Remboursements dont l'encaissement est survenu un mois APRÈS celui où le CA de la vente
+// d'origine a été reconnu — cas où l'URSSAF exige une déclaration rectificative de la période
+// d'origine (remboursement avant déclaration = simple déduction ; après = rectificative). Voir
+// CLAUDE.md pour les sources. Exclut les retours déjà marqués "vérifié" par l'utilisateur.
+function getRetoursNecessitantRectificative() {
+  return (DATA.retours||[]).filter(r=>{
+    if(r.statut!=='rembourse'||r.alerteRectifTraitee) return false;
+    const m=DATA.missions.find(x=>x.id===r.missionId);
+    const venteMk=getVenteCaMonth(m);
+    const rembMk=(r.dateRemboursement||r.date||'').slice(0,7);
+    return venteMk&&rembMk&&rembMk>venteMk;
+  });
+}
+function marquerRectifTraitee(retourId) {
+  const r=(DATA.retours||[]).find(x=>x.id===retourId); if(!r) return;
+  r.alerteRectifTraitee=true;
+  saveData(); renderDashboard();
 }
 function renderRetours() {
   const zone=document.getElementById('retours-content'); if(!zone) return;
@@ -7756,19 +7838,23 @@ function renderRetours() {
       : r.statut==='accepte'
       ? `<button class="btn btn-acc btn-xs" onclick="changerStatutRetour('${r.id}','rembourse')">Marquer remboursé</button> <button class="btn btn-out btn-xs" onclick="changerStatutRetour('${r.id}','refuse')">Refuser</button>`
       : '—';
+    const dateRemb = r.statut==='rembourse'
+      ? `<input type="date" value="${r.dateRemboursement||r.date||''}" style="font-size:12px;padding:3px 4px" onchange="modifierDateRembourseRetour('${r.id}',this.value)">`
+      : '—';
     return `<tr>
       <td>${r.date||'—'}</td>
       <td>${client}</td>
       <td><input type="number" step="0.01" min="0" value="${r.montant||0}" style="width:90px;font-size:13px;padding:3px 6px" onchange="modifierMontantRetour('${r.id}',this.value)"></td>
       <td>${r.type==='partiel'?'Partiel':'Total'}</td>
       <td><span style="color:${RETOUR_STATUT_COLORS[r.statut]||'#6b7280'};font-weight:600">${RETOUR_STATUT_LABELS[r.statut]||r.statut}</span></td>
+      <td>${dateRemb}</td>
       <td>${r.motif||'—'}</td>
       <td>${actions}</td>
     </tr>`;
   }).join('');
   zone.innerHTML=`<div class="card" style="padding:0;overflow-x:auto"><table class="tbl-wrap" style="width:100%;border-collapse:collapse">
     <thead><tr style="text-align:left;font-size:11px;color:var(--tl);text-transform:uppercase">
-      <th style="padding:8px 10px">Date</th><th style="padding:8px 10px">${tVocab('client')}</th><th style="padding:8px 10px">Montant</th><th style="padding:8px 10px">Type</th><th style="padding:8px 10px">Statut</th><th style="padding:8px 10px">Motif</th><th style="padding:8px 10px">Actions</th>
+      <th style="padding:8px 10px">Date</th><th style="padding:8px 10px">${tVocab('client')}</th><th style="padding:8px 10px">Montant</th><th style="padding:8px 10px">Type</th><th style="padding:8px 10px">Statut</th><th style="padding:8px 10px">Encaissé le</th><th style="padding:8px 10px">Motif</th><th style="padding:8px 10px">Actions</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
