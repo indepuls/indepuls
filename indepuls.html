@@ -7925,6 +7925,37 @@ function retourBadgeHtml(missionId) {
   const lbl=RETOUR_STATUT_LABELS[r.statut]||r.statut, col=RETOUR_STATUT_COLORS[r.statut]||'#6b7280';
   return `<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;font-size:10.5px;font-weight:600;color:#fff;background:${col}" title="${r.type==='partiel'?'Partiel':'Total'} · ${fmtE(r.montant||0)}${r.motif?' · '+r.motif:''}">↩ ${lbl}</span>`;
 }
+
+// ── SUIVI D'EXPÉDITION (achat_revente uniquement) ─────────────
+// Retour bêta Pauline (achat-revente), 2026-07 : une fois la vente confirmée ('fact'), rien ne
+// distingue "vient d'être vendue" de "déjà livrée". Suivi purement indicatif, jamais un statut —
+// m.statut reste 'fact' du début à la fin, aucun impact sur le CA/moteur de calcul. Champ optionnel
+// (m.etapeExpedition, index 0/1/2, absent = "Préparée" par défaut) — aucune migration nécessaire,
+// comportement identique à m.quantite/m.prixAchat (champs optionnels déjà existants). Limité à
+// achat_revente : pour fabrication, 'fact' affiche déjà "Livrée", ajouter ce suivi par-dessus
+// serait contradictoire (décision Faustine, 2026-07-21).
+const ETAPES_EXPEDITION=[
+  {icon:'📦',label:'Préparée'},
+  {icon:'🚚',label:'Expédiée'},
+  {icon:'✅',label:'Livrée'},
+];
+function expeditionBadgeHtml(m) {
+  if(m.isManagement||m.isRecurring||m.statut!=='fact') return '';
+  if((BUSINESS_PROFILE_MAP[DATA.params?.metier]||DEFAULT_FAMILY)!=='achat_revente') return '';
+  const idx=Math.min(Math.max(m.etapeExpedition||0,0),ETAPES_EXPEDITION.length-1);
+  const e=ETAPES_EXPEDITION[idx];
+  return `<span style="display:inline-flex;align-items:center;gap:3px;margin-left:6px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:1px 3px;vertical-align:middle">
+    <span style="cursor:pointer;padding:0 3px;color:${idx>0?'var(--text)':'var(--tl)'}" onclick="event.stopPropagation();avancerExpedition('${m.id}',-1)" title="Étape précédente">‹</span>
+    <span style="font-size:10.5px;font-weight:600;white-space:nowrap">${e.icon} ${e.label}</span>
+    <span style="cursor:pointer;padding:0 3px;color:${idx<ETAPES_EXPEDITION.length-1?'var(--text)':'var(--tl)'}" onclick="event.stopPropagation();avancerExpedition('${m.id}',1)" title="Étape suivante">›</span>
+  </span>`;
+}
+function avancerExpedition(missionId, delta) {
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  const idx=Math.min(Math.max((m.etapeExpedition||0)+delta,0),ETAPES_EXPEDITION.length-1);
+  m.etapeExpedition=idx;
+  saveData(); renderMissions();
+}
 function ouvrirRetourModal(missionId) {
   const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
   document.getElementById('retour-mission-id').value=missionId;
@@ -8654,7 +8685,7 @@ function renderMissions() {
     const _recEnc=(m.encaissements||[]).length, _recT=m.nbMoisRec||'?';
     const dateFactCell=m.isRecurring?`${_recEnc}/${_recT} mois encaiss${_recEnc===1?'é':'és'}`:(m.dateFact||'—');
     const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts" style="margin-top:2px">${getRecurringPeriodLabel(m)}</div>${m.nbMoisRec?`<div class="ts">Total : ${fmtE(m.montantDevis)}</div>`:''}`:(tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis));
-    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}</div><div class="ts">${esc(m.description||'')}</div></td>
+    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
