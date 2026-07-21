@@ -11750,8 +11750,24 @@ document.addEventListener('keydown', function(e) {
         };
         _doRender();
       } else if (!res.data) {
-        // Nouveau compte — aucune donnée cloud : afficher le picker si aucun métier choisi
-        if (!DATA.params || !DATA.params.metier) {
+        // Nouveau compte — aucune donnée cloud : afficher le picker si aucun métier choisi.
+        // Lecture directe du localStorage (synchrone, fiable) en complément de DATA.params.metier
+        // en mémoire : cette réponse cloud arrive de façon asynchrone et peut, sur certaines
+        // synchronisations de session, résoudre avant que loadData() (déclenché par
+        // DOMContentLoaded) n'ait fini de repeupler DATA depuis le stockage local — auquel cas
+        // DATA.params.metier est encore vide alors qu'un métier est bel et bien déjà enregistré.
+        // Sans ce filet, le picker de profil ressurgissait par-dessus un compte démo déjà
+        // restauré, forçant un nouveau choix de métier à chaque rechargement (bug remonté par
+        // Faustine, 2026-07-21) — ne touche à aucune des deux règles du 13 juillet (le cloud
+        // gagne toujours quand une ligne existe ; le mode démo ne pousse jamais vers le cloud).
+        let _localMetier = DATA.params && DATA.params.metier;
+        if (!_localMetier) {
+          try {
+            const _raw = localStorage.getItem(STORAGE_KEY);
+            if (_raw) _localMetier = JSON.parse(_raw)?.params?.metier;
+          } catch(e) {}
+        }
+        if (!_localMetier) {
           DATA._needsProfilePick = true;
           if (typeof showProfilePicker === 'function') showProfilePicker();
         }
