@@ -2077,6 +2077,9 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="fgroup"><label class="flabel">Date <span class="ts">(facultatif)</span></label><input type="date" id="add-time-date"></div>
     <div class="fgroup" id="add-time-cat-wrap" style="display:none"><label class="flabel">Catégorie <span class="ts">(facultatif)</span></label><select id="add-time-cat"><option value="">— Aucune —</option></select></div>
+    <div id="add-time-correct-link" style="display:none;text-align:center;margin-top:4px;padding-top:10px;border-top:1px solid var(--brd)">
+      <a href="javascript:void(0)" class="ts" onclick="closeModal('modal-add-time');openCorrectTimeModal(document.getElementById('add-time-mission-id').value)">Le chrono a tourné en pause ? Corriger le temps total</a>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-add-time')">Fermer</button>
       <button class="btn btn-acc" data-enter-action onclick="saveAddTime()">Ajouter</button>
@@ -8741,7 +8744,7 @@ function renderMissions() {
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
       <td class="ts">${dateFactCell}</td>
-      <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
+      <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button></div>`}</td>
       <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
@@ -9772,6 +9775,12 @@ function openAddTimeModal(id) {
       catWrap.style.display='';
     }
   }
+  // Fusion "+ temps" / "Corriger le temps" (2026-07-21) : la correction (écrase tout le temps
+  // enregistré, cf. saveCorrectTime()) reste un lien discret, jamais un bouton de même poids que
+  // "Ajouter" — même périmètre qu'avant (jamais pour isManagement, temps interne mensuel non
+  // corrigeable depuis cette modale).
+  const correctLink=document.getElementById('add-time-correct-link');
+  if(correctLink) correctLink.style.display=(m&&!m.isManagement)?'':'none';
   renderAddTimeLog(id);
   openModal('modal-add-time');
 }
