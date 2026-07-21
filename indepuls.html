@@ -672,6 +672,7 @@ html,body{overflow-x:hidden;}
         <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)" id="mf-btn-cours">En cours</button>
         <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)" id="mf-btn-ref">Refusées</button>
         <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)" id="mf-btn-fact">Facturées</button>
+        <button class="btn btn-out btn-xs" onclick="filterMissions('paye',this)" id="mf-btn-paye" style="display:none">Payées</button>
         <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
           <option value="newest">↓ Plus récent</option>
           <option value="oldest">↑ Plus ancien</option>
@@ -2693,17 +2694,23 @@ function tVocab(key) {
 // refRec/factRec : cas des missions récurrentes (service/chantier uniquement en pratique) — reprend
 // le comportement existant ("Terminée"/"Refusée" plutôt que "Facturé"/"Refusé").
 const STATUT_LABELS = {
-  service:       { att:'En attente', cours:'En cours', ref:'Refusé', fact:'Facturé', refRec:'Refusée', factRec:'Terminée', refPl:'Refusées', factPl:'Facturées' },
-  chantier:      { att:'En attente', cours:'En cours', ref:'Refusé', fact:'Facturé', refRec:'Refusée', factRec:'Terminée', refPl:'Refusées', factPl:'Facturées' },
+  // factPaye/factPayePl : statut "Payé" dérivé (jamais stocké — voir estMissionPayee() dans
+  // shared/core/calculs.js), uniquement service/chantier pour l'instant. Décision Faustine
+  // (2026-07-21) : fabrication/achat_revente gardent Livrée/Vendue inchangés — ces libellés
+  // impliquent déjà un achèvement, "Payé" par-dessus complexifierait sans clarifier. Ces
+  // statuts seront retravaillés séparément pour les commerçants plus tard.
+  service:       { att:'En attente', cours:'En cours', ref:'Refusé', fact:'Facturé', refRec:'Refusée', factRec:'Terminée', refPl:'Refusées', factPl:'Facturées', factPaye:'Payé', factPayePl:'Payées' },
+  chantier:      { att:'En attente', cours:'En cours', ref:'Refusé', fact:'Facturé', refRec:'Refusée', factRec:'Terminée', refPl:'Refusées', factPl:'Facturées', factPaye:'Payé', factPayePl:'Payées' },
   fabrication:   { att:'En attente', cours:'En fabrication', ref:'Refusée', fact:'Livrée', refPl:'Refusées', factPl:'Livrées' },
   achat_revente: { att:'Proposée', cours:'En attente de confirmation', ref:'Annulée', fact:'Vendue', refPl:'Annulées', factPl:'Vendues' }
 };
-function tVocabStatut(statut, isRecurring) {
+function tVocabStatut(statut, isRecurring, paye) {
   const metier = DATA.params?.metier || '';
   const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
   const labels = STATUT_LABELS[family] || STATUT_LABELS[DEFAULT_FAMILY];
   if (isRecurring && statut==='ref' && labels.refRec) return labels.refRec;
   if (isRecurring && statut==='fact' && labels.factRec) return labels.factRec;
+  if (paye && !isRecurring && statut==='fact' && labels.factPaye) return labels.factPaye;
   return labels[statut] || statut;
 }
 // Pluriel (boutons de filtre "Refusées"/"Facturées"…) — accord de genre propre à chaque famille,
@@ -8593,15 +8600,24 @@ function getTrajectoireCompacte(m) {
 function renderMissions() {
   renderMissionsSummary(DATA.missions);
   const _mfAtt=document.getElementById('mf-btn-att'), _mfCours=document.getElementById('mf-btn-cours'),
-        _mfRef=document.getElementById('mf-btn-ref'), _mfFact=document.getElementById('mf-btn-fact');
+        _mfRef=document.getElementById('mf-btn-ref'), _mfFact=document.getElementById('mf-btn-fact'),
+        _mfPaye=document.getElementById('mf-btn-paye');
   if(_mfAtt) _mfAtt.textContent=tVocabStatut('att');
   if(_mfCours) _mfCours.textContent=tVocabStatut('cours');
   if(_mfRef) _mfRef.textContent=tVocabStatutPluriel('ref');
   if(_mfFact) _mfFact.textContent=tVocabStatutPluriel('fact');
+  // Filtre "Payé" — statut dérivé, jamais stocké (voir estMissionPayee()) ; uniquement
+  // service/chantier pour l'instant (décision Faustine 2026-07-21, voir STATUT_LABELS).
+  if(_mfPaye){
+    const _familyPaye=BUSINESS_PROFILE_MAP[DATA.params?.metier]||DEFAULT_FAMILY;
+    const _labelsPaye=STATUT_LABELS[_familyPaye]||STATUT_LABELS[DEFAULT_FAMILY];
+    if(_labelsPaye.factPayePl){ _mfPaye.style.display=''; _mfPaye.textContent=_labelsPaye.factPayePl; }
+    else { _mfPaye.style.display='none'; if(missionFilter==='paye') missionFilter='all'; }
+  }
   const tbody=document.getElementById('missions-tbody'); tbody.innerHTML='';
   const bm={att:'b-att',cours:'b-cours',ref:'b-ref',fact:'b-fact'};
   const tvaOn=DATA.params.tva, tvaRate=DATA.params.tauxTVA/100;
-  let filtered=DATA.missions.filter(m=>missionFilter==='all'||m.statut===missionFilter||(missionFilter==='cours'&&isRecurringStillActive(m)));
+  let filtered=DATA.missions.filter(m=>missionFilter==='all'||(missionFilter==='paye'?estMissionPayee(m):m.statut===missionFilter)||(missionFilter==='cours'&&isRecurringStillActive(m)));
   filtered.sort((a,b)=>{
     if(b.isManagement!==a.isManagement) return (b.isManagement?1:0)-(a.isManagement?1:0);
     if(missionSort==='oldest') return (a.id||'').localeCompare(b.id||'');
@@ -8641,7 +8657,7 @@ function renderMissions() {
     tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
-      <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring)}</option></select></td>
+      <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
       <td class="ts">${dateFactCell}</td>
       <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
       <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}</td>
@@ -11601,6 +11617,7 @@ document.addEventListener('keydown', function(e) {
   window.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
   window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
+  window.estMissionPayee        = (m)  => { sync(); return Mode.estMissionPayee(m); };
   window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
   window.getMissionHeuresMois   = (m, mk) => { sync(); return Mode.getMissionHeuresMois(m, mk); };

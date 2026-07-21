@@ -561,6 +561,16 @@ export function getResteAEncaisser(m) {
   return Math.max(0, (m.montantDevis || 0) - getTotalEncaisse(m));
 }
 
+// Statut "Payé" dérivé — jamais stocké, jamais un champ séparé de m.statut ('fact' reste la
+// seule valeur interne). Réutilise getResteAEncaisser (donc getTotalEncaisse) plutôt que de
+// dupliquer la comparaison montant facturé/encaissé déjà utilisée par l'alerte "facture non
+// encaissée depuis X jours". Exclut explicitement les récurrentes (logique "Terminé" + suivi
+// N/total mois séparée, inchangée) et le paiement partiel (reste affiché "Facturé").
+export function estMissionPayee(m) {
+  if (m.isManagement || m.isRecurring) return false;
+  return m.statut === 'fact' && getResteAEncaisser(m) === 0 && (m.montantDevis || 0) > 0;
+}
+
 // ── TEMPS / HEURES ───────────────────────────────────────────
 
 export function getMissionTotalMs(DATA, m) {
