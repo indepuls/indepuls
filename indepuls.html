@@ -11794,13 +11794,23 @@ document.addEventListener('keydown', function(e) {
     // sans l'autre. Ne JAMAIS réintroduire de chemin qui laisse syncToCloud() tourner alors que
     // DATA.isExample est vrai.
     if (DATA.isExample) return;
+    // FIX (2026-07-21) : capturer la référence AVANT l'attente réseau ci-dessous. DATA est
+    // réassigné (pas muté) par les bascules de profil/démo ailleurs dans le code — sans cette
+    // capture, un changement de profil survenant pendant l'await (ex. bascule en mode démo juste
+    // après une sauvegarde) fait relire "DATA" au moment de l'upsert, potentiellement déjà repassé
+    // en démo, et envoie ce contenu démo vers le cloud malgré le garde-fou ci-dessus, qui n'a
+    // vérifié que l'état AVANT l'attente. Symptôme observé par Faustine : une configuration démo
+    // ancienne (métier/statut de l'écran d'accueil) figée dans le cloud, rechargée à chaque F5 par
+    // la règle "le cloud gagne toujours" (13 juillet, toujours nécessaire, non modifiée ici).
+    const _snapshot = DATA;
     try {
       var res = await sb.auth.getSession();
       if (!res.data || !res.data.session) return;
+      if (_snapshot.isExample) return; // re-vérification après l'attente, sur la référence figée
       await sb.from('user_data').upsert({
         user_id: res.data.session.user.id,
         app_type: APP_TYPE,
-        data: DATA,
+        data: _snapshot,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id,app_type' });
     } catch(e) {

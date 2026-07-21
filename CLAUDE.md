@@ -1198,6 +1198,24 @@ Cette branche testait `if (!DATA.params || !DATA.params.metier)` pour décider d
 
 **Point additionnel repéré en cours d'investigation, non corrigé (hors sujet du signalement de Faustine)** : `_deleteCloudData()` échoue silencieusement si `sb.auth.getSession()` ne retourne pas de session au moment de l'appel (pas d'indicateur d'échec visible) — à garder en tête si un "Réinitialiser l'application" semblait ne pas avoir supprimé la ligne cloud.
 
+**Correctif ci-dessus insuffisant — le vrai bug était ailleurs (2026-07-21, suite)** : Faustine a précisé après le fix ci-dessus que l'écran de bienvenue ne réapparaît jamais — elle reste sur la page ouverte, mais `DATA.params` (métier + statut juridique) revient systématiquement à **sa toute première configuration faite à l'écran d'accueil**, quels que soient ses changements ultérieurs dans Paramètres. Ce détail (page inchangée, seuls métier/statut reviennent, jamais le picker) pointe vers une **ligne cloud figée depuis longtemps** contenant ce tout premier choix — pas vers la branche "nouveau compte" déjà corrigée.
+
+**Root cause véritable, une vraie faille de timing dans `syncToCloud()` elle-même** (`indepuls.html`, fonction `syncToCloud()`, juste après `loadFromCloud()`) :
+```js
+async function syncToCloud() {
+  if (DATA.isExample) return;              // ← vérifié ICI
+  var res = await sb.auth.getSession();    // ← attente réseau : DATA peut changer entre-temps
+  await sb.from('user_data').upsert({ ..., data: DATA, ... }); // ← relit DATA à CE moment, pas au moment du check
+}
+```
+`DATA` est vérifié "pas en démo" avant l'attente réseau (`await sb.auth.getSession()`), mais relu **après** cette attente pour construire la charge envoyée au cloud. Si `DATA` est réassigné vers du contenu démo (pas muté — une bascule de profil/démo fait `DATA = ...` sur un nouvel objet) pendant cette fenêtre, l'upsert envoie ce contenu démo malgré le garde-fou, qui n'a vérifié que l'état *avant* l'attente. Une fois cette ligne écrite une fois — vraisemblablement lors du tout premier onboarding de Faustine, où plusieurs sauvegardes rapprochées se sont enchaînées (choix du métier, puis bascule immédiate en démo via `loadDemoWithCurrentParams()`) — elle reste figée dans le cloud pour toujours tant qu'aucune vraie sauvegarde (hors démo) ne la remplace, et la règle "le cloud gagne toujours" (13 juillet, toujours nécessaire) la recharge sans exception à chaque rechargement — expliquant très précisément le symptôme : retour à la config *initiale*, jamais au dernier changement, page en cours inchangée (le routing n'est pas persisté dans `DATA`).
+
+**Fix** : capturer une référence figée de `DATA` (`const _snapshot = DATA;`) *avant* l'attente réseau, revérifier `_snapshot.isExample` après l'attente, et envoyer `_snapshot` (jamais `DATA` relu après coup) à l'upsert. Élimine la fenêtre de course sans toucher aux deux règles du 13 juillet (`loadFromCloud()` charge toujours les vraies données cloud existantes ; le guard `if (DATA.isExample) return;` en tout début de fonction reste intact et inchangé).
+
+**Pour le compte de Faustine spécifiquement** : ce correctif empêche une nouvelle corruption, mais ne peut pas nettoyer la ligne déjà figée dans le cloud. Il faudra, une fois le correctif déployé, sortir temporairement du mode démo (bouton "Créer mon espace de travail") pour qu'une vraie sauvegarde (hors démo) écrase cette ligne — elle pourra ensuite repasser en démo sans que le problème ne revienne.
+
+**Vérifié** : relecture ligne à ligne du mécanisme (capture avant l'`await`, ré-vérification après), diff minimal confirmé (`git diff` — uniquement l'ajout de la capture/re-check, aucune autre ligne touchée). **Non testable en intégration réelle** pour la même raison que le fix du 13 juillet : `syncToCloud()` est privée à la fermeture du script d'auth, non exposée sur `window`, et simuler une vraie course contre le projet Supabase de production serait imprudent — vérification reposant sur la revue de code, pas un test d'intégration exécuté. 73 assertions (`validation.js`) + 6 tests (suites `.test.js`) toujours au vert (aucune fonction de `calculs.js` touchée).
+
 ### Cohérence des données démo — temps prévu vs sessions/charge estimée (2026-07-16)
 
 Faustine a repéré (capture d'écran, mission récurrente "Groupe Horizon" en mode démo) une incohérence : "Temps planifié / semaine : 5" mais "Temps prévu chaque mois (h) : 9" — deux chiffres sans lien mathématique, alors que `computeTempsPrevuRecurrente` est censé dériver l'un de l'autre. Demande explicite de vérifier la cohérence de **tous** les exemples démo, tout en restant vigilant à ne pas retoucher le mécanisme de sync cloud (cf. fix ci-dessus).
