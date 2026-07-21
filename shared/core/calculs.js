@@ -215,6 +215,29 @@ function monthKeyOf(dateStr) {
   return dateStr ? dateStr.slice(0, 7) : null;
 }
 
+// Retours/remboursements (fabrication + achat_revente, objectif='marge_commande') — le statut
+// de la vente/commande ne change jamais à cause d'un retour (voir DATA.retours, indepuls.html) ;
+// cette fonction est le seul point d'entrée pour déduire un remboursement du CA sur un mois
+// donné, plutôt que de dupliquer la somme dans chaque consommateur de KPI.
+export function getMontantRembourseMois(DATA, mk) {
+  return (DATA.retours || [])
+    .filter(r => r.statut === 'rembourse' && monthKeyOf(r.date) === mk)
+    .reduce((t, r) => t + (r.montant || 0), 0);
+}
+export function getMontantRembourseAnnuel(DATA, year = DATA.currentYear) {
+  const y = String(year);
+  return (DATA.retours || [])
+    .filter(r => r.statut === 'rembourse' && (r.date || '').startsWith(y))
+    .reduce((t, r) => t + (r.montant || 0), 0);
+}
+// Tous les remboursements confondus, sans filtre de période — pour les calculs "depuis toujours"
+// (ex. marge brute cumulée du pilier Rentabilité, qui n'est elle-même pas filtrée par année).
+export function getMontantRembourseTotal(DATA) {
+  return (DATA.retours || [])
+    .filter(r => r.statut === 'rembourse')
+    .reduce((t, r) => t + (r.montant || 0), 0);
+}
+
 // CA cumulé réel d'une mission récurrente depuis dateDebutRec jusqu'à refDate (aujourd'hui par
 // défaut), ou jusqu'à dateDebutRec+nbMoisRec si la durée est connue et déjà passée. Même logique
 // diff/mois que getCaFromMissions, mais cumulée sur plusieurs mois au lieu d'un seul mk.

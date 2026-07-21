@@ -598,6 +598,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
+  <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours</div>
   <div class="nav-section">Paramètres</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
   <div class="nav-item" onclick="navigate('notice')"><span class="nav-icon">📖</span> Guide & glossaire</div>
@@ -667,10 +668,10 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
         <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('att',this)">En attente</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)">En cours</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)">Refusées</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)">Facturées</button>
+        <button class="btn btn-out btn-xs" onclick="filterMissions('att',this)" id="mf-btn-att">En attente</button>
+        <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)" id="mf-btn-cours">En cours</button>
+        <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)" id="mf-btn-ref">Refusées</button>
+        <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)" id="mf-btn-fact">Facturées</button>
         <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
           <option value="newest">↓ Plus récent</option>
           <option value="oldest">↑ Plus ancien</option>
@@ -1475,6 +1476,18 @@ html,body{overflow-x:hidden;}
     </div>
   </div>
 
+  <div class="page" id="page-retours">
+    <div style="max-width:960px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div>
+          <h2 style="margin:0;font-size:20px;color:var(--pri)">↩️ Retours</h2>
+          <div style="font-size:13px;color:var(--tl);margin-top:4px">Suivi des retours et remboursements — la vente concernée reste confirmée, seul le retour évolue.</div>
+        </div>
+      </div>
+      <div id="retours-content"></div>
+    </div>
+  </div>
+
 </div><!-- /.main -->
 
 
@@ -2125,6 +2138,39 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL SIGNALER UN RETOUR (fabrication / achat_revente) -->
+<div class="modal-ov hidden" id="modal-retour">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="retour-modal-title">Signaler un retour</div>
+    <input type="hidden" id="retour-mission-id">
+    <div class="fgroup">
+      <label class="flabel">Date</label>
+      <input type="date" id="retour-date">
+    </div>
+    <div class="frow">
+      <div class="fgroup">
+        <label class="flabel">Montant concerné (€)</label>
+        <input type="number" id="retour-montant" step="0.01" min="0">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Type</label>
+        <select id="retour-type">
+          <option value="total">Retour total</option>
+          <option value="partiel">Retour partiel / ristourne</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Motif <span style="font-weight:400;color:var(--tl)">(facultatif)</span></label>
+      <input type="text" id="retour-motif" placeholder="Ex : taille incorrecte, article endommagé...">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-retour')">Annuler</button>
+      <button class="btn btn-acc" data-enter-action onclick="sauvegarderRetour()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL FACTURATION -->
 <div class="modal-ov hidden" id="modal-fact-confirm">
   <div class="modal">
@@ -2389,7 +2435,7 @@ html,body{overflow-x:hidden;}
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
-const SCHEMA_VERSION = 31; // v31 : datation systématique du temps réel (tempsManuel), chantier "Temps prévu"
+const SCHEMA_VERSION = 32; // v32 : DATA.retours (retours/remboursements fabrication + achat_revente)
 const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Coworking & bureau','Outils IA','Hébergement & nom de domaine','Livres & ressources professionnelles','Autre'];
 const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#0e7490','#6d28d9','#4338ca','#b45309','#6b7280'];
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
@@ -2537,6 +2583,35 @@ function tVocab(key) {
   const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
   return VOCABULARY_FAMILIES[family]?.[key] || VOCABULARY_FAMILIES[DEFAULT_FAMILY][key] || key;
 }
+// ── LIBELLÉS DE STATUT ─────────────────────────────────────────
+// Couche d'affichage uniquement — les valeurs internes att/cours/ref/fact ne changent jamais
+// (moteur de calcul, migrations, exports... tout reste branché sur ces 4 valeurs). Seul le mot
+// affiché varie selon la famille. service/chantier gardent le vocabulaire historique ;
+// fabrication/achat_revente ont leur propre mapping (retour bêta Pauline, 2026-07).
+// refRec/factRec : cas des missions récurrentes (service/chantier uniquement en pratique) — reprend
+// le comportement existant ("Terminée"/"Refusée" plutôt que "Facturé"/"Refusé").
+const STATUT_LABELS = {
+  service:       { att:'En attente', cours:'En cours', ref:'Refusé', fact:'Facturé', refRec:'Refusée', factRec:'Terminée', refPl:'Refusées', factPl:'Facturées' },
+  chantier:      { att:'En attente', cours:'En cours', ref:'Refusé', fact:'Facturé', refRec:'Refusée', factRec:'Terminée', refPl:'Refusées', factPl:'Facturées' },
+  fabrication:   { att:'En attente', cours:'En fabrication', ref:'Refusée', fact:'Livrée', refPl:'Refusées', factPl:'Livrées' },
+  achat_revente: { att:'Proposée', cours:'En attente de confirmation', ref:'Annulée', fact:'Vendue', refPl:'Annulées', factPl:'Vendues' }
+};
+function tVocabStatut(statut, isRecurring) {
+  const metier = DATA.params?.metier || '';
+  const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
+  const labels = STATUT_LABELS[family] || STATUT_LABELS[DEFAULT_FAMILY];
+  if (isRecurring && statut==='ref' && labels.refRec) return labels.refRec;
+  if (isRecurring && statut==='fact' && labels.factRec) return labels.factRec;
+  return labels[statut] || statut;
+}
+// Pluriel (boutons de filtre "Refusées"/"Facturées"…) — accord de genre propre à chaque famille,
+// ne pas déduire par concaténation naïve d'un "s" (casserait l'accord féminin service/chantier).
+function tVocabStatutPluriel(statut) {
+  const metier = DATA.params?.metier || '';
+  const family = BUSINESS_PROFILE_MAP[metier] || DEFAULT_FAMILY;
+  const labels = STATUT_LABELS[family] || STATUT_LABELS[DEFAULT_FAMILY];
+  return labels[statut+'Pl'] || labels[statut] || statut;
+}
 // Genre grammatical du mot tVocab('item') pour le profil actif — 'chantier' est la seule
 // famille masculine (mission/commande/vente sont féminines). À utiliser pour tout accord
 // (ce/cette, un nouveau/une nouvelle, refusé/refusée, aucun/aucune…) plutôt que de
@@ -2679,6 +2754,7 @@ function applyVocabUI() {
   if (dvCout) dvCout.textContent = tVocab('coutDirectLabel') + ' (€)';
   updateNavPlanning();
   updateNavSimulateur();
+  updateNavRetours();
   // sb-profil-label géré par updateDemoUI()
   // Planning : label sessions dans la modale + visibilité de la zone
   const sessLabel = document.getElementById('modal-sessions-label');
@@ -3491,7 +3567,7 @@ function getDefaultData() {
       chargeEstimee:null, chargeUnit:'h_sem', encaissements:[],
       typeMission:'individuelle', nbParticipants:0, prixParParticipant:0, tempsCreation:0, tempsAnimation:0, tempsSupport:0
     }],
-    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[]
+    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[], retours:[]
   };
 }
 
@@ -3537,6 +3613,9 @@ function migrate(data) {
       m.timerAccumulated = 0;
     }
   });
+  // v32 : ajout du modèle de retours (fabrication + achat_revente) — comptes existants sans
+  // la clé, jamais de perte de données possible ici (tableau vide par défaut).
+  if (!data.retours) data.retours = [];
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -4147,7 +4226,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -4178,8 +4257,14 @@ function updateNavSimulateur() {
     lbl.textContent = 'Simulateur';
   }
 }
+function updateNavRetours() {
+  const el = document.getElementById('nav-retours');
+  if (!el) return;
+  el.style.display = DATA.params.modules?.objectif === 'marge_commande' ? '' : 'none';
+}
 function navigate(page) {
   if (page === 'planning' && !DATA.params.modules?.calendrier) { navigate('dashboard'); return; }
+  if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4225,6 +4310,7 @@ function renderPage(page) {
     case 'params': renderParams(); break;
     case 'simulateur': renderSimulateurPage(); break;
     case 'recettes': renderRecettes(); break;
+    case 'retours': renderRetours(); break;
   }
 }
 
@@ -4512,12 +4598,14 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const prevMk=`${prevY}-${String(prevMo).padStart(2,'0')}`;
     const prevLabel=new Date(prevY,prevMo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     const prevBrut=getCaBreakdownMois(prevMk).prestation+(getCaBreakdownMois(prevMk).vente||0)+getPonctuelsCA(prevMk);
-    const prevNet=getRevenuNetMois(prevMk);
+    const _prevObjectif=DATA.params.modules?.objectif||'th';
+    // Déduit les remboursements du mois avant de calculer "Gain / vente" — sinon un remboursement
+    // laisse le bilan du mois précédent inchangé (retour bêta Pauline, 2026-07).
+    const prevNet=getRevenuNetMois(prevMk)-(_prevObjectif==='marge_commande'?getMontantRembourseMois(prevMk):0);
     const prevDep=getDepensesMois(prevMk);
     const prevH=getHeuresMoisCoherentes(prevMk);
     const prevTH=prevH>0?Math.round(prevNet/prevH):null;
     const _prevFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
-    const _prevObjectif=DATA.params.modules?.objectif||'th';
     const _prevHj=DATA.params.heuresParJour||7;
     // Repli sur dateFact si pas d'encaissements détaillés (même angle mort démo-vs-réel corrigé
     // ailleurs dans ce chantier) — sinon une mission facturée sans encaissement n'est jamais
@@ -4773,75 +4861,6 @@ function wRepartitionCA(d) {
       ${pctAlt!==null?`<div style="font-size:11px;color:var(--tl);margin-top:4px">${altLbl} : <strong>${pctAlt} %</strong></div>`:''}
     </div>
     ${tvaNote}
-  </div>`;
-}
-
-// ── ZONE 1 — BANDEAU SYNTHÈSE (fixe, non personnalisable) ────
-function wSynthese({caBrut,caNetMoy,objNet,thR,hT,proj}) {
-  const thMin=getTauxHoraireMinCible();
-  const pctObj=objNet>0?Math.min(caNetMoy/objNet*100,100):0;
-  const delta=objNet>caNetMoy?objNet-caNetMoy:0;
-  const objColor=pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)';
-  const cap=getCapaciteHSem(), charge=getChargeEstimeeTotal();
-  const capPct=cap>0?Math.round(charge/cap*100):0;
-  const capEmoji=capPct>100?'🔴':capPct>80?'🟠':charge>0?'🟢':'○';
-  const capColor=capPct>100?'var(--err)':capPct>80?'var(--warn)':charge>0?'var(--ok)':'var(--tl)';
-  const capSub=cap>0?(charge>0?`${fmt(Math.max(0,cap-charge),1)} h libres / sem`:'Aucune charge estimée'):`${fmt(cap,0)} h/sem max`;
-  // ── KPI 3 conditionnel par famille ───────────────────────────
-  const _synFamily=BUSINESS_PROFILE_MAP[DATA.params?.metier]||'service';
-  const _synObjectif=DATA.params.modules?.objectif||'th';
-  const _synIsChantier=_synObjectif==='tjm';
-  const _synIsMarge=_synObjectif==='marge_commande';
-  const _synHj=DATA.params.heuresParJour||7;
-  const _synTjm=Math.round(thR*_synHj), _synTjmMin=Math.round(thMin*_synHj);
-  // Repli sur dateFact si pas d'encaissements détaillés — même correction que _prevNbM ci-dessus.
-  const _synNbM=DATA.missions.filter(m=>{
-    if(m.isManagement) return false;
-    const encs=m.encaissements||[];
-    return encs.length>0 ? encs.some(e=>(e.date||'').startsWith(String(DATA.currentYear))) : (m.statut==='fact'&&m.dateFact&&m.dateFact.startsWith(String(DATA.currentYear)));
-  }).length;
-  const _synCaNet=getCaNetAnnuel();
-  const _synGain=_synNbM>0?Math.round(_synCaNet/_synNbM):0;
-  let _synLbl,_synVal,_synSub,_synColor;
-  if(_synIsChantier){
-    _synLbl='TJM réel';
-    _synVal=hT>0?fmtE(_synTjm,0)+'/j':'—';
-    _synColor=thMin>0?(_synTjm>=_synTjmMin?'var(--ok)':_synTjm>=_synTjmMin*.8?'var(--warn)':hT>0?'var(--err)':'var(--tl)'):'var(--text)';
-    _synSub=thMin>0?'obj. min. '+fmtE(_synTjmMin,0)+'/j':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie';
-  } else if(_synIsMarge){
-    const _itemLbl=_synFamily==='achat_revente'?'vente':'commande';
-    _synLbl='Gain / '+_itemLbl;
-    _synVal=_synGain>0?fmtE(_synGain,0):'—';
-    _synColor=_synGain>0?'var(--text)':'var(--tl)';
-    _synSub=_synNbM>0?_synNbM+' '+_itemLbl+(_synNbM>1?'s':'')+' encaissé'+(_synNbM>1?'s':''):hT>0?fmt(hT,0)+' h travaillées':'Aucune donnée';
-  } else {
-    _synLbl='TH réel';
-    _synVal=hT>0?fmtE(thR,0)+'/h':'—';
-    _synColor=thMin>0?(thR>=thMin?'var(--ok)':thR>=thMin*.8?'var(--warn)':hT>0?'var(--err)':'var(--tl)'):'var(--text)';
-    _synSub=thMin>0?'obj. min. '+fmtE(thMin,0)+'/h':hT>0?fmt(hT,0)+' h travaillées':'Aucune heure saisie';
-  }
-  return `<div class="g4" style="background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:14px 20px;border-left:4px solid var(--pri);gap:0">
-    <div style="padding-right:16px;border-right:1px solid var(--brd)">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">CA ${DATA.currentYear}</div>
-      <div style="font-size:20px;font-weight:700;color:var(--pri);line-height:1">${fmtE(caBrut)}</div>
-      <div style="font-size:11px;color:var(--tl);margin-top:4px">proj. ${fmtE(proj,0)}/an</div>
-    </div>
-    <div style="padding:0 16px;border-right:1px solid var(--brd)">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Revenu net / mois</div>
-      <div style="font-size:20px;font-weight:700;color:${objColor};line-height:1">${fmtE(caNetMoy)}</div>
-      <div style="margin:5px 0 3px;height:6px;background:var(--brd);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pctObj}%;background:${objColor};border-radius:3px;transition:width .4s"></div></div>
-      <div style="font-size:11px;color:var(--tl)">${pctObj>=100?'✓ Objectif atteint':'manque '+fmtE(delta)+' / mois'}</div>
-    </div>
-    <div style="padding:0 16px;border-right:1px solid var(--brd)">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">${_synLbl}</div>
-      <div style="font-size:20px;font-weight:700;color:${_synColor};line-height:1">${_synVal}</div>
-      <div style="font-size:11px;color:var(--tl);margin-top:4px">${_synSub}</div>
-    </div>
-    <div style="padding-left:16px">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);margin-bottom:5px">Capacité</div>
-      <div style="font-size:20px;font-weight:700;color:${capColor};line-height:1">${capEmoji} ${capPct>0?Math.min(capPct,999)+' %':'—'}</div>
-      <div style="font-size:11px;color:var(--tl);margin-top:4px">${capSub}</div>
-    </div>
   </div>`;
 }
 
@@ -5435,7 +5454,12 @@ function wScoreSante(d) {
   const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
   const gapTjm=tjmMin-tjmBrut;
   // ── Marge brute % (fabrication / achat_revente)
-  const _margePct=_rentCouts.ca>0?Math.round((_rentCouts.ca-_rentCouts.couts)/_rentCouts.ca*100):null;
+  // Déduit les remboursements (DATA.retours statut='rembourse') du CA avant de calculer la
+  // marge — une vente remboursée ne doit pas continuer à gonfler la rentabilité affichée
+  // (retour bêta Pauline, 2026-07). _rentCouts.ca est cumulé depuis toujours (pas de filtre
+  // d'année), donc on déduit le total des remboursements depuis toujours, pas seulement 2026.
+  const _rentCaNetRetours=_rentIsMarge?Math.max(0,_rentCouts.ca-getMontantRembourseTotal()):_rentCouts.ca;
+  const _margePct=_rentCaNetRetours>0?Math.round((_rentCaNetRetours-_rentCouts.couts)/_rentCaNetRetours*100):null;
   const _seuilMargePct=_rentFamily==='achat_revente'?20:30;
   const pctObj=objNet>0?caNetMoy/objNet*100:null;
   // ── Score
@@ -5502,7 +5526,10 @@ function wScoreSante(d) {
       : (m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===curMk?(m.montantDevis||0):0);
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
-  const _margePctMois=_rentCoutsMois.ca>0?Math.round((_rentCoutsMois.ca-_rentCoutsMois.couts)/_rentCoutsMois.ca*100):null;
+  // Même logique que _margePct (annuel, plus haut) : déduire les remboursements du mois avant
+  // de calculer la marge du mois en cours.
+  const _rentCaMoisNetRetours=_rentIsMarge?Math.max(0,_rentCoutsMois.ca-getMontantRembourseMois(curMk)):_rentCoutsMois.ca;
+  const _margePctMois=_rentCaMoisNetRetours>0?Math.round((_rentCaMoisNetRetours-_rentCoutsMois.couts)/_rentCaMoisNetRetours*100):null;
   // Même déduction des dépenses liées que thBrut (annuel, plus haut) — _rentCoutsMois.couts
   // était déjà calculé pour _margePctMois mais jamais appliqué ici, seul thBrut avait été
   // corrigé (voir chantier "dépenses liées jamais déduites du Score de Santé").
@@ -5905,12 +5932,24 @@ function wScoreSante(d) {
   // ── DONNÉES DÉTAILLÉES PAR PILIER ────────────────────────────
   // Rentabilité
   const rentC=hT>0?(sRent>=20?'var(--ok)':sRent>=14?'var(--warn)':'var(--err)'):'var(--tl)';
+  const _rentRembTotal=_rentIsMarge?getMontantRembourseTotal():0;
+  // Taux de retour/remboursement — indicateur secondaire uniquement (jamais un KPI principal,
+  // cohérent avec la règle existante qu'un revendeur ne voit jamais un KPI déconnecté du gain
+  // réel). N'apparaît que si au moins un retour a déjà été signalé — pas de ligne à 0% pour les
+  // comptes qui n'utilisent pas la fonctionnalité (retour bêta Pauline, 2026-07).
+  const _rentVentesConfirmees=_rentIsMarge?DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length:0;
+  const _rentVentesAvecRetour=_rentIsMarge?DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact'&&getRetoursForMission(m.id).some(r=>r.statut!=='refuse')).length:0;
+  const _rentTauxNombre=_rentVentesConfirmees>0?Math.round(_rentVentesAvecRetour/_rentVentesConfirmees*100):null;
+  const _rentTauxValeur=_rentCouts.ca>0?Math.round(_rentRembTotal/_rentCouts.ca*1000)/10:null;
   const rowsRent=_rentIsMarge?[
     {lbl:'Marge brute',         val:_margePct!==null?_margePct+'%':'—',                  c:_margePct!==null?rentC:'var(--tl)'},
     {lbl:'Seuil recommandé',    val:'≥'+_seuilMargePct+'%',                               c:'var(--tl)'},
-    {lbl:'CA total',            val:_rentCouts.ca>0?fmtE(_rentCouts.ca):'—',             c:'var(--tl)'},
+    {lbl:'Ventes confirmées',   val:_rentCouts.ca>0?fmtE(_rentCouts.ca):'—',             c:'var(--tl)'},
+    ..._rentRembTotal>0?[{lbl:'Remboursements',val:'-'+fmtE(_rentRembTotal),c:'var(--err)'}]:[],
+    {lbl:'CA net'+(_rentRembTotal>0?' après remboursements':''), val:_rentCaNetRetours>0?fmtE(_rentCaNetRetours):'—', c:'var(--tl)'},
     {lbl:'Coûts directs',       val:_rentCouts.couts>0?fmtE(_rentCouts.couts):'—',       c:'var(--tl)'},
     {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
+    ...(DATA.retours||[]).length>0?[{lbl:'Taux de retour',val:`${_rentTauxNombre??0}% des ventes · ${(_rentTauxValeur??0).toString().replace('.',',')}% du CA remboursé`,c:'var(--tl)'}]:[],
   ]:_rentIsChantier?[
     {lbl:'TJM réel',            val:hT>0?fmtE(tjmBrut,0)+'/j':'—',                      c:rentC},
     {lbl:'Seuil min. TJM',      val:tjmMin>0?fmtE(tjmMin,0)+'/j':'Non défini',           c:'var(--tl)'},
@@ -7420,11 +7459,14 @@ function removeBulkMissionRow(i) {
 }
 function renderBulkMissionRows() {
   const tbody = document.getElementById('bulk-missions-tbody'); if (!tbody) return;
-  const statutOpts = [
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
+  const statutOpts = (family==='fabrication'||family==='achat_revente') ? [
+    ['att', tVocabStatut('att')], ['cours', tVocabStatut('cours')],
+    ['ref', tVocabStatut('ref')], ['fact', tVocabStatut('fact')],
+  ] : [
     ['att', "En attente d'acceptation"], ['cours', 'En cours'],
     ['ref', 'Refusé / Annulé'], ['fact', 'Facturé / Terminé'],
   ];
-  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
   const ph = BULK_MISSION_PLACEHOLDERS[family] || BULK_MISSION_PLACEHOLDERS.service;
   const clientLbl = tVocab('client') || 'Client';
   tbody.innerHTML = bulkMissionRows.map((r, i) => `<div class="bulk-mission-row">
@@ -7629,6 +7671,107 @@ function setMissionStatut(id,val) {
   }
   m.statut=val; if(val!=='fact') m.dateFact=null;
   saveData(); renderMissions(); if(currentPage==='revenus') renderRevenus(); if(currentPage==='dashboard') renderDashboard();
+}
+
+// ── RETOURS (fabrication / achat_revente — retour bêta Pauline, 2026-07) ──────────────
+// Le statut de la vente/commande (m.statut) ne change JAMAIS à cause d'un retour : une vente
+// facturée reste facturée, le retour est un objet séparé lié par missionId, comme les
+// encaissements (voir getRecettesData). Le badge affiché sur la liste est calculé à l'affichage
+// à partir du retour le plus récent — jamais stocké sur la mission elle-même.
+// montant : champ unique, éditable à tout moment (y compris après le passage en 'rembourse') —
+// permet une ristourne partielle sans retour total (ex. Vinted : on rembourse moins que le prix
+// initial sans reprendre l'article).
+function getRetoursForMission(missionId) {
+  return (DATA.retours||[]).filter(r=>r.missionId===missionId);
+}
+function getDernierRetour(missionId) {
+  const rs=getRetoursForMission(missionId);
+  if(!rs.length) return null;
+  return rs.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.dateCreation||'').localeCompare(a.dateCreation||''))[0];
+}
+const RETOUR_STATUT_LABELS={demande:'Retour demandé',accepte:'Retour accepté',rembourse:'Remboursé',refuse:'Retour refusé'};
+const RETOUR_STATUT_COLORS={demande:'#92400e',accepte:'#1e40af',rembourse:'#2d7a4f',refuse:'#6b7280'};
+function retourBadgeHtml(missionId) {
+  const r=getDernierRetour(missionId);
+  if(!r) return '';
+  const lbl=RETOUR_STATUT_LABELS[r.statut]||r.statut, col=RETOUR_STATUT_COLORS[r.statut]||'#6b7280';
+  return `<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;font-size:10.5px;font-weight:600;color:#fff;background:${col}" title="${r.type==='partiel'?'Partiel':'Total'} · ${fmtE(r.montant||0)}${r.motif?' · '+r.motif:''}">↩ ${lbl}</span>`;
+}
+function ouvrirRetourModal(missionId) {
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  document.getElementById('retour-mission-id').value=missionId;
+  document.getElementById('retour-date').value=today();
+  document.getElementById('retour-montant').value=m.montantDevis||m.montantPrestation||m.montantVente||'';
+  document.getElementById('retour-type').value='total';
+  document.getElementById('retour-motif').value='';
+  const titleEl=document.getElementById('retour-modal-title');
+  if(titleEl) titleEl.textContent=`Signaler un retour — ${m.client||tVocab('item')}`;
+  openModal('modal-retour');
+}
+function sauvegarderRetour() {
+  const missionId=document.getElementById('retour-mission-id').value;
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  const montant=parseFloat(document.getElementById('retour-montant').value)||0;
+  if(montant<=0){ showToast('⚠️ Indiquez un montant supérieur à 0.','var(--err)'); return; }
+  if(!DATA.retours) DATA.retours=[];
+  DATA.retours.push({
+    id:uuid(), missionId,
+    date:document.getElementById('retour-date').value||today(),
+    motif:document.getElementById('retour-motif').value||'',
+    statut:'demande',
+    montant,
+    type:document.getElementById('retour-type').value||'total',
+    dateCreation:today(), dateModif:null,
+  });
+  saveData(); closeModal('modal-retour'); renderMissions();
+  if(currentPage==='retours') renderRetours();
+  showToast('↩ Retour enregistré — la vente reste confirmée.','var(--acc)');
+}
+function changerStatutRetour(retourId, nouveauStatut) {
+  const r=(DATA.retours||[]).find(x=>x.id===retourId); if(!r) return;
+  r.statut=nouveauStatut; r.dateModif=today();
+  saveData(); renderRetours(); renderMissions();
+  if(currentPage==='dashboard') renderDashboard();
+}
+function modifierMontantRetour(retourId, val) {
+  const r=(DATA.retours||[]).find(x=>x.id===retourId); if(!r) return;
+  const montant=parseFloat(val)||0;
+  if(montant<=0) return;
+  r.montant=montant; r.dateModif=today();
+  saveData();
+  if(currentPage==='dashboard') renderDashboard();
+}
+function renderRetours() {
+  const zone=document.getElementById('retours-content'); if(!zone) return;
+  const retours=(DATA.retours||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!retours.length){
+    zone.innerHTML=`<div class="empty"><div class="ei">↩️</div><p>Aucun retour signalé pour l'instant.</p></div>`;
+    return;
+  }
+  const rows=retours.map(r=>{
+    const m=DATA.missions.find(x=>x.id===r.missionId);
+    const client=m?(m.client||tVocab('item')):'(vente supprimée)';
+    const actions = r.statut==='demande'
+      ? `<button class="btn btn-out btn-xs" onclick="changerStatutRetour('${r.id}','accepte')">Accepter</button> <button class="btn btn-out btn-xs" onclick="changerStatutRetour('${r.id}','refuse')">Refuser</button>`
+      : r.statut==='accepte'
+      ? `<button class="btn btn-acc btn-xs" onclick="changerStatutRetour('${r.id}','rembourse')">Marquer remboursé</button> <button class="btn btn-out btn-xs" onclick="changerStatutRetour('${r.id}','refuse')">Refuser</button>`
+      : '—';
+    return `<tr>
+      <td>${r.date||'—'}</td>
+      <td>${client}</td>
+      <td><input type="number" step="0.01" min="0" value="${r.montant||0}" style="width:90px;font-size:13px;padding:3px 6px" onchange="modifierMontantRetour('${r.id}',this.value)"></td>
+      <td>${r.type==='partiel'?'Partiel':'Total'}</td>
+      <td><span style="color:${RETOUR_STATUT_COLORS[r.statut]||'#6b7280'};font-weight:600">${RETOUR_STATUT_LABELS[r.statut]||r.statut}</span></td>
+      <td>${r.motif||'—'}</td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join('');
+  zone.innerHTML=`<div class="card" style="padding:0;overflow-x:auto"><table class="tbl-wrap" style="width:100%;border-collapse:collapse">
+    <thead><tr style="text-align:left;font-size:11px;color:var(--tl);text-transform:uppercase">
+      <th style="padding:8px 10px">Date</th><th style="padding:8px 10px">${tVocab('client')}</th><th style="padding:8px 10px">Montant</th><th style="padding:8px 10px">Type</th><th style="padding:8px 10px">Statut</th><th style="padding:8px 10px">Motif</th><th style="padding:8px 10px">Actions</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
 }
 
 // ── TEMPS PRÉVU — écart à la clôture (chantier "Temps prévu", Phase 2 + 2bis) ──
@@ -8036,6 +8179,12 @@ function getTrajectoireCompacte(m) {
 }
 function renderMissions() {
   renderMissionsSummary(DATA.missions);
+  const _mfAtt=document.getElementById('mf-btn-att'), _mfCours=document.getElementById('mf-btn-cours'),
+        _mfRef=document.getElementById('mf-btn-ref'), _mfFact=document.getElementById('mf-btn-fact');
+  if(_mfAtt) _mfAtt.textContent=tVocabStatut('att');
+  if(_mfCours) _mfCours.textContent=tVocabStatut('cours');
+  if(_mfRef) _mfRef.textContent=tVocabStatutPluriel('ref');
+  if(_mfFact) _mfFact.textContent=tVocabStatutPluriel('fact');
   const tbody=document.getElementById('missions-tbody'); tbody.innerHTML='';
   const bm={att:'b-att',cours:'b-cours',ref:'b-ref',fact:'b-fact'};
   const tvaOn=DATA.params.tva, tvaRate=DATA.params.tauxTVA/100;
@@ -8076,16 +8225,16 @@ function renderMissions() {
     const _recEnc=(m.encaissements||[]).length, _recT=m.nbMoisRec||'?';
     const dateFactCell=m.isRecurring?`${_recEnc}/${_recT} mois encaiss${_recEnc===1?'é':'és'}`:(m.dateFact||'—');
     const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts" style="margin-top:2px">${getRecurringPeriodLabel(m)}</div>${m.nbMoisRec?`<div class="ts">Total : ${fmtE(m.montantDevis)}</div>`:''}`:(tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis));
-    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}</div><div class="ts">${esc(m.description||'')}</div></td>
+    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
-      <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>En attente</option><option value="cours" ${m.statut==='cours'?'selected':''}>En cours</option><option value="ref" ${m.statut==='ref'?'selected':''}>${m.isRecurring?'Refusée':'Refusé'}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${m.isRecurring?'Terminée':'Facturé'}</option></select></td>
+      <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring)}</option></select></td>
       <td class="ts">${dateFactCell}</td>
       <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div><div style="margin-top:3px"><button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button></div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">+ temps</button><button class="btn btn-out btn-xs" onclick="openCorrectTimeModal('${m.id}')" title="Corriger le temps">✏️</button>`}</div>`}</td>
       <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
-      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button> <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
+      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button>${(DATA.params.modules?.objectif==='marge_commande'&&m.statut==='fact')?` <button class="btn btn-out btn-xs" onclick="ouvrirRetourModal('${m.id}')" title="Signaler un retour">↩️</button>`:''} <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
     tbody.appendChild(tr);
     // Sous-ligne encaissements (missions ponctuelles avec au moins un versement)
     if(!m.isManagement&&!m.isRecurring){
@@ -9390,7 +9539,9 @@ function getArchYearData(y){
   function _kpi(caNet,h,m){ if(_objMod==='tjm') return h>0?caNet/h*_hj:0; if(_objMod==='marge_commande') return m>0?caNet/m:0; return h>0?caNet/h:0; }
   if(y===cy){
     const h=getHeuresFact()+getHeuresInterne();
-    const caNet=getCaNetAnnuel(), caBrut=getCaAnnuelBrut();
+    // Déduit les remboursements de l'année en cours — les années archivées (DATA.archives[y],
+    // branche ci-dessous) sont des snapshots figés, jamais recalculés rétroactivement.
+    const caNet=getCaNetAnnuel()-(_objMod==='marge_commande'?getMontantRembourseAnnuel(y):0), caBrut=getCaAnnuelBrut();
     const missions=DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length;
     return {caBrut,caNet,heures:h,missions,th:h>0?caNet/h:0,kpi:_kpi(caNet,h,missions)};
   }
@@ -10938,6 +11089,9 @@ document.addEventListener('keydown', function(e) {
   function sync() { Mode.setData(DATA); }
 
   window.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
+  window.getMontantRembourseMois = (mk) => { sync(); return Mode.getMontantRembourseMois(mk); };
+  window.getMontantRembourseAnnuel = (year) => { sync(); return Mode.getMontantRembourseAnnuel(year); };
+  window.getMontantRembourseTotal = () => { sync(); return Mode.getMontantRembourseTotal(); };
   window.getCaRecurrenteADate   = (m, refDate) => { sync(); return Mode.getCaRecurrenteADate(m, refDate); };
   window.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
