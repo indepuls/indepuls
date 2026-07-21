@@ -599,6 +599,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
   <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours</div>
+  <div class="nav-item" id="nav-lots" onclick="navigate('lots')" style="display:none"><span class="nav-icon">📦</span> Lots</div>
   <div class="nav-section">Paramètres</div>
   <div class="nav-item" onclick="navigate('params')"><span class="nav-icon">⚙️</span> Paramètres</div>
   <div class="nav-item" onclick="navigate('notice')"><span class="nav-icon">📖</span> Guide & glossaire</div>
@@ -1488,6 +1489,19 @@ html,body{overflow-x:hidden;}
     </div>
   </div>
 
+  <div class="page" id="page-lots">
+    <div style="max-width:960px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div>
+          <h2 style="margin:0;font-size:20px;color:var(--pri)">📦 Lots</h2>
+          <div style="font-size:13px;color:var(--tl);margin-top:4px">Suivi de rentabilité par lot acheté groupé — coût, CA, marge, retours.</div>
+        </div>
+        <button class="btn btn-acc btn-sm" onclick="ouvrirLotModal()">+ Créer un lot</button>
+      </div>
+      <div id="lots-content"></div>
+    </div>
+  </div>
+
 </div><!-- /.main -->
 
 
@@ -1546,6 +1560,14 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div id="m-marge-display" style="display:none;margin-top:8px;padding:8px 12px;border-radius:8px;border-left:3px solid var(--ok);font-size:13px;line-height:1.5"></div>
+    </div>
+    <div id="m-lot-zone" style="display:none">
+      <div class="fgroup">
+        <label class="flabel">Rattacher à un lot <span class="ts">(optionnel)</span></label>
+        <select id="m-lot-id">
+          <option value="">— Aucun —</option>
+        </select>
+      </div>
     </div>
     <div class="frow">
       <div class="fgroup">
@@ -2010,6 +2032,15 @@ html,body{overflow-x:hidden;}
         <div id="dep-rec-mission-warn" style="display:none;margin-top:6px;padding:7px 10px;background:#fef3c7;border-radius:6px;font-size:12px;color:#92400e">⚠️ Dépense récurrente liée à une mission : elle continuera d'être comptabilisée chaque mois même après la clôture du chantier. Si c'est une charge fixe (abonnement, loyer…), préférez la laisser sans mission associée.</div>
       </div>
     </div>
+    <div id="dep-lot-zone" style="display:none">
+      <div class="fgroup">
+        <label class="flabel">Rattacher à un lot <span class="ts">(optionnel)</span></label>
+        <select id="d-lot-id" onchange="onDepLotChange()">
+          <option value="">— Aucun —</option>
+        </select>
+        <div class="ts" style="margin-top:4px;color:var(--tl)">Pour une dépense qui concerne le lot dans son ensemble (achat groupé, livraison...) plutôt qu'une vente précise.</div>
+      </div>
+    </div>
     <div id="dep-zero-zone" style="display:none;margin-top:14px;border:1.5px solid var(--warn);border-left:4px solid var(--warn);border-radius:8px;padding:12px 14px;background:rgba(201,115,22,.05)">
       <p id="dep-zero-msg" style="color:var(--text);font-size:13px;line-height:1.5;margin-bottom:10px"></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2167,6 +2198,47 @@ html,body{overflow-x:hidden;}
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-retour')">Annuler</button>
       <button class="btn btn-acc" data-enter-action onclick="sauvegarderRetour()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CRÉER/MODIFIER UN LOT (achat_revente) -->
+<div class="modal-ov hidden" id="modal-lot">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title" id="lot-modal-title">Créer un lot</div>
+    <input type="hidden" id="lot-edit-id">
+    <div class="fgroup">
+      <label class="flabel">Nom du lot</label>
+      <input type="text" id="lot-nom" placeholder="Ex : Lot de mars, Palette 18, Collection été...">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Date d'achat</label>
+      <input type="date" id="lot-date-achat">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Description <span style="font-weight:400;color:var(--tl)">(facultatif)</span></label>
+      <input type="text" id="lot-description">
+    </div>
+    <div class="fgroup">
+      <label class="flabel">Temps passé non rattaché à une vente précise (h) <span class="info-tip" title="Tri du lot, séance photo groupée, sourcing... Le temps propre à un article précis se saisit sur sa vente, pas ici.">?</span></label>
+      <input type="number" id="lot-temps-passe" min="0" step="0.5" placeholder="Ex : 3">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-lot')">Annuler</button>
+      <button class="btn btn-acc" data-enter-action onclick="sauvegarderLot()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHE LOT (achat_revente) -->
+<div class="modal-ov hidden" id="modal-lot-detail">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="lot-detail-title">Fiche lot</div>
+    <div id="lot-detail-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-lot-detail')">Fermer</button>
+      <button class="btn btn-out" id="lot-detail-edit-btn" onclick="">Modifier</button>
+      <button class="btn btn-out" id="lot-detail-cloture-btn" style="color:var(--err)" onclick="">Clôturer ce lot</button>
     </div>
   </div>
 </div>
@@ -2435,7 +2507,7 @@ html,body{overflow-x:hidden;}
 
 <script>
 // ── CONSTANTES ──────────────────────────────────────────────
-const SCHEMA_VERSION = 32; // v32 : DATA.retours (retours/remboursements fabrication + achat_revente)
+const SCHEMA_VERSION = 33; // v33 : DATA.lots (lots d'investissement achat_revente)
 const DEP_CATEGORIES = ['Logiciels & abonnements','Marketing & communication','Formation','Téléphonie & internet','Déplacements','Assurances & prévoyance','Frais bancaires','Expert-comptable & juridique','Sous-traitance & prestataires','Matériel & équipement','Coworking & bureau','Outils IA','Hébergement & nom de domaine','Livres & ressources professionnelles','Autre'];
 const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7a4f','#0369a1','#92400e','#c97316','#7c3aed','#0e7490','#6d28d9','#4338ca','#b45309','#6b7280'];
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
@@ -2669,6 +2741,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-21', titre:'Suivez la rentabilité de vos lots d\'achat groupé, vente par vente', icon:'📦', merci:'Merci à Pauline pour l\'idée 🙏' },
   { date:'2026-07-17', titre:'Une confirmation "✓ Enregistré" s\'affiche désormais dans Paramètres', icon:'✅', merci:null },
   { date:'2026-07-17', titre:'Suivez votre remplissage et votre rentabilité mois par mois dans les Archives', icon:'📈', merci:null },
   { date:'2026-07-13', titre:'Comparez votre temps prévu à votre temps réel', icon:'⏱', merci:null },
@@ -2755,6 +2828,7 @@ function applyVocabUI() {
   updateNavPlanning();
   updateNavSimulateur();
   updateNavRetours();
+  updateNavLots();
   // sb-profil-label géré par updateDemoUI()
   // Planning : label sessions dans la modale + visibilité de la zone
   const sessLabel = document.getElementById('modal-sessions-label');
@@ -3567,7 +3641,7 @@ function getDefaultData() {
       chargeEstimee:null, chargeUnit:'h_sem', encaissements:[],
       typeMission:'individuelle', nbParticipants:0, prixParParticipant:0, tempsCreation:0, tempsAnimation:0, tempsSupport:0
     }],
-    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[], retours:[]
+    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[], retours:[], lots:[]
   };
 }
 
@@ -3616,6 +3690,10 @@ function migrate(data) {
   // v32 : ajout du modèle de retours (fabrication + achat_revente) — comptes existants sans
   // la clé, jamais de perte de données possible ici (tableau vide par défaut).
   if (!data.retours) data.retours = [];
+  // v33 : lots d'investissement (achat_revente) — comptes existants sans la clé, tableau vide
+  // par défaut, aucune perte de données possible. Les dépenses/ventes sans lotId continuent de
+  // fonctionner exactement comme avant (champ optionnel, jamais requis).
+  if (!data.lots) data.lots = [];
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -4226,7 +4304,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours',lots:'Lots'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -4262,9 +4340,19 @@ function updateNavRetours() {
   if (!el) return;
   el.style.display = DATA.params.modules?.objectif === 'marge_commande' ? '' : 'none';
 }
+// Lots d'investissement : n'a de sens QUE pour achat_revente (pas fabrication, malgré le même
+// modules.objectif='marge_commande') — vérification directe de family autorisée ici pour
+// l'affichage de cette fonctionnalité, cohérent avec le fait qu'elle est propre à ce profil.
+function updateNavLots() {
+  const el = document.getElementById('nav-lots');
+  if (!el) return;
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
+  el.style.display = family === 'achat_revente' ? '' : 'none';
+}
 function navigate(page) {
   if (page === 'planning' && !DATA.params.modules?.calendrier) { navigate('dashboard'); return; }
   if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
+  if (page === 'lots' && (BUSINESS_PROFILE_MAP[DATA.params?.metier]!=='achat_revente')) { navigate('dashboard'); return; }
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -4311,6 +4399,7 @@ function renderPage(page) {
     case 'simulateur': renderSimulateurPage(); break;
     case 'recettes': renderRecettes(); break;
     case 'retours': renderRetours(); break;
+    case 'lots': renderLots(); break;
   }
 }
 
@@ -7022,6 +7111,16 @@ function openMissionModal(id, prefillDate) {
     if(montantInp) montantInp.oninput=(function(orig){return function(){if(orig)orig.call(this);updateMargeProduction();};})(montantInp.oninput||null);
     updateMargeProduction();
   }
+  // Lots d'investissement — achat_revente uniquement (n'a de sens que pour ce profil)
+  const lotZone=document.getElementById('m-lot-zone');
+  if(lotZone){
+    if(_isAchat&&(DATA.lots||[]).length){
+      const lotSel=document.getElementById('m-lot-id');
+      lotSel.innerHTML='<option value="">— Aucun —</option>'+
+        DATA.lots.map(l=>`<option value="${l.id}"${(m&&m.lotId===l.id)?' selected':''}>${esc(l.nom)}</option>`).join('');
+      lotZone.style.display='';
+    } else lotZone.style.display='none';
+  }
   initEditingSessions(m, prefillDate);
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
@@ -7360,6 +7459,7 @@ function saveMission() {
     sourceAcquisition:document.getElementById('m-source-acq').value||'',
     quantite:parseInt(document.getElementById('m-quantite')?.value)||null,
     prixAchat:parseFloat(document.getElementById('m-prix-achat')?.value)||null,
+    lotId:document.getElementById('m-lot-id')?.value||null,
   };
   if(obj.typeMission==='collectif'&&obj.nbParticipants>0&&obj.prixParParticipant>0){
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
@@ -7858,6 +7958,116 @@ function renderRetours() {
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
+}
+
+// ── LOTS D'INVESTISSEMENT (achat_revente) ─────────────────────
+// Retour bêta Pauline (achat-revente), 2026-07 : achète des lots de produits groupés, revend
+// chaque produit séparément. Pas de gestion de stock article par article — ce qui compte, c'est
+// l'argent investi, l'argent récupéré, la marge. Statut toujours dérivé des chiffres, sauf la
+// clôture (seule valeur écrite manuellement, voir getLotStats() dans shared/core/affaires.js).
+const LOT_STATUT_LABELS={cloture:'Clôturé',rentabilise:'Rentabilisé',en_cours:'En cours'};
+const LOT_STATUT_COLORS={cloture:'#6b7280',rentabilise:'#2d7a4f',en_cours:'#92400e'};
+function ouvrirLotModal(id) {
+  const l=id?(DATA.lots||[]).find(x=>x.id===id):null;
+  document.getElementById('lot-modal-title').textContent=l?'Modifier le lot':'Créer un lot';
+  document.getElementById('lot-edit-id').value=l?l.id:'';
+  document.getElementById('lot-nom').value=l?l.nom:'';
+  document.getElementById('lot-date-achat').value=l?l.dateAchat:today();
+  document.getElementById('lot-description').value=l?(l.description||''):'';
+  document.getElementById('lot-temps-passe').value=l?(l.tempsPasse||''):'';
+  openModal('modal-lot');
+}
+function sauvegarderLot() {
+  const nom=document.getElementById('lot-nom').value.trim();
+  if(!nom){ showToast('⚠️ Indiquez un nom pour ce lot.','var(--err)'); return; }
+  const editId=document.getElementById('lot-edit-id').value;
+  const obj={
+    nom,
+    dateAchat:document.getElementById('lot-date-achat').value||today(),
+    description:document.getElementById('lot-description').value.trim(),
+    tempsPasse:parseFloat(document.getElementById('lot-temps-passe').value)||0,
+  };
+  if(!DATA.lots) DATA.lots=[];
+  if(editId){ const l=DATA.lots.find(x=>x.id===editId); if(l) Object.assign(l,obj); }
+  else DATA.lots.push({id:uuid(), statutManuel:null, ...obj});
+  saveData(); closeModal('modal-lot'); renderLots();
+  showToast('✅ Lot enregistré.');
+}
+function clotureLot(lotId) {
+  const l=(DATA.lots||[]).find(x=>x.id===lotId); if(!l) return;
+  if(!confirm(`Clôturer « ${l.nom} » ? Ce lot ne sera plus compté comme "En cours" même si son coût n'est pas entièrement récupéré.`)) return;
+  l.statutManuel='cloture';
+  saveData(); closeModal('modal-lot-detail'); renderLots();
+}
+function renderLots() {
+  const zone=document.getElementById('lots-content'); if(!zone) return;
+  const lots=(DATA.lots||[]).slice().sort((a,b)=>(b.dateAchat||'').localeCompare(a.dateAchat||''));
+  if(!lots.length){
+    zone.innerHTML=`<div class="empty"><div class="ei">📦</div><p>Aucun lot pour l'instant.</p><button class="btn btn-acc btn-sm" onclick="ouvrirLotModal()">+ Créer un lot</button></div>`;
+    return;
+  }
+  const rows=lots.map(l=>{
+    const stats=getLotStats(l.id);
+    const pct=stats.pourcentRecupere===null?'—':Math.round(stats.pourcentRecupere)+'%';
+    return `<tr style="cursor:pointer" onclick="ouvrirFicheLot('${l.id}')">
+      <td style="font-weight:600">${esc(l.nom)}</td>
+      <td>${l.dateAchat||'—'}</td>
+      <td>${fmtE(stats.coutTotal)}</td>
+      <td><span style="color:${LOT_STATUT_COLORS[stats.statut]};font-weight:600">${LOT_STATUT_LABELS[stats.statut]}</span></td>
+      <td>${pct}</td>
+    </tr>`;
+  }).join('');
+  zone.innerHTML=`<div class="card" style="padding:0;overflow-x:auto"><table class="tbl-wrap" style="width:100%;border-collapse:collapse">
+    <thead><tr style="text-align:left;font-size:11px;color:var(--tl);text-transform:uppercase">
+      <th style="padding:8px 10px">Nom</th><th style="padding:8px 10px">Date d'achat</th><th style="padding:8px 10px">Coût total</th><th style="padding:8px 10px">Statut</th><th style="padding:8px 10px">% récupéré</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+function ouvrirFicheLot(lotId) {
+  const l=(DATA.lots||[]).find(x=>x.id===lotId); if(!l) return;
+  const stats=getLotStats(lotId);
+  const ventes=getVentesDuLot(lotId);
+  const depensesLot=(DATA.depenses||[]).filter(d=>d.lotId===lotId);
+  document.getElementById('lot-detail-title').textContent=`📦 ${l.nom}`;
+  const pct=stats.pourcentRecupere===null?'—':Math.round(stats.pourcentRecupere)+'%';
+  const ventesRows=ventes.length?ventes.map(m=>{
+    const retour=(DATA.retours||[]).find(r=>r.missionId===m.id);
+    const resVente=getResultatVente(m);
+    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:13px">
+      <span>${esc(m.client||tVocab('item'))}${retour?` <span style="color:${RETOUR_STATUT_COLORS[retour.statut]};font-size:11px;font-weight:600">↩ ${RETOUR_STATUT_LABELS[retour.statut]}</span>`:''}</span>
+      <span style="font-weight:600;color:${resVente>=0?'var(--ok)':'var(--err)'}">${fmtE(resVente)}</span>
+    </div>`;
+  }).join(''):'<div class="ts">Aucune vente rattachée pour l\'instant.</div>';
+  const depensesRows=depensesLot.length?depensesLot.map(d=>
+    `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd);font-size:13px"><span>${esc(d.libelle||'—')}</span><span>${fmtE(d.montant)}</span></div>`
+  ).join(''):'<div class="ts">Aucune dépense rattachée au lot entier.</div>';
+  document.getElementById('lot-detail-body').innerHTML=`
+    <div class="g2" style="margin-bottom:14px">
+      <div class="kpi neu"><div class="kpi-label">Coût total</div><div class="kpi-val">${fmtE(stats.coutTotal)}</div></div>
+      <div class="kpi neu"><div class="kpi-label">CA brut</div><div class="kpi-val">${fmtE(stats.caBrut)}</div></div>
+      ${stats.remboursements>0?`<div class="kpi neu"><div class="kpi-label">Remboursements</div><div class="kpi-val" style="color:var(--err)">-${fmtE(stats.remboursements)}</div></div>`:''}
+      <div class="kpi neu"><div class="kpi-label">Revenus nets</div><div class="kpi-val">${fmtE(stats.revenusNets)}</div></div>
+      <div class="kpi neu"><div class="kpi-label">Résultat</div><div class="kpi-val" style="color:${stats.resultat>=0?'var(--ok)':'var(--err)'}">${fmtE(stats.resultat)}</div></div>
+      <div class="kpi neu"><div class="kpi-label">% récupéré</div><div class="kpi-val">${pct}</div></div>
+    </div>
+    <div style="margin-bottom:6px"><span style="font-size:11px;font-weight:700;color:var(--tl);text-transform:uppercase">Statut</span> <span style="color:${LOT_STATUT_COLORS[stats.statut]};font-weight:600">${LOT_STATUT_LABELS[stats.statut]}</span></div>
+    ${l.description?`<div class="ts mb10">${esc(l.description)}</div>`:''}
+    <div class="divider" style="margin:12px 0"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--pri);margin-bottom:6px">Ventes rattachées</div>
+    ${ventesRows}
+    <div class="divider" style="margin:12px 0"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--pri);margin-bottom:6px">Dépenses rattachées au lot entier</div>
+    ${depensesRows}
+  `;
+  const editBtn=document.getElementById('lot-detail-edit-btn');
+  if(editBtn) editBtn.onclick=()=>{ closeModal('modal-lot-detail'); ouvrirLotModal(lotId); };
+  const clotureBtn=document.getElementById('lot-detail-cloture-btn');
+  if(clotureBtn){
+    clotureBtn.style.display=stats.statut==='cloture'?'none':'';
+    clotureBtn.onclick=()=>clotureLot(lotId);
+  }
+  openModal('modal-lot-detail');
 }
 
 // ── TEMPS PRÉVU — écart à la clôture (chantier "Temps prévu", Phase 2 + 2bis) ──
@@ -8550,8 +8760,27 @@ function openDepModal(id) {
   } else {
     document.getElementById('dep-mission-zone').style.display = 'none';
   }
+  // Rattachement à un lot (achat_revente uniquement) — mutuellement exclusif avec le
+  // rattachement à une mission/vente précise ci-dessus.
+  const lotZone = document.getElementById('dep-lot-zone');
+  const famille = BUSINESS_PROFILE_MAP[DATA.params?.metier];
+  if (lotZone) {
+    if (famille === 'achat_revente' && (DATA.lots || []).length) {
+      const lotSel = document.getElementById('d-lot-id');
+      lotSel.innerHTML = '<option value="">— Aucun —</option>' +
+        DATA.lots.map(l => `<option value="${l.id}"${(d && d.lotId === l.id) ? ' selected' : ''}>${esc(l.nom)}</option>`).join('');
+      lotZone.style.display = '';
+      if (d && d.lotId) document.getElementById('d-mission-id').value = '';
+    } else {
+      lotZone.style.display = 'none';
+    }
+  }
   hideDepConfirm();
   openModal('modal-dep');
+}
+function onDepLotChange() {
+  // Choisir un lot désélectionne la mission/vente précise (mutuellement exclusif).
+  if (document.getElementById('d-lot-id').value) document.getElementById('d-mission-id').value = '';
 }
 function toggleDateDebutDep(val) {
   document.getElementById('d-debut-zone').style.display=val==='ponctuelle'?'none':'';
@@ -8561,6 +8790,9 @@ function toggleDateDebutDep(val) {
 function checkDepRecMission() {
   const rec = document.getElementById('d-rec')?.value;
   const mission = document.getElementById('d-mission-id')?.value;
+  // Choisir une mission/vente précise désélectionne le lot (mutuellement exclusif).
+  const lotSel = document.getElementById('d-lot-id');
+  if (mission && lotSel) lotSel.value = '';
   const warn = document.getElementById('dep-rec-mission-warn');
   if (warn) warn.style.display = (rec && rec !== 'ponctuelle' && mission) ? '' : 'none';
 }
@@ -8607,6 +8839,7 @@ function saveDepense(force) {
   }
   hideDepConfirm();
   const chantierId = document.getElementById('d-mission-id')?.value || '';
+  const lotId = document.getElementById('d-lot-id')?.value || '';
   const obj={
     date:document.getElementById('d-date').value,
     categorie:document.getElementById('d-cat').value||'Autre',
@@ -8617,8 +8850,10 @@ function saveDepense(force) {
     tvaDeductible:tvaDeductible,
     montantTVA:tvaDeductible?parseFloat(document.getElementById('d-tva-montant').value)||0:0,
   };
-  if(chantierId) obj.chantierId = chantierId; else delete obj.chantierId;
-  if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d){ Object.assign(d,obj); if(!chantierId) delete d.chantierId; } }
+  // Mutuellement exclusifs — lotId prioritaire si les deux sont renseignés (ne devrait pas
+  // arriver, l'UI les désélectionne l'un l'autre, mais évite un état incohérent en base).
+  if(lotId){ obj.lotId = lotId; } else if(chantierId) obj.chantierId = chantierId; else { delete obj.chantierId; delete obj.lotId; }
+  if(editId){ const d=DATA.depenses.find(x=>x.id===editId); if(d){ Object.assign(d,obj); if(!chantierId) delete d.chantierId; if(!lotId) delete d.lotId; } }
   else { addDepense(obj); window.trackEvent('expense_added',{categorie:obj.categorie,recurrence:rec}); }
   saveData(); closeModal('modal-dep'); showToastIfReal('✅ Dépense enregistrée.'); renderDepenses();
   if(_pendingMissionReopen){const _pmr=_pendingMissionReopen;_pendingMissionReopen=null;openMissionModal(_pmr);}
@@ -11245,6 +11480,9 @@ document.addEventListener('keydown', function(e) {
   window.getPctCoutAffaire           = (m)   => { sync(); return Mode.getPctCoutAffaire(m); };
   window.getAffairesAvecCouts        = (ms)  => { sync(); return Mode.getAffairesAvecCouts(ms); };
   window.getMargeMoyennePortefeuille = (ms)  => { sync(); return Mode.getMargeMoyennePortefeuille(ms); };
+  window.getVentesDuLot = (lotId) => { sync(); return Mode.getVentesDuLot(lotId); };
+  window.getLotStats = (lotId) => { sync(); return Mode.getLotStats(lotId); };
+  window.getResultatVente = (vente) => { sync(); return Mode.getResultatVente(vente); };
   window.excludeDepensesLiees        = (dep) => Mode.excludeDepensesLiees(dep); // pure, pas de sync
 </script>
 

@@ -85,3 +85,82 @@ export function getMargeMoyennePortefeuille(DATA, missions) {
   const totalMarge = avecCouts.reduce((s, x) => s + x.marge, 0);
   return totalCA > 0 ? totalMarge / totalCA : null;
 }
+
+// ── LOTS D'INVESTISSEMENT (achat_revente) ─────────────────────
+// Domaine : un lot regroupe plusieurs dépenses (achat groupé, livraison, réparation...) et
+// plusieurs ventes distinctes (mission.lotId) — répond à "ce lot est-il rentabilisé ?", à la
+// différence d'une affaire prise isolément (ci-dessus, une seule mission). Retour bêta Pauline
+// (achat-revente), 2026-07 : achète des lots de produits groupés, revend chaque produit
+// séparément — veut suivre coût/CA/marge par lot, pas de gestion de stock article par article.
+//
+// Rattachement : DATA.depenses[].lotId (dépense liée au lot dans son ensemble) et
+// DATA.depenses[].chantierId (déjà existant — dépense liée à UNE vente précise, mutuellement
+// exclusif avec lotId dans l'usage). DATA.missions[].lotId (vente appartenant au lot). Le retour
+// d'une vente (DATA.retours[].missionId) n'a pas de lotId propre — il se retrouve via sa vente.
+
+// CA reconnu d'une vente confirmée — même logique de repli (encaissements détaillés, sinon
+// dateFact) que le reste du moteur pour achat_revente/fabrication.
+function getCaVenteReconnu(m) {
+  const encs = m.encaissements || [];
+  if (encs.length > 0) return encs.reduce((a, e) => a + (parseFloat(e.montant) || 0), 0);
+  return m.statut === 'fact' ? (m.montantDevis || 0) : 0;
+}
+
+export function getVentesDuLot(DATA, lotId) {
+  return DATA.missions.filter(m => !m.isManagement && m.lotId === lotId);
+}
+
+export function getCoutTotalLot(DATA, lotId) {
+  const ventesIds = new Set(getVentesDuLot(DATA, lotId).map(m => m.id));
+  return (DATA.depenses || []).reduce((s, d) => {
+    if (d.lotId === lotId) return s + (d.montant || 0);
+    if (d.chantierId && ventesIds.has(d.chantierId)) return s + (d.montant || 0);
+    return s;
+  }, 0);
+}
+
+export function getCaBrutLot(DATA, lotId) {
+  return getVentesDuLot(DATA, lotId)
+    .filter(m => m.statut === 'fact')
+    .reduce((s, m) => s + getCaVenteReconnu(m), 0);
+}
+
+// 0 tant que DATA.retours n'existe pas (chantier retours/statuts non livré) — pas de duplication
+// de logique, pas de blocage.
+export function getRemboursementsLot(DATA, lotId) {
+  const ventesIds = new Set(getVentesDuLot(DATA, lotId).map(m => m.id));
+  return (DATA.retours || [])
+    .filter(r => r.statut === 'rembourse' && ventesIds.has(r.missionId))
+    .reduce((s, r) => s + (r.montant || 0), 0);
+}
+
+// Point d'entrée unique pour tous les chiffres d'un lot (fiche lot, liste des lots) — jamais
+// de duplication de cette logique ailleurs.
+export function getLotStats(DATA, lotId) {
+  const lot = (DATA.lots || []).find(l => l.id === lotId);
+  const coutTotal = getCoutTotalLot(DATA, lotId);
+  const caBrut = getCaBrutLot(DATA, lotId);
+  const remboursements = getRemboursementsLot(DATA, lotId);
+  const revenusNets = caBrut - remboursements;
+  const resultat = revenusNets - coutTotal;
+  const pourcentRecupere = coutTotal > 0 ? (revenusNets / coutTotal) * 100 : null;
+  const statut = (lot && lot.statutManuel === 'cloture')
+    ? 'cloture'
+    : (revenusNets >= coutTotal ? 'rentabilise' : 'en_cours');
+  return { coutTotal, caBrut, remboursements, revenusNets, resultat, pourcentRecupere, statut };
+}
+
+// Rentabilité d'UNE vente à l'intérieur d'un lot — uniquement ce qui est rattaché directement à
+// cette vente (charge.chantierId===vente.id), jamais de quote-part des dépenses de lot
+// (charge.lotId) ni de lot.tempsPasse. Une vente peut afficher une perte volontaire compensée
+// par une autre vente du même lot — ne jamais répartir automatiquement les coûts du lot dessus.
+export function getResultatVente(DATA, vente) {
+  const remb = (DATA.retours || [])
+    .filter(r => r.statut === 'rembourse' && r.missionId === vente.id)
+    .reduce((s, r) => s + (r.montant || 0), 0);
+  const montantNet = getCaVenteReconnu(vente) - remb;
+  const charges = (DATA.depenses || [])
+    .filter(d => d.chantierId === vente.id)
+    .reduce((s, d) => s + (d.montant || 0), 0);
+  return montantNet - charges;
+}

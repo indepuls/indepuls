@@ -616,9 +616,16 @@ export function getTempsPrevuCumule(DATA, m) {
 }
 
 export function getHeuresFact(DATA) {
-  return DATA.missions
+  const hMissions = DATA.missions
     .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact'))
     .reduce((s, m) => s + getMissionHeures(DATA, m), 0);
+  // Lots d'investissement (achat_revente) : lot.tempsPasse est du temps agrégé non rattachable
+  // à une vente précise (tri du lot, séance photo groupée, sourcing) — doit s'additionner au
+  // temps des ventes elles-mêmes pour que "Gain horaire réel"/"TH réel" ne sous-compte pas le
+  // temps réellement travaillé dès qu'un utilisateur bascule du temps au niveau du lot plutôt
+  // que par vente. No-op pour tous les profils sans DATA.lots.
+  const hLots = (DATA.lots || []).reduce((s, l) => s + (l.tempsPasse || 0), 0);
+  return hMissions + hLots;
 }
 
 export function getHeuresInterne(DATA) {

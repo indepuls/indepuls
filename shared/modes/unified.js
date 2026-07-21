@@ -101,6 +101,9 @@ export const getTHReelAffaire            = (m)         => A.getTHReelAffaire(DAT
 export const getPctCoutAffaire           = (m)         => A.getPctCoutAffaire(DATA, m);
 export const getAffairesAvecCouts        = (missions)  => A.getAffairesAvecCouts(DATA, missions);
 export const getMargeMoyennePortefeuille = (missions)  => A.getMargeMoyennePortefeuille(DATA, missions);
+export const getVentesDuLot              = (lotId)     => A.getVentesDuLot(DATA, lotId);
+export const getLotStats                 = (lotId)     => A.getLotStats(DATA, lotId);
+export const getResultatVente            = (vente)     => A.getResultatVente(DATA, vente);
 export const excludeDepensesLiees        = (depenses)  => A.excludeDepensesLiees(depenses);
 
 // ── PLANNING ─────────────────────────────────────────────────
