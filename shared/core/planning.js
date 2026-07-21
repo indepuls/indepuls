@@ -50,6 +50,16 @@ export function getChargeJour(DATA, dateStr) {
   return Math.round(total * 10) / 10;
 }
 
+// Missions dont une session couvre la date donnée — n'importe quel mois, contrairement à la
+// copie locale de renderPlanning() (indepuls.html) qui restreint aux missions du mois affiché
+// (colorMap). Sert à présélectionner/proposer une mission à qui rattacher du temps depuis une
+// case du Planning (Planning temps, 2026-07).
+export function getMissionsSessionDay(DATA, dateStr) {
+  return DATA.missions.filter(m =>
+    !m.isManagement && (m.sessions || []).some(s => dateStr >= s.debut && dateStr <= (s.fin || s.debut))
+  );
+}
+
 // Copie locale — les HTML gardent leur propre copie pour leurs autres usages.
 function _isRecurringStillActive(m) {
   if (m.statut === 'ref') return false;

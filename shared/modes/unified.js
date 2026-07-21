@@ -87,6 +87,7 @@ export const getTempsPrevuPourMois    = (m, mk) => C.getTempsPrevuPourMois(DATA,
 export const getTempsPrevuCumule      = (m) => C.getTempsPrevuCumule(DATA, m);
 export const getHeuresFact            = () => C.getHeuresFact(DATA);
 export const getHeuresInterne         = () => C.getHeuresInterne(DATA);
+export const getTempsJour             = (ds) => C.getTempsJour(DATA, ds);
 
 export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA, caP, caV);
 export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
@@ -111,6 +112,7 @@ export const excludeDepensesLiees        = (depenses)  => A.excludeDepensesLiees
 
 export const joursOuvrésSemaine     = (debut, fin) => P.joursOuvrésSemaine(debut, fin);
 export const getChargeJour          = (dateStr)    => P.getChargeJour(DATA, dateStr);
+export const getMissionsSessionDay  = (dateStr)    => P.getMissionsSessionDay(DATA, dateStr);
 export const toHeuresSem            = (v, u) => P.toHeuresSem(DATA.params, v, u);
 export const getCapaciteHSem        = ()     => P.getCapaciteHSem(DATA);
 export const getMissionChargeHSem   = (m)    => P.getMissionChargeHSem(DATA, m);

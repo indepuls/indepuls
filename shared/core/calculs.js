@@ -592,6 +592,26 @@ export function getMissionHeures(DATA, m) {
   return chrono;
 }
 
+// Détail du temps réellement enregistré un jour donné, toutes missions/clients confondus,
+// regroupé par mission + catégorie — panneau détail jour du Planning (2026-07). Lecture pure de
+// tempsManuel[] : n'affecte jamais getMissionHeures()/getMissionTotalMs() et ne les duplique
+// pas (ceux-ci restent des totaux vie-entière par mission, celle-ci filtre sur UNE date, tous
+// missions confondus — deux angles différents sur la même donnée source).
+export function getTempsJour(DATA, dateStr) {
+  const groupes = {};
+  DATA.missions.forEach(m => {
+    if (m.isManagement) return;
+    (m.tempsManuel || []).forEach(e => {
+      if (e.date !== dateStr) return;
+      const categorie = e.categorie || null;
+      const key = m.id + '|' + (categorie || '');
+      if (!groupes[key]) groupes[key] = { missionId: m.id, client: m.client, categorie, ms: 0 };
+      groupes[key].ms += e.ms || 0;
+    });
+  });
+  return Object.values(groupes).sort((a, b) => b.ms - a.ms);
+}
+
 // Heures réelles d'UNE mission pour UN mois donné (filtre sur tempsManuel daté).
 // Distincte de getHeuresMoisMissions(mk), qui agrège TOUTES les missions pour un mois —
 // celle-ci fait l'inverse : une mission, un mois. Chantier "Temps prévu" (Phase 1).

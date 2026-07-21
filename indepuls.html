@@ -307,6 +307,8 @@ html,body{overflow-x:hidden;}
   .g2-traj{grid-template-columns:1fr;}
   .g3{grid-template-columns:1fr;}
   .btn-label{display:none;}
+  .planning-row{flex-direction:column;}
+  .planning-row > div{width:100% !important;}
 }
 
 /* 640px — bottom sheet modal, g4 2col, tabs scroll, frow 1col */
@@ -649,7 +651,7 @@ html,body{overflow-x:hidden;}
 
   <!-- PLANNING -->
   <div class="page" id="page-planning">
-    <div id="planning-content" style="max-width:900px"></div>
+    <div id="planning-content" style="max-width:1150px"></div>
   </div>
 
   <!-- MISSIONS -->
@@ -2067,6 +2069,10 @@ html,body{overflow-x:hidden;}
   <div class="modal" style="max-width:400px">
     <div class="modal-title">Temps manuel</div>
     <input type="hidden" id="add-time-mission-id">
+    <div class="fgroup" id="add-time-mission-wrap" style="display:none">
+      <label class="flabel">Mission</label>
+      <select id="add-time-mission-select" onchange="openAddTimeModal(this.value,document.getElementById('add-time-date').value)"></select>
+    </div>
     <div id="add-time-log"></div>
     <div id="add-time-cat-breakdown"></div>
     <div id="add-time-sep" class="divider" style="display:none;margin:12px 0"></div>
@@ -2992,6 +2998,8 @@ function formatDateFR(ds) {
 
 // ── PLANNING — CALENDRIER ────────────────────────────────────
 let planningMk = null;
+// Jour actuellement affiché dans le panneau détail (Planning temps, 2026-07) — null si aucun.
+let _planningSelectedDay = null;
 
 function getTauxRemplissageMois(mk) {
   const [year, month] = mk.split('-').map(Number);
@@ -3051,9 +3059,10 @@ function planningNav(dir) {
   const [y,m] = planningMk.split('-').map(Number);
   const d = new Date(y, m-1+dir, 1);
   planningMk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  _planningSelectedDay = null; // le jour sélectionné n'appartient plus au mois affiché
   renderPlanning();
 }
-function planningToday() { planningMk = getCurrentMk(); renderPlanning(); }
+function planningToday() { planningMk = getCurrentMk(); _planningSelectedDay = null; renderPlanning(); }
 
 function renderPlanning() {
   if (!planningMk) planningMk = getCurrentMk();
@@ -3136,11 +3145,14 @@ function renderPlanning() {
            <div style="height:100%;width:${Math.min(100,chargePct)}%;background:${chargeCol};transition:.3s"></div>
          </div>`
       : '';
-    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);position:relative;${bgToday}${opWe}">
+    const isSelected = ds === _planningSelectedDay;
+    const selBorder = isSelected ? `box-shadow:0 0 0 2px var(--acc);` : '';
+    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);position:relative;cursor:pointer;${bgToday}${opWe}${selBorder}" onclick="selectPlanningDay('${ds}')">
       <div style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
       ${bars}
       ${chargeBar}
-      <button type="button" onclick="openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
+      <button type="button" onclick="event.stopPropagation();openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
+      <button type="button" onclick="event.stopPropagation();openAddTimeModalFromPlanning('${ds}')" title="Ajouter du temps le ${formatDateFR(ds)}" style="position:absolute;bottom:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:11px;cursor:pointer">⏱</button>
     </div>`;
   }).join('');
 
@@ -3193,11 +3205,14 @@ function renderPlanning() {
       <div class="kpi-val" style="font-size:20px">${rm.taux} %</div>
     </div>
   </div>`:''}
-  <div class="card" style="margin-bottom:14px">
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
-      ${wdH}
-      ${calGrid}
+  <div class="planning-row" style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
+    <div class="card" style="flex:1;min-width:0">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+        ${wdH}
+        ${calGrid}
+      </div>
     </div>
+    <div class="card" id="planning-day-panel" style="width:230px;flex-shrink:0;display:none"></div>
   </div>
   ${missionsMois.length>0?`
   <div class="card">
@@ -3211,6 +3226,34 @@ function renderPlanning() {
   </div>`}`;
 
   document.getElementById('planning-content').innerHTML = html;
+  renderPlanningDayPanel();
+}
+// ── PANNEAU DÉTAIL JOUR (Planning temps, 2026-07) ────────────
+// Clic sur une case jour → détail du temps réellement enregistré ce jour-là, tous
+// missions/clients confondus (jamais un axe horaire — une simple liste groupée par mission +
+// catégorie). Angle complémentaire au modal Temps manuel de la fiche mission (une mission, tous
+// jours confondus) — même source (tempsManuel[]), deux filtres différents, aucune duplication.
+function selectPlanningDay(ds) {
+  _planningSelectedDay = ds;
+  renderPlanning(); // ré-affiche aussi la sélection (liseré) sur la case cliquée
+}
+function renderPlanningDayPanel() {
+  const panel = document.getElementById('planning-day-panel');
+  if (!panel) return;
+  if (!_planningSelectedDay) { panel.style.display = 'none'; return; }
+  const ds = _planningSelectedDay;
+  const rows = getTempsJour(ds);
+  const totalMs = rows.reduce((s, r) => s + r.ms, 0);
+  panel.style.display = '';
+  panel.innerHTML = `
+    <div class="card-title" style="margin-bottom:8px;font-size:13px">${formatDateFR(ds)}</div>
+    ${rows.length ? rows.map(r => `<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px">
+        <span style="overflow-wrap:anywhere">${esc(r.client||tVocab('item'))}${r.categorie?' · '+esc(r.categorie):''}</span>
+        <strong style="flex-shrink:0">${fmt(r.ms/3600000,1)}h</strong>
+      </div>`).join('') : `<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun temps enregistré ce jour-là.</div>`}
+    ${rows.length ? `<div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--brd);font-weight:700;font-size:12px"><span>Total</span><span>${fmt(totalMs/3600000,1)}h</span></div>` : ''}
+    <button class="btn btn-out btn-xs mt10" style="width:100%;justify-content:center" onclick="openAddTimeModalFromPlanning('${ds}')">⏱ Ajouter du temps</button>
+  `;
 }
 
 // Seuils TVA 2026 — source unique de vérité
@@ -9762,11 +9805,18 @@ function saveCorrectTime() {
 }
 
 // ── AJOUT TEMPS MANUEL ───────────────────────────────────────
-function openAddTimeModal(id) {
+function openAddTimeModal(id, presetDate) {
   document.getElementById('add-time-mission-id').value=id;
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
-  document.getElementById('add-time-date').value=today();
+  document.getElementById('add-time-date').value=presetDate||today();
+  // Le sélecteur de mission (Planning temps, 2026-07) n'est piloté que par
+  // openAddTimeModalFromPlanning() / son propre onchange — jamais par un appel "classique"
+  // depuis la fiche mission (presetDate absent), qui doit toujours le masquer.
+  if(!presetDate){
+    const missionWrap=document.getElementById('add-time-mission-wrap');
+    if(missionWrap) missionWrap.style.display='none';
+  }
   const m=DATA.missions.find(x=>x.id===id);
   const catWrap=document.getElementById('add-time-cat-wrap');
   const catSel=document.getElementById('add-time-cat');
@@ -9787,6 +9837,23 @@ function openAddTimeModal(id) {
   if(correctLink) correctLink.style.display=(m&&!m.isManagement)?'':'none';
   renderAddTimeLog(id);
   openModal('modal-add-time');
+}
+// Ouvre la modale Temps manuel depuis une case du Planning (Planning temps, 2026-07) —
+// présélectionne la mission si une seule session couvre ce jour ; sinon (aucune ou plusieurs
+// sessions ce jour-là) affiche un sélecteur de mission dans la modale avant la saisie.
+function openAddTimeModalFromPlanning(ds) {
+  const candidats=getMissionsSessionDay(ds);
+  const options=candidats.length?candidats:DATA.missions.filter(m=>!m.isManagement);
+  if(!options.length){ showToastIfReal('Aucune mission à qui rattacher du temps.','var(--err)'); return; }
+  const wrap=document.getElementById('add-time-mission-wrap'), sel=document.getElementById('add-time-mission-select');
+  if(candidats.length===1){
+    if(wrap) wrap.style.display='none';
+    openAddTimeModal(candidats[0].id, ds);
+    return;
+  }
+  sel.innerHTML=options.map(m=>`<option value="${m.id}">${esc(m.client||tVocab('item'))}${m.description?' — '+esc(m.description):''}</option>`).join('');
+  if(wrap) wrap.style.display='';
+  openAddTimeModal(sel.value, ds);
 }
 function renderAddTimeLog(id) {
   const m=DATA.missions.find(x=>x.id===id);
@@ -9841,10 +9908,10 @@ function saveAddTime() {
   }
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
-  document.getElementById('add-time-date').value=today();
   if(catEl) catEl.value='';
   saveData(); renderAddTimeLog(id); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
+  if(currentPage==='planning'&&typeof renderPlanningDayPanel==='function') renderPlanningDayPanel();
 }
 
 // ── TEMPS INTERNE MENSUEL ────────────────────────────────────
@@ -11784,6 +11851,8 @@ document.addEventListener('keydown', function(e) {
   window.getCaNetAnnuel         = ()   => { sync(); return Mode.getCaNetAnnuel(); };
   window.getHeuresFact          = ()   => { sync(); return Mode.getHeuresFact(); };
   window.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
+  window.getTempsJour           = (ds) => { sync(); return Mode.getTempsJour(ds); };
+  window.getMissionsSessionDay  = (ds) => { sync(); return Mode.getMissionsSessionDay(ds); };
   window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
   window.estMissionPayee        = (m)  => { sync(); return Mode.estMissionPayee(m); };
