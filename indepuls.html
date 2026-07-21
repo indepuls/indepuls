@@ -3496,6 +3496,15 @@ function pickerStep1Next() {
   const sel = document.getElementById('picker-metier-select');
   const metier = sel ? sel.value : '';
   if (!metier) { if (sel) sel.classList.add('field-invalid'); return; }
+  // FIX (2026-07-21) : activer isExample AVANT tout appel qui pourrait déclencher saveData().
+  // Sans ça, applyProfile(metier) ci-dessous (appelé alors que isExample est encore false, avant
+  // l'entrée effective en démo une ligne plus bas) synchronisait réellement ce tout premier
+  // enregistrement vers le cloud — créant systématiquement, pour CHAQUE nouvel utilisateur, une
+  // ligne cloud figée à jamais (contenu quasi vide, juste le métier) que la règle "le cloud gagne
+  // toujours" (13 juillet, non modifiée) rechargeait ensuite à chaque F5, par-dessus tous les
+  // réglages faits en mode démo. Bug garanti à 100% à chaque onboarding, pas une course de timing
+  // — reproductible même sur un compte tout neuf en navigation privée (signalé par Faustine).
+  DATA.isExample = true;
   const statutChoisi = (document.getElementById('picker-statut-select')||{}).value || 'micro-bnc';
   // Le picker ne propose qu'un choix "Micro-entreprise" générique (pas de sous-régime BIC/BNC) —
   // résoudre vers le bon sous-régime selon le métier plutôt que de figer tout le monde en micro-BNC.
