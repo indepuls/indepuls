@@ -1374,6 +1374,14 @@ Faustine a remonté un vrai angle mort touchant "tous ses bêta testeurs qui uti
 - **Bridge** : `sessionCouvreJour`/`getChargeSessionJour` exposés en `window.*` (réutilisés directement par les copies locales de `renderPlanning()` — `getMissionsDay`, `getChargeJourLocal`).
 - **Vérifié** : 98 assertions dans `planning.test.js` (dont ~35 nouvelles, écrites et confirmées en échec avant l'implémentation) + non-régression explicite sur une session bornée classique ; en navigateur — case à cocher bascule bien Fin↔Jours et le libellé Durée↔Heures/mois ; session récurrente Lun/Mar/Jeu créée et affichée correctement ; mission visible et correctement filtrée (bon jour de semaine) sur un mois 5 mois après le début (aucune borne de fin) ; `getTauxRemplissageMois` d'un mois lointain = exactement les heures/mois configurées ; `getPilierRemplissage()` ne plante pas et reste cohérent ; intégration avec "Planning temps" (item précédent) confirmée — `openAddTimeModalFromPlanning` présélectionne correctement la mission récurrente sur un jour qui correspond. 73 + 98 + 26 + 18 assertions/tests toujours au vert.
 
+### FEATURE — Widget "Missions ce mois" du Planning : prévu ET réalisé (2026-07-21)
+
+Faustine a remarqué que le widget "Missions ce mois" (page Planning) n'affichait que les heures prévues (`session.heures`, ex. "21h"), obligeant à ouvrir la fiche mission pour voir le temps réellement passé. Demande : dupliquer l'information déjà présente dans la fiche, directement dans la liste, pour l'avoir "d'un coup d'œil".
+
+- **`indepuls.html`, `renderPlanning()` → `missionRows`** : ajout de `getMissionHeuresMois(m, mk)` (déjà existante, `shared/core/calculs.js` — heures réelles d'UNE mission pour LE mois affiché, filtre `tempsManuel` daté) à côté du total de sessions du mois. Libellé passé de `· 21h` à `· 21h prévues · 9,0h réalisées`.
+- Aucune nouvelle fonction, aucun nouveau calcul — réutilise telle quelle la fonction qui alimente déjà l'affichage "Temps" de la fiche mission, pour la même donnée, juste dupliquée dans un second endroit d'affichage.
+- **Vérifié** : "Missions ce mois" affiche bien les deux valeurs pour les 3 missions du mois de démonstration (7h prévues/9,0h réalisées, 28h/9,0h, 14h/2,0h) ; syntaxe + 73 assertions + 6 suites `.test.js` toujours au vert.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
