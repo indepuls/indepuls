@@ -1631,7 +1631,7 @@ html,body{overflow-x:hidden;}
         <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500" oninput="updateTempsPrevuSuggestionDebounced()"></div>
         <div class="fgroup" id="m-nb-mois-zone"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
       </div>
-      <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec"></div>
+      <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec" onchange="syncSessDebutFromRec()"></div>
       <div class="alert al-info" style="margin-bottom:0;font-size:12px" id="m-rec-alert">↻ Le CA mensuel sera automatiquement comptabilisé chaque mois pendant la durée indiquée, dès que le statut passe en "En cours".</div>
     </div>
     <div class="fgroup" id="m-date-fact-zone" style="display:none">
@@ -7280,6 +7280,18 @@ function openMissionModal(id, prefillDate) {
   }
   toggleProductionZoneSelonLot();
   initEditingSessions(m, prefillDate);
+  // Évite la double saisie en mode "additif" (calendrier + estimation actifs) : préremplit la
+  // date de début de session avec le "Mois de début" facturé (jamais si déjà renseigné — ne
+  // jamais écraser une session existante), et si la récurrence de facturation est "sans fin",
+  // suggère directement la même chose côté session (deux notions indépendantes à la sauvegarde
+  // — nbMoisRec vs session.sansFin — l'utilisateur peut toujours décocher l'une sans l'autre).
+  if (isRec) {
+    syncSessDebutFromRec();
+    if (document.getElementById('m-sans-fin').checked) {
+      const sessSansFinEl = document.getElementById('m-sess-sansfin');
+      if (sessSansFinEl && !sessSansFinEl.checked) { sessSansFinEl.checked = true; toggleSessSansFin(); }
+    }
+  }
   // Coûts directs liés à cette mission
   const depZone=document.getElementById('m-couts-directs-zone');
   if(depZone){
@@ -7556,6 +7568,14 @@ function updateModaleMissionCopy(isRec) {
     if(sessTip) sessTip.title="Ajoutez une ou plusieurs dates : c'est ce qui compte dans votre taux de remplissage pour une mission ponctuelle — la donnée la plus précise. Si vous ne connaissez pas encore les dates, une charge estimée peut servir de repère temporaire ; elle sera remplacée dès qu'une session est ajoutée.";
   }
 }
+// Évite la double saisie en mode "additif" : reporte le "Mois de début" facturé sur la date de
+// début de la prochaine session à ajouter — jamais si elle est déjà renseignée (ne jamais
+// écraser une saisie de l'utilisateur).
+function syncSessDebutFromRec() {
+  const debutRec = document.getElementById('m-debut-rec').value;
+  const sessDebutEl = document.getElementById('m-sess-debut');
+  if (debutRec && sessDebutEl && !sessDebutEl.value) sessDebutEl.value = debutRec + '-01';
+}
 function toggleMissionSansFin(checked) {
   const nbEl=document.getElementById('m-nb-mois-rec');
   if(checked) nbEl.value='';
@@ -7565,6 +7585,13 @@ function toggleMissionSansFin(checked) {
   if(alertEl) alertEl.innerHTML=checked
     ?'↻ Le CA mensuel sera automatiquement comptabilisé chaque mois tant que le statut reste "En cours".'
     :'↻ Le CA mensuel sera automatiquement comptabilisé chaque mois pendant la durée indiquée, dès que le statut passe en "En cours".';
+  // Évite un second clic redondant en mode "additif" (calendrier + estimation) : cocher "sans
+  // fin" côté facturation suggère directement la même chose côté session — décochable ensuite,
+  // ce sont deux notions indépendantes à la sauvegarde (nbMoisRec vs session.sansFin).
+  if (checked) {
+    const sessSansFinEl = document.getElementById('m-sess-sansfin');
+    if (sessSansFinEl && !sessSansFinEl.checked) { sessSansFinEl.checked = true; toggleSessSansFin(); }
+  }
 }
 function updateMontantMixteTotal() {
   const p=parseFloat(document.getElementById('m-presta').value)||0;
