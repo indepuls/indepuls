@@ -1382,6 +1382,15 @@ Faustine a remarqué que le widget "Missions ce mois" (page Planning) n'affichai
 - Aucune nouvelle fonction, aucun nouveau calcul — réutilise telle quelle la fonction qui alimente déjà l'affichage "Temps" de la fiche mission, pour la même donnée, juste dupliquée dans un second endroit d'affichage.
 - **Vérifié** : "Missions ce mois" affiche bien les deux valeurs pour les 3 missions du mois de démonstration (7h prévues/9,0h réalisées, 28h/9,0h, 14h/2,0h) ; syntaxe + 73 assertions + 6 suites `.test.js` toujours au vert.
 
+### FIX — Double saisie en mode "additif" (calendrier + estimation actifs, 2026-07-21)
+
+Faustine a remonté deux frictions sur une mission récurrente qui utilise à la fois "Temps planifié / semaine" (estimation) et les sessions (calendrier) : (1) le "Mois de début" facturé (`dateDebutRec`) ne préremplissait jamais la date de début de session, obligeant à retaper la même date deux fois ; (2) les deux cases "sans date de fin" (facturation `m-sans-fin` → `nbMoisRec`, et session `m-sess-sansfin` → `session.sansFin`, ajoutée la semaine dernière) étaient totalement indépendantes, donc 2 clics pour une situation qui n'en demande qu'un dans l'immense majorité des cas.
+
+- **`syncSessDebutFromRec()`** (nouvelle, `indepuls.html`) : reporte `m-debut-rec` (mois, ex. "2026-03") sur `m-sess-debut` (date, "2026-03-01") — uniquement si ce dernier est encore vide, pour ne **jamais écraser** une date de session déjà saisie ou existante. Appelée (a) au `onchange` du champ "Mois de début" pour une édition en direct, et (b) une fois à l'ouverture de `openMissionModal()` pour une mission récurrente, juste après `initEditingSessions()` (qui réinitialise `m-sess-debut` — l'ordre d'appel compte, sinon le préremplissage serait aussitôt effacé).
+- **`toggleMissionSansFin(checked)`** : quand cochée, coche aussi `m-sess-sansfin` (si pas déjà fait) et appelle `toggleSessSansFin()` pour révéler le sélecteur de jours — **suggestion à sens unique** : décocher la case facturation ne décoche jamais la case session, ce sont deux notions indépendantes à la sauvegarde (`nbMoisRec` vs `session.sansFin`), l'utilisateur garde la main pour les dissocier s'il le souhaite vraiment.
+- **Aucun champ fusionné, aucune donnée dupliquée en base** — uniquement une synchronisation de confort à la saisie ; `nbMoisRec`/`dateDebutRec` et `session.sansFin`/`session.debut` restent deux champs distincts, comme avant.
+- **Vérifié** : mission récurrente + additif (`modules.calendrier` ET `modules.estimation`) — "Mois de début" = mars 2026 → `m-sess-debut` devient automatiquement "2026-03-01" ; cocher "sans fin" facturation → coche automatiquement "sans fin" session et révèle Lun-Ven ; décocher la case facturation ne décoche pas la case session ; sauvegarde confirmée cohérente (`dateDebutRec:"2026-03"`, `nbMoisRec:null`, session `{debut:"2026-03-01", sansFin:true, jours:[1..5]}`) ; mission non récurrente non affectée (aucun préremplissage, comportement identique à avant). 73 assertions + 6 suites `.test.js` toujours au vert.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
