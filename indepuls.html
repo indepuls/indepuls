@@ -1531,26 +1531,31 @@ html,body{overflow-x:hidden;}
           <option value="fact">Facturé / Terminé</option>
         </select>
       </div>
-      <div class="fgroup">
-        <label class="flabel">Type de facturation</label>
-        <select id="m-type-fact" onchange="toggleRecurrenceFields(this.value)">
-          <option value="ponctuelle">Ponctuelle</option>
-          <option value="mensuelle">Mensuelle ↻</option>
+      <div class="fgroup" id="m-type-mission-fgroup">
+        <label class="flabel">Type de mission <span class="info-tip" title="Programme collectif : adapté aux coachings de groupe, masterminds, ateliers, formations. Le formulaire ajoute : nombre de participants, prix par personne, et une répartition du temps en création / animation / suivi.">?</span></label>
+        <select id="m-type-mission" onchange="toggleMissionType(this.value)">
+          <option value="individuelle">Mission individuelle</option>
+          <option value="collectif">Programme collectif</option>
         </select>
       </div>
     </div>
-    <div class="fgroup" id="m-montant-zone">
-      <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
-      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000" oninput="updateTempsPrevuSuggestionDebounced()">
-    </div>
-    <div id="m-couts-directs-zone" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--brd)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)">Coûts directs liés</span>
-        <span style="font-size:14px;font-weight:700;margin-left:12px" id="m-cout-direct-total">0 €</span>
-        <button class="btn btn-out btn-sm" onclick="addDepenseLinked()" style="margin-left:auto">+ Ajouter</button>
+      <!-- Zone programme collectif -->
+      <div id="m-collectif-zone" style="display:none;background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:4px">
+        <div class="ts mb10" style="font-weight:700;color:var(--pri)">Programme collectif</div>
+        <div class="frow">
+          <div class="fgroup"><label class="flabel">Participants</label><input type="number" id="m-participants" min="1" step="1" placeholder="Ex : 8" oninput="updateCollectifCA()"></div>
+          <div class="fgroup"><label class="flabel">Prix par participant (€ HT)</label><input type="number" id="m-prix-part" min="0" step="50" placeholder="Ex : 1 500" oninput="updateCollectifCA()"></div>
+        </div>
+        <div id="m-collectif-ca" class="ts mb10" style="font-weight:700;color:var(--pri)"></div>
+        <div class="frow">
+          <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="m-temps-creation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
+          <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="m-temps-animation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
+          <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="m-temps-support" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
+        </div>
+        <div class="ts mb4" style="color:var(--tl);font-style:italic">Suivi = réponses aux questions, feedback individuel, relectures, office hours entre les séances.</div>
+        <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
+        <div class="ts mt4" style="color:var(--tl)">⏱️ Ces heures comptent déjà comme temps réel de cette mission. Si vous lancez le chrono (bouton ▶ depuis la liste), le temps s'ajoutera par-dessus — inutile de le répartir dans ces 3 champs.</div>
       </div>
-      <div id="m-cout-direct-detail" style="font-size:12px;color:var(--tl)"></div>
-    </div>
     <div class="divider" style="margin:10px 0"></div>
     <!-- Rattacher à un lot — achat_revente uniquement, toujours visible (jamais masqué même
          sans lot existant, pour que la fonctionnalité reste découvrable) -->
@@ -1580,31 +1585,26 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="frow">
       <div class="fgroup">
-        <label class="flabel">Type de mission <span class="info-tip" title="Programme collectif : adapté aux coachings de groupe, masterminds, ateliers, formations. Le formulaire ajoute : nombre de participants, prix par personne, et une répartition du temps en création / animation / suivi.">?</span></label>
-        <select id="m-type-mission" onchange="toggleMissionType(this.value)">
-          <option value="individuelle">Mission individuelle</option>
-          <option value="collectif">Programme collectif</option>
+        <label class="flabel">Type de facturation</label>
+        <select id="m-type-fact" onchange="toggleRecurrenceFields(this.value)">
+          <option value="ponctuelle">Ponctuelle</option>
+          <option value="mensuelle">Mensuelle ↻</option>
         </select>
       </div>
       <div class="fgroup"></div>
     </div>
-      <!-- Zone programme collectif -->
-      <div id="m-collectif-zone" style="display:none;background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:4px">
-        <div class="ts mb10" style="font-weight:700;color:var(--pri)">Programme collectif</div>
-        <div class="frow">
-          <div class="fgroup"><label class="flabel">Participants</label><input type="number" id="m-participants" min="1" step="1" placeholder="Ex : 8" oninput="updateCollectifCA()"></div>
-          <div class="fgroup"><label class="flabel">Prix par participant (€ HT)</label><input type="number" id="m-prix-part" min="0" step="50" placeholder="Ex : 1 500" oninput="updateCollectifCA()"></div>
-        </div>
-        <div id="m-collectif-ca" class="ts mb10" style="font-weight:700;color:var(--pri)"></div>
-        <div class="frow">
-          <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="m-temps-creation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-          <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="m-temps-animation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-          <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="m-temps-support" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-        </div>
-        <div class="ts mb4" style="color:var(--tl);font-style:italic">Suivi = réponses aux questions, feedback individuel, relectures, office hours entre les séances.</div>
-        <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
-        <div class="ts mt4" style="color:var(--tl)">⏱️ Ces heures comptent déjà comme temps réel de cette mission. Si vous lancez le chrono (bouton ▶ depuis la liste), le temps s'ajoutera par-dessus — inutile de le répartir dans ces 3 champs.</div>
+    <div class="fgroup" id="m-montant-zone">
+      <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
+      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000" oninput="updateTempsPrevuSuggestionDebounced()">
+    </div>
+    <div id="m-couts-directs-zone" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--brd)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)">Coûts directs liés</span>
+        <span style="font-size:14px;font-weight:700;margin-left:12px" id="m-cout-direct-total">0 €</span>
+        <button class="btn btn-out btn-sm" onclick="addDepenseLinked()" style="margin-left:auto">+ Ajouter</button>
       </div>
+      <div id="m-cout-direct-detail" style="font-size:12px;color:var(--tl)"></div>
+    </div>
     <div id="m-montant-mixte-zone" style="display:none">
       <div class="ts mb8" style="color:var(--tl)">En activité mixte, distinguez la part prestation et la part vente pour suivre vos seuils TVA correctement.</div>
       <div class="frow">
@@ -1620,79 +1620,88 @@ html,body{overflow-x:hidden;}
       <div class="ts" id="m-mixte-total" style="font-weight:700;color:var(--pri)"></div>
     </div>
     <div id="m-rec-zone" style="display:none">
-      <div class="fgroup" style="margin-bottom:8px">
-        <label class="flabel" style="display:flex;align-items:center;gap:6px;font-weight:400">
-          <input type="checkbox" id="m-sans-fin" onchange="toggleMissionSansFin(this.checked)">
-          Pas de date de fin connue
-          <span class="info-tip" title="Le CA sera comptabilisé chaque mois tant que le statut reste «En cours». Passez la mission en «Terminé» quand elle s'arrête réellement pour stopper le calcul. Ceci ne rend pas la mission visible sur le calendrier Planning : pour ça, ajoutez des sessions séparément.">?</span>
-        </label>
-      </div>
       <div class="frow" id="m-rec-amounts-row">
         <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500" oninput="updateTempsPrevuSuggestionDebounced()"></div>
         <div class="fgroup" id="m-nb-mois-zone"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
       </div>
-      <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec" onchange="syncSessDebutFromRec()"></div>
+      <div class="frow" id="m-rec-debut-row">
+        <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec" onchange="syncSessDebutFromRec()"></div>
+        <div class="fgroup">
+          <label class="flabel">&nbsp;</label>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;height:36px">
+            <input type="checkbox" id="m-sans-fin" onchange="toggleMissionSansFin(this.checked)">
+            Pas de date de fin connue
+            <span class="info-tip" title="Le CA sera comptabilisé chaque mois tant que le statut reste «En cours». Passez la mission en «Terminé» quand elle s'arrête réellement pour stopper le calcul. Ceci ne rend pas la mission visible sur le calendrier Planning : pour ça, ajoutez des sessions séparément.">?</span>
+          </label>
+        </div>
+      </div>
       <div class="alert al-info" style="margin-bottom:0;font-size:12px" id="m-rec-alert">↻ Le CA mensuel sera automatiquement comptabilisé chaque mois pendant la durée indiquée, dès que le statut passe en "En cours".</div>
     </div>
     <div class="fgroup" id="m-date-fact-zone" style="display:none">
       <label class="flabel">Date de facturation</label>
       <input type="date" id="m-date-fact">
     </div>
-    <div class="frow" id="m-charge-zone">
-      <div class="fgroup">
-        <label class="flabel">Temps planifié / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
-        <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
-        <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
-        <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.</div>
-      </div>
-      <div class="fgroup">
-        <label class="flabel">Unité</label>
-        <select id="m-charge-unit" onchange="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
-          <option value="h_sem">h / semaine</option>
-          <option value="j_mois">jours / mois</option>
-          <option value="h_mois">h / mois</option>
-        </select>
-      </div>
-    </div>
-    <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
-    <div class="fgroup" id="m-temps-prevu-zone">
-      <label class="flabel" id="m-temps-prevu-label">Temps prévu pour cette mission (h)</label>
-      <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
-    </div>
-    <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
-    <div id="m-trajectoire-detail"></div>
-    <div id="m-planning-zone">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
-      <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
-      <div id="m-sessions-list" style="margin-bottom:8px"></div>
-      <div class="fgroup" style="margin:0 0 8px">
-        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-          <input type="checkbox" id="m-sess-sansfin" onchange="toggleSessSansFin()" style="width:auto">
-          Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours de la semaine concernés, la session se répète indéfiniment.">?</span>
-        </label>
-      </div>
-      <div id="m-sess-jours-wrap" style="display:none;margin-bottom:8px">
-        <label class="flabel">Jours concernés</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked style="width:auto">Lun</label>
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked style="width:auto">Mar</label>
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
-          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
+    <button type="button" onclick="toggleTempsGestion()" id="m-temps-gestion-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
+      <span id="m-temps-gestion-arrow">▶</span> Gestion du temps
+    </button>
+    <div class="ts" style="color:var(--tl);margin:2px 0 8px">À compléter si vous voulez voir votre taux de remplissage et vos sessions de travail sur le calendrier.</div>
+    <div id="m-temps-gestion-zone" style="display:none">
+      <div class="frow" id="m-charge-zone">
+        <div class="fgroup">
+          <label class="flabel">Temps planifié / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
+          <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
+          <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
+          <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Sert uniquement à organiser votre agenda et votre capacité — pas à votre rentabilité.</div>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Unité</label>
+          <select id="m-charge-unit" onchange="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
+            <option value="h_sem">h / semaine</option>
+            <option value="j_mois">jours / mois</option>
+            <option value="h_mois">h / mois</option>
+          </select>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
-        <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
-        <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
-          <label class="flabel" id="m-sess-heures-label" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
-          <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
-            style="padding:6px 6px;text-align:center"
-            oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
-        </div>
-        <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
+      <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
+      <div class="fgroup" id="m-temps-prevu-zone">
+        <label class="flabel" id="m-temps-prevu-label">Temps prévu pour cette mission (h)</label>
+        <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
       </div>
-      <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
+      <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
+      <div id="m-trajectoire-detail"></div>
+      <div id="m-planning-zone">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
+        <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
+        <div id="m-sessions-list" style="margin-bottom:8px"></div>
+        <div class="fgroup" style="margin:0 0 8px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="m-sess-sansfin" onchange="toggleSessSansFin()" style="width:auto">
+            Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours de la semaine concernés, la session se répète indéfiniment.">?</span>
+          </label>
+        </div>
+        <div id="m-sess-jours-wrap" style="display:none;margin-bottom:8px">
+          <label class="flabel">Jours concernés</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked style="width:auto">Lun</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked style="width:auto">Mar</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
+          <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
+          <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
+            <label class="flabel" id="m-sess-heures-label" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
+            <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
+              style="padding:6px 6px;text-align:center"
+              oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
+          </div>
+          <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
+        </div>
+        <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
+      </div>
     </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
       <span id="m-advanced-arrow">▶</span> Options avancées
@@ -7116,6 +7125,17 @@ function deleteEncaissementModal(encId) {
   saveData(); renderEncaissementsModal(); if(currentPage==='missions') renderMissions();
 }
 
+// Repli "Gestion du temps" (temps planifié/semaine + sessions Planning) — mêmes mécaniques que
+// toggleMissionAdvanced() ci-dessous. Ouvert par défaut si la mission a déjà quelque chose dedans
+// (chargeEstimee ou sessions), pour ne jamais masquer une donnée déjà saisie à l'ouverture.
+function toggleTempsGestion(forceOpen) {
+  const zone = document.getElementById('m-temps-gestion-zone');
+  const arrow = document.getElementById('m-temps-gestion-arrow');
+  if (!zone) return;
+  const open = forceOpen !== undefined ? forceOpen : zone.style.display === 'none';
+  zone.style.display = open ? '' : 'none';
+  if (arrow) arrow.textContent = open ? '▼' : '▶';
+}
 function toggleMissionAdvanced(forceOpen) {
   const zone = document.getElementById('m-advanced-zone');
   const arrow = document.getElementById('m-advanced-arrow');
@@ -7228,8 +7248,17 @@ function openMissionModal(id, prefillDate) {
   // Charge estimée — visible si module estimation actif
   const chargeZone=document.getElementById('m-charge-zone');
   if(chargeZone) chargeZone.style.display=DATA.params.modules?.estimation?'':'none';
+  // Bloc "Gestion du temps" entier masqué si ni calendrier ni estimation n'est actif pour ce
+  // profil (rien à y montrer) — sinon repli géré par toggleTempsGestion() ci-dessus.
+  const hasTempsModule = !!(DATA.params.modules?.estimation || DATA.params.modules?.calendrier);
+  const tempsGestionToggle=document.getElementById('m-temps-gestion-toggle');
+  if(tempsGestionToggle){
+    tempsGestionToggle.style.display=hasTempsModule?'':'none';
+    tempsGestionToggle.nextElementSibling.style.display=hasTempsModule?'':'none';
+    if(!hasTempsModule){ const z=document.getElementById('m-temps-gestion-zone'); if(z) z.style.display='none'; }
+  }
   // Type de mission (collectif) — réservé aux profils "service"
-  const typeMissionRow=document.getElementById('m-type-mission')?.closest('.frow');
+  const typeMissionRow=document.getElementById('m-type-mission-fgroup');
   if(typeMissionRow) {
     const isServiceFamily = (BUSINESS_PROFILE_MAP[DATA.params?.metier] || DEFAULT_FAMILY) === 'service';
     typeMissionRow.style.display = isServiceFamily ? '' : 'none';
@@ -7307,9 +7336,12 @@ function openMissionModal(id, prefillDate) {
     } else { depZone.style.display='none'; }
   }
   // Ouvrir le bloc avancé si la mission éditée a déjà une source d'acquisition ou des notes
-  // (Sessions n'est plus dans ce bloc — toujours visible séparément si modules.calendrier actif)
   const hasAdvanced = m && (m.sourceAcquisition || m.notes);
   toggleMissionAdvanced(!!hasAdvanced);
+  // "Gestion du temps" (temps planifié/semaine + sessions Planning) — replié par défaut, mais
+  // jamais si la mission éditée a déjà quelque chose dedans (ne jamais masquer une donnée saisie).
+  const hasTempsGestion = m && (m.chargeEstimee > 0 || (m.sessions||[]).length > 0);
+  toggleTempsGestion(!!hasTempsGestion);
   openModal('modal-mission');
 }
 
