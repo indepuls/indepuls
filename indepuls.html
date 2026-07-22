@@ -3187,7 +3187,10 @@ function renderPlanning() {
     // x.heures est déjà un total "par mois" pour une session sans fin (voir getChargeSessionJour)
     // — la somme est donc directement correcte, sans traitement différent des sessions bornées.
     const hMois = sessThisMois.reduce((s,x)=>s+(x.heures||0),0);
-    const hLabel = hMois > 0 ? ` · <strong>${hMois}h</strong>` : '';
+    // Réalisé du mois (tempsManuel/chrono) affiché à côté du prévu — déjà visible dans la fiche
+    // mission, dupliqué ici pour l'avoir d'un coup d'œil sans ouvrir la mission (retour Faustine).
+    const realiseMois = getMissionHeuresMois(m, mk);
+    const hLabel = hMois > 0 ? ` · <strong>${hMois}h</strong> prévues · <strong>${fmt(realiseMois,1)}h</strong> réalisées` : '';
     const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven' };
     if (sessThisMois.length===0) range='Présent ce mois';
     else if (sessThisMois.length===1 && sessThisMois[0].sansFin){
