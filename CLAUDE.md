@@ -1427,6 +1427,16 @@ En mode estimation, Faustine a repéré une incohérence : le champ s'appelait "
 - **"Temps prévu pour cette mission (h)" renommé "Temps total estimé sur cette mission (h)"** (`#m-temps-prevu-label`, cas ponctuelle sans calendrier) — clarifie que ce champ représente un total sur toute la durée (inconnue à l'avance) de la mission, pas une charge hebdomadaire/mensuelle comme le champ du dessus. Template JS dans `updateTempsPrevuZone()` mis à jour, toujours accordé en genre selon la famille (`tVocabMasculin()` : "sur ce chantier" vs "sur cette mission").
 - **Vérifié** : mode estimation seul, mensuelle → libellé "Temps planifié estimatif", note pleine largeur avec le nouveau texte ; ponctuelle → même libellé/note, champ "Temps total estimé sur cette mission (h)" ; profil chantier (masculin) → "Temps total estimé sur ce chantier (j)", accord correct. 73 assertions + 6 suites `.test.js` toujours au vert. Les copies contextuelles des modes calendrier/additif (non testées par Faustine dans cette itération) restent à revoir si besoin plus tard.
 
+### FIX — Ordre du bloc "Gestion du temps" + phrase de comparaison manquante en ponctuelle (2026-07-21)
+
+Deux ajustements immédiats sur ce qui vient d'être livré : (1) la note pleine largeur (`#m-charge-note`) était placée ENTRE "Temps planifié estimatif" et "Temps total estimé", alors qu'elle doit conclure les deux ; (2) le mode mensuel affiche une petite phrase de suivi ("La comparaison prévu/réel sera possible dès que...") qui n'existait pas en ponctuelle — demandé de l'ajouter aussi pour la cohérence des 3 modes.
+
+- **Réordonnancement HTML** : `#m-charge-note` déplacé après `#m-charge-tempsprevu-derive`, donc après "Temps total estimé" — plus après "Temps planifié estimatif" seulement.
+- **`updateTempsPrevuZone()`, branche ponctuelle (`else`)** : ajoute la même logique de texte dérivé que les branches récurrente/calendrier, mais adaptée — contrairement à la charge hebdomadaire (convertie en h/mois), la valeur saisie dans "Temps total estimé" EST déjà le temps prévu, donc pas de conversion à afficher : simple rappel *"La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps total estimé ci-dessus."* tant que le champ est vide, masqué dès qu'il est rempli (pas besoin de répéter un nombre déjà visible juste au-dessus).
+- **`#m-temps-prevu`** : `oninput` ajouté (`updateTempsPrevuZone(...)`) pour que ce texte dérivé se mette à jour en direct pendant la saisie, comme `#m-charge` le fait déjà.
+- **Nettoyage au passage** : une réaffectation morte de `#m-charge-tip.title` dans `openMissionModal()` (texte "chaque semaine" en dur, systématiquement écrasée juste après par `updateModaleMissionCopy()`) a été retirée — elle recréait discrètement l'incohérence "semaine" corrigée dans l'itération précédente, sans jamais s'afficher réellement (dead code).
+- **Vérifié** : ordre HTML confirmé (planifié → unité → divider → total estimé → dérivé → note) pour ponctuelle et mensuelle ; phrase dérivée ponctuelle présente quand le champ est vide, disparaît en direct dès la saisie d'une valeur, réapparaît si le champ est vidé. 73 assertions + 6 suites `.test.js` toujours au vert.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
