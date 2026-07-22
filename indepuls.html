@@ -1662,13 +1662,13 @@ html,body{overflow-x:hidden;}
           </select>
         </div>
       </div>
-      <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Cette estimation permet d'ajuster votre taux de remplissage et de comparer, à l'issue de la mission, avec le temps effectivement réalisé. Cette donnée est utile car elle impacte directement votre rentabilité future.</div>
       <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
       <div class="fgroup" id="m-temps-prevu-zone">
         <label class="flabel" id="m-temps-prevu-label">Temps total estimé sur cette mission (h)</label>
-        <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10">
+        <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
       </div>
       <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
+      <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Cette estimation permet d'ajuster votre taux de remplissage et de comparer, à l'issue de la mission, avec le temps effectivement réalisé. Cette donnée est utile car elle impacte directement votre rentabilité future.</div>
       <div id="m-trajectoire-detail"></div>
       <div id="m-planning-zone">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
@@ -7227,9 +7227,9 @@ function openMissionModal(id, prefillDate) {
   }
   document.getElementById('m-charge').value=m&&m.chargeEstimee?m.chargeEstimee:'';
   document.getElementById('m-charge-unit').value=m&&m.chargeUnit?m.chargeUnit:'h_sem';
-  const capH=(DATA.params.heuresParJour||7)*(DATA.params.joursParSemaine||4);
-  const chargeTip=document.querySelector('#m-charge-zone .info-tip');
-  if(chargeTip) chargeTip.title=`Heures (ou jours) que cette mission occupe chaque semaine. Comparé à votre capacité de ${capH} h/sem pour calculer le taux d'occupation dans le Score de Santé.`;
+  // Le titre de l'infobulle #m-charge-tip est fixé par updateModaleMissionCopy() plus bas (seul
+  // endroit qui en a la responsabilité — une ancienne réaffectation ici, systématiquement
+  // écrasée ensuite, a été retirée pour ne pas laisser un texte mort et incohérent à relire).
   // Temps prévu — stocké en heures, affiché en jours si isJours() (chantier "Temps prévu")
   {
     const _hjTP=DATA.params.heuresParJour||7;
@@ -7448,11 +7448,19 @@ function updateTempsPrevuZone(isRec) {
   } else {
     if(zone) zone.style.display='';
     if(divider) divider.style.display='';
-    if(deriveEl){ deriveEl.textContent=''; deriveEl.style.display='none'; }
     const lbl=document.getElementById('m-temps-prevu-label');
     if(lbl){
       const unit=isJours()?'(j)':'(h)';
       lbl.textContent=`Temps total estimé sur ${tVocabMasculin()?'ce':'cette'} ${tVocab('item').toLowerCase()} `+unit;
+    }
+    // Ponctuelle : contrairement à la récurrente (charge convertie en h/mois), la valeur saisie
+    // ici EST déjà le temps prévu — pas de conversion à afficher, juste rappeler que la
+    // comparaison prévu/réel dépend de ce champ tant qu'il est vide (même logique que les 2
+    // autres branches, retour Faustine : cohérence des 3 modes).
+    if(deriveEl){
+      const tpVal=parseFloat(document.getElementById('m-temps-prevu').value)||0;
+      if(tpVal>0){ deriveEl.textContent=''; deriveEl.style.display='none'; }
+      else { deriveEl.textContent='La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps total estimé ci-dessus.'; deriveEl.style.display=''; }
     }
   }
 }
