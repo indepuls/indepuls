@@ -1547,14 +1547,6 @@ html,body{overflow-x:hidden;}
           <div class="fgroup"><label class="flabel">Prix par participant (€ HT)</label><input type="number" id="m-prix-part" min="0" step="50" placeholder="Ex : 1 500" oninput="updateCollectifCA()"></div>
         </div>
         <div id="m-collectif-ca" class="ts mb10" style="font-weight:700;color:var(--pri)"></div>
-        <div class="frow">
-          <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="m-temps-creation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-          <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="m-temps-animation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-          <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="m-temps-support" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-        </div>
-        <div class="ts mb4" style="color:var(--tl);font-style:italic">Suivi = réponses aux questions, feedback individuel, relectures, office hours entre les séances.</div>
-        <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
-        <div class="ts mt4" style="color:var(--tl)">⏱️ Ces heures comptent déjà comme temps réel de cette mission. Si vous lancez le chrono (bouton ▶ depuis la liste), le temps s'ajoutera par-dessus — inutile de le répartir dans ces 3 champs.</div>
       </div>
     <div class="divider" style="margin:10px 0"></div>
     <!-- Rattacher à un lot — achat_revente uniquement, toujours visible (jamais masqué même
@@ -1631,7 +1623,6 @@ html,body{overflow-x:hidden;}
           <label style="display:flex;align-items:center;gap:6px;font-weight:400;height:36px">
             <input type="checkbox" id="m-sans-fin" onchange="toggleMissionSansFin(this.checked)">
             Pas de date de fin connue
-            <span class="info-tip" title="Le CA sera comptabilisé chaque mois tant que le statut reste «En cours». Passez la mission en «Terminé» quand elle s'arrête réellement pour stopper le calcul. Ceci ne rend pas la mission visible sur le calendrier Planning : pour ça, ajoutez des sessions séparément.">?</span>
           </label>
         </div>
       </div>
@@ -1646,6 +1637,16 @@ html,body{overflow-x:hidden;}
     </button>
     <div class="ts" style="color:var(--tl);margin:2px 0 8px">À compléter si vous voulez voir votre taux de remplissage et vos sessions de travail sur le calendrier.</div>
     <div id="m-temps-gestion-zone" style="display:none">
+      <div id="m-temps-gestion-collectif-zone" style="display:none;margin-bottom:12px">
+        <div class="frow">
+          <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="m-temps-creation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
+          <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="m-temps-animation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
+          <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="m-temps-support" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
+        </div>
+        <div class="ts mb4" style="color:var(--tl);font-style:italic">Suivi = réponses aux questions, feedback individuel, relectures, office hours entre les séances.</div>
+        <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
+        <div class="ts mt4" style="color:var(--tl)">⏱️ Ces heures comptent déjà comme temps réel de cette mission. Si vous lancez le chrono (bouton ▶ depuis la liste), le temps s'ajoutera par-dessus — inutile de le répartir dans ces 3 champs.</div>
+      </div>
       <div class="frow" id="m-charge-zone">
         <div class="fgroup">
           <label class="flabel">Temps planifié / semaine <span class="info-tip" id="m-charge-tip" title="Heures (ou jours) que cette mission occupe chaque semaine — comparé à votre capacité pour le Score de Santé.">?</span></label>
@@ -7153,6 +7154,14 @@ function toggleMissionType(val) {
   document.getElementById('m-montant-mixte-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'':'none');
   document.getElementById('m-rec-zone').style.display = isRec?'':'none';
   document.getElementById('m-charge-zone').style.display = (isCol||!DATA.params.modules?.estimation)?'none':'';
+  // Détail du temps collectif (création/animation/suivi) déplacé dans "Gestion du temps" —
+  // ne s'affiche que pour un programme collectif, jamais pour une mission individuelle.
+  const colTempsZone = document.getElementById('m-temps-gestion-collectif-zone');
+  if (colTempsZone) colTempsZone.style.display = isCol?'':'none';
+  // Sélectionner "Programme collectif" révèle directement "Gestion du temps" — sinon les champs
+  // Création/Animation/Suivi resteraient invisibles par défaut. Ne referme jamais automatiquement
+  // (l'appel plus tardif dans openMissionModal(), basé sur les données réelles, a le dernier mot).
+  if (isCol && typeof toggleTempsGestion === 'function') toggleTempsGestion(true);
   if(isCol) { updateCollectifCA(); updateCollectifTemps(); }
 }
 function updateCollectifCA() {
@@ -7340,7 +7349,8 @@ function openMissionModal(id, prefillDate) {
   toggleMissionAdvanced(!!hasAdvanced);
   // "Gestion du temps" (temps planifié/semaine + sessions Planning) — replié par défaut, mais
   // jamais si la mission éditée a déjà quelque chose dedans (ne jamais masquer une donnée saisie).
-  const hasTempsGestion = m && (m.chargeEstimee > 0 || (m.sessions||[]).length > 0);
+  const hasTempsGestion = m && (m.chargeEstimee > 0 || (m.sessions||[]).length > 0
+    || m.tempsCreation > 0 || m.tempsAnimation > 0 || m.tempsSupport > 0);
   toggleTempsGestion(!!hasTempsGestion);
   openModal('modal-mission');
 }
@@ -7615,7 +7625,7 @@ function toggleMissionSansFin(checked) {
   document.getElementById('m-rec-amounts-row').style.gridTemplateColumns=checked?'1fr':'';
   const alertEl=document.getElementById('m-rec-alert');
   if(alertEl) alertEl.innerHTML=checked
-    ?'↻ Le CA mensuel sera automatiquement comptabilisé chaque mois tant que le statut reste "En cours".'
+    ?'↻ Le CA sera comptabilisé chaque mois tant que le statut reste "En cours". Passez la mission en "Terminé" quand elle s\'arrête réellement pour stopper le calcul.'
     :'↻ Le CA mensuel sera automatiquement comptabilisé chaque mois pendant la durée indiquée, dès que le statut passe en "En cours".';
   // Évite un second clic redondant en mode "additif" (calendrier + estimation) : cocher "sans
   // fin" côté facturation suggère directement la même chose côté session — décochable ensuite,
