@@ -372,6 +372,131 @@ function makeData(overrides = {}) {
   }
 }
 
+// ── Sessions récurrentes "sans fin" (jours de la semaine sélectionnés) ───────
+// Écrits AVANT l'implémentation (2026-07) — doivent échouer sur le code d'origine, puis passer
+// une fois sessionCouvreJour()/getChargeSessionJour() ajoutées et les sites existants refactorés.
+{
+  const dow = ds => new Date(ds + 'T00:00:00').getDay(); // 0=dim..6=sam
+  // Semaine du 5 au 11 janvier 2026 — on dérive les jours sans supposer le calendrier.
+  const semaine = ['2026-01-05','2026-01-06','2026-01-07','2026-01-08','2026-01-09','2026-01-10','2026-01-11'];
+  const mercredi    = semaine.find(ds => dow(ds) === 3);
+  const nonMercredi = semaine.find(ds => dow(ds) !== 3 && dow(ds) !== 0 && dow(ds) !== 6); // jour ouvré ≠ mercredi
+  const avantDebut  = '2025-12-01';
+  // Mercredi loin dans le futur (6 mois après le début) — prouve que "sans fin" n'est pas
+  // borné au mois affiché, contrairement à une session classique. Recherché jour par jour
+  // (un simple remplacement du mois ne préserve pas le jour de la semaine).
+  let mercrediLointain, nonMercrediLointain;
+  for (let d = 1; d <= 31; d++) {
+    const ds = `2026-07-${String(d).padStart(2, '0')}`;
+    if (dow(ds) === 3 && !mercrediLointain) mercrediLointain = ds;
+    if (dow(ds) !== 3 && dow(ds) !== 0 && dow(ds) !== 6 && !nonMercrediLointain) nonMercrediLointain = ds;
+  }
+
+  // ── sessionCouvreJour ──
+  const sBornee = { debut: '2026-01-05', fin: '2026-01-11' }; // couvre toute la semaine, week-end inclus
+  assertEq('sessionCouvreJour bornée · dans la plage (y compris week-end)',
+    P.sessionCouvreJour(sBornee, semaine[5]), true); // samedi, dans la plage bornée
+  assertEq('sessionCouvreJour bornée · hors plage',
+    P.sessionCouvreJour({ debut: '2026-01-05', fin: '2026-01-06' }, mercredi), false);
+
+  const sSansFin = { debut: '2026-01-05', sansFin: true, jours: [3] }; // 3 = mercredi (Date#getDay)
+  assertEq('sessionCouvreJour sansFin · jour sélectionné → true',
+    P.sessionCouvreJour(sSansFin, mercredi), true);
+  assertEq('sessionCouvreJour sansFin · jour non sélectionné → false',
+    P.sessionCouvreJour(sSansFin, nonMercredi), false);
+  assertEq('sessionCouvreJour sansFin · avant le début → false même le bon jour de semaine',
+    P.sessionCouvreJour(sSansFin, avantDebut), false);
+  assertEq('sessionCouvreJour sansFin · loin dans le futur → toujours vrai (pas de borne de fin)',
+    P.sessionCouvreJour(sSansFin, mercrediLointain), true);
+  assertEq('sessionCouvreJour sansFin · loin dans le futur, mauvais jour → false',
+    P.sessionCouvreJour(sSansFin, nonMercrediLointain), false);
+
+  const sSansFinDefaut = { debut: '2026-01-05', sansFin: true }; // jours absent → défaut lun-ven
+  assertEq('sessionCouvreJour sansFin sans `jours` → défaut lun-ven (mercredi couvert)',
+    P.sessionCouvreJour(sSansFinDefaut, mercredi), true);
+  assertEq('sessionCouvreJour sansFin sans `jours` → défaut lun-ven (week-end exclu)',
+    P.sessionCouvreJour(sSansFinDefaut, semaine[5]), false); // samedi
+
+  // ── getChargeSessionJour ──
+  // Bornée : comportement EXISTANT, inchangé — heures = total sur la plage entière.
+  const sBorneeH = { debut: '2026-01-05', fin: '2026-01-09', heures: 20 }; // 5 jours ouvrés
+  const attenduBornee = 20 / P.joursOuvrésSemaine('2026-01-05', '2026-01-09');
+  assertEq('getChargeSessionJour bornée · réparti sur les jours ouvrés',
+    P.getChargeSessionJour(sBorneeH, mercredi), attenduBornee);
+  assertEq('getChargeSessionJour bornée · hors plage → 0',
+    P.getChargeSessionJour(sBorneeH, avantDebut), 0);
+
+  // Sans fin : heures = total PAR MOIS (retour Faustine, 2026-07 : plus parlant que "par
+  // occurrence" — cohérent avec le modèle des sessions bornées, où `heures` est déjà un
+  // total réparti, juste ici réparti sur les jours sélectionnés du mois plutôt que sur tous
+  // les jours ouvrés de la plage). Réparti uniformément sur les occurrences DU MOIS de `ds`.
+  let nbMercredisDepuisDebut = 0; // depuis le 5 janvier (date de début), jusqu'à fin janvier
+  for (let d = 5; d <= 31; d++) {
+    const ds = `2026-01-${String(d).padStart(2, '0')}`;
+    if (dow(ds) === 3) nbMercredisDepuisDebut++;
+  }
+  const sSansFinH = { debut: '2026-01-05', sansFin: true, jours: [3], heures: 16 };
+  const attenduSansFin = 16 / nbMercredisDepuisDebut;
+  assertEq('getChargeSessionJour sansFin · heures/mois réparties sur les occurrences du mois',
+    P.getChargeSessionJour(sSansFinH, mercredi), attenduSansFin);
+  assertEq('getChargeSessionJour sansFin · jour non couvert → 0',
+    P.getChargeSessionJour(sSansFinH, nonMercredi), 0);
+  assertEq('getChargeSessionJour · sans heures renseigné → 0',
+    P.getChargeSessionJour({ debut: '2026-01-05', sansFin: true, jours: [3] }, mercredi), 0);
+
+  // ── getChargeJour (intégration) ──
+  const mChargeJour = { isManagement: false, sessions: [sSansFinH] };
+  const DChargeJour = makeData({ missions: [mChargeJour] });
+  assertEq('getChargeJour · sansFin, jour couvert → part du total mensuel',
+    P.getChargeJour(DChargeJour, mercredi), attenduSansFin);
+  assertEq('getChargeJour · sansFin, jour non couvert → 0',
+    P.getChargeJour(DChargeJour, nonMercredi), 0);
+  assert('getChargeJour · sansFin, loin dans le futur, bon jour → toujours > 0 (pas de borne de fin)',
+    P.getChargeJour(DChargeJour, mercrediLointain) > 0);
+  assertEq('getChargeJour · sansFin, loin dans le futur, mauvais jour → 0',
+    P.getChargeJour(DChargeJour, nonMercrediLointain), 0);
+
+  // ── getMissionsSessionDay (intégration) ──
+  const mCandidate = { id: 'm1', isManagement: false, sessions: [sSansFinH] };
+  const DCandidate = makeData({ missions: [mCandidate] });
+  assertEq('getMissionsSessionDay · sansFin, loin dans le futur, bon jour → mission retournée',
+    P.getMissionsSessionDay(DCandidate, mercrediLointain).length, 1);
+  assertEq('getMissionsSessionDay · sansFin, loin dans le futur, mauvais jour → aucune mission',
+    P.getMissionsSessionDay(DCandidate, nonMercrediLointain).length, 0);
+
+  // ── getTauxRemplissageMois (intégration) ──
+  // Propriété clé du modèle "heures/mois" : pour un mois entièrement couvert (début au 1er du
+  // mois ou avant), le total mensuel occupé doit être EXACTEMENT `heures` — quel que soit le
+  // nombre de mercredis ce mois-là (4 ou 5) — puisque la répartition par jour est justement
+  // calculée pour que la somme reconstitue le total. C'est ce qui rend "heures par mois" plus
+  // simple à comprendre qu'un montant par occurrence (pas besoin de connaître le nombre
+  // d'occurrences pour savoir combien d'heures on dédie à ce client chaque mois).
+  const mMoisH = { isManagement: false, sessions: [{ debut: '2026-01-01', sansFin: true, jours: [3], heures: 16 }] };
+  const rMoisH = P.getTauxRemplissageMois(makeData({ missions: [mMoisH] }), '2026-01');
+  assertEq('getTauxRemplissageMois sansFin · mode heures activé (heures renseignées)', rMoisH.mode, 'heures');
+  assertEq('getTauxRemplissageMois sansFin · occupiedH = heures/mois exactement (mois entièrement couvert)',
+    rMoisH.occupiedH, 16);
+
+  // Mode jours (sans heures renseigné) : compte les jours OÙ LA SESSION S'APPLIQUE (les
+  // mercredis), pas tous les jours ouvrés — comportement propre au sélecteur de jours.
+  let nbMercredisJanvier = 0;
+  for (let d = 1; d <= 31; d++) {
+    const ds = `2026-01-${String(d).padStart(2, '0')}`;
+    if (dow(ds) === 3) nbMercredisJanvier++;
+  }
+  const mMoisJours = { isManagement: false, sessions: [{ debut: '2026-01-01', sansFin: true, jours: [3] }] }; // sans heures
+  const rMoisJours = P.getTauxRemplissageMois(makeData({ missions: [mMoisJours] }), '2026-01');
+  assertEq('getTauxRemplissageMois sansFin sans heures · mode jours', rMoisJours.mode, 'jours');
+  assertEq('getTauxRemplissageMois sansFin sans heures · occupied = nb mercredis (pas tous les jours ouvrés)',
+    rMoisJours.occupied, nbMercredisJanvier);
+
+  // ── Non-régression explicite : une session bornée classique n'est jamais affectée ──
+  const mkJanReg = '2026-01';
+  const mRegBornee = { isManagement: false, sessions: [{ debut: '2026-01-05', fin: '2026-01-07' }] };
+  assertEq('non-régression · session bornée classique inchangée',
+    P.getTauxRemplissageMois(makeData({ missions: [mRegBornee] }), mkJanReg).occupied, 3);
+}
+
 // ── Non-régression — un seul module actif (comportement inchangé) ────────────
 // Les sections 'estime' et 'calendrier' ci-dessus couvrent déjà ce cas : la fonction
 // resultatHSemaine() partagée reproduit à l'identique le calcul et les textes de la

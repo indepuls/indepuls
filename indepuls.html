@@ -1665,18 +1665,34 @@ html,body{overflow-x:hidden;}
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
       <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
       <div id="m-sessions-list" style="margin-bottom:8px"></div>
+      <div class="fgroup" style="margin:0 0 8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="m-sess-sansfin" onchange="toggleSessSansFin()" style="width:auto">
+          Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours de la semaine concernés, la session se répète indéfiniment.">?</span>
+        </label>
+      </div>
+      <div id="m-sess-jours-wrap" style="display:none;margin-bottom:8px">
+        <label class="flabel">Jours concernés</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked style="width:auto">Lun</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked style="width:auto">Mar</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
-        <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
+        <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
         <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
-          <label class="flabel" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
+          <label class="flabel" id="m-sess-heures-label" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
           <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
             style="padding:6px 6px;text-align:center"
             oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
         </div>
         <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
       </div>
-      <div class="ts mt4" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
+      <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
     </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
       <span id="m-advanced-arrow">▶</span> Options avancées
@@ -2920,7 +2936,25 @@ function initEditingSessions(m, prefillDate) {
   const finEl = document.getElementById('m-sess-fin');
   if (debEl) debEl.value = !m && prefillDate ? prefillDate : '';
   if (finEl) finEl.value = '';
+  // Réinitialise le formulaire "récurrente sans fin" (case décochée, jours lun-ven par défaut)
+  // — l'état ne doit jamais survivre à la fermeture/réouverture de la modale.
+  const sansFinEl = document.getElementById('m-sess-sansfin');
+  if (sansFinEl) sansFinEl.checked = false;
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = true);
+  if (typeof toggleSessSansFin === 'function') toggleSessSansFin();
   renderEditSessions();
+}
+// Bascule le formulaire d'ajout de session entre bornée (Début/Fin) et récurrente sans fin
+// (Début + jours de la semaine) — voir shared/core/planning.js pour la sémantique complète.
+function toggleSessSansFin() {
+  const on = document.getElementById('m-sess-sansfin').checked;
+  document.getElementById('m-sess-jours-wrap').style.display = on ? '' : 'none';
+  document.getElementById('m-sess-fin-wrap').style.display = on ? 'none' : '';
+  document.getElementById('m-sess-heures-label').innerHTML = on ? 'Heures <span class="ts">/mois</span>' : 'Durée <span class="ts">h</span>';
+  document.getElementById('m-sess-help').textContent = on
+    ? 'Heures dédiées à ce client chaque mois, réparties automatiquement sur les jours sélectionnés.'
+    : 'La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.';
+  updateSessHeuresAuto();
 }
 
 function renderEditSessions() {
@@ -2934,7 +2968,20 @@ function renderEditSessions() {
     _refreshTempsPrevu();
     return;
   }
+  const JOURS_LABELS = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven' };
   el.innerHTML = editingSessions.map((s,i) => {
+    if (s.sansFin) {
+      const joursTxt = (s.jours && s.jours.length ? s.jours : [1,2,3,4,5]).map(j => JOURS_LABELS[j]).join(', ');
+      const range = `Récurrente (${joursTxt}) <span class="ts">— depuis ${formatDateFR(s.debut)}</span>`;
+      const hLabel = s.heures > 0
+        ? `<span style="font-size:11px;color:var(--tl);white-space:nowrap">${s.heures}&thinsp;h/mois</span>`
+        : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
+        <span style="flex:1;font-size:12px">${range}</span>
+        ${hLabel}
+        <button class="btn btn-del btn-xs" onclick="removeSessionFromEdit(${i})">🗑</button>
+      </div>`;
+    }
     const fin = s.fin || s.debut;
     const range = s.debut === fin
       ? `${formatDateFR(s.debut)} <span class="ts">(1 jour)</span>`
@@ -2958,6 +3005,9 @@ function _joursOuvrésSemaine(debut, fin) {
   return Math.max(1, n);
 }
 function updateSessHeuresAuto() {
+  // Récurrente sans fin : pas de plage bornée, donc pas de valeur "auto" à calculer — l'heures/
+  // mois est toujours une saisie manuelle.
+  if (document.getElementById('m-sess-sansfin')?.checked) return;
   const debut = document.getElementById('m-sess-debut').value;
   const fin   = document.getElementById('m-sess-fin').value || debut;
   if (!debut) return;
@@ -2969,9 +3019,23 @@ function updateSessHeuresAuto() {
 }
 function addSessionToEdit() {
   const debut = document.getElementById('m-sess-debut').value;
-  const fin   = document.getElementById('m-sess-fin').value || debut;
   if (!debut) { alert('Date de début requise.'); return; }
-  const hEl    = document.getElementById('m-sess-heures');
+  const hEl = document.getElementById('m-sess-heures');
+  if (document.getElementById('m-sess-sansfin')?.checked) {
+    const jours = Array.from(document.querySelectorAll('.m-sess-jour-cb:checked')).map(cb => +cb.value);
+    if (!jours.length) { alert('Sélectionnez au moins un jour de la semaine.'); return; }
+    const heures = hEl ? parseFloat(hEl.value) || 0 : 0;
+    editingSessions.push(heures > 0 ? {debut, sansFin:true, jours, heures} : {debut, sansFin:true, jours});
+    editingSessions.sort((a,b) => a.debut < b.debut ? -1 : 1);
+    document.getElementById('m-sess-debut').value = '';
+    if (hEl) { hEl.value = ''; hEl.dataset.perso = 'false'; hEl.dataset.auto = ''; }
+    document.getElementById('m-sess-sansfin').checked = false;
+    document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = true);
+    toggleSessSansFin();
+    renderEditSessions();
+    return;
+  }
+  const fin = document.getElementById('m-sess-fin').value || debut;
   const hVal   = hEl ? parseFloat(hEl.value) || 0 : 0;
   const hAuto  = hEl ? parseFloat(hEl.dataset.auto) || 0 : 0;
   const heures = hVal > 0 ? hVal : 0;
@@ -3001,50 +3065,11 @@ let planningMk = null;
 // Jour actuellement affiché dans le panneau détail (Planning temps, 2026-07) — null si aucun.
 let _planningSelectedDay = null;
 
-function getTauxRemplissageMois(mk) {
-  const [year, month] = mk.split('-').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const pad = n => String(n).padStart(2,'0');
-  const mFirst = `${year}-${pad(month)}-01`, mLast = `${year}-${pad(month)}-${pad(daysInMonth)}`;
-  const joursParSem   = DATA.params.joursParSemaine || 5;
-  const heuresParJour = DATA.params.heuresParJour   || 7;
-  const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
-
-  const sessMois = [];
-  DATA.missions.forEach(m => {
-    if (m.isManagement || !(m.sessions||[]).length) return;
-    m.sessions.forEach(s => { if (s.debut <= mLast && (s.fin||s.debut) >= mFirst) sessMois.push(s); });
-  });
-
-  const useHeures = sessMois.length > 0 && sessMois.every(s => s.heures > 0);
-  if (useHeures) {
-    let occupiedH = 0;
-    sessMois.forEach(s => {
-      const fin = s.fin || s.debut;
-      const clipDebut = s.debut < mFirst ? mFirst : s.debut;
-      const clipFin   = fin    > mLast  ? mLast  : fin;
-      const joursTotal = _joursOuvrésSemaine(s.debut, fin);
-      const joursClip  = _joursOuvrésSemaine(clipDebut, clipFin);
-      occupiedH += (s.heures / joursTotal) * joursClip;
-    });
-    occupiedH = Math.round(occupiedH * 10) / 10;
-    const capaciteH = ouvrables * heuresParJour;
-    return { mode:'heures', occupiedH, capaciteH, ouvrables,
-      occupied: Math.round(occupiedH / heuresParJour * 10) / 10,
-      taux: Math.min(100, Math.round(occupiedH / capaciteH * 100)) };
-  }
-
-  let occupied = 0;
-  for (let d=1; d<=daysInMonth; d++) {
-    const ds = `${year}-${pad(month)}-${pad(d)}`;
-    const hit = DATA.missions.some(m => {
-      if (m.isManagement || !(m.sessions||[]).length) return false;
-      return m.sessions.some(s => ds >= s.debut && ds <= (s.fin||s.debut));
-    });
-    if (hit) occupied++;
-  }
-  return { mode:'jours', occupied, ouvrables, taux: Math.min(100, Math.round(occupied / ouvrables * 100)) };
-}
+// getTauxRemplissageMois vit désormais uniquement dans shared/core/planning.js (bridgé
+// window.getTauxRemplissageMois, bloc module en fin de fichier) — cette copie locale dupliquait
+// exactement la même logique et aurait dû être corrigée une seconde fois pour les sessions
+// récurrentes sans fin (2026-07). Supprimée pour ne garder qu'un seul endroit qui interprète une
+// session ; les 2 appels ci-dessous (getTauxRemplissageAnnee, renderPlanning) sont inchangés.
 
 function getTauxRemplissageAnnee() {
   const mks = getMoisActifsAnnee();
@@ -3077,7 +3102,8 @@ function renderPlanning() {
 
   const missionsMois = DATA.missions.filter(m => {
     if (m.isManagement || m.statut === 'ref' || !(m.sessions||[]).length) return false;
-    return m.sessions.some(s => s.debut <= mLast && (s.fin||s.debut) >= mFirst);
+    // Récurrente sans fin (2026-07) : pas de `fin` connue, donc "touche" tout mois >= son début.
+    return m.sessions.some(s => s.sansFin ? s.debut <= mLast : (s.debut <= mLast && (s.fin||s.debut) >= mFirst));
   }).sort((a,b) => {
     const aD=(a.sessions||[])[0]?.debut||'z', bD=(b.sessions||[])[0]?.debut||'z';
     return aD<bD?-1:1;
@@ -3089,22 +3115,19 @@ function renderPlanning() {
 
   const getMissionsDay = ds => DATA.missions.filter(m => {
     if (m.isManagement || !(m.sessions||[]).length) return false;
-    return m.sessions.some(s => ds >= s.debut && ds <= (s.fin||s.debut)) && colorMap[m.id];
+    return m.sessions.some(s => sessionCouvreJour(s, ds)) && colorMap[m.id];
   });
 
   const heuresParJour = DATA.params.heuresParJour || 7;
-  // Charge prévisionnelle par jour (h) depuis session.heures
+  // Charge prévisionnelle par jour (h) — délègue à getChargeSessionJour (shared/core/planning.js),
+  // seul endroit qui sait interpréter une session bornée ou récurrente sans fin.
   const getChargeJourLocal = ds => {
     const dow = new Date(ds+'T00:00:00').getDay();
     if (dow===0||dow===6) return 0;
     let total = 0;
     DATA.missions.forEach(m => {
       if (m.isManagement) return;
-      (m.sessions||[]).forEach(s => {
-        const fin = s.fin||s.debut;
-        if (ds < s.debut || ds > fin || !s.heures || s.heures<=0) return;
-        total += s.heures / _joursOuvrésSemaine(s.debut, fin);
-      });
+      (m.sessions||[]).forEach(s => { total += getChargeSessionJour(s, ds); });
     });
     return Math.round(total*10)/10;
   };
@@ -3158,12 +3181,20 @@ function renderPlanning() {
 
   const missionRows = missionsMois.map(m => {
     const c = colorMap[m.id];
-    const sessThisMois = (m.sessions||[]).filter(s => s.debut <= mLast && (s.fin||s.debut) >= mFirst);
+    // Récurrente sans fin : "touche" tout mois >= son début (pas de fin connue à comparer).
+    const sessThisMois = (m.sessions||[]).filter(s => s.sansFin ? s.debut <= mLast : (s.debut <= mLast && (s.fin||s.debut) >= mFirst));
     let range;
+    // x.heures est déjà un total "par mois" pour une session sans fin (voir getChargeSessionJour)
+    // — la somme est donc directement correcte, sans traitement différent des sessions bornées.
     const hMois = sessThisMois.reduce((s,x)=>s+(x.heures||0),0);
     const hLabel = hMois > 0 ? ` · <strong>${hMois}h</strong>` : '';
+    const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven' };
     if (sessThisMois.length===0) range='Présent ce mois';
-    else if (sessThisMois.length===1){
+    else if (sessThisMois.length===1 && sessThisMois[0].sansFin){
+      const s=sessThisMois[0];
+      const joursTxt=(s.jours&&s.jours.length?s.jours:[1,2,3,4,5]).map(j=>JOURS_LABELS_FR[j]).join(', ');
+      range=`Récurrente (${joursTxt})${hLabel}`;
+    } else if (sessThisMois.length===1){
       const s=sessThisMois[0], fin=s.fin||s.debut;
       range=(s.debut===fin?`${formatDateFR(s.debut)} (1 jour)`:`${formatDateFR(s.debut)} → ${formatDateFR(fin)}`)+hLabel;
     } else { range=`${sessThisMois.length} sessions${hLabel}`; }
@@ -7581,6 +7612,13 @@ function saveMission() {
     tempsPrevu=isNaN(_tpRaw)?null:(isJours()?_tpRaw*_hjSave:_tpRaw);
   }
   const sessions = editingSessions.map(s => {
+    // Récurrente sans fin (2026-07) : pas de `fin`, jours de la semaine sélectionnés,
+    // heures = total PAR MOIS (voir getChargeSessionJour dans shared/core/planning.js).
+    if (s.sansFin) {
+      const o = { debut: s.debut, sansFin: true, jours: s.jours || [1,2,3,4,5] };
+      if (s.heures > 0) o.heures = s.heures;
+      return o;
+    }
     const o = {debut:s.debut, fin:s.fin||s.debut};
     if (s.heures > 0) { o.heures = s.heures; o.heuresAuto = !!s.heuresAuto; }
     return o;
@@ -11853,6 +11891,8 @@ document.addEventListener('keydown', function(e) {
   window.getHeuresInterne       = ()   => { sync(); return Mode.getHeuresInterne(); };
   window.getTempsJour           = (ds) => { sync(); return Mode.getTempsJour(ds); };
   window.getMissionsSessionDay  = (ds) => { sync(); return Mode.getMissionsSessionDay(ds); };
+  window.sessionCouvreJour      = (s, ds) => { sync(); return Mode.sessionCouvreJour(s, ds); };
+  window.getChargeSessionJour   = (s, ds) => { sync(); return Mode.getChargeSessionJour(s, ds); };
   window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
   window.estMissionPayee        = (m)  => { sync(); return Mode.estMissionPayee(m); };
@@ -11885,6 +11925,7 @@ document.addEventListener('keydown', function(e) {
   window.getImpotEstimeMicro       = (caP, caV) => { sync(); return Mode.getImpotEstimeMicro(caP, caV); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
   window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
+  window.getTauxRemplissageMois    = (mk)        => { sync(); return Mode.getTauxRemplissageMois(mk); };
 
   // ── AFFAIRES ────────────────────────────────────────────────
   window.getDepensesAffaire          = (id)  => { sync(); return Mode.getDepensesAffaire(id); };

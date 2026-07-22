@@ -4,7 +4,8 @@
 //
 // Deux modules indépendants (booléens) :
 //   modules.estimation  → charge estimée en h/sem par affaire
-//   modules.calendrier  → sessions {debut, fin, heures?} + page Planning visible
+//   modules.calendrier  → sessions bornées {debut, fin, heures?} ou récurrentes sans fin
+//                         {debut, sansFin:true, jours?:[1..5], heures?/mois} + page Planning
 //
 // Les deux peuvent être actifs simultanément (hybride).
 // Point d'entrée unique pour les widgets et le Score Santé : getPilierRemplissage(DATA)
@@ -31,8 +32,98 @@ export function joursOuvrésSemaine(debut, fin) {
   return Math.max(1, count);
 }
 
+// ── SESSIONS RÉCURRENTES "SANS FIN" (jours de la semaine sélectionnés, 2026-07) ─
+// Une session est normalement bornée : {debut, fin, heures?} — heures est un total réparti
+// uniformément sur les jours OUVRÉS de la plage. Pour une mission récurrente sans date de fin
+// connue (nbMoisRec null), il n'existait aucun moyen de représenter "chaque mercredi,
+// indéfiniment" — seule une plage bornée était possible. Nouvelle forme, additive, sans
+// migration : {debut, sansFin:true, jours?:[1..5], heures?} — `fin` absent (n'a pas de sens),
+// `jours` = jours de la semaine concernés (1=lundi..5=vendredi, Date#getDay ; défaut lun-ven si
+// absent), `heures` = total PAR MOIS (retour Faustine : plus parlant qu'un montant par
+// occurrence — cohérent avec le modèle des sessions bornées, où heures est déjà un total
+// réparti, juste ici réparti sur les jours sélectionnés du mois plutôt que sur tous les jours
+// ouvrés de la plage).
+//
+// Ces deux fonctions sont le SEUL endroit qui sait interpréter une session (bornée ou sans
+// fin) — tous les calculs de charge/remplissage de ce fichier les réutilisent, pour éviter de
+// dupliquer 5 fois la même logique de dates (c'était déjà le cas avant cette évolution).
+
+// Vrai si la session couvre le jour ds. Bornée : n'importe quel jour de la plage, week-ends
+// inclus (comportement existant, inchangé — un chantier peut très bien avoir une session le
+// samedi). Sans fin : seulement les jours de semaine sélectionnés, à partir de debut, sans
+// limite dans le futur.
+export function sessionCouvreJour(s, ds) {
+  if (ds < s.debut) return false;
+  if (s.sansFin) {
+    const jours = (s.jours && s.jours.length) ? s.jours : [1, 2, 3, 4, 5];
+    return jours.includes(new Date(ds + 'T00:00:00').getDay());
+  }
+  return ds <= (s.fin || s.debut);
+}
+
+// Nombre de jours où la session sans fin s'applique dans la fenêtre [debut, fin] (bornée par
+// s.debut si postérieur). Sert à répartir les heures/mois (getChargeSessionJour) et au repli
+// rétrocompat sans heures renseigné (_sessionsHeuresMois) — factorisé pour ne pas dupliquer la
+// boucle jour par jour deux fois.
+function _compterOccurrences(s, debut, fin) {
+  const jours = (s.jours && s.jours.length) ? s.jours : [1, 2, 3, 4, 5];
+  const debutEffectif = s.debut > debut ? s.debut : debut;
+  let n = 0;
+  const d = new Date(debutEffectif + 'T00:00:00');
+  const finD = new Date(fin + 'T00:00:00');
+  while (d <= finD) {
+    if (jours.includes(d.getDay())) n++;
+    d.setDate(d.getDate() + 1);
+  }
+  return n;
+}
+
+// Charge (h) apportée par la session pour le jour ds (0 si elle ne le couvre pas, ou si aucune
+// heure n'est renseignée). Bornée : comportement existant, inchangé (heures / jours ouvrés de
+// la plage). Sans fin : heures/mois réparties uniformément sur les occurrences DU MOIS de ds —
+// propriété utile : sur un mois entièrement couvert, la somme reconstitue exactement `heures`.
+export function getChargeSessionJour(s, ds) {
+  if (!sessionCouvreJour(s, ds)) return 0;
+  if (!s.heures || s.heures <= 0) return 0;
+  if (s.sansFin) {
+    const [y, mo] = ds.split('-').map(Number);
+    const pad = n => String(n).padStart(2, '0');
+    const mFirst = `${y}-${pad(mo)}-01`;
+    const mLast  = `${y}-${pad(mo)}-${pad(new Date(y, mo, 0).getDate())}`;
+    const nbJours = _compterOccurrences(s, mFirst, mLast);
+    return nbJours > 0 ? s.heures / nbJours : 0;
+  }
+  const fin = s.fin || s.debut;
+  return s.heures / joursOuvrésSemaine(s.debut, fin);
+}
+
+// Somme des contributions d'une session sans fin sur une période bornée [debut, fin] (incluse).
+// getChargeSessionJour calcule sa part relative au MOIS de chaque jour — sommer jour par jour
+// donne donc la portion exacte d'une fenêtre partielle (ex. jours restants du mois), jamais un
+// simple `+= s.heures` qui surcompterait si la fenêtre ne couvre pas le mois entier.
+function _chargeSansFinPeriode(s, debut, fin) {
+  let total = 0;
+  const pad = n => String(n).padStart(2, '0');
+  const d = new Date(debut + 'T00:00:00');
+  const finD = new Date(fin + 'T00:00:00');
+  while (d <= finD) {
+    total += getChargeSessionJour(s, `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    d.setDate(d.getDate() + 1);
+  }
+  return total;
+}
+
+// La session touche-t-elle (au moins un jour) la fenêtre [debut, fin] ? Bornée : chevauchement
+// classique de plages (comportement existant). Sans fin : pas de fin connue, donc "touche"
+// toute fenêtre se terminant après le début de la session.
+function _sessionToucheMois(s, debut, fin) {
+  if (s.sansFin) return s.debut <= fin;
+  return s.debut <= fin && (s.fin || s.debut) >= debut;
+}
+
 // Charge prévisionnelle (h) pour une date YYYY-MM-DD donnée.
-// Distribue session.heures uniformément sur les jours ouvrés de la session.
+// Distribue session.heures uniformément sur les jours ouvrés de la session (ou sur les
+// occurrences du mois pour une session sans fin — voir getChargeSessionJour).
 // Ne touche jamais timerAccumulated / temps réel.
 export function getChargeJour(DATA, dateStr) {
   const dow = new Date(dateStr + 'T00:00:00').getDay();
@@ -40,12 +131,7 @@ export function getChargeJour(DATA, dateStr) {
   let total = 0;
   DATA.missions.forEach(m => {
     if (m.isManagement) return;
-    (m.sessions || []).forEach(s => {
-      const fin = s.fin || s.debut;
-      if (dateStr < s.debut || dateStr > fin) return;
-      if (!s.heures || s.heures <= 0) return;
-      total += s.heures / joursOuvrésSemaine(s.debut, fin);
-    });
+    (m.sessions || []).forEach(s => { total += getChargeSessionJour(s, dateStr); });
   });
   return Math.round(total * 10) / 10;
 }
@@ -56,7 +142,7 @@ export function getChargeJour(DATA, dateStr) {
 // case du Planning (Planning temps, 2026-07).
 export function getMissionsSessionDay(DATA, dateStr) {
   return DATA.missions.filter(m =>
-    !m.isManagement && (m.sessions || []).some(s => dateStr >= s.debut && dateStr <= (s.fin || s.debut))
+    !m.isManagement && (m.sessions || []).some(s => sessionCouvreJour(s, dateStr))
   );
 }
 
@@ -115,7 +201,7 @@ export function getTauxRemplissageMois(DATA, mk) {
   DATA.missions.forEach(m => {
     if (m.isManagement || !(m.sessions || []).length) return;
     m.sessions.forEach(s => {
-      if (s.debut <= mLast && (s.fin || s.debut) >= mFirst) sessMois.push(s);
+      if (_sessionToucheMois(s, mFirst, mLast)) sessMois.push(s);
     });
   });
 
@@ -125,6 +211,7 @@ export function getTauxRemplissageMois(DATA, mk) {
   if (useHeures) {
     let occupiedH = 0;
     sessMois.forEach(s => {
+      if (s.sansFin) { occupiedH += _chargeSansFinPeriode(s, mFirst, mLast); return; }
       const fin = s.fin || s.debut;
       const clipDebut = s.debut < mFirst ? mFirst : s.debut;
       const clipFin   = fin    > mLast  ? mLast  : fin;
@@ -147,7 +234,7 @@ export function getTauxRemplissageMois(DATA, mk) {
     const ds = `${year}-${pad(month)}-${pad(d)}`;
     const hit = DATA.missions.some(m => {
       if (m.isManagement || !(m.sessions || []).length) return false;
-      return m.sessions.some(s => ds >= s.debut && ds <= (s.fin || s.debut));
+      return m.sessions.some(s => sessionCouvreJour(s, ds));
     });
     if (hit) occupied++;
   }
@@ -268,8 +355,13 @@ function _sessionsHeuresMois(DATA, m, mFirst, mLast) {
   const heuresParJour = DATA.params.heuresParJour || 7;
   let total = 0;
   (m.sessions || []).forEach(s => {
+    if (!_sessionToucheMois(s, mFirst, mLast)) return; // ne touche pas la période
+    if (s.sansFin) {
+      if (s.heures > 0) { total += _chargeSansFinPeriode(s, mFirst, mLast); }
+      else { total += _compterOccurrences(s, mFirst, mLast) * heuresParJour; } // repli rétrocompat
+      return;
+    }
     const fin = s.fin || s.debut;
-    if (s.debut > mLast || fin < mFirst) return; // ne touche pas la période
     const clipDebut = s.debut < mFirst ? mFirst : s.debut;
     const clipFin   = fin    > mLast  ? mLast  : fin;
     const joursClip = joursOuvrésSemaine(clipDebut, clipFin);
@@ -302,7 +394,7 @@ function _getChargeAdditiveMois(DATA) {
   DATA.missions.forEach(m => {
     if (m.isManagement) return;
     const estActive = m.statut === 'cours' || _isRecurringStillActive(m);
-    const hasSessionsPeriode = (m.sessions || []).some(s => s.debut <= mLast && (s.fin || s.debut) >= mFirst);
+    const hasSessionsPeriode = (m.sessions || []).some(s => _sessionToucheMois(s, mFirst, mLast));
 
     if (m.isRecurring) {
       // Principal : charge estimée. Repli : sessions de cette mission sur la période.
@@ -346,7 +438,7 @@ function _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotale, utilis
   DATA.missions.forEach(m => {
     if (m.isManagement || !(m.sessions || []).length) return;
     m.sessions.forEach(s => {
-      if (s.debut <= mLast && (s.fin || s.debut) >= today) sessRestantes.push(s);
+      if (_sessionToucheMois(s, today, mLast)) sessRestantes.push(s);
     });
   });
 
@@ -354,6 +446,7 @@ function _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotale, utilis
   if (isH) {
     occupeRestante = 0;
     sessRestantes.forEach(s => {
+      if (s.sansFin) { occupeRestante += _chargeSansFinPeriode(s, today, mLast); return; }
       const fin = s.fin || s.debut;
       const clipDebut = s.debut < today ? today : s.debut;
       const clipFin   = fin > mLast ? mLast : fin;
@@ -369,7 +462,7 @@ function _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotale, utilis
       const ds = `${year}-${pad(month)}-${pad(d)}`;
       const hit = DATA.missions.some(m => {
         if (m.isManagement || !(m.sessions || []).length) return false;
-        return m.sessions.some(s => ds >= s.debut && ds <= (s.fin || s.debut));
+        return m.sessions.some(s => sessionCouvreJour(s, ds));
       });
       if (hit) occupeRestante++;
     }
