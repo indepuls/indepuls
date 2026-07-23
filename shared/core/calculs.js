@@ -585,11 +585,12 @@ export function getMissionTotalMs(DATA, m) {
   return t;
 }
 
+// tempsCreation/tempsAnimation/tempsSupport (collectif) sont un temps ESTIMATIF depuis le
+// chantier "vue calendrier" Phase 3 (2026-07) — comme pour toute autre mission, le temps réel
+// vient uniquement du chrono/tempsManuel. Migration au chargement (indepuls.html#applyDefaults)
+// convertit tout temps déjà accumulé dans ces 3 champs en entrées tempsManuel catégorisées.
 export function getMissionHeures(DATA, m) {
-  const chrono = getMissionTotalMs(DATA, m) / 3600000 + (m.heuresSaisies || 0);
-  if (m.typeMission === 'collectif')
-    return (m.tempsCreation || 0) + (m.tempsAnimation || 0) + (m.tempsSupport || 0) + chrono;
-  return chrono;
+  return getMissionTotalMs(DATA, m) / 3600000 + (m.heuresSaisies || 0);
 }
 
 // Détail du temps réellement enregistré un jour donné, toutes missions/clients confondus,

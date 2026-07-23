@@ -1637,14 +1637,14 @@ html,body{overflow-x:hidden;}
     <div class="ts" style="color:var(--tl);margin:2px 0 8px">À compléter si vous voulez voir votre taux de remplissage et vos sessions de travail sur le calendrier.</div>
     <div id="m-temps-gestion-zone" style="display:none">
       <div id="m-temps-gestion-collectif-zone" style="display:none;margin-bottom:12px">
+        <div class="alert al-info" style="font-size:12px;margin-bottom:10px">Pensez à comptabiliser votre temps de création, votre temps de suivi (réponses aux questions, feedback individuel, relectures, office hours entre les séances) et votre temps d'animation. Nous vous conseillons de créer ces catégories dans <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('params');setTimeout(()=>switchParamTab('offres',document.querySelector('#page-params [onclick*=offres]')),100)">Paramètres › Mes offres</span>.</div>
         <div class="frow">
           <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="m-temps-creation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
           <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="m-temps-animation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
           <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="m-temps-support" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
         </div>
-        <div class="ts mb4" style="color:var(--tl);font-style:italic">Suivi = réponses aux questions, feedback individuel, relectures, office hours entre les séances.</div>
         <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
-        <div class="ts mt4" style="color:var(--tl)">⏱️ Ces heures comptent déjà comme temps réel de cette mission. Si vous lancez le chrono (bouton ▶ depuis la liste), le temps s'ajoutera par-dessus — inutile de le répartir dans ces 3 champs.</div>
+        <div class="ts mt4" style="color:var(--tl)">Temps estimé pour ce programme — le temps réellement passé s'enregistre séparément (chrono ou "+ temps"), comme pour toute autre mission.</div>
       </div>
       <div class="frow" id="m-charge-zone">
         <div class="fgroup">
@@ -3537,7 +3537,13 @@ function getExampleData(metier) {
     {id:'ex-avr', sessions:demoSessions['ex-avr']||[], client:c.m4.client,categorie:c.m4.cat,description:c.m4.desc,montantDevis:1600,montantPrestation:1600,montantVente:0,statut:'fact',dateFact:mk1+'-17',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-avr',mk1,15,11)],isManagement:false,isExample:true,encaissements:[{id:'enc-a1',date:mk1+'-17',montant:800,note:'Acompte 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-18'},{id:'enc-a2',date:mk1+'-28',montant:800,note:'Solde 50 %',modeReglement:'virement',refJustificative:'FAC-'+y+'-003',dateModif:y+'-04-28'}],sourceAcquisition:'client_existant',tempsPrevu:_tp('ex-avr',9),...(_isChantierFamily?{}:{causeDepassement:'estimation_basse'}),...(c.m4.quantite!=null?{quantite:c.m4.quantite}:{}),...(c.m4.prixAchat!=null?{prixAchat:c.m4.prixAchat}:{})},
     {id:'ex-mai', sessions:demoSessions['ex-mai']||[], client:c.m5.client,categorie:c.m5.cat,description:c.m5.desc,montantDevis:2000,montantPrestation:2000,montantVente:0,statut:'fact',dateFact:mk1+'-20',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-mai',mk1,18,14)],isManagement:false,isExample:true,encaissements:[{id:'enc-mai1',date:mk1+'-20',montant:2000,note:''}],sourceAcquisition:'client_existant',tempsPrevu:_tp('ex-mai',11),...(_isChantierFamily?{}:{causeDepassement:'estimation_basse'}),...(c.m5.quantite!=null?{quantite:c.m5.quantite}:{}),...(c.m5.prixAchat!=null?{prixAchat:c.m5.prixAchat}:{})},
     {id:'ex-juin',sessions:demoSessions['ex-juin']||[], client:c.m6.client,categorie:c.m6.cat,description:c.m6.desc,montantDevis:1900,montantPrestation:1900,montantVente:0,statut:'fact',dateFact:mk0+'-12',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-juin',mk0,10,9)],isManagement:false,isExample:true,encaissements:[{id:'enc-juin1',date:mk0+'-12',montant:1900,note:''}],sourceAcquisition:'client_existant',tempsPrevu:_tp('ex-juin',8.5),...(c.m6.quantite!=null?{quantite:c.m6.quantite}:{}),...(c.m6.prixAchat!=null?{prixAchat:c.m6.prixAchat}:{})},
-    ...(c.col ? [{id:'ex-collectif',sessions:[],client:c.col.client,categorie:c.col.cat,description:c.col.desc,montantDevis:7200,montantPrestation:7200,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'6 séances de 2h — démarré ce mois',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],typeMission:'collectif',nbParticipants:6,prixParParticipant:1200,tempsCreation:8,tempsAnimation:12,tempsSupport:6,sourceAcquisition:'social',tempsPrevu:26}] : []),
+    ...(c.col ? [{id:'ex-collectif',sessions:[],client:c.col.client,categorie:c.col.cat,description:c.col.desc,montantDevis:7200,montantPrestation:7200,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'6 séances de 2h — démarré ce mois',
+      // tempsCreation/Animation/Support = ESTIMATION du programme (8+12+6=26h, chantier "vue
+      // calendrier" Phase 3, 2026-07) ; tempsManuel = temps RÉEL déjà réalisé (2 premières
+      // séances : création+une partie de l'animation), catégorisé comme le prévoit "Temps par
+      // catégorie" — illustre le nouveau modèle estimé/réel pour un programme collectif.
+      tempsManuel:[{id:'tm-col1',date:mk0+'-05',ms:8*3600000,categorie:'Création'},{id:'tm-col2',date:mk0+'-12',ms:4*3600000,categorie:'Animation'}],
+      isManagement:false,isExample:true,encaissements:[],typeMission:'collectif',nbParticipants:6,prixParParticipant:1200,tempsCreation:8,tempsAnimation:12,tempsSupport:6,sourceAcquisition:'social',tempsPrevu:26}] : []),
     {id:'ex-cours',sessions:demoSessions['ex-cours']||[], client:c.mc.client,categorie:c.mc.cat,description:c.mc.desc,montantDevis:650,montantPrestation:650,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-cours',mk0,5,2)],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'social',chargeEstimee:4,chargeUnit:'h_sem',tempsPrevu:_tp('ex-cours',8)},
     {id:'ex-att', sessions:[], client:c.att.client,categorie:c.att.cat,description:c.att.desc,montantDevis:2200,montantPrestation:2200,montantVente:0,statut:'att',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'Devis envoyé le '+mk0+'-22, en attente de validation',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'reseau',chargeEstimee:10,chargeUnit:'h_sem',tempsPrevu:_tp('ex-att',15)},
     {id:'ex-ref', sessions:[], client:c.ref.client,categorie:c.ref.cat,description:c.ref.desc,montantDevis:1400,montantPrestation:1400,montantVente:0,statut:'ref',dateFact:null,heuresSaisies:0,timerAccumulated:25200000,timerRunning:false,timerStart:null,notes:'Budget insuffisant — concurrent retenu.',tempsManuel:[],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'prospection',motifRefus:'prix'}
@@ -3884,6 +3890,16 @@ function applyDefaults(data) {
   if (!data.bilans) data.bilans = {};
   if (!data.tempsInterne) data.tempsInterne = {};
   if (!data.recettesManuel) data.recettesManuel = [];
+  // Migration collectif (chantier "vue calendrier" Phase 3, 2026-07) : tempsCreation/
+  // tempsAnimation/tempsSupport comptaient jusqu'ici comme temps RÉEL (voir ancien
+  // getMissionHeures) ; ils deviennent un temps ESTIMATIF comme pour toute autre mission (le
+  // temps réel vient désormais du chrono/temps manuel, jamais de ces 3 champs). Le temps déjà
+  // accumulé dedans est converti UNE SEULE FOIS en entrées tempsManuel catégorisées ("Création"/
+  // "Animation"/"Suivi", système "Temps par catégorie" déjà existant) pour n'en perdre aucune
+  // trace, puis les 3 champs sont remis à 0 (leur nouveau sens est une estimation à venir, pas
+  // un total déjà réalisé). Idempotent via m._collectifTempsMigre, sinon redéclenchée à chaque
+  // chargement de la page.
+  const _catsCollectifAAjouter = new Set();
   (data.missions||[]).forEach(m => {
     if (m.encaissements === undefined)    m.encaissements = [];
     if (m.typeMission === undefined)      m.typeMission = 'individuelle';
@@ -3901,7 +3917,23 @@ function applyDefaults(data) {
     if (!m.isRecurring && (m.montantPrestation + m.montantVente) !== (m.montantDevis || 0)) {
       m.montantPrestation = (m.montantDevis || 0) - m.montantVente;
     }
+    if (m.typeMission === 'collectif' && !m._collectifTempsMigre) {
+      const dateRef = m.dateFact || (m.tempsManuel && m.tempsManuel[0] && m.tempsManuel[0].date) || today();
+      if (!m.tempsManuel) m.tempsManuel = [];
+      [['tempsCreation', 'Création'], ['tempsAnimation', 'Animation'], ['tempsSupport', 'Suivi']].forEach(([champ, cat]) => {
+        if (m[champ] > 0) {
+          m.tempsManuel.push({ id: uuid(), date: dateRef, ms: m[champ] * 3600000, categorie: cat });
+          _catsCollectifAAjouter.add(cat);
+        }
+      });
+      m.tempsCreation = 0; m.tempsAnimation = 0; m.tempsSupport = 0;
+      m._collectifTempsMigre = true;
+    }
   });
+  if (_catsCollectifAAjouter.size) {
+    if (!data.categoriesTemps) data.categoriesTemps = [];
+    _catsCollectifAAjouter.forEach(cat => { if (!data.categoriesTemps.includes(cat)) data.categoriesTemps.push(cat); });
+  }
   return data;
 }
 
@@ -7179,9 +7211,10 @@ function updateCollectifTemps() {
   const el=document.getElementById('m-collectif-temps');
   if(el) el.textContent = t>0 ? `Total : ${fmt(t,1)} h` : '';
   // Pré-remplissage éditable du temps prévu — jamais si déjà renseigné (même règle
-  // que updateTempsPrevuSuggestion). Ces heures comptent déjà comme temps réel
-  // (getMissionHeures), donc les reprendre comme base du prévu est cohérent avec
-  // "zéro donnée inventée" : ce n'est pas un prix converti, c'est la même saisie réelle.
+  // que updateTempsPrevuSuggestion). Ces 3 champs sont un temps ESTIMATIF (chantier "vue
+  // calendrier" Phase 3, 2026-07 — plus un temps réel comme avant, voir getMissionHeures), donc
+  // les reprendre comme base du "temps total estimé" est cohérent : même estimation, pas une
+  // conversion.
   const tpChamp=document.getElementById('m-temps-prevu');
   if(tpChamp && tpChamp.value==='' && t>0){
     const _hjTP=DATA.params.heuresParJour||7;
@@ -7691,15 +7724,23 @@ function saveMission() {
   const chargeRaw=parseFloat(document.getElementById('m-charge').value)||null;
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
   const _hjSave=DATA.params.heuresParJour||7;
-  // Récurrente : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli sur le prix
-  // (correctif "durée illimitée" + "zéro donnée inventée").
+  const typeMissionVal=document.getElementById('m-type-mission').value||'individuelle';
+  // Récurrente (non collectif) : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli
+  // sur le prix (correctif "durée illimitée" + "zéro donnée inventée").
   // Ponctuelle en mode calendrier : dérivé de la somme des sessions, jamais de repli non plus —
   // tant qu'aucune session n'est ajoutée, tempsPrevu reste null (même principe).
-  // Ponctuelle sans calendrier : comportement Phase 1 inchangé (saisie manuelle).
+  // Collectif ou ponctuelle sans calendrier : saisie manuelle de #m-temps-prevu — pour un
+  // collectif, ce champ est déjà maintenu à jour en direct par updateCollectifTemps() (somme
+  // Création+Animation+Suivi, chantier "vue calendrier" Phase 3, 2026-07 : ces 3 champs sont
+  // désormais un temps ESTIMATIF comme "temps planifié", plus un temps réel comme avant — voir
+  // getMissionHeures), tout en respectant une correction manuelle éventuelle de l'utilisatrice
+  // (jamais écrasée, même principe que updateTempsPrevuSuggestion). Exclu explicitement des
+  // branches isRec/calendrier : chargeEstimee est masqué pour un collectif (m-charge-zone caché),
+  // et ses sessions sont généralement vides — l'une ou l'autre renverrait injustement null.
   let tempsPrevu;
-  if(isRec){
+  if(typeMissionVal!=='collectif' && isRec){
     tempsPrevu=computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit);
-  } else if(DATA.params.modules?.calendrier){
+  } else if(typeMissionVal!=='collectif' && DATA.params.modules?.calendrier){
     const _totalSessions=editingSessions.reduce((s,x)=>s+(x.heures||0),0);
     tempsPrevu=_totalSessions>0?_totalSessions:null;
   } else {
@@ -7719,7 +7760,7 @@ function saveMission() {
     return o;
   });
   const obj={ client, categorie:document.getElementById('m-cat').value, description:document.getElementById('m-desc').value, montantDevis, montantPrestation, montantVente, statut, dateFact:(!isRec&&statut==='fact')?document.getElementById('m-date-fact').value:null, notes:document.getElementById('m-notes').value, isRecurring:isRec, montantMensuel, dateDebutRec, nbMoisRec, chargeEstimee:chargeRaw, chargeUnit, tempsPrevu, sessions,
-    typeMission:document.getElementById('m-type-mission').value||'individuelle',
+    typeMission:typeMissionVal,
     nbParticipants:parseInt(document.getElementById('m-participants').value)||0,
     prixParParticipant:parseFloat(document.getElementById('m-prix-part').value)||0,
     tempsCreation:parseFloat(document.getElementById('m-temps-creation').value)||0,
@@ -8930,11 +8971,11 @@ function renderMissions() {
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
       <td class="ts">${dateFactCell}</td>
-      <td>${isCol?`<div class="ts" style="line-height:1.8">${(m.tempsCreation||0)>0?`Créa : ${fmt(m.tempsCreation,1)}h<br>`:''}${(m.tempsAnimation||0)>0?`Anim : ${fmt(m.tempsAnimation,1)}h<br>`:''}${(m.tempsSupport||0)>0?`Suivi : ${fmt(m.tempsSupport,1)}h`:''}${(m.tempsCreation||0)+(m.tempsAnimation||0)+(m.tempsSupport||0)===0?'<span style="color:var(--tl)">—</span>':''}</div><div class="ts" style="font-weight:600;margin-top:2px">${h>0?fmt(h,1)+' h total':''}</div>`:`<span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}`}</td>
+      <td><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}</td>
       <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
-      <td>${!m.isManagement?`${isCol?`<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️ temps</button> `:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button> `}<button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button>${(DATA.params.modules?.objectif==='marge_commande'&&m.statut==='fact')?` <button class="btn btn-out btn-xs" onclick="ouvrirRetourModal('${m.id}')" title="Signaler un retour">↩️</button>`:''} <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button> <button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
+      <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button> <button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button>${(DATA.params.modules?.objectif==='marge_commande'&&m.statut==='fact')?` <button class="btn btn-out btn-xs" onclick="ouvrirRetourModal('${m.id}')" title="Signaler un retour">↩️</button>`:''} <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button> <button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
     tbody.appendChild(tr);
     // Sous-ligne encaissements (missions ponctuelles avec au moins un versement)
     if(!m.isManagement&&!m.isRecurring){
