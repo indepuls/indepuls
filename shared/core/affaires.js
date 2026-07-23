@@ -40,24 +40,35 @@ export function excludeDepensesLiees(depenses) {
 
 // ── CALCULS UNITAIRES ─────────────────────────────────────────
 
-// Marge brute = CA devisé − coûts directs liés.
+// Prix de référence d'une mission — montantMensuel pour une récurrente, montantDevis sinon.
+// Note (2026-07) : pour une récurrente déjà active depuis plusieurs mois, ce n'est qu'UN mois
+// de prix, pas le CA cumulé (voir getCaRecurrenteADate dans calculs.js pour ça) — ces 4
+// fonctions ne sont aujourd'hui appelées nulle part dans indepuls.html (code mort mais public
+// via le bridge), donc corrigé pour ne plus renvoyer un prix systématiquement faux/nul sur une
+// récurrente, sans reconstruire ici la logique de cumul (hors scope tant que rien ne l'utilise).
+function _prixMission(mission) {
+  return mission.isRecurring ? (mission.montantMensuel || 0) : (mission.montantDevis || 0);
+}
+
+// Marge brute = prix − coûts directs liés.
 export function getMargeAffaire(DATA, mission) {
-  return (mission.montantDevis || 0) - getDepensesAffaire(DATA, mission.id);
+  return _prixMission(mission) - getDepensesAffaire(DATA, mission.id);
 }
 
 // Taux horaire réel = marge brute / heures réellement passées.
 // Retourne null si aucune heure n'est renseignée.
 export function getTHReelAffaire(DATA, mission) {
   const dep   = getDepensesAffaire(DATA, mission.id);
-  const marge = (mission.montantDevis || 0) - dep;
+  const marge = _prixMission(mission) - dep;
   const h     = getMissionHeures(DATA, mission);
   return h > 0 ? marge / h : null;
 }
 
-// Ratio coût direct / CA (0–1). Retourne 0 si pas de devis.
+// Ratio coût direct / CA (0–1). Retourne 0 si pas de prix.
 export function getPctCoutAffaire(DATA, mission) {
   const dep = getDepensesAffaire(DATA, mission.id);
-  return mission.montantDevis > 0 ? dep / mission.montantDevis : 0;
+  const prix = _prixMission(mission);
+  return prix > 0 ? dep / prix : 0;
 }
 
 // ── AGRÉGATIONS PORTEFEUILLE ──────────────────────────────────
@@ -68,10 +79,11 @@ export function getAffairesAvecCouts(DATA, missions) {
   const depMap = getDepensesAffairesMap(DATA);
   return missions.map(m => {
     const dep    = depMap[m.id] || 0;
-    const marge  = (m.montantDevis || 0) - dep;
+    const prix   = _prixMission(m);
+    const marge  = prix - dep;
     const h      = getMissionHeures(DATA, m);
     const thReel = h > 0 ? marge / h : null;
-    const pctCout = m.montantDevis > 0 ? dep / m.montantDevis : 0;
+    const pctCout = prix > 0 ? dep / prix : 0;
     return { m, dep, marge, h, thReel, pctCout };
   });
 }
@@ -81,7 +93,7 @@ export function getAffairesAvecCouts(DATA, missions) {
 export function getMargeMoyennePortefeuille(DATA, missions) {
   const avecCouts = getAffairesAvecCouts(DATA, missions).filter(x => x.dep > 0);
   if (!avecCouts.length) return null;
-  const totalCA    = avecCouts.reduce((s, x) => s + (x.m.montantDevis || 0), 0);
+  const totalCA    = avecCouts.reduce((s, x) => s + _prixMission(x.m), 0);
   const totalMarge = avecCouts.reduce((s, x) => s + x.marge, 0);
   return totalCA > 0 ? totalMarge / totalCA : null;
 }

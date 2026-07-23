@@ -7515,8 +7515,10 @@ function updateTempsPrevuSuggestion() {
 let _tempsPrevuTimer=null;
 function updateTempsPrevuSuggestionDebounced() { clearTimeout(_tempsPrevuTimer); _tempsPrevuTimer=setTimeout(updateTempsPrevuSuggestion, 350); }
 // ── TEMPS PRÉVU — détail trajectoire dans la fiche mission (chantier "Temps prévu", Phase 2) ──
-// Aucune marge en € ici (règle de fiabilité : seuls temps et taux horaire sont fiables en
-// cours d'exécution) — même style de bloc que #m-production-zone/#m-collectif-zone.
+// TH = marge (prix − dépenses liées) / temps, intégré au fur et à mesure — basé sur le temps
+// réel dès qu'il existe, sinon sur le temps prévu (retour Faustine 2026-07 : le TH doit refléter
+// les dépenses dès qu'elles sont rattachées, pas seulement à la clôture) — même style de bloc
+// que #m-production-zone/#m-collectif-zone.
 function renderTrajectoireDetail(m) {
   const box=document.getElementById('m-trajectoire-detail');
   if(!box) return;
@@ -7529,10 +7531,12 @@ function renderTrajectoireDetail(m) {
   const unit=_isJours?'j':'h';
   const conv=v=>_isJours?v/_hj:v;
   const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
-  const thImplicite=reel>0?prix/reel:null;
+  const marge=prix-getDepensesAffaire(m.id);
+  const thEstime=reel<=0;
+  const thImplicite=reel>0?marge/reel:marge/prevu;
   const thMin=getTauxHoraireMinCible();
   const thUnit=_isJours?'/j':'/h';
-  const thOk=thImplicite!=null&&thMin>0?thImplicite>=thMin:null;
+  const thOk=thMin>0?thImplicite>=thMin:null;
   const thColor=thOk===null?'var(--text)':(thOk?'var(--ok)':'var(--err)');
   const restant=prevu-reel;
   const restantTxt=restant>=0
@@ -7560,7 +7564,7 @@ function renderTrajectoireDetail(m) {
     <div class="ts" style="color:var(--tl);margin-top:2px">Prévu : ${fmt(conv(prevu),1)}${unit}</div>
     <div class="prog-bar mt8"><div class="prog-fill ${reelBarCls}" style="width:${pctReelBar}%"></div></div>
     <div class="ts" style="color:var(--tl);margin-top:2px">Réel${m.isRecurring?' ce mois-ci':''} : ${fmt(conv(reel),1)}${unit}</div>
-    ${thImplicite!=null?`<div class="ts mt8">Taux horaire provisoire : <strong style="color:${thColor}">${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${thUnit}</strong> — hors dépenses non encore saisies. Le calcul définitif se fera à la clôture.</div>`:''}
+    <div class="ts mt8">Taux horaire${thEstime?' estimé':''} : <strong style="color:${thColor}">${thEstime?'≈':''}${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${thUnit}</strong>${thEstime?' — basé sur le temps prévu, il s\'affinera avec vos heures et dépenses réelles.':''}</div>
     ${anticipTxt}
     ${['orange','rouge'].includes(getTrajectoireTier(m))?`<div class="ts mt8"><span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="openCauseDepassementModal('${m.id}')">Pourquoi ce dépassement ?</span></div>`:''}
   </div>`;
@@ -8816,6 +8820,9 @@ function renderMissionsSummary(all) {
 // entière si ponctuelle, mois courant si récurrente) — factorisé pour être réutilisé par le
 // badge compact (tableau) et le lien "Pourquoi ce dépassement ?" (fiche, chantier Phase 2bis).
 // Retourne null si aucun calcul n'est possible (pas de tempsPrevu, ou prevu=0 — garde-fou).
+// TH = marge (prix − dépenses liées) / temps, basé sur le temps réel dès qu'il existe, sinon
+// sur le temps prévu (retour Faustine 2026-07 : le TH doit intégrer les dépenses au fur et à
+// mesure et être disponible dès la création, pas seulement à la clôture).
 function getTrajectoireTier(m) {
   if(!(m.tempsPrevu>0)) return null;
   const mk=getCurrentMk();
@@ -8823,19 +8830,20 @@ function getTrajectoireTier(m) {
   if(!(prevu>0)) return null;
   const reel=m.isRecurring?getMissionHeuresMois(m, mk):getMissionHeures(m);
   const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
-  const thImplicite=reel>0?prix/reel:null;
+  const marge=prix-getDepensesAffaire(m.id);
+  const thImplicite=reel>0?marge/reel:marge/prevu;
   const thMin=getTauxHoraireMinCible();
   const pct=reel/prevu;
-  if(thImplicite!=null&&thMin>0&&thImplicite<thMin) return 'rouge';
+  if(thMin>0&&thImplicite<thMin) return 'rouge';
   if(pct<0.6) return 'vert';
   if(pct<0.85) return 'jaune';
   return 'orange';
 }
 // ── TEMPS PRÉVU — indicateur compact tableau missions (chantier "Temps prévu", Phase 2) ──
-// Réel vs Prévu + taux horaire implicite + couleur de trajectoire. N'apparaît que si
+// Réel vs Prévu + taux horaire (marge/temps) + couleur de trajectoire. N'apparaît que si
 // m.tempsPrevu est renseigné (garde-fou : jamais de placeholder incitant à le remplir).
-// Aucune marge en € ici — seuls le temps et le taux horaire sont fiables en cours d'exécution
-// (dépenses liées non garanties à jour tant que la mission n'est pas clôturée).
+// TH basé sur le temps réel dès qu'il existe, sinon sur le temps prévu (préfixé "≈" — valeur
+// estimée, s'affine au fil de la mission avec les heures et dépenses réelles).
 function getTrajectoireCompacte(m) {
   if(!(m.tempsPrevu>0)) return '';
   const mk=getCurrentMk();
@@ -8846,16 +8854,18 @@ function getTrajectoireCompacte(m) {
   const unit=_isJours?'j':'h';
   const prevuDisp=_isJours?prevu/_hj:prevu, reelDisp=_isJours?reel/_hj:reel;
   const prix=m.isRecurring?(m.montantMensuel||0):(m.montantDevis||0);
-  const thImplicite=reel>0?prix/reel:null; // toujours calculé en heures (unité canonique)
+  const marge=prix-getDepensesAffaire(m.id);
+  const thEstime=reel<=0; // toujours calculé en heures (unité canonique)
+  const thImplicite=reel>0?marge/reel:marge/prevu;
   const thMin=getTauxHoraireMinCible();
   const pct=reel/prevu;
   let emoji,color;
-  if(thImplicite!=null&&thMin>0&&thImplicite<thMin){ emoji='🔴'; color='var(--err)'; }
+  if(thMin>0&&thImplicite<thMin){ emoji='🔴'; color='var(--err)'; }
   else if(pct<0.6){ emoji='🟢'; color='var(--tl)'; }
   else if(pct<0.85){ emoji='🟡'; color='var(--tl)'; }
   else { emoji='🟠'; color='var(--warn)'; }
   const reelLabel=m.isRecurring?'Réel ce mois-ci':'Réel';
-  const thTxt=thImplicite!=null?` · ${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${_isJours?'/j':'/h'}`:'';
+  const thTxt=` · ${thEstime?'≈':''}${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${_isJours?'/j':'/h'}`;
   return `<div class="ts" style="color:${color};margin-top:2px">${emoji} ${reelLabel} ${fmt(reelDisp,1)}${unit} / Prévu ${fmt(prevuDisp,1)}${unit}${thTxt}</div>`;
 }
 function renderMissions() {
