@@ -1616,11 +1616,10 @@ html,body{overflow-x:hidden;}
         <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500" oninput="updateTempsPrevuSuggestionDebounced()"></div>
         <div class="fgroup" id="m-nb-mois-zone"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
       </div>
-      <div class="frow" id="m-rec-debut-row">
-        <div class="fgroup"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec" onchange="syncSessDebutFromRec()"></div>
-        <div class="fgroup">
-          <label class="flabel">&nbsp;</label>
-          <label style="display:flex;align-items:center;gap:6px;font-weight:400;height:36px">
+      <div class="frow" id="m-rec-debut-row" style="align-items:flex-end">
+        <div class="fgroup" style="margin-bottom:0"><label class="flabel">Mois de début</label><input type="month" id="m-debut-rec" onchange="syncSessDebutFromRec()"></div>
+        <div class="fgroup" style="margin-bottom:0;display:flex;align-items:center;min-height:36px">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:0">
             <input type="checkbox" id="m-sans-fin" onchange="toggleMissionSansFin(this.checked)">
             Pas de date de fin connue
           </label>
@@ -1674,10 +1673,10 @@ html,body{overflow-x:hidden;}
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
         <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
         <div id="m-sessions-list" style="margin-bottom:8px"></div>
-        <div class="fgroup" style="margin:0 0 8px">
+        <div class="fgroup" id="m-sess-sansfin-wrap" style="margin:0 0 8px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
             <input type="checkbox" id="m-sess-sansfin" onchange="toggleSessSansFin()" style="width:auto">
-            Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours de la semaine concernés, la session se répète indéfiniment.">?</span>
+            Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours concernés, la session se répète indéfiniment.">?</span>
           </label>
         </div>
         <div id="m-sess-jours-wrap" style="display:none;margin-bottom:8px">
@@ -1688,6 +1687,8 @@ html,body{overflow-x:hidden;}
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" style="width:auto">Sam</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" style="width:auto">Dim</label>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
@@ -2950,7 +2951,7 @@ function initEditingSessions(m, prefillDate) {
   // — l'état ne doit jamais survivre à la fermeture/réouverture de la modale.
   const sansFinEl = document.getElementById('m-sess-sansfin');
   if (sansFinEl) sansFinEl.checked = false;
-  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = true);
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = cb.value !== '0' && cb.value !== '6');
   if (typeof toggleSessSansFin === 'function') toggleSessSansFin();
   renderEditSessions();
 }
@@ -2978,7 +2979,7 @@ function renderEditSessions() {
     _refreshTempsPrevu();
     return;
   }
-  const JOURS_LABELS = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven' };
+  const JOURS_LABELS = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven', 6:'Sam', 0:'Dim' };
   el.innerHTML = editingSessions.map((s,i) => {
     if (s.sansFin) {
       const joursTxt = (s.jours && s.jours.length ? s.jours : [1,2,3,4,5]).map(j => JOURS_LABELS[j]).join(', ');
@@ -3040,7 +3041,7 @@ function addSessionToEdit() {
     document.getElementById('m-sess-debut').value = '';
     if (hEl) { hEl.value = ''; hEl.dataset.perso = 'false'; hEl.dataset.auto = ''; }
     document.getElementById('m-sess-sansfin').checked = false;
-    document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = true);
+    document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = cb.value !== '0' && cb.value !== '6');
     toggleSessSansFin();
     renderEditSessions();
     return;
@@ -3130,10 +3131,10 @@ function renderPlanning() {
 
   const heuresParJour = DATA.params.heuresParJour || 7;
   // Charge prévisionnelle par jour (h) — délègue à getChargeSessionJour (shared/core/planning.js),
-  // seul endroit qui sait interpréter une session bornée ou récurrente sans fin.
+  // seul endroit qui sait interpréter une session bornée ou récurrente sans fin (y compris le
+  // filtre week-end, appliqué UNIQUEMENT aux sessions bornées désormais — une session sans fin
+  // peut couvrir le samedi/dimanche si sélectionnés).
   const getChargeJourLocal = ds => {
-    const dow = new Date(ds+'T00:00:00').getDay();
-    if (dow===0||dow===6) return 0;
     let total = 0;
     DATA.missions.forEach(m => {
       if (m.isManagement) return;
@@ -3201,7 +3202,7 @@ function renderPlanning() {
     // mission, dupliqué ici pour l'avoir d'un coup d'œil sans ouvrir la mission (retour Faustine).
     const realiseMois = getMissionHeuresMois(m, mk);
     const hLabel = hMois > 0 ? ` · <strong>${hMois}h</strong> prévues · <strong>${fmt(realiseMois,1)}h</strong> réalisées` : '';
-    const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven' };
+    const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven', 6:'Sam', 0:'Dim' };
     if (sessThisMois.length===0) range='Présent ce mois';
     else if (sessThisMois.length===1 && sessThisMois[0].sansFin){
       const s=sessThisMois[0];
@@ -7574,6 +7575,22 @@ function toggleRecurrenceFields(val) {
   updateModaleMissionCopy(isRec);
   updateTempsPrevuZone(isRec);
   updateTempsPrevuSuggestion();
+  syncSessSansFinWithMission();
+}
+// En mensuelle, la case "sans fin" facturation et la case "sans fin" session recouvrent le même
+// engagement — poser la question 2 fois n'a pas de sens (retour Faustine, 2026-07). La case
+// session est donc masquée et pilotée dans les 2 sens par la case facturation ; en ponctuelle,
+// aucune notion de facturation récurrente n'existe, elle reste la seule case visible et
+// entièrement manuelle.
+function syncSessSansFinWithMission() {
+  const isRec = document.getElementById('m-type-fact').value === 'mensuelle';
+  const wrap = document.getElementById('m-sess-sansfin-wrap');
+  if (wrap) wrap.style.display = isRec ? 'none' : '';
+  if (isRec) {
+    const sansFin = document.getElementById('m-sans-fin').checked;
+    const sessSansFinEl = document.getElementById('m-sess-sansfin');
+    if (sessSansFinEl && sessSansFinEl.checked !== sansFin) { sessSansFinEl.checked = sansFin; toggleSessSansFin(); }
+  }
 }
 // Copy contextuelle Charge estimée / Sessions — uniquement quand modules.calendrier ET
 // modules.estimation sont actifs simultanément (sinon un seul des deux champs existe dans
@@ -7602,8 +7619,9 @@ function updateModaleMissionCopy(isRec) {
   }
 
   if(isRec){
-    chargeCopy.style.display='';
-    chargeCopy.textContent="C'est cette estimation qui compte dans votre taux de remplissage — un engagement récurrent n'a pas de date fixe.";
+    // Phrase retirée (retour Faustine, 2026-07) : n'avait plus de sens une fois les cases
+    // "sans fin" facturation/session synchronisées — chargeCopy reste masqué comme en non-hybride.
+    chargeCopy.style.display='none'; chargeCopy.textContent='';
     if(chargeTip) chargeTip.title="Pour une mission récurrente, c'est la charge estimée ci-dessus qui compte dans votre taux de remplissage. Si vous ne la renseignez pas mais que vous avez ajouté des sessions, ce sont elles qui prennent le relais. Si les deux sont renseignés, les sessions restent purement visuelles et ne s'additionnent pas à l'estimation.";
     sessCopy.style.display='none'; sessCopy.textContent='';
     sessLabel.textContent='Visualiser des rendez-vous sur le calendrier (optionnel)';
@@ -7634,13 +7652,7 @@ function toggleMissionSansFin(checked) {
   if(alertEl) alertEl.innerHTML=checked
     ?'↻ Le CA sera comptabilisé chaque mois tant que le statut reste "En cours". Passez la mission en "Terminé" quand elle s\'arrête réellement pour stopper le calcul.'
     :'↻ Le CA mensuel sera automatiquement comptabilisé chaque mois pendant la durée indiquée, dès que le statut passe en "En cours".';
-  // Évite un second clic redondant en mode "additif" (calendrier + estimation) : cocher "sans
-  // fin" côté facturation suggère directement la même chose côté session — décochable ensuite,
-  // ce sont deux notions indépendantes à la sauvegarde (nbMoisRec vs session.sansFin).
-  if (checked) {
-    const sessSansFinEl = document.getElementById('m-sess-sansfin');
-    if (sessSansFinEl && !sessSansFinEl.checked) { sessSansFinEl.checked = true; toggleSessSansFin(); }
-  }
+  syncSessSansFinWithMission();
 }
 function updateMontantMixteTotal() {
   const p=parseFloat(document.getElementById('m-presta').value)||0;

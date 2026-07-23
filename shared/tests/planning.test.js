@@ -495,6 +495,26 @@ function makeData(overrides = {}) {
   const mRegBornee = { isManagement: false, sessions: [{ debut: '2026-01-05', fin: '2026-01-07' }] };
   assertEq('non-régression · session bornée classique inchangée',
     P.getTauxRemplissageMois(makeData({ missions: [mRegBornee] }), mkJanReg).occupied, 3);
+
+  // ── Week-end sélectionnable pour une session sans fin (2026-07, retour Faustine : un
+  // photographe peut shooter des mariages le samedi) — mais jamais pour une session bornée,
+  // dont le total reste réparti sur les seuls jours ouvrés (comportement historique préservé).
+  const samedi = semaine.find(ds => dow(ds) === 6);
+  const sSansFinSamedi = { debut: '2026-01-05', sansFin: true, jours: [6], heures: 8 };
+  assertEq('getChargeSessionJour sansFin · samedi sélectionné → non nul (photographe le week-end)',
+    P.getChargeSessionJour(sSansFinSamedi, samedi) > 0, true);
+  assertEq('getChargeSessionJour sansFin · dimanche non sélectionné → 0',
+    P.getChargeSessionJour(sSansFinSamedi, semaine.find(ds => dow(ds) === 0)), 0);
+
+  const sBorneeWeekend = { debut: '2026-01-05', fin: '2026-01-11', heures: 35 }; // couvre le samedi
+  assertEq('getChargeSessionJour bornée · samedi dans la plage → toujours 0 (jours ouvrés uniquement)',
+    P.getChargeSessionJour(sBorneeWeekend, samedi), 0);
+  const mBorneeWeekend = { isManagement: false, sessions: [sBorneeWeekend] };
+  assertEq('getChargeJour · session bornée un samedi → 0 (non-régression)',
+    P.getChargeJour(makeData({ missions: [mBorneeWeekend] }), samedi), 0);
+  const mSansFinSamedi = { isManagement: false, sessions: [sSansFinSamedi] };
+  assertEq('getChargeJour · session sans fin un samedi sélectionné → non nul',
+    P.getChargeJour(makeData({ missions: [mSansFinSamedi] }), samedi) > 0, true);
 }
 
 // ── Non-régression — un seul module actif (comportement inchangé) ────────────

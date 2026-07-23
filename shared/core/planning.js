@@ -79,9 +79,12 @@ function _compterOccurrences(s, debut, fin) {
 }
 
 // Charge (h) apportée par la session pour le jour ds (0 si elle ne le couvre pas, ou si aucune
-// heure n'est renseignée). Bornée : comportement existant, inchangé (heures / jours ouvrés de
-// la plage). Sans fin : heures/mois réparties uniformément sur les occurrences DU MOIS de ds —
-// propriété utile : sur un mois entièrement couvert, la somme reconstitue exactement `heures`.
+// heure n'est renseignée). Sans fin : heures/mois réparties uniformément sur les occurrences DU
+// MOIS de ds (y compris samedi/dimanche si sélectionnés — ex. un photographe qui shoote des
+// mariages le samedi) — propriété utile : sur un mois entièrement couvert, la somme reconstitue
+// exactement `heures`. Bornée : comportement existant, inchangé (heures / jours OUVRÉS de la
+// plage — un jour de week-end ne reçoit jamais de part, même si la plage le traverse, pour ne
+// pas fausser le total réparti sur les seuls jours ouvrés).
 export function getChargeSessionJour(s, ds) {
   if (!sessionCouvreJour(s, ds)) return 0;
   if (!s.heures || s.heures <= 0) return 0;
@@ -93,6 +96,8 @@ export function getChargeSessionJour(s, ds) {
     const nbJours = _compterOccurrences(s, mFirst, mLast);
     return nbJours > 0 ? s.heures / nbJours : 0;
   }
+  const dow = new Date(ds + 'T00:00:00').getDay();
+  if (dow === 0 || dow === 6) return 0;
   const fin = s.fin || s.debut;
   return s.heures / joursOuvrésSemaine(s.debut, fin);
 }
@@ -123,11 +128,12 @@ function _sessionToucheMois(s, debut, fin) {
 
 // Charge prévisionnelle (h) pour une date YYYY-MM-DD donnée.
 // Distribue session.heures uniformément sur les jours ouvrés de la session (ou sur les
-// occurrences du mois pour une session sans fin — voir getChargeSessionJour).
-// Ne touche jamais timerAccumulated / temps réel.
+// occurrences du mois pour une session sans fin — voir getChargeSessionJour). Le filtre
+// week-end vit maintenant DANS getChargeSessionJour (branche bornée uniquement) — une session
+// sans fin peut couvrir le samedi/dimanche si l'utilisateur les a sélectionnés (ex. un
+// photographe qui shoote des mariages le samedi), ce qu'un filtre ici, avant même de regarder
+// les sessions, aurait empêché.
 export function getChargeJour(DATA, dateStr) {
-  const dow = new Date(dateStr + 'T00:00:00').getDay();
-  if (dow === 0 || dow === 6) return 0; // week-end → aucune charge
   let total = 0;
   DATA.missions.forEach(m => {
     if (m.isManagement) return;
