@@ -2,12 +2,19 @@
 // Domaine : gestion du temps de travail (capacité, taux d'occupation, score).
 // Ce fichier ne contient aucun calcul financier.
 //
-// Deux modules indépendants (booléens) :
-//   modules.estimation  → charge estimée en h/sem par affaire
-//   modules.calendrier  → sessions bornées {debut, fin, heures?} ou récurrentes sans fin
-//                         {debut, sansFin:true, jours?:[1..5], heures?/mois} + page Planning
+// Deux moteurs de calcul, mutuellement exclusifs :
+//   estime      → charge estimée en h/sem par affaire (m.chargeEstimee/chargeUnit)
+//   calendrier  → sessions bornées {debut, fin, heures?} ou récurrentes sans fin
+//                 {debut, sansFin:true, jours?:[1..5], heures?/mois} + page Planning
 //
-// Les deux peuvent être actifs simultanément (hybride).
+// Choix du moteur piloté par la DONNÉE, pas par un réglage Paramètres (chantier "vue
+// calendrier", 2026-07 — remplace l'ancien mode 'additif' et les cases modules.estimation/
+// modules.calendrier pour ce calcul précis) : si au moins une session existe quelque part dans
+// le portefeuille, le moteur calendrier prime entièrement ; sinon, si au moins une charge
+// estimée est renseignée sur une mission active, le moteur estimation prime ; sinon, aucun KPI.
+// Volontairement PAS de somme des deux moteurs — une mission sans session n'est simplement plus
+// comptée dès qu'au moins une autre mission du portefeuille a des sessions (retour Faustine :
+// version la plus simple, quitte à ce cas de figure).
 // Point d'entrée unique pour les widgets et le Score Santé : getPilierRemplissage(DATA)
 //
 // Hiérarchie source de vérité :
@@ -354,73 +361,6 @@ function resultatHSemaine(DATA, methode, cap, charge) {
   };
 }
 
-// Heures de sessions d'UNE mission touchant le mois [mFirst, mLast] (mêmes clips que
-// getTauxRemplissageMois). Repli jours×heuresParJour par session sans `heures` renseigné
-// (rétrocompat) — aucune session avec une date réelle ne doit contribuer pour 0.
-function _sessionsHeuresMois(DATA, m, mFirst, mLast) {
-  const heuresParJour = DATA.params.heuresParJour || 7;
-  let total = 0;
-  (m.sessions || []).forEach(s => {
-    if (!_sessionToucheMois(s, mFirst, mLast)) return; // ne touche pas la période
-    if (s.sansFin) {
-      if (s.heures > 0) { total += _chargeSansFinPeriode(s, mFirst, mLast); }
-      else { total += _compterOccurrences(s, mFirst, mLast) * heuresParJour; } // repli rétrocompat
-      return;
-    }
-    const fin = s.fin || s.debut;
-    const clipDebut = s.debut < mFirst ? mFirst : s.debut;
-    const clipFin   = fin    > mLast  ? mLast  : fin;
-    const joursClip = joursOuvrésSemaine(clipDebut, clipFin);
-    if (s.heures > 0) {
-      const joursTotal = joursOuvrésSemaine(s.debut, fin);
-      total += (s.heures / joursTotal) * joursClip;
-    } else {
-      total += joursClip * heuresParJour;
-    }
-  });
-  return total;
-}
-
-// Agrégation additive par mission (modules.calendrier ET modules.estimation actifs) —
-// voir ARCHITECTURE_PRODUIT.md § "Agrégation additive par mission". Chaque mission active
-// contribue via son champ principal selon isRecurring, avec repli symétrique si ce champ
-// est vide mais que l'autre est renseigné. Retourne le total en h/semaine, mois courant.
-function _getChargeAdditiveMois(DATA) {
-  const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth() + 1;
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const pad = n => String(n).padStart(2, '0');
-  const mFirst = `${year}-${pad(month)}-01`;
-  const mLast  = `${year}-${pad(month)}-${pad(daysInMonth)}`;
-  const joursParSem   = DATA.params.joursParSemaine || 4; // aligné sur getCapaciteHSem
-  const ouvrablesMois = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
-  const semainesMois  = ouvrablesMois / joursParSem; // ≈ jours du mois / 7, indépendant de joursParSem
-
-  let total = 0;
-  DATA.missions.forEach(m => {
-    if (m.isManagement) return;
-    const estActive = m.statut === 'cours' || _isRecurringStillActive(m);
-    const hasSessionsPeriode = (m.sessions || []).some(s => _sessionToucheMois(s, mFirst, mLast));
-
-    if (m.isRecurring) {
-      // Principal : charge estimée. Repli : sessions de cette mission sur la période.
-      if (estActive && m.chargeEstimee > 0) {
-        total += getMissionChargeHSem(DATA, m);
-      } else if (hasSessionsPeriode) {
-        total += _sessionsHeuresMois(DATA, m, mFirst, mLast) / semainesMois;
-      }
-    } else {
-      // Principal : sessions sur la période. Repli : charge estimée.
-      if (hasSessionsPeriode) {
-        total += _sessionsHeuresMois(DATA, m, mFirst, mLast) / semainesMois;
-      } else if (estActive && m.chargeEstimee > 0) {
-        total += getMissionChargeHSem(DATA, m);
-      }
-    }
-  });
-  return Math.round(total * 10) / 10;
-}
-
 // Capacité et occupation restantes du mois EN COURS, comptées à partir d'AUJOURD'HUI (inclus)
 // jusqu'à la fin du mois — un jour déjà passé sans mission ne peut plus être rempli a
 // posteriori (retour Faustine, 2026-07 : "il ne me reste pas 77h, la semaine dernière je
@@ -483,18 +423,13 @@ function _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotale, utilis
 }
 
 export function getPilierRemplissage(DATA) {
-  const mods = DATA.params.modules || {};
-  // Rétrocompat : ancienne clé planning
-  const legacyPlanning = DATA.params.modePlanning || mods.planning;
-  const modeCalendrier = mods.calendrier ?? (legacyPlanning === 'calendrier');
-  const modeEstimation = mods.estimation ?? (legacyPlanning === 'estime' || legacyPlanning == null);
-  const mode = (modeCalendrier && modeEstimation) ? 'additif' : modeCalendrier ? 'calendrier' : modeEstimation ? 'estime' : 'aucun';
-
-  if (mode === 'additif') {
-    const cap    = getCapaciteHSem(DATA);
-    const charge = _getChargeAdditiveMois(DATA);
-    return resultatHSemaine(DATA, 'additif', cap, charge);
-  }
+  // Choix du moteur par présence de données, pas par les cases Paramètres modules.estimation/
+  // modules.calendrier (voir doc en tête de fichier) — sessions renseignées quelque part dans le
+  // portefeuille → calendrier prime ; sinon charge estimée renseignée sur une mission active →
+  // estimation prime ; sinon aucun KPI.
+  const hasSessions   = DATA.missions.some(m => !m.isManagement && (m.sessions || []).length > 0);
+  const hasEstimation = DATA.missions.some(m => !m.isManagement && (m.statut === 'cours' || _isRecurringStillActive(m)) && m.chargeEstimee > 0);
+  const mode = hasSessions ? 'calendrier' : hasEstimation ? 'estime' : 'aucun';
 
   if (mode === 'estime') {
     const cap    = getCapaciteHSem(DATA);
@@ -508,7 +443,6 @@ export function getPilierRemplissage(DATA) {
     const now   = new Date();
     const curMk = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const rm    = getTauxRemplissageMois(DATA, curMk);
-    const hasSessions = DATA.missions.some(m => !m.isManagement && (m.sessions || []).length > 0);
 
     // Adapte les labels et details selon le mode retourné (heures ou jours)
     const isH    = rm.mode === 'heures';
@@ -523,7 +457,7 @@ export function getPilierRemplissage(DATA) {
       ? { capacite: rm.capaciteH, utilise: rm.occupiedH, libre: libres, perdu, taux: rm.taux, unite: 'h' }
       : { capacite: rm.ouvrables, utilise: rm.occupied || 0, libre: libres, perdu, taux: rm.taux, unite: 'j' };
 
-    if (!hasSessions || rm.ouvrables === 0) {
+    if (rm.ouvrables === 0) {
       return {
         score: 12, valeur: '—', sousTitre: 'Non renseigné',
         diagnostic: '○ Planifiez vos sessions pour activer cet indicateur.',
@@ -556,10 +490,10 @@ export function getPilierRemplissage(DATA) {
     return { score, methode: 'calendrier', valeur: t + ' %', sousTitre, diagnostic, conseil, details };
   }
 
-  // Mode 'aucun' ou valeur inconnue
+  // Mode 'aucun' : ni session, ni charge estimée renseignée nulle part
   return {
-    score: 12, valeur: '—', sousTitre: 'Suivi du temps désactivé',
-    diagnostic: '○ Activez un mode de suivi dans Paramètres pour obtenir cet indicateur.',
+    score: 12, valeur: '—', sousTitre: 'Non renseigné',
+    diagnostic: '○ Renseignez un temps planifié ou des sessions sur vos missions pour obtenir cet indicateur.',
     conseil: '', methode: 'aucun', details: null,
   };
 }
