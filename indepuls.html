@@ -597,7 +597,6 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
-  <div class="nav-item" id="nav-planning" onclick="navigate('planning')"><span class="nav-icon">📅</span> Planning</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
   <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours clients</div>
@@ -649,11 +648,6 @@ html,body{overflow-x:hidden;}
     <div id="dashboard-content"></div>
   </div>
 
-  <!-- PLANNING -->
-  <div class="page" id="page-planning">
-    <div id="planning-content" style="max-width:1150px"></div>
-  </div>
-
   <!-- MISSIONS -->
   <div class="page" id="page-missions">
     <div id="missions-summary" style="margin-bottom:16px"></div>
@@ -668,31 +662,42 @@ html,body{overflow-x:hidden;}
           <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
         </div>
       </div>
-      <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
-        <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('att',this)" id="mf-btn-att">En attente</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)" id="mf-btn-cours">En cours</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)" id="mf-btn-ref">Refusées</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)" id="mf-btn-fact">Facturées</button>
-        <button class="btn btn-out btn-xs" onclick="filterMissions('paye',this)" id="mf-btn-paye" style="display:none">Payées</button>
-        <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
-          <option value="newest">↓ Plus récent</option>
-          <option value="oldest">↑ Plus ancien</option>
-          <option value="alpha">A → Z</option>
-          <option value="amount_desc">Montant ↓</option>
-        </select>
+      <!-- Vue tableau / calendrier (chantier "vue calendrier", 2026-07) : bascule visuelle et
+           toujours visible, plus une case à cocher cachée dans Paramètres. -->
+      <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center" id="missions-view-toggle">
+        <button class="btn btn-out btn-xs active-filter" onclick="setMissionsView('table')" id="missions-view-btn-table">📋 Tableau</button>
+        <button class="btn btn-out btn-xs" onclick="setMissionsView('calendrier')" id="missions-view-btn-calendrier">📅 Calendrier</button>
       </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr>
-            <th id="missions-th-client">Client / Mission</th><th>Catégorie</th>
-            <th>Montant</th><th>Statut</th><th>Facturée le</th>
-            <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel <span class="info-tip" title="CA de cette affaire moins les dépenses qui lui sont directement liées (matériaux, sous-traitance…), divisé par le temps passé. C'est un taux brut : vos cotisations sociales et vos impôts n'en sont pas encore déduits.">?</span></th><th>Notes</th><th>Chrono</th><th></th>
-          </tr></thead>
-          <tbody id="missions-tbody"></tbody>
-        </table>
+      <div id="missions-view-table">
+        <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
+          <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
+          <button class="btn btn-out btn-xs" onclick="filterMissions('att',this)" id="mf-btn-att">En attente</button>
+          <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)" id="mf-btn-cours">En cours</button>
+          <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)" id="mf-btn-ref">Refusées</button>
+          <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)" id="mf-btn-fact">Facturées</button>
+          <button class="btn btn-out btn-xs" onclick="filterMissions('paye',this)" id="mf-btn-paye" style="display:none">Payées</button>
+          <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
+            <option value="newest">↓ Plus récent</option>
+            <option value="oldest">↑ Plus ancien</option>
+            <option value="alpha">A → Z</option>
+            <option value="amount_desc">Montant ↓</option>
+          </select>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th id="missions-th-client">Client / Mission</th><th>Catégorie</th>
+              <th>Montant</th><th>Statut</th><th>Facturée le</th>
+              <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel <span class="info-tip" title="CA de cette affaire moins les dépenses qui lui sont directement liées (matériaux, sous-traitance…), divisé par le temps passé. C'est un taux brut : vos cotisations sociales et vos impôts n'en sont pas encore déduits.">?</span></th><th>Notes</th><th>Chrono</th><th></th>
+            </tr></thead>
+            <tbody id="missions-tbody"></tbody>
+          </table>
+        </div>
+        <div class="mt12 flex gap10" style="flex-wrap:wrap;" id="missions-totals"></div>
       </div>
-      <div class="mt12 flex gap10" style="flex-wrap:wrap;" id="missions-totals"></div>
+    </div>
+    <div id="missions-view-calendrier" style="display:none;max-width:1150px">
+      <div id="planning-content"></div>
     </div>
   </div>
 
@@ -868,21 +873,6 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div class="alert al-info mt16 mb0" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
-      <div class="card mt16">
-        <div class="card-title mb4">Organisation de l'activité</div>
-        <div class="ts mb12" style="color:var(--tl)">Comment organiser l'activité ?</div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <label class="tva-regime-opt" id="mod-planning-estimation" style="cursor:pointer">
-            <input type="checkbox" id="mod-cb-estimation" onchange="saveModulePlanning('estimation',this)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
-            <div><strong>J'estime le temps nécessaire sur mes affaires</strong><div class="ts mt1">Saisissez le temps prévu — Indépuls calcule votre taux horaire réel</div></div>
-          </label>
-          <label class="tva-regime-opt" id="mod-planning-calendrier" style="cursor:pointer">
-            <input type="checkbox" id="mod-cb-calendrier" onchange="saveModulePlanning('calendrier',this)" style="margin-right:8px;accent-color:var(--pri);width:16px;height:16px;cursor:pointer">
-            <div><strong>Je planifie certaines affaires dans un calendrier</strong><div class="ts mt1">Visualisez vos dates, taux de charge et remplissage mensuel</div></div>
-          </label>
-        </div>
-        <div id="mod-planning-info" class="ts mt10" style="color:var(--tl);padding:8px 10px;background:var(--bg);border-radius:6px;border:1px solid var(--brd);display:none"></div>
-      </div>
       <div class="card mt16">
         <div class="card-title mb12">Tarification & objectif</div>
         <div class="divider mt4 mb12"></div>
@@ -2926,16 +2916,14 @@ function applyVocabUI() {
   if (dvTemps) dvTemps.textContent = isJours() ? tVocab('temps') + ' (j)' : tVocab('temps') + ' (h)';
   const dvCout = document.getElementById('dv-label-coutdirect');
   if (dvCout) dvCout.textContent = tVocab('coutDirectLabel') + ' (€)';
-  updateNavPlanning();
   updateNavSimulateur();
   updateNavRetours();
   updateDepensesLotsTabVisibility();
   // sb-profil-label géré par updateDemoUI()
-  // Planning : label sessions dans la modale + visibilité de la zone
+  // Planning : label sessions dans la modale (zone toujours visible depuis le chantier "vue
+  // calendrier", 2026-07 — plus de case Paramètres pour la masquer).
   const sessLabel = document.getElementById('modal-sessions-label');
   if (sessLabel) sessLabel.textContent = tVocab('sessions') || 'Sessions';
-  const planZoneNav = document.getElementById('m-planning-zone');
-  if (planZoneNav) planZoneNav.style.display = DATA.params.modules?.calendrier ? '' : 'none';
 }
 
 // ── PLANNING — SESSIONS ──────────────────────────────────────
@@ -3267,7 +3255,7 @@ function renderPlanning() {
   <div class="card" style="text-align:center;padding:48px 24px;border:2px dashed var(--brd)">
     <div style="font-size:44px;margin-bottom:16px">📅</div>
     <div style="font-size:14px;color:var(--tl);line-height:1.8">Aucune ${tVocab('item').toLowerCase()} planifiée ce mois.<br>Ajoutez des sessions dans vos ${tVocab('items').toLowerCase()} pour remplir ce calendrier.</div>
-    <button class="btn btn-acc btn-sm mt12" onclick="navigate('missions')">${tVocab('goTo')}</button>
+    <button class="btn btn-acc btn-sm mt12" onclick="openMissionModal()">${tVocab('addItem')}</button>
   </div>`}`;
 
   document.getElementById('planning-content').innerHTML = html;
@@ -4504,7 +4492,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',planning:'Planning',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours clients'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',recettes:'Livre des recettes',retours:'Retours clients'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
@@ -4520,11 +4508,6 @@ function updateDashboardTitle() {
 }
 
 function isJours() { return DATA.params?.modules?.uniteTemps === 'jours'; }
-function updateNavPlanning() {
-  const el = document.getElementById('nav-planning');
-  if (!el) return;
-  el.style.display = DATA.params.modules?.calendrier ? '' : 'none';
-}
 function updateNavSimulateur() {
   const el = document.getElementById('nav-simulateur');
   if (!el) return;
@@ -4541,7 +4524,6 @@ function updateNavRetours() {
   el.style.display = DATA.params.modules?.objectif === 'marge_commande' ? '' : 'none';
 }
 function navigate(page) {
-  if (page === 'planning' && !DATA.params.modules?.calendrier) { navigate('dashboard'); return; }
   if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -4581,7 +4563,6 @@ function renderPage(page) {
   switch(page) {
     case 'dashboard': renderDashboard(); break;
     case 'missions': renderMissions(); break;
-    case 'planning': renderPlanning(); break;
     case 'revenus': renderRevenus(); break;
     case 'depenses': renderDepenses(); break;
     case 'archives': renderArchives(); break;
@@ -6440,6 +6421,23 @@ function wJalonFiscal() {
 // ── MISSIONS ─────────────────────────────────────────────────
 let missionFilter='all', missionSort='newest', pendingFactId=null, timerInterval=null;
 
+// ── MISSIONS — VUE TABLEAU / CALENDRIER (fusion Planning→Missions, chantier "vue calendrier", 2026-07) ──
+// Remplace la page Planning dédiée : bascule visuelle en haut de la page Missions, en mémoire
+// seulement (comme missionFilter/missionSort) — repart sur "Tableau" à chaque rechargement.
+let missionsView = 'table';
+function setMissionsView(view) {
+  missionsView = view;
+  const btnTable = document.getElementById('missions-view-btn-table');
+  const btnCal   = document.getElementById('missions-view-btn-calendrier');
+  const zoneTable = document.getElementById('missions-view-table');
+  const zoneCal   = document.getElementById('missions-view-calendrier');
+  if (btnTable) btnTable.classList.toggle('active-filter', view === 'table');
+  if (btnCal)   btnCal.classList.toggle('active-filter', view === 'calendrier');
+  if (zoneTable) zoneTable.style.display = view === 'table' ? '' : 'none';
+  if (zoneCal)   zoneCal.style.display   = view === 'calendrier' ? '' : 'none';
+  if (view === 'calendrier') renderPlanning();
+}
+
 // ── REVENUS PONCTUELS UI ──────────────────────────────────────
 let _poncMk = null;
 function openPonctuelsModal(mk) {
@@ -7186,7 +7184,7 @@ function toggleMissionType(val) {
   document.getElementById('m-montant-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'none':'');
   document.getElementById('m-montant-mixte-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'':'none');
   document.getElementById('m-rec-zone').style.display = isRec?'':'none';
-  document.getElementById('m-charge-zone').style.display = (isCol||!DATA.params.modules?.estimation)?'none':'';
+  document.getElementById('m-charge-zone').style.display = isCol?'none':'';
   // Détail du temps collectif (création/animation/suivi) déplacé dans "Gestion du temps" —
   // ne s'affiche que pour un programme collectif, jamais pour une mission individuelle.
   const colTempsZone = document.getElementById('m-temps-gestion-collectif-zone');
@@ -7283,23 +7281,13 @@ function openMissionModal(id, prefillDate) {
     document.getElementById('m-temps-animation').value = m.tempsAnimation||'';
     document.getElementById('m-temps-support').value = m.tempsSupport||'';
   }
+  // Sessions (m-planning-zone) + charge estimée (m-charge-zone, sauf collectif) + "Gestion du
+  // temps" sont désormais toujours visibles (chantier "vue calendrier", 2026-07 — plus de cases
+  // Paramètres modules.estimation/calendrier pour les masquer) : toggleMissionType() ci-dessus
+  // gère déjà m-charge-zone (isCol uniquement) ; m-planning-zone et le bouton "Gestion du temps"
+  // gardent leur affichage par défaut (aucune surcharge nécessaire).
   toggleMissionType(typeMission);
   document.getElementById('m-source-acq').value=m?(m.sourceAcquisition||''):'';
-  // Sessions planning
-  const planZone=document.getElementById('m-planning-zone');
-  if(planZone) planZone.style.display=DATA.params.modules?.calendrier?'':'none';
-  // Charge estimée — visible si module estimation actif
-  const chargeZone=document.getElementById('m-charge-zone');
-  if(chargeZone) chargeZone.style.display=DATA.params.modules?.estimation?'':'none';
-  // Bloc "Gestion du temps" entier masqué si ni calendrier ni estimation n'est actif pour ce
-  // profil (rien à y montrer) — sinon repli géré par toggleTempsGestion() ci-dessus.
-  const hasTempsModule = !!(DATA.params.modules?.estimation || DATA.params.modules?.calendrier);
-  const tempsGestionToggle=document.getElementById('m-temps-gestion-toggle');
-  if(tempsGestionToggle){
-    tempsGestionToggle.style.display=hasTempsModule?'':'none';
-    tempsGestionToggle.nextElementSibling.style.display=hasTempsModule?'':'none';
-    if(!hasTempsModule){ const z=document.getElementById('m-temps-gestion-zone'); if(z) z.style.display='none'; }
-  }
   // Type de mission (collectif) — réservé aux profils "service"
   const typeMissionRow=document.getElementById('m-type-mission-fgroup');
   if(typeMissionRow) {
@@ -7431,9 +7419,11 @@ function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.d
 // Étendue (correctif récurrentes + calendrier, "zéro donnée inventée") : 3 cas.
 // - Récurrente : champ manuel masqué, valeur dérivée de "Temps planifié / semaine" (chargeEstimee)
 //   — un contrat sans date de fin n'a jamais de total à saisir, seulement un rythme.
-// - Ponctuelle en mode calendrier : champ manuel masqué, valeur dérivée de la somme des sessions
-//   (editingSessions) — la donnée la plus précise déjà saisie par ailleurs pour le Planning.
-// - Ponctuelle sans calendrier : comportement Phase 1 inchangé (label + saisie manuelle).
+// - Ponctuelle avec au moins une session renseignée : champ manuel masqué, valeur dérivée de la
+//   somme des sessions (editingSessions) — la donnée la plus précise déjà saisie par ailleurs
+//   pour le Planning (chantier "vue calendrier", 2026-07 : piloté par la présence de sessions,
+//   plus par une case Paramètres — voir aussi getPilierRemplissage()).
+// - Ponctuelle sans aucune session : comportement Phase 1 inchangé (label + saisie manuelle).
 // Dans les deux premiers cas, si aucune source n'existe encore (chargeEstimee vide / aucune
 // session), on n'invente RIEN — ni repli sur le prix, ni valeur par défaut — un message explique
 // pourquoi la comparaison n'est pas encore possible, plutôt qu'un chiffre halluciné (retour de
@@ -7446,7 +7436,7 @@ function updateTempsPrevuZone(isRec) {
   const zone=document.getElementById('m-temps-prevu-zone');
   const divider=document.getElementById('m-temps-prevu-divider');
   const deriveEl=document.getElementById('m-charge-tempsprevu-derive');
-  const isCalendrier=!!DATA.params.modules?.calendrier;
+  const isCalendrier=(typeof editingSessions!=='undefined'?editingSessions:[]).length>0;
   if(isRec){
     if(zone) zone.style.display='none';
     if(divider) divider.style.display='none';
@@ -7629,10 +7619,10 @@ function syncSessSansFinWithMission() {
     if (sessSansFinEl && sessSansFinEl.checked !== sansFin) { sessSansFinEl.checked = sansFin; toggleSessSansFin(); }
   }
 }
-// Copy contextuelle Charge estimée / Sessions — uniquement quand modules.calendrier ET
-// modules.estimation sont actifs simultanément (sinon un seul des deux champs existe dans
-// le formulaire, pas d'ambiguïté possible sur lequel remplir). Voir ARCHITECTURE_PRODUIT.md
-// § "Copy contextuelle — champs Charge estimée / Sessions".
+// Copy contextuelle Charge estimée / Sessions — les deux champs coexistent désormais toujours
+// dans le formulaire (chantier "vue calendrier", 2026-07 : plus de cases Paramètres
+// modules.calendrier/modules.estimation pour n'en montrer qu'un seul), donc cette copy
+// contextuelle (autrefois réservée au cas "hybride") s'applique maintenant à tout le monde.
 function updateModaleMissionCopy(isRec) {
   const chargeCopy=document.getElementById('m-charge-copy');
   const chargeTip=document.getElementById('m-charge-tip');
@@ -7644,16 +7634,6 @@ function updateModaleMissionCopy(isRec) {
   const defaultChargeTip="Temps que cette mission doit occuper, dans l'unité choisie ci-contre — comparé à votre capacité pour le Score de Santé.";
   const defaultSessTip="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.";
   const defaultSessLabel=tVocab('sessions')||'Sessions';
-  const hybride=!!(DATA.params.modules?.calendrier&&DATA.params.modules?.estimation);
-
-  if(!hybride){
-    chargeCopy.style.display='none'; chargeCopy.textContent='';
-    sessCopy.style.display='none'; sessCopy.textContent='';
-    if(chargeTip) chargeTip.title=defaultChargeTip;
-    if(sessTip) sessTip.title=defaultSessTip;
-    sessLabel.textContent=defaultSessLabel;
-    return;
-  }
 
   if(isRec){
     // Phrase retirée (retour Faustine, 2026-07) : n'avait plus de sens une fois les cases
@@ -7727,20 +7707,21 @@ function saveMission() {
   const typeMissionVal=document.getElementById('m-type-mission').value||'individuelle';
   // Récurrente (non collectif) : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli
   // sur le prix (correctif "durée illimitée" + "zéro donnée inventée").
-  // Ponctuelle en mode calendrier : dérivé de la somme des sessions, jamais de repli non plus —
-  // tant qu'aucune session n'est ajoutée, tempsPrevu reste null (même principe).
-  // Collectif ou ponctuelle sans calendrier : saisie manuelle de #m-temps-prevu — pour un
+  // Ponctuelle avec au moins une session renseignée : dérivé de la somme des sessions, jamais de
+  // repli non plus — piloté par la présence de sessions, plus par une case Paramètres (chantier
+  // "vue calendrier", 2026-07).
+  // Collectif ou ponctuelle sans session : saisie manuelle de #m-temps-prevu — pour un
   // collectif, ce champ est déjà maintenu à jour en direct par updateCollectifTemps() (somme
   // Création+Animation+Suivi, chantier "vue calendrier" Phase 3, 2026-07 : ces 3 champs sont
   // désormais un temps ESTIMATIF comme "temps planifié", plus un temps réel comme avant — voir
   // getMissionHeures), tout en respectant une correction manuelle éventuelle de l'utilisatrice
   // (jamais écrasée, même principe que updateTempsPrevuSuggestion). Exclu explicitement des
-  // branches isRec/calendrier : chargeEstimee est masqué pour un collectif (m-charge-zone caché),
+  // branches isRec/sessions : chargeEstimee est masqué pour un collectif (m-charge-zone caché),
   // et ses sessions sont généralement vides — l'une ou l'autre renverrait injustement null.
   let tempsPrevu;
   if(typeMissionVal!=='collectif' && isRec){
     tempsPrevu=computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit);
-  } else if(typeMissionVal!=='collectif' && DATA.params.modules?.calendrier){
+  } else if(typeMissionVal!=='collectif' && editingSessions.length>0){
     const _totalSessions=editingSessions.reduce((s,x)=>s+(x.heures||0),0);
     tempsPrevu=_totalSessions>0?_totalSessions:null;
   } else {
@@ -7896,7 +7877,7 @@ function finalizeSaveMission(editId, obj) {
   if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); mission=m; } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); mission=DATA.missions[DATA.missions.length-1]; }
   if(mission) syncAutoDepenseVente(mission, obj);
-  saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); if(currentPage==='planning') renderPlanning(); triggerSaveReminderIfNeeded();
+  saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); triggerSaveReminderIfNeeded();
 }
 
 // ── SAISIE MULTIPLE DE MISSIONS ───────────────────────────────
@@ -8998,6 +8979,10 @@ function renderMissions() {
     }
   });
   document.getElementById('missions-totals').innerHTML='';
+  // Fusion Planning→Missions (chantier "vue calendrier", 2026-07) : si la vue calendrier est
+  // active, la garder synchronisée à chaque rafraîchissement du tableau — un seul point de
+  // sortie, pas besoin de dupliquer l'appel à chaque site qui appelle déjà renderMissions().
+  if (missionsView === 'calendrier') renderPlanning();
 }
 
 function startTimerInterval() {
@@ -10089,9 +10074,10 @@ function saveAddTime() {
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
   if(catEl) catEl.value='';
+  // renderMissions() ci-dessous rafraîchit déjà le calendrier (jour + mois) si la vue calendrier
+  // est active (voir renderMissions()) — pas besoin de le refaire ici.
   saveData(); renderAddTimeLog(id); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
-  if(currentPage==='planning'&&typeof renderPlanningDayPanel==='function') renderPlanningDayPanel();
 }
 
 // ── TEMPS INTERNE MENSUEL ────────────────────────────────────
@@ -11762,17 +11748,6 @@ function cancelProfilChange() {
   document.getElementById('p-metier').value = prev;
   closeModal('modal-profil-change');
 }
-function saveModulePlanning(key, checkbox) {
-  const m = DATA.params.modules || {};
-  const otherKey = key === 'estimation' ? 'calendrier' : 'estimation';
-  // Bloquer la décoche si l'autre est déjà décochée
-  if (!checkbox.checked && !m[otherKey]) {
-    checkbox.checked = true; // remettre la coche
-    showToast('Le suivi du temps est indispensable. Choisissez au moins une façon de comptabiliser vos affaires.');
-    return;
-  }
-  saveModuleParam(key, checkbox.checked);
-}
 function saveModuleParam(key, val) {
   if (!DATA.params.modules) DATA.params.modules = {};
   DATA.params.modules[key] = val;
@@ -11788,33 +11763,6 @@ function saveModuleParam(key, val) {
 }
 function renderModulesUI() {
   const m = DATA.params.modules || {};
-  // planning checkboxes
-  const cbEst = document.getElementById('mod-cb-estimation');
-  const cbCal = document.getElementById('mod-cb-calendrier');
-  const lblEst = document.getElementById('mod-planning-estimation');
-  const lblCal = document.getElementById('mod-planning-calendrier');
-  if (cbEst) cbEst.checked = !!m.estimation;
-  if (cbCal) cbCal.checked = !!m.calendrier;
-  if (lblEst) lblEst.classList.toggle('selected', !!m.estimation);
-  if (lblCal) lblCal.classList.toggle('selected', !!m.calendrier);
-  const infoEl = document.getElementById('mod-planning-info');
-  if (infoEl) {
-    const both = m.estimation && m.calendrier;
-    const calOnly = m.calendrier && !m.estimation;
-    const estOnly = m.estimation && !m.calendrier;
-    if (both) {
-      infoEl.style.display = '';
-      infoEl.textContent = '📅 Les deux modes sont actifs. Le taux de remplissage se base sur vos sessions planifiées (plus précis). L\'estimation h/sem sert uniquement au calcul de votre taux horaire réel.';
-    } else if (calOnly) {
-      infoEl.style.display = '';
-      infoEl.textContent = '📅 Taux de remplissage calculé à partir de vos sessions planifiées.';
-    } else if (estOnly) {
-      infoEl.style.display = '';
-      infoEl.textContent = '⏱ Taux de remplissage calculé à partir des charges estimées (h/sem) de vos affaires.';
-    } else {
-      infoEl.style.display = 'none';
-    }
-  }
   const isJ = m.uniteTemps === 'jours';
   const btnH = document.getElementById('mod-unite-heures');
   const btnJ = document.getElementById('mod-unite-jours');
