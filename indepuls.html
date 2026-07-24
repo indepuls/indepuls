@@ -1645,8 +1645,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="frow" id="m-charge-zone">
         <div class="fgroup">
-          <label class="flabel">Temps planifié estimatif <span class="info-tip" id="m-charge-tip" title="Temps que cette mission doit occuper, dans l'unité choisie ci-contre — comparé à votre capacité pour le Score de Santé.">?</span></label>
-          <div id="m-charge-copy" class="ts mb4" style="color:var(--tl);display:none"></div>
+          <label class="flabel">Temps planifié estimatif <span class="info-tip" id="m-charge-tip" title="Temps que cette mission doit occuper, dans l'unité choisie ci-contre — c'est la seule donnée qui compte pour votre taux de remplissage (Score de Santé).">?</span></label>
           <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
         </div>
         <div class="fgroup">
@@ -1659,8 +1658,7 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div id="m-planning-zone">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
-        <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin:12px 0 4px;padding-top:10px;border-top:1px solid var(--brd)">Quand cette mission a-t-elle lieu ? <span class="info-tip" id="m-sessions-tip" title="Ces dates servent à calculer automatiquement le temps total estimé ci-dessous et à positionner la mission sur le calendrier. Sans impact sur votre taux de remplissage, qui se base uniquement sur le temps planifié ci-dessus.">?</span></div>
         <div id="m-sessions-list" style="margin-bottom:8px"></div>
         <div class="fgroup" id="m-sess-sansfin-wrap" style="margin:0 0 8px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
@@ -1668,37 +1666,32 @@ html,body{overflow-x:hidden;}
             Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours concernés, la session se répète indéfiniment.">?</span>
           </label>
         </div>
-        <div id="m-sess-jours-wrap" style="display:none;margin-bottom:8px">
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut"></div>
+          <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin"></div>
+          <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
+        </div>
+        <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">Vous pouvez ajouter plusieurs périodes si la mission a lieu en plusieurs fois (ex : un chantier repris quelques semaines plus tard).</div>
+        <div class="fgroup mt10" id="m-sess-jours-wrap">
           <label class="flabel">Jours concernés</label>
+          <div class="ts mb4" style="color:var(--tl)">Uniquement pour choisir les jours où la mission apparaît sur le calendrier — sans impact sur le calcul.</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked style="width:auto">Lun</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked style="width:auto">Mar</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" style="width:auto">Sam</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" style="width:auto">Dim</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" checked style="width:auto">Sam</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" checked style="width:auto">Dim</label>
           </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" onchange="updateSessHeuresAuto()"></div>
-          <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" onchange="updateSessHeuresAuto()"></div>
-          <div class="fgroup" style="width:72px;margin:0;flex-shrink:0">
-            <label class="flabel" id="m-sess-heures-label" title="Durée totale estimée. Calculée automatiquement, modifiable.">Durée <span class="ts">h</span></label>
-            <input type="number" id="m-sess-heures" min="0" step="0.5" placeholder="~auto"
-              style="padding:6px 6px;text-align:center"
-              oninput="this.dataset.perso=this.value!==this.dataset.auto?'true':'false'">
-          </div>
-          <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
-        </div>
-        <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
       </div>
-      <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
+      <div class="divider" style="margin:10px 0"></div>
       <div class="fgroup" id="m-temps-prevu-zone">
         <label class="flabel" id="m-temps-prevu-label">Temps total estimé sur cette mission (h)</label>
         <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
       </div>
-      <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
+      <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl)">La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps total estimé ci-dessus.</div>
       <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Cette estimation permet d'ajuster votre taux de remplissage et de comparer, à l'issue de la mission, avec le temps effectivement réalisé. Cette donnée est utile car elle impacte directement votre rentabilité future.</div>
       <div id="m-trajectoire-detail"></div>
     </div>
@@ -2942,25 +2935,29 @@ function initEditingSessions(m, prefillDate) {
   const finEl = document.getElementById('m-sess-fin');
   if (debEl) debEl.value = !m && prefillDate ? prefillDate : '';
   if (finEl) finEl.value = '';
-  // Réinitialise le formulaire "récurrente sans fin" (case décochée, jours lun-ven par défaut)
-  // — l'état ne doit jamais survivre à la fermeture/réouverture de la modale.
+  // Réinitialise le formulaire "récurrente sans fin" (case décochée) — l'état ne doit jamais
+  // survivre à la fermeture/réouverture de la modale. toggleSessSansFin() remet aussi les cases
+  // "Jours concernés" à leur défaut (tous cochés, mode bornée puisque décoché ici).
   const sansFinEl = document.getElementById('m-sess-sansfin');
   if (sansFinEl) sansFinEl.checked = false;
-  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = cb.value !== '0' && cb.value !== '6');
   if (typeof toggleSessSansFin === 'function') toggleSessSansFin();
   renderEditSessions();
 }
 // Bascule le formulaire d'ajout de session entre bornée (Début/Fin) et récurrente sans fin
 // (Début + jours de la semaine) — voir shared/core/planning.js pour la sémantique complète.
+// "Jours concernés" reste toujours visible désormais (retour Faustine 2026-07-25 — purement
+// cosmétique pour l'affichage calendrier, y compris pour une session datée) : cette fonction ne
+// bascule plus que la ligne "Fin" et le texte d'aide.
 function toggleSessSansFin() {
   const on = document.getElementById('m-sess-sansfin').checked;
-  document.getElementById('m-sess-jours-wrap').style.display = on ? '' : 'none';
   document.getElementById('m-sess-fin-wrap').style.display = on ? 'none' : '';
-  document.getElementById('m-sess-heures-label').innerHTML = on ? 'Heures <span class="ts">/mois</span>' : 'Durée <span class="ts">h</span>';
   document.getElementById('m-sess-help').textContent = on
-    ? 'Heures dédiées à ce client chaque mois, réparties automatiquement sur les jours sélectionnés.'
-    : 'La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.';
-  updateSessHeuresAuto();
+    ? 'Sélectionnez les jours de la semaine ci-dessous — la session se répète chaque semaine, indéfiniment.'
+    : "Sélectionnez les jours concernés ci-dessous si besoin, et n'hésitez pas à ajouter plusieurs périodes.";
+  // Défaut différent selon le mode : une session "sans fin" est un motif hebdomadaire (lun-ven
+  // par défaut, comme avant) ; une session datée n'a historiquement aucun filtre par jour (tous
+  // les jours de la plage comptent, week-ends inclus) — reflété ici en cochant tout par défaut.
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = on ? (cb.value !== '0' && cb.value !== '6') : true);
 }
 
 function renderEditSessions() {
@@ -2992,11 +2989,15 @@ function renderEditSessions() {
     const range = s.debut === fin
       ? `${formatDateFR(s.debut)} <span class="ts">(1 jour)</span>`
       : `${formatDateFR(s.debut)} → ${formatDateFR(fin)}`;
+    // Rétrocompat : les sessions créées avant le retrait du champ "Durée" (2026-07-25) gardent
+    // leur heures saisie, affichée ici en lecture seule — plus jamais redemandée à la création.
     const hLabel = s.heures > 0
       ? `<span style="font-size:11px;color:var(--tl);white-space:nowrap">${s.heuresAuto ? '~' : ''}${s.heures}&thinsp;h</span>`
       : '';
+    const joursTxt = (s.jours && s.jours.length && s.jours.length < 7)
+      ? `<span class="ts"> — ${s.jours.map(j => JOURS_LABELS[j]).join(', ')}</span>` : '';
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
-      <span style="flex:1;font-size:12px">${range}</span>
+      <span style="flex:1;font-size:12px">${range}${joursTxt}</span>
       ${hLabel}
       <button class="btn btn-del btn-xs" onclick="removeSessionFromEdit(${i})">🗑</button>
     </div>`;
@@ -3004,37 +3005,23 @@ function renderEditSessions() {
   _refreshTempsPrevu();
 }
 
-function _joursOuvrésSemaine(debut, fin) {
-  const d = new Date((debut||fin)+'T00:00:00'), end = new Date((fin||debut)+'T00:00:00');
-  let n = 0;
-  while (d <= end) { const dow = d.getDay(); if (dow!==0&&dow!==6) n++; d.setDate(d.getDate()+1); }
-  return Math.max(1, n);
-}
-function updateSessHeuresAuto() {
-  // Récurrente sans fin : pas de plage bornée, donc pas de valeur "auto" à calculer — l'heures/
-  // mois est toujours une saisie manuelle.
-  if (document.getElementById('m-sess-sansfin')?.checked) return;
-  const debut = document.getElementById('m-sess-debut').value;
-  const fin   = document.getElementById('m-sess-fin').value || debut;
-  if (!debut) return;
-  const hEl = document.getElementById('m-sess-heures');
-  if (!hEl || hEl.dataset.perso === 'true') return;
-  const auto = _joursOuvrésSemaine(debut, fin) * (DATA.params.heuresParJour || 7);
-  hEl.value = auto;
-  hEl.dataset.auto = auto;
-}
+// "Jours concernés" est désormais toujours affiché (retour Faustine 2026-07-25), y compris pour
+// une session datée — purement cosmétique pour l'affichage calendrier (voir sessionCouvreJour()
+// dans shared/core/planning.js) : `jours` n'est stocké que si un sous-ensemble réel est choisi
+// (moins de 7 jours cochés), pour ne pas alourdir les sessions "tous les jours" (comportement
+// historique inchangé par défaut). Le champ "Durée" par session est retiré — plus aucune heure
+// saisie ni suggérée ici, le "temps total estimé" se calcule désormais à partir du temps
+// planifié × durée (voir computeTempsTotalEstimeFromSessions()).
 function addSessionToEdit() {
   const debut = document.getElementById('m-sess-debut').value;
   if (!debut) { alert('Date de début requise.'); return; }
-  const hEl = document.getElementById('m-sess-heures');
+  const joursCoches = Array.from(document.querySelectorAll('.m-sess-jour-cb:checked')).map(cb => +cb.value);
+  if (!joursCoches.length) { alert('Sélectionnez au moins un jour de la semaine.'); return; }
+  const jours = joursCoches.length < 7 ? joursCoches : undefined;
   if (document.getElementById('m-sess-sansfin')?.checked) {
-    const jours = Array.from(document.querySelectorAll('.m-sess-jour-cb:checked')).map(cb => +cb.value);
-    if (!jours.length) { alert('Sélectionnez au moins un jour de la semaine.'); return; }
-    const heures = hEl ? parseFloat(hEl.value) || 0 : 0;
-    editingSessions.push(heures > 0 ? {debut, sansFin:true, jours, heures} : {debut, sansFin:true, jours});
+    editingSessions.push({debut, sansFin:true, jours: joursCoches}); // sans fin : jours toujours requis (motif hebdomadaire)
     editingSessions.sort((a,b) => a.debut < b.debut ? -1 : 1);
     document.getElementById('m-sess-debut').value = '';
-    if (hEl) { hEl.value = ''; hEl.dataset.perso = 'false'; hEl.dataset.auto = ''; }
     document.getElementById('m-sess-sansfin').checked = false;
     document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = cb.value !== '0' && cb.value !== '6');
     toggleSessSansFin();
@@ -3042,15 +3029,13 @@ function addSessionToEdit() {
     return;
   }
   const fin = document.getElementById('m-sess-fin').value || debut;
-  const hVal   = hEl ? parseFloat(hEl.value) || 0 : 0;
-  const hAuto  = hEl ? parseFloat(hEl.dataset.auto) || 0 : 0;
-  const heures = hVal > 0 ? hVal : 0;
-  const heuresAuto = heures > 0 && heures === hAuto;
-  editingSessions.push(heures > 0 ? {debut, fin, heures, heuresAuto} : {debut, fin});
+  const session = {debut, fin};
+  if (jours) session.jours = jours;
+  editingSessions.push(session);
   editingSessions.sort((a,b) => a.debut < b.debut ? -1 : 1);
   document.getElementById('m-sess-debut').value = '';
   document.getElementById('m-sess-fin').value = '';
-  if (hEl) { hEl.value = ''; hEl.dataset.perso = 'false'; hEl.dataset.auto = ''; }
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = true); // défaut bornée : tous les jours
   renderEditSessions();
 }
 
@@ -3467,15 +3452,20 @@ function getExampleData(metier) {
   const c = C[family] || C.service;
 
   // ── Sessions calendrier pour les familles avec planning='calendrier' ──
-  // Génère un bloc de jours ouvrés dans le mois mk, à partir du jour `start`. `heures` calculée
-  // avec la même formule que la saisie réelle (_joursOuvrésSemaine × heuresParJour, jamais codée
-  // en dur) — sinon les sessions de démo n'ont aucune durée et la dérivation de tempsPrevu depuis
-  // les sessions (chantier "Temps prévu") ne peut jamais rien produire pour ces missions.
+  // Génère un bloc de jours ouvrés dans le mois mk, à partir du jour `start`. `heures` reste
+  // rempli sur ces sessions de démo pour rester représentatif de données historiques (le champ
+  // "Durée" par session a été retiré du formulaire, 2026-07-25, mais les sessions existantes
+  // gardent leur heures — voir renderEditSessions()) ; calcul jours ouvrés inliné ici (ancienne
+  // fonction partagée _joursOuvrésSemaine() retirée avec updateSessHeuresAuto(), plus aucun autre
+  // appelant).
   const sess = (mk, start, dur) => {
     const [yr, mo] = mk.split('-').map(Number);
     const d1 = `${yr}-${String(mo).padStart(2,'0')}-${String(start).padStart(2,'0')}`;
     const d2 = `${yr}-${String(mo).padStart(2,'0')}-${String(Math.min(start+dur-1,28)).padStart(2,'0')}`;
-    const heures = _joursOuvrésSemaine(d1, d2) * 7; // heuresParJour toujours 7 dans les params démo
+    let joursOuvres = 0;
+    { const d = new Date(d1+'T00:00:00'), end = new Date(d2+'T00:00:00');
+      while (d <= end) { const dow = d.getDay(); if (dow!==0&&dow!==6) joursOuvres++; d.setDate(d.getDate()+1); } }
+    const heures = Math.max(1, joursOuvres) * 7; // heuresParJour toujours 7 dans les params démo
     return [{debut:d1, fin:d2, heures, heuresAuto:true}];
   };
   // Entrée de temps manuel datée — utile pour les missions récurrentes de la démo (voir
@@ -7240,9 +7230,10 @@ function openMissionModal(id, prefillDate) {
   }
   document.getElementById('m-charge').value=m&&m.chargeEstimee?m.chargeEstimee:'';
   document.getElementById('m-charge-unit').value=m&&m.chargeUnit?m.chargeUnit:'h_sem';
-  // Le titre de l'infobulle #m-charge-tip est fixé par updateModaleMissionCopy() plus bas (seul
-  // endroit qui en a la responsabilité — une ancienne réaffectation ici, systématiquement
-  // écrasée ensuite, a été retirée pour ne pas laisser un texte mort et incohérent à relire).
+  // Le titre de l'infobulle #m-charge-tip est désormais statique, fixé directement en HTML —
+  // il ne varie plus selon le mode (mensuelle/ponctuelle) depuis que chargeEstimee est l'unique
+  // source du pilier Remplissage (retour Faustine, 2026-07-25). updateModaleMissionCopy(), qui
+  // gérait ces variantes, a été retirée.
   // Temps prévu — stocké en heures, affiché en jours si isJours() (chantier "Temps prévu")
   {
     const _hjTP=DATA.params.heuresParJour||7;
@@ -7390,79 +7381,46 @@ function updateMargeProduction() {
   } else { el.style.display='none'; }
 }
 function toggleFactDate(v) { document.getElementById('m-date-fact-zone').style.display=v==='fact'?'':'none'; }
-// ── TEMPS PRÉVU (chantier "Temps prévu", Phase 1) ──────────────
-// Libellé contextuel selon isRecurring (ponctuelle/récurrente) et selon l'unité du profil
-// (isJours()) — même principe que sasu-remu-label, mais avec 2 axes de bascule au lieu d'un.
-// Étendue (correctif récurrentes + calendrier, "zéro donnée inventée") : 3 cas.
-// - Récurrente : champ manuel masqué, valeur dérivée de "Temps planifié / semaine" (chargeEstimee)
-//   — un contrat sans date de fin n'a jamais de total à saisir, seulement un rythme.
-// - Ponctuelle avec au moins une session renseignée : champ manuel masqué, valeur dérivée de la
-//   somme des sessions (editingSessions) — la donnée la plus précise déjà saisie par ailleurs
-//   pour le Planning (chantier "vue calendrier", 2026-07 : piloté par la présence de sessions,
-//   plus par une case Paramètres — voir aussi getPilierRemplissage()).
-// - Ponctuelle sans aucune session : comportement Phase 1 inchangé (label + saisie manuelle).
-// Dans les deux premiers cas, si aucune source n'existe encore (chargeEstimee vide / aucune
-// session), on n'invente RIEN — ni repli sur le prix, ni valeur par défaut — un message explique
-// pourquoi la comparaison n'est pas encore possible, plutôt qu'un chiffre halluciné (retour de
-// Faustine : le repli prix ÷ objectif horaire n'est pas une estimation du travail à faire, c'est
-// un calcul de rentabilité déguisé en temps prévu — contraire à la philosophie "zéro boîte noire").
-// Le texte de #m-charge-note est désormais statique (même paragraphe quel que soit le mode —
-// retour Faustine, 2026-07 : les 3 variantes précédentes étaient "brouillon"). Cette fonction ne
-// touche donc plus qu'à la visibilité de la zone "Temps total estimé" et au texte dérivé.
+// ── TEMPS PRÉVU (chantier "Temps prévu", puis "vue calendrier", 2026-07) ──────
+// Refonte 2026-07-25 (retour Faustine : "c'était trop trop complexe") — le champ "Temps total
+// estimé" est désormais TOUJOURS visible et modifiable, pour toute mission. Seul change le
+// préremplissage automatique (jamais si déjà renseigné, jamais écrasé) :
+// - Récurrente (mensuelle) : temps planifié converti en heures pour LE MOIS (voir
+//   computeTempsPrevuRecurrente) — un contrat sans date de fin n'a qu'un rythme, pas un total.
+// - Ponctuelle avec au moins une session datée : temps planifié × durée totale des sessions
+//   (voir computeTempsTotalEstimeFromSessions) — les sessions ne servent qu'à ça et au calendrier,
+//   jamais au pilier Remplissage (voir shared/core/getPilierRemplissage(), source unique =
+//   chargeEstimee).
+// - Sinon : aucune suggestion, saisie 100 % manuelle.
+// Si aucune source n'existe encore (chargeEstimee vide / aucune session), on n'invente RIEN — un
+// message explique juste que la comparaison prévu/réel dépendra du champ une fois rempli.
 function updateTempsPrevuZone(isRec) {
-  const zone=document.getElementById('m-temps-prevu-zone');
-  const divider=document.getElementById('m-temps-prevu-divider');
+  const champ=document.getElementById('m-temps-prevu');
+  const lbl=document.getElementById('m-temps-prevu-label');
   const deriveEl=document.getElementById('m-charge-tempsprevu-derive');
-  const isCalendrier=(typeof editingSessions!=='undefined'?editingSessions:[]).length>0;
+  const chargeRaw=parseFloat(document.getElementById('m-charge').value)||0;
+  const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
+  const _hjTP=DATA.params.heuresParJour||7;
+  let suggestionH=null;
   if(isRec){
-    if(zone) zone.style.display='none';
-    if(divider) divider.style.display='none';
-    if(deriveEl){
-      const chargeRaw=parseFloat(document.getElementById('m-charge').value)||0;
-      const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
-      const heuresMois=computeTempsPrevuRecurrente(chargeRaw, chargeUnit);
-      if(heuresMois!=null&&heuresMois>0){
-        const _hjTP=DATA.params.heuresParJour||7;
-        const val=isJours()?heuresMois/_hjTP:heuresMois;
-        const unit=isJours()?'j':'h';
-        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit}/mois pour le calcul de rentabilité (prévu vs réel, recalculé chaque mois).`;
-      } else {
-        deriveEl.textContent='La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps planifié ci-dessus.';
-      }
-      deriveEl.style.display='';
-    }
-  } else if(isCalendrier){
-    if(zone) zone.style.display='none';
-    if(divider) divider.style.display='none';
-    if(deriveEl){
-      const totalSessions=(typeof editingSessions!=='undefined'?editingSessions:[]).reduce((s,x)=>s+(x.heures||0),0);
-      if(totalSessions>0){
-        const _hjTP=DATA.params.heuresParJour||7;
-        const val=isJours()?totalSessions/_hjTP:totalSessions;
-        const unit=isJours()?'j':'h';
-        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit} (somme de vos sessions) pour le calcul de rentabilité (prévu vs réel, sur toute la durée de la mission).`;
-      } else {
-        deriveEl.textContent="La comparaison prévu/réel sera possible dès qu'une session sera ajoutée ci-dessous.";
-      }
-      deriveEl.style.display='';
-    }
+    if(lbl) lbl.textContent='Temps total estimé ce mois-ci (h)';
+    suggestionH=computeTempsPrevuRecurrente(chargeRaw, chargeUnit);
   } else {
-    if(zone) zone.style.display='';
-    if(divider) divider.style.display='';
-    const lbl=document.getElementById('m-temps-prevu-label');
     if(lbl){
       const unit=isJours()?'(j)':'(h)';
       lbl.textContent=`Temps total estimé sur ${tVocabMasculin()?'ce':'cette'} ${tVocab('item').toLowerCase()} `+unit;
     }
-    // Ponctuelle : contrairement à la récurrente (charge convertie en h/mois), la valeur saisie
-    // ici EST déjà le temps prévu — pas de conversion à afficher, juste rappeler que la
-    // comparaison prévu/réel dépend de ce champ tant qu'il est vide (même logique que les 2
-    // autres branches, retour Faustine : cohérence des 3 modes).
-    if(deriveEl){
-      const tpVal=parseFloat(document.getElementById('m-temps-prevu').value)||0;
-      if(tpVal>0){ deriveEl.textContent=''; deriveEl.style.display='none'; }
-      else { deriveEl.textContent='La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps total estimé ci-dessus.'; deriveEl.style.display=''; }
-    }
+    const sessions=(typeof editingSessions!=='undefined'?editingSessions:[]);
+    suggestionH=computeTempsTotalEstimeFromSessions(chargeRaw, chargeUnit, sessions);
+  }
+  if(champ && champ.value===''&&suggestionH!=null&&suggestionH>0){
+    const val=isJours()?suggestionH/_hjTP:suggestionH;
+    champ.value=Math.round(val*10)/10;
+  }
+  if(deriveEl){
+    const tpVal=parseFloat(champ?.value)||0;
+    if(tpVal>0){ deriveEl.style.display='none'; }
+    else { deriveEl.style.display=''; }
   }
 }
 // tempsPrevu (mensuel, en heures) pour une récurrente : dérivé de chargeEstimee/chargeUnit
@@ -7478,6 +7436,24 @@ function computeTempsPrevuRecurrente(chargeRaw, chargeUnit) {
     return hSem*(DATA.params.semainesParAn||44)/12;
   }
   return null;
+}
+// Temps total estimé (ponctuelle) : temps planifié (converti en h/semaine) × durée totale des
+// sessions datées, en semaines calendaires (retour Faustine, 2026-07-25 : "5h/sem sur 6 semaines"
+// — remplace l'ancienne somme des heures saisies par session, ce champ n'existant plus). Sessions
+// "sans fin" ignorées (jamais utilisées pour une ponctuelle — voir syncSessSansFinWithMission()).
+// Retourne null si aucune charge ou aucune session datée — jamais de valeur inventée.
+function computeTempsTotalEstimeFromSessions(chargeRaw, chargeUnit, sessions) {
+  if(!(chargeRaw>0)) return null;
+  const hSem=toHeuresSem(chargeRaw, chargeUnit);
+  if(!(hSem>0)) return null;
+  let semaines=0;
+  (sessions||[]).forEach(s=>{
+    if(s.sansFin||!s.debut) return;
+    const fin=s.fin||s.debut;
+    const jours=Math.round((new Date(fin+'T00:00:00')-new Date(s.debut+'T00:00:00'))/86400000)+1;
+    if(jours>0) semaines+=jours/7;
+  });
+  return semaines>0?hSem*semaines:null;
 }
 // ── TEMPS PRÉVU — détail trajectoire dans la fiche mission (chantier "Temps prévu", Phase 2) ──
 // TH = marge (prix − dépenses liées) / temps, intégré au fur et à mesure — basé sur le temps
@@ -7541,7 +7517,6 @@ function toggleRecurrenceFields(val) {
   document.getElementById('m-montant-mixte-zone').style.display=(!isRec&&mixte)?'':'none';
   document.getElementById('m-rec-zone').style.display=isRec?'':'none';
   if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
-  updateModaleMissionCopy(isRec);
   updateTempsPrevuZone(isRec);
   syncSessSansFinWithMission();
 }
@@ -7559,39 +7534,6 @@ function syncSessSansFinWithMission() {
     const sansFin = document.getElementById('m-sans-fin').checked;
     const sessSansFinEl = document.getElementById('m-sess-sansfin');
     if (sessSansFinEl && sessSansFinEl.checked !== sansFin) { sessSansFinEl.checked = sansFin; toggleSessSansFin(); }
-  }
-}
-// Copy contextuelle Charge estimée / Sessions — les deux champs coexistent désormais toujours
-// dans le formulaire (chantier "vue calendrier", 2026-07 : plus de cases Paramètres
-// modules.calendrier/modules.estimation pour n'en montrer qu'un seul), donc cette copy
-// contextuelle (autrefois réservée au cas "hybride") s'applique maintenant à tout le monde.
-function updateModaleMissionCopy(isRec) {
-  const chargeCopy=document.getElementById('m-charge-copy');
-  const chargeTip=document.getElementById('m-charge-tip');
-  const sessCopy=document.getElementById('m-sessions-copy');
-  const sessLabel=document.getElementById('modal-sessions-label');
-  const sessTip=document.getElementById('m-sessions-tip');
-  if(!chargeCopy||!sessCopy||!sessLabel) return;
-
-  const defaultChargeTip="Temps que cette mission doit occuper, dans l'unité choisie ci-contre — comparé à votre capacité pour le Score de Santé.";
-  const defaultSessTip="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.";
-  const defaultSessLabel=tVocab('sessions')||'Sessions';
-
-  if(isRec){
-    // Phrase retirée (retour Faustine, 2026-07) : n'avait plus de sens une fois les cases
-    // "sans fin" facturation/session synchronisées — chargeCopy reste masqué comme en non-hybride.
-    chargeCopy.style.display='none'; chargeCopy.textContent='';
-    if(chargeTip) chargeTip.title="Pour une mission récurrente, c'est la charge estimée ci-dessus qui compte dans votre taux de remplissage. Si vous ne la renseignez pas mais que vous avez ajouté des sessions, ce sont elles qui prennent le relais. Si les deux sont renseignés, les sessions restent purement visuelles et ne s'additionnent pas à l'estimation.";
-    sessCopy.style.display='none'; sessCopy.textContent='';
-    sessLabel.textContent='Visualiser des rendez-vous sur le calendrier (optionnel)';
-    if(sessTip) sessTip.title=defaultSessTip;
-  } else {
-    chargeCopy.style.display='none'; chargeCopy.textContent='';
-    if(chargeTip) chargeTip.title=defaultChargeTip;
-    sessCopy.style.display='';
-    sessCopy.textContent='Quand cette mission a-t-elle lieu ?';
-    sessLabel.textContent=defaultSessLabel;
-    if(sessTip) sessTip.title="Ajoutez une ou plusieurs dates : c'est ce qui compte dans votre taux de remplissage pour une mission ponctuelle — la donnée la plus précise. Si vous ne connaissez pas encore les dates, une charge estimée peut servir de repère temporaire ; elle sera remplacée dès qu'une session est ajoutée.";
   }
 }
 // Évite la double saisie en mode "additif" : reporte le "Mois de début" facturé sur la date de
@@ -7647,30 +7589,15 @@ function saveMission() {
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
   const _hjSave=DATA.params.heuresParJour||7;
   const typeMissionVal=document.getElementById('m-type-mission').value||'individuelle';
-  // Récurrente : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli sur le prix
-  // (correctif "durée illimitée" + "zéro donnée inventée").
-  // Ponctuelle avec au moins une session renseignée : dérivé de la somme des sessions, jamais de
-  // repli non plus — piloté par la présence de sessions, plus par une case Paramètres (chantier
-  // "vue calendrier", 2026-07).
-  // Sinon (ponctuelle sans session) : saisie 100% manuelle de #m-temps-prevu — plus aucune
-  // suggestion prix÷objectif horaire ici (retour Faustine 2026-07-24, "pourquoi le montant du
-  // devis me met une suggestion de temps ?!" : updateTempsPrevuSuggestion()/
-  // getTempsPrevuSuggestionHeures() retirées, elles contredisaient le principe déjà appliqué à
-  // la récurrente juste au-dessus — "zéro donnée inventée", jamais de temps déduit du prix).
-  // Un programme collectif suit exactement la même
-  // logique que toute autre mission depuis le retrait de ses 3 champs Création/Animation/Suivi
-  // (retour Faustine 2026-07-24 : "s'aligner au reste et mettre un temps global") — aucun cas
-  // particulier restant pour typeMission==='collectif' ici.
-  let tempsPrevu;
-  if(isRec){
-    tempsPrevu=computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit);
-  } else if(editingSessions.length>0){
-    const _totalSessions=editingSessions.reduce((s,x)=>s+(x.heures||0),0);
-    tempsPrevu=_totalSessions>0?_totalSessions:null;
-  } else {
-    const _tpRaw=parseFloat(document.getElementById('m-temps-prevu').value);
-    tempsPrevu=isNaN(_tpRaw)?null:(isJours()?_tpRaw*_hjSave:_tpRaw);
-  }
+  // Temps total estimé — lu directement dans #m-temps-prevu, toujours visible et modifiable
+  // désormais (retour Faustine 2026-07-25, "trop complexe" : simplification radicale). Le champ
+  // est déjà préempli en direct par updateTempsPrevuZone() pendant la saisie (mensuelle → temps
+  // planifié converti pour le mois ; ponctuelle avec sessions → temps planifié × durée des
+  // sessions ; sinon → resté vide) — à la sauvegarde on lit simplement sa valeur actuelle,
+  // qu'elle vienne de la suggestion ou d'une correction manuelle. Plus aucun cas particulier par
+  // type de mission ou de facturation ici.
+  const _tpRaw=parseFloat(document.getElementById('m-temps-prevu').value);
+  const tempsPrevu=isNaN(_tpRaw)?null:(isJours()?_tpRaw*_hjSave:_tpRaw);
   const sessions = editingSessions.map(s => {
     // Récurrente sans fin (2026-07) : pas de `fin`, jours de la semaine sélectionnés,
     // heures = total PAR MOIS (voir getChargeSessionJour dans shared/core/planning.js).
@@ -7680,6 +7607,7 @@ function saveMission() {
       return o;
     }
     const o = {debut:s.debut, fin:s.fin||s.debut};
+    if (s.jours && s.jours.length) o.jours = s.jours; // "jours concernés" cosmétique (2026-07-25)
     if (s.heures > 0) { o.heures = s.heures; o.heuresAuto = !!s.heuresAuto; }
     return o;
   });

@@ -251,40 +251,10 @@ function makeData(overrides = {}) {
   assert('estime details.taux > 0',     det.taux    > 0);
 }
 
-// ── getPilierRemplissage — mode 'calendrier' ──────────────────
-{
-  const now   = new Date();
-  const curMk = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const base  = { params: { ...PARAMS_BASE, modePlanning: 'calendrier', dateOuverture: '2026-01' } };
-
-  // Aucune session → score neutre 12
-  const D0 = makeData({ ...base, missions: [] });
-  assertEq('calendrier sans session → score 12', P.getPilierRemplissage(D0).score, 12);
-
-  // Session sur tout le mois courant → taux élevé → score 18 ou 5
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const pad = n => String(n).padStart(2, '0');
-  const mFull = {
-    isManagement: false,
-    sessions: [{ debut: `${curMk}-01`, fin: `${curMk}-${pad(lastDay)}` }],
-  };
-  const Dfull = makeData({ ...base, missions: [mFull] });
-  const rfull = P.getPilierRemplissage(Dfull);
-  assert('calendrier plein → score ≥ 5', rfull.score >= 5);
-  assertEq('calendrier details.unite', rfull.details.unite, 'j');
-  assertEq('calendrier methode',       rfull.methode, 'calendrier');
-
-  // details normalisés présents
-  assert('calendrier details.capacite > 0', rfull.details.capacite > 0);
-  assert('calendrier details.libre >= 0',   rfull.details.libre    >= 0);
-}
-
-// ── getPilierRemplissage — priorité par présence de données (remplace 'additif', 2026-07) ──
-// Le moteur n'est plus piloté par les cases Paramètres modules.estimation/modules.calendrier :
-// sessions renseignées quelque part dans le portefeuille → calendrier prime entièrement ; sinon
-// charge estimée renseignée sur une mission active → estimation prime ; sinon aucun KPI. Pas de
-// somme des deux (contrairement à l'ancien mode 'additif') — retour Faustine, version la plus
-// simple assumée.
+// ── getPilierRemplissage — une seule source de vérité : chargeEstimee, jamais les sessions ──
+// (2026-07-25 — remplace la version data-driven "session > estimation" testée juste avant,
+// jugée trop complexe à comprendre/tester en pratique, retour Faustine). Les sessions ne
+// contribuent plus JAMAIS à ce pilier, quelle que soit leur présence.
 {
   const now  = new Date();
   const y = now.getFullYear(), mo = now.getMonth() + 1;
@@ -292,53 +262,46 @@ function makeData(overrides = {}) {
   const daysInMonth = new Date(y, mo, 0).getDate();
   const pad = n => String(n).padStart(2, '0');
   const mFirst = `${curMk}-01`, mLast = `${curMk}-${pad(daysInMonth)}`;
-  const base = { params: { ...PARAMS_BASE } }; // pas de modules.* : sans effet sur le choix du moteur
+  const base = { params: { ...PARAMS_BASE } };
 
-  // 1. Une mission, chargeEstimee seule (aucune session nulle part) → moteur estime
+  // 1. chargeEstimee seule (aucune session) → methode estime, utilise=chargeEstimee
   {
     const m = { isManagement: false, isRecurring: true, statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: [] };
     const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
-    assertEq('priorité données · chargeEstimee seule → methode estime', r.methode, 'estime');
-    assertEq('priorité données · chargeEstimee seule → utilise=14', r.details.utilise, 14);
+    assertEq('chargeEstimee seule → methode estime', r.methode, 'estime');
+    assertEq('chargeEstimee seule → utilise=14', r.details.utilise, 14);
   }
 
-  // 2. Une mission, une session (même sans heures) → moteur calendrier
+  // 2. Sessions seules, aucune chargeEstimee → aucun KPI (les sessions ne comptent jamais ici)
   {
-    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0, sessions: [{ debut: mFirst, fin: mLast }] };
+    const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0, sessions: [{ debut: mFirst, fin: mLast, heures: 40 }] };
     const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
-    assertEq('priorité données · session seule → methode calendrier', r.methode, 'calendrier');
+    assertEq('sessions seules, sans chargeEstimee → methode aucun', r.methode, 'aucun');
+    assertEq('sessions seules, sans chargeEstimee → details null', r.details, null);
   }
 
-  // 3. Une mission a une session, une AUTRE mission n'a que chargeEstimee → calendrier prime
-  // globalement (pas de somme : la mission chargeEstimee-only n'est simplement pas comptée).
-  {
-    const mRec  = { isManagement: false, isRecurring: true,  statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: [] };
-    const mPonc = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0,  sessions: [{ debut: mFirst, fin: mLast, heures: 40 }] };
-    const r = P.getPilierRemplissage(makeData({ ...base, missions: [mRec, mPonc] }));
-    assertEq('priorité données · mix session + chargeEstimee (missions différentes) → calendrier', r.methode, 'calendrier');
-  }
-
-  // 4. Une même mission a les deux renseignés → calendrier prime quand même
+  // 3. chargeEstimee ET sessions sur la même mission → seule chargeEstimee compte
   {
     const m = { isManagement: false, isRecurring: true, statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: [{ debut: mFirst, fin: mLast, heures: 40 }] };
     const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
-    assertEq('priorité données · même mission avec les deux → calendrier', r.methode, 'calendrier');
+    assertEq('chargeEstimee + sessions → methode estime (sessions ignorées)', r.methode, 'estime');
+    assertEq('chargeEstimee + sessions → utilise=14 (pas 40)', r.details.utilise, 14);
   }
 
-  // 5. Rien de rempli nulle part → aucun KPI
+  // 4. Rien de rempli nulle part → aucun KPI
   {
     const m = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 0, sessions: [] };
     const r = P.getPilierRemplissage(makeData({ ...base, missions: [m] }));
-    assertEq('priorité données · rien de rempli → methode aucun', r.methode, 'aucun');
-    assertEq('priorité données · rien de rempli → details null', r.details, null);
+    assertEq('rien de rempli → methode aucun', r.methode, 'aucun');
+    assertEq('rien de rempli → details null', r.details, null);
   }
 
-  // 6. Les cases Paramètres modules.estimation/calendrier n'ont plus aucun effet ici
+  // 5. Les cases Paramètres modules.estimation/calendrier n'ont plus aucun effet ici
   {
     const m = { isManagement: false, isRecurring: true, statut: 'cours', chargeEstimee: 14, chargeUnit: 'h_sem', sessions: [] };
     const baseAvecModules = { params: { ...PARAMS_BASE, modules: { estimation: false, calendrier: true } } };
     const r = P.getPilierRemplissage(makeData({ ...baseAvecModules, missions: [m] }));
-    assertEq('priorité données · cases Paramètres ignorées, seule la donnée compte → estime', r.methode, 'estime');
+    assertEq('cases Paramètres ignorées → estime', r.methode, 'estime');
   }
 }
 
@@ -386,6 +349,18 @@ function makeData(overrides = {}) {
     P.sessionCouvreJour(sSansFinDefaut, mercredi), true);
   assertEq('sessionCouvreJour sansFin sans `jours` → défaut lun-ven (week-end exclu)',
     P.sessionCouvreJour(sSansFinDefaut, semaine[5]), false); // samedi
+
+  // ── sessionCouvreJour bornée + `jours` (2026-07-25, "jours concernés" cosmétique
+  // aussi pour une session datée — retour Faustine) ──
+  const sBorneeAvecJours = { debut: '2026-01-05', fin: '2026-01-11', jours: [3] }; // mercredi seulement
+  assertEq('sessionCouvreJour bornée + jours · jour sélectionné → true',
+    P.sessionCouvreJour(sBorneeAvecJours, mercredi), true);
+  assertEq('sessionCouvreJour bornée + jours · jour non sélectionné (mais dans la plage) → false',
+    P.sessionCouvreJour(sBorneeAvecJours, nonMercredi), false);
+  assertEq('sessionCouvreJour bornée + jours · hors plage même le bon jour → false',
+    P.sessionCouvreJour(sBorneeAvecJours, mercrediLointain), false);
+  assertEq('sessionCouvreJour bornée SANS `jours` (rétrocompat) → tous les jours couverts, week-end inclus',
+    P.sessionCouvreJour(sBornee, semaine[5]), true); // samedi, comportement historique inchangé
 
   // ── getChargeSessionJour ──
   // Bornée : comportement EXISTANT, inchangé — heures = total sur la plage entière.

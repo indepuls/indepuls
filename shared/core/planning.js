@@ -2,23 +2,21 @@
 // Domaine : gestion du temps de travail (capacité, taux d'occupation, score).
 // Ce fichier ne contient aucun calcul financier.
 //
-// Deux moteurs de calcul, mutuellement exclusifs :
-//   estime      → charge estimée en h/sem par affaire (m.chargeEstimee/chargeUnit)
-//   calendrier  → sessions bornées {debut, fin, heures?} ou récurrentes sans fin
-//                 {debut, sansFin:true, jours?:[1..5], heures?/mois} + page Planning
+// Le pilier Remplissage (getPilierRemplissage) a UNE seule source de vérité : le temps
+// planifié estimatif (m.chargeEstimee/chargeUnit, converti en h/semaine). Les sessions
+// {debut, fin, heures?} ou récurrentes sans fin {debut, sansFin:true, jours?:[1..5],
+// heures?/mois} n'entrent JAMAIS dans ce calcul — elles servent uniquement à positionner la
+// mission sur le calendrier (page Planning / vue Calendrier de Missions) et à dériver le
+// "temps total estimé" affiché dans la fiche mission (comparaison prévu/réel, indepuls.html).
 //
-// Choix du moteur piloté par la DONNÉE, pas par un réglage Paramètres (chantier "vue
-// calendrier", 2026-07 — remplace l'ancien mode 'additif' et les cases modules.estimation/
-// modules.calendrier pour ce calcul précis) : si au moins une session existe quelque part dans
-// le portefeuille, le moteur calendrier prime entièrement ; sinon, si au moins une charge
-// estimée est renseignée sur une mission active, le moteur estimation prime ; sinon, aucun KPI.
-// Volontairement PAS de somme des deux moteurs — une mission sans session n'est simplement plus
-// comptée dès qu'au moins une autre mission du portefeuille a des sessions (retour Faustine :
-// version la plus simple, quitte à ce cas de figure).
+// Historique (chantier "vue calendrier", 2026-07) : une version précédente choisissait entre un
+// moteur "estime" (chargeEstimee) et un moteur "calendrier" (sessions) selon la présence de
+// données — jugée après coup trop complexe à comprendre et à tester (retour Faustine,
+// 2026-07-25), remplacée par cette version à une seule source.
 // Point d'entrée unique pour les widgets et le Score Santé : getPilierRemplissage(DATA)
 //
 // Hiérarchie source de vérité :
-//   Temps prévu  = session.heures / chargeEstimee (planning, remplissage)
+//   Temps prévu  = chargeEstimee (remplissage) — jamais les sessions
 //   Temps réel   = timerAccumulated + tempsManuel + confirmFacturation
 //   → jamais additionnés automatiquement
 
@@ -55,17 +53,21 @@ export function joursOuvrésSemaine(debut, fin) {
 // fin) — tous les calculs de charge/remplissage de ce fichier les réutilisent, pour éviter de
 // dupliquer 5 fois la même logique de dates (c'était déjà le cas avant cette évolution).
 
-// Vrai si la session couvre le jour ds. Bornée : n'importe quel jour de la plage, week-ends
-// inclus (comportement existant, inchangé — un chantier peut très bien avoir une session le
-// samedi). Sans fin : seulement les jours de semaine sélectionnés, à partir de debut, sans
-// limite dans le futur.
+// Vrai si la session couvre le jour ds. Bornée : tous les jours de la plage par défaut (week-ends
+// inclus, comportement historique) — sauf si `s.jours` est renseigné (2026-07-25 : "jours
+// concernés" est désormais disponible aussi pour une session datée, purement cosmétique pour
+// l'affichage calendrier, retour Faustine), auquel cas seuls ces jours de semaine sont couverts.
+// Sans fin : toujours filtrée par `s.jours` (motif hebdomadaire, défaut lun-ven), à partir de
+// debut, sans limite dans le futur.
 export function sessionCouvreJour(s, ds) {
   if (ds < s.debut) return false;
   if (s.sansFin) {
     const jours = (s.jours && s.jours.length) ? s.jours : [1, 2, 3, 4, 5];
     return jours.includes(new Date(ds + 'T00:00:00').getDay());
   }
-  return ds <= (s.fin || s.debut);
+  if (ds > (s.fin || s.debut)) return false;
+  if (s.jours && s.jours.length) return s.jours.includes(new Date(ds + 'T00:00:00').getDay());
+  return true;
 }
 
 // Nombre de jours où la session sans fin s'applique dans la fenêtre [debut, fin] (bornée par
@@ -281,23 +283,22 @@ export function scorerRemplissage(pct) {
 
 // ── POINT D'ENTRÉE UNIFIÉ ─────────────────────────────────────
 //
-// Retourne un objet uniforme consommé par wScoreSante() et wRemplissage(),
-// quel que soit le mode actif. Les widgets ne connaissent pas le mode.
+// Retourne un objet uniforme consommé par wScoreSante() et wRemplissage() — toujours basé sur
+// le temps planifié (m.chargeEstimee), jamais les sessions.
 //
 // details (normalisé) :
 //   { capacite, utilise, libre, taux, unite }
-//   capacite : valeur max  (h/sem en mode estime, j ouvrables en mode calendrier)
+//   capacite : valeur max  (h/sem)
 //   utilise  : valeur consommée
 //   libre    : capacite - utilise
-//   taux     : % arrondi (peut dépasser 100 en mode estime)
-//   unite    : 'h/sem' | 'j'
+//   taux     : % arrondi (peut dépasser 100)
+//   unite    : 'h/sem'
 //
-// Mode 'aucun' ou modePlanning absent → details: null, score neutre 12.
+// Mode 'aucun' (aucune charge estimée nulle part) → details: null, score neutre 12.
 
 // Jours travaillés restants dans la semaine ISO en cours (aujourd'hui inclus), en supposant
-// une semaine travaillée du lundi au (joursParSemaine)e jour — seule information disponible en
-// mode estimation, qui ne date aucune mission jour par jour (contrairement au calendrier, voir
-// _restantCalendrierMois plus bas). Hypothèse nécessaire, pas une vérité terrain.
+// une semaine travaillée du lundi au (joursParSemaine)e jour — hypothèse nécessaire, pas une
+// vérité terrain (le pilier ne date aucune mission jour par jour).
 function _joursRestantsSemaine(DATA) {
   const joursParSemaine = Math.max(1, DATA.params.joursParSemaine || 4);
   const now = new Date();
@@ -361,139 +362,21 @@ function resultatHSemaine(DATA, methode, cap, charge) {
   };
 }
 
-// Capacité et occupation restantes du mois EN COURS, comptées à partir d'AUJOURD'HUI (inclus)
-// jusqu'à la fin du mois — un jour déjà passé sans mission ne peut plus être rempli a
-// posteriori (retour Faustine, 2026-07 : "il ne me reste pas 77h, la semaine dernière je
-// n'avais aucun client, ces heures-là sont perdues"). Exact (mode calendrier = missions datées),
-// contrairement à l'approximation nécessaire en mode estimation (_joursRestantsSemaine
-// ci-dessus). Le score/taux du pilier restent basés sur le mois complet (comparaison stable).
-// capaciteTotale/utiliseTotale = totaux du mois complet (rm.capaciteH/occupiedH ou
-// rm.ouvrables/occupied) — nécessaires pour dériver `perdu` : la part de capacité des jours
-// DÉJÀ ÉCOULÉS qui n'a pas été occupée (donc irrattrapable), distincte de `libre` (capacité
-// des jours restants). Retourne { libre, perdu }.
-function _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotale, utiliseTotale) {
-  const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth() + 1;
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const pad = n => String(n).padStart(2, '0');
-  const today = `${year}-${pad(month)}-${pad(now.getDate())}`;
-  const mLast = `${year}-${pad(month)}-${pad(daysInMonth)}`;
-  const joursRestants = joursOuvrésSemaine(today, mLast);
-
-  const sessRestantes = [];
-  DATA.missions.forEach(m => {
-    if (m.isManagement || !(m.sessions || []).length) return;
-    m.sessions.forEach(s => {
-      if (_sessionToucheMois(s, today, mLast)) sessRestantes.push(s);
-    });
-  });
-
-  let capaciteRestante, occupeRestante;
-  if (isH) {
-    occupeRestante = 0;
-    sessRestantes.forEach(s => {
-      if (s.sansFin) { occupeRestante += _chargeSansFinPeriode(s, today, mLast); return; }
-      const fin = s.fin || s.debut;
-      const clipDebut = s.debut < today ? today : s.debut;
-      const clipFin   = fin > mLast ? mLast : fin;
-      const joursTotal = joursOuvrésSemaine(s.debut, fin);
-      const joursClip  = joursOuvrésSemaine(clipDebut, clipFin);
-      occupeRestante += (s.heures / joursTotal) * joursClip;
-    });
-    occupeRestante = Math.round(occupeRestante * 10) / 10;
-    capaciteRestante = joursRestants * heuresParJour;
-  } else {
-    occupeRestante = 0;
-    for (let d = now.getDate(); d <= daysInMonth; d++) {
-      const ds = `${year}-${pad(month)}-${pad(d)}`;
-      const hit = DATA.missions.some(m => {
-        if (m.isManagement || !(m.sessions || []).length) return false;
-        return m.sessions.some(s => sessionCouvreJour(s, ds));
-      });
-      if (hit) occupeRestante++;
-    }
-    capaciteRestante = joursRestants;
-  }
-
-  const libre = Math.max(0, Math.round((capaciteRestante - occupeRestante) * 10) / 10);
-  const capacitePassee = Math.max(0, capaciteTotale - capaciteRestante);
-  const utilisePassee  = Math.max(0, utiliseTotale - occupeRestante);
-  const perdu = Math.max(0, Math.round((capacitePassee - utilisePassee) * 10) / 10);
-  return { libre, perdu };
-}
-
 export function getPilierRemplissage(DATA) {
-  // Choix du moteur par présence de données, pas par les cases Paramètres modules.estimation/
-  // modules.calendrier (voir doc en tête de fichier) — sessions renseignées quelque part dans le
-  // portefeuille → calendrier prime ; sinon charge estimée renseignée sur une mission active →
-  // estimation prime ; sinon aucun KPI.
-  const hasSessions   = DATA.missions.some(m => !m.isManagement && (m.sessions || []).length > 0);
+  // Une seule source de vérité, toujours : le "temps planifié" (m.chargeEstimee/chargeUnit),
+  // jamais les sessions/dates (retour Faustine, 2026-07-25 — la version data-driven session>
+  // estimation testée juste avant s'est révélée trop complexe à comprendre/tester en pratique).
+  // Les sessions servent uniquement à afficher la mission sur le calendrier et à dériver le
+  // "temps total estimé" (comparaison prévu/réel côté fiche mission) — jamais ce pilier.
   const hasEstimation = DATA.missions.some(m => !m.isManagement && (m.statut === 'cours' || _isRecurringStillActive(m)) && m.chargeEstimee > 0);
-  const mode = hasSessions ? 'calendrier' : hasEstimation ? 'estime' : 'aucun';
-
-  if (mode === 'estime') {
-    const cap    = getCapaciteHSem(DATA);
-    const charge = getChargeEstimeeTotal(DATA);
-    return resultatHSemaine(DATA, 'estime', cap, charge);
+  if (!hasEstimation) {
+    return {
+      score: 12, valeur: '—', sousTitre: 'Non renseigné',
+      diagnostic: '○ Renseignez un temps planifié estimatif sur vos missions pour obtenir cet indicateur.',
+      conseil: '', methode: 'aucun', details: null,
+    };
   }
-
-  if (mode === 'calendrier') {
-    const fmt1 = v => Math.round(v * 10) / 10; // 1 décimale
-    const year  = DATA.currentYear;
-    const now   = new Date();
-    const curMk = `${year}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const rm    = getTauxRemplissageMois(DATA, curMk);
-
-    // Adapte les labels et details selon le mode retourné (heures ou jours)
-    const isH    = rm.mode === 'heures';
-    const heuresParJour = DATA.params.heuresParJour || 7;
-    const capaciteTotaleMois = isH ? rm.capaciteH : rm.ouvrables;
-    const utiliseTotaleMois  = isH ? rm.occupiedH  : (rm.occupied || 0);
-    const {libre: libres, perdu} = _restantCalendrierMois(DATA, isH, heuresParJour, capaciteTotaleMois, utiliseTotaleMois);
-    const sousTitre = isH
-      ? `${fmt1(rm.occupiedH)} h / ${rm.capaciteH} h capacité`
-      : `${rm.occupied} j / ${rm.ouvrables} j ouvrables`;
-    const details = isH
-      ? { capacite: rm.capaciteH, utilise: rm.occupiedH, libre: libres, perdu, taux: rm.taux, unite: 'h' }
-      : { capacite: rm.ouvrables, utilise: rm.occupied || 0, libre: libres, perdu, taux: rm.taux, unite: 'j' };
-
-    if (rm.ouvrables === 0) {
-      return {
-        score: 12, valeur: '—', sousTitre: 'Non renseigné',
-        diagnostic: '○ Planifiez vos sessions pour activer cet indicateur.',
-        conseil: "Ajoutez des sessions dans l'onglet Planning.", methode: 'calendrier',
-        details,
-      };
-    }
-
-    const t     = rm.taux;
-    const score = scorerRemplissage(t);
-    let diagnostic, conseil;
-    const uniteLibre = isH ? 'h' : `jour${libres > 1 ? 's' : ''}`;
-    if (t > 100) {
-      diagnostic = `Votre capacité facturable est dépassée (${t} %). Risque de surcharge ou d'épuisement à moyen terme.`;
-      conseil    = 'Envisagez de déléguer ou de refuser les activités les moins rentables.';
-    } else if (t >= 90) {
-      diagnostic = `Votre planning est presque plein (${t} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
-      conseil    = "Évitez d'accepter de nouvelles activités sans ajuster votre organisation.";
-    } else if (t >= 75) {
-      diagnostic = 'Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
-      conseil    = libres > 0 ? `${fmt1(libres)} ${uniteLibre} disponibles ce mois — idéal pour le pilotage et les opportunités ponctuelles.` : '';
-    } else if (t >= 40) {
-      diagnostic = "Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
-      conseil    = `${fmt1(libres)} ${uniteLibre} encore disponibles ce mois — cherchez à consolider votre portefeuille client.`;
-    } else {
-      diagnostic = `Votre capacité est largement sous-utilisée (${t} %). Le principal enjeu est actuellement de développer votre activité.`;
-      conseil    = "Priorité à la prospection et aux relances. L'objectif de revenu est en danger.";
-    }
-
-    return { score, methode: 'calendrier', valeur: t + ' %', sousTitre, diagnostic, conseil, details };
-  }
-
-  // Mode 'aucun' : ni session, ni charge estimée renseignée nulle part
-  return {
-    score: 12, valeur: '—', sousTitre: 'Non renseigné',
-    diagnostic: '○ Renseignez un temps planifié ou des sessions sur vos missions pour obtenir cet indicateur.',
-    conseil: '', methode: 'aucun', details: null,
-  };
+  const cap    = getCapaciteHSem(DATA);
+  const charge = getChargeEstimeeTotal(DATA);
+  return resultatHSemaine(DATA, 'estime', cap, charge);
 }
