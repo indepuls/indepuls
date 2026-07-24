@@ -816,7 +816,7 @@ html,body{overflow-x:hidden;}
       <button class="tab-btn active" onclick="switchParamTab('activite',this)">Mon activité</button>
       <button class="tab-btn" onclick="switchParamTab('fiscalite',this)">Fiscalité & charges</button>
       <button class="tab-btn" onclick="switchParamTab('objectifs',this)">Mes objectifs</button>
-      <button class="tab-btn" id="tab-btn-categories" onclick="switchParamTab('offres',this)">Mes offres</button>
+      <button class="tab-btn" id="tab-btn-categories" onclick="switchParamTab('offres',this)">Mes catégories</button>
       <button class="tab-btn" onclick="switchParamTab('perso',this)">Personnalisation</button>
     </div>
 
@@ -2605,7 +2605,7 @@ const VOCABULARY_FAMILIES = {
     createButton:'Créer une mission', countMonth:'Missions ce mois',
     sessions:'Sessions mission', goTo:'→ Aller dans Missions',
     createFromTest:'Créer une mission à partir de ce test',
-    tabCategories:'Offres & missions',
+    tabCategories:'Mes catégories',
     catTitle:'Mes offres & catégories de missions',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     coutDirectLabel:'Fournitures & matériaux',
@@ -2624,7 +2624,7 @@ const VOCABULARY_FAMILIES = {
     createButton:'Créer un chantier', countMonth:'Chantiers ce mois',
     sessions:'Sessions chantier', goTo:'→ Aller dans Chantiers',
     createFromTest:'Créer un chantier à partir de ce test',
-    tabCategories:'Offres & chantiers',
+    tabCategories:'Mes catégories',
     catTitle:'Mes offres & catégories de chantiers',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de chantiers. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.',
     coutDirectLabel:'Fournitures & matériaux',
@@ -2643,7 +2643,7 @@ const VOCABULARY_FAMILIES = {
     createButton:'Créer une commande', countMonth:'Commandes ce mois',
     sessions:'Sessions production', goTo:'→ Aller dans Commandes',
     createFromTest:'Créer une commande à partir de ce test',
-    tabCategories:'Produits & commandes',
+    tabCategories:'Mes catégories',
     catTitle:'Mes produits & catégories de commandes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de commandes.\nVous pouvez renseigner vos produits, gammes, collections ou simplement des catégories de fabrication.',
     coutDirectLabel:'Matières premières & fournitures',
@@ -2662,7 +2662,7 @@ const VOCABULARY_FAMILIES = {
     createButton:'Ajouter une vente', countMonth:'Ventes ce mois',
     sessions:'Sessions', goTo:'→ Aller dans Ventes',
     createFromTest:'Créer une vente à partir de ce test',
-    tabCategories:'Produits & ventes',
+    tabCategories:'Mes catégories',
     catTitle:'Mes catégories de ventes',
     catDesc:'Ces entrées apparaissent dans les menus déroulants lors de la création de ventes. Vous pouvez y renseigner vos types de produits ou catégories.',
     coutDirectLabel:'Coût d\'achat',
@@ -10251,8 +10251,11 @@ function renderCategoriesList() {
       <button class="btn btn-acc btn-xs" onclick="saveCatEdit(${i})" title="Enregistrer">✓</button>
       <button class="btn btn-out btn-xs" onclick="cancelCatEdit()" title="Annuler">✗</button>
     </div>`;
+    const _up=i>0, _down=i<DATA.categories.length-1;
     return `<div class="flex gap6 mb8">
       <span style="flex:1;padding:7px 12px;background:var(--bg);border-radius:8px;font-size:13px">${c}</span>
+      <button class="btn btn-out btn-xs" onclick="moveCat(${i},-1)" title="Monter" ${_up?'':'disabled'} style="${_up?'':'opacity:.3;cursor:default'}">↑</button>
+      <button class="btn btn-out btn-xs" onclick="moveCat(${i},1)" title="Descendre" ${_down?'':'disabled'} style="${_down?'':'opacity:.3;cursor:default'}">↓</button>
       <button class="btn btn-out btn-xs" onclick="startEditCat(${i})" title="Modifier">✏️</button>
       <button class="btn btn-del btn-xs" onclick="deleteCat(${i})">🗑</button>
     </div>`;
@@ -10261,6 +10264,14 @@ function renderCategoriesList() {
 }
 function startEditCat(i) { _editCatIdx=i; renderCategoriesList(); }
 function cancelCatEdit() { _editCatIdx=-1; renderCategoriesList(); }
+// Réordonnancement manuel (retour Faustine, 2026-07) : les missions référencent une catégorie
+// par sa VALEUR (m.categorie, string), jamais par son index — permuter l'ordre du tableau ne
+// casse donc aucune donnée existante, ça ne change que l'ordre d'affichage dans les <select>.
+function moveCat(i, dir) {
+  const j=i+dir; if(j<0||j>=DATA.categories.length) return;
+  [DATA.categories[i], DATA.categories[j]] = [DATA.categories[j], DATA.categories[i]];
+  saveData(); renderCategoriesList();
+}
 function saveCatEdit(i) {
   const inp=document.getElementById('edit-cat-inp'); if(!inp) return;
   const val=inp.value.trim(); if(!val) return;
@@ -10293,8 +10304,11 @@ function renderCategoriesTempsList() {
       <button class="btn btn-acc btn-xs" onclick="saveCatTempsEdit(${i})" title="Enregistrer">✓</button>
       <button class="btn btn-out btn-xs" onclick="cancelCatTempsEdit()" title="Annuler">✗</button>
     </div>`;
+    const _up=i>0, _down=i<cats.length-1;
     return `<div class="flex gap6 mb8">
       <span style="flex:1;padding:7px 12px;background:var(--bg);border-radius:8px;font-size:13px">${c}</span>
+      <button class="btn btn-out btn-xs" onclick="moveCatTemps(${i},-1)" title="Monter" ${_up?'':'disabled'} style="${_up?'':'opacity:.3;cursor:default'}">↑</button>
+      <button class="btn btn-out btn-xs" onclick="moveCatTemps(${i},1)" title="Descendre" ${_down?'':'disabled'} style="${_down?'':'opacity:.3;cursor:default'}">↓</button>
       <button class="btn btn-out btn-xs" onclick="startEditCatTemps(${i})" title="Modifier">✏️</button>
       <button class="btn btn-del btn-xs" onclick="deleteCatTemps(${i})">🗑</button>
     </div>`;
@@ -10303,6 +10317,12 @@ function renderCategoriesTempsList() {
 }
 function startEditCatTemps(i) { _editCatTempsIdx=i; renderCategoriesTempsList(); }
 function cancelCatTempsEdit() { _editCatTempsIdx=-1; renderCategoriesTempsList(); }
+// Même principe que moveCat() ci-dessus : DATA.tempsManuel[].categorie référence par valeur.
+function moveCatTemps(i, dir) {
+  const cats=DATA.categoriesTemps||[]; const j=i+dir; if(j<0||j>=cats.length) return;
+  [cats[i], cats[j]] = [cats[j], cats[i]];
+  saveData(); renderCategoriesTempsList();
+}
 function saveCatTempsEdit(i) {
   const inp=document.getElementById('edit-cat-temps-inp'); if(!inp) return;
   const val=inp.value.trim(); if(!val) return;
