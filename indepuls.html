@@ -670,12 +670,17 @@ html,body{overflow-x:hidden;}
       </div>
       <div id="missions-view-table">
         <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
-          <button class="btn btn-out btn-xs active-filter" onclick="filterMissions('all',this)">Toutes</button>
-          <button class="btn btn-out btn-xs" onclick="filterMissions('att',this)" id="mf-btn-att">En attente</button>
-          <button class="btn btn-out btn-xs" onclick="filterMissions('cours',this)" id="mf-btn-cours">En cours</button>
-          <button class="btn btn-out btn-xs" onclick="filterMissions('ref',this)" id="mf-btn-ref">Refusées</button>
-          <button class="btn btn-out btn-xs" onclick="filterMissions('fact',this)" id="mf-btn-fact">Facturées</button>
-          <button class="btn btn-out btn-xs" onclick="filterMissions('paye',this)" id="mf-btn-paye" style="display:none">Payées</button>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--tl);white-space:nowrap">Statut</span>
+            <select id="mission-filter-select" class="s-select" onchange="filterMissions(this.value)">
+              <option value="all">Toutes</option>
+              <option value="att" id="mf-opt-att">En attente</option>
+              <option value="cours" id="mf-opt-cours">En cours</option>
+              <option value="ref" id="mf-opt-ref">Refusées</option>
+              <option value="fact" id="mf-opt-fact">Facturées</option>
+              <option value="paye" id="mf-opt-paye" hidden>Payées</option>
+            </select>
+          </div>
           <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
             <option value="newest">↓ Plus récent</option>
             <option value="oldest">↑ Plus ancien</option>
@@ -8039,15 +8044,16 @@ function deleteMission(id) {
   if(currentPage==='recettes') renderRecettes();
 }
 
-function filterMissions(f, btn) {
+function filterMissions(f) {
   missionFilter=f;
-  document.querySelectorAll('#mission-filters .btn').forEach(b=>b.classList.remove('active-filter'));
-  if(btn) btn.classList.add('active-filter');
+  const sel=document.getElementById('mission-filter-select');
+  if(sel) sel.value=f;
   renderMissions();
 }
 function goToMission(id) {
   missionFilter='all';
-  document.querySelectorAll('#mission-filters .btn').forEach((b,i)=>{b.classList.toggle('active-filter',i===0);});
+  const sel=document.getElementById('mission-filter-select');
+  if(sel) sel.value='all';
   navigate('missions');
   setTimeout(()=>{
     const row=document.getElementById('mrow-'+id);
@@ -8892,9 +8898,9 @@ function getTrajectoireCompacte(m) {
 }
 function renderMissions() {
   renderMissionsSummary(DATA.missions);
-  const _mfAtt=document.getElementById('mf-btn-att'), _mfCours=document.getElementById('mf-btn-cours'),
-        _mfRef=document.getElementById('mf-btn-ref'), _mfFact=document.getElementById('mf-btn-fact'),
-        _mfPaye=document.getElementById('mf-btn-paye');
+  const _mfAtt=document.getElementById('mf-opt-att'), _mfCours=document.getElementById('mf-opt-cours'),
+        _mfRef=document.getElementById('mf-opt-ref'), _mfFact=document.getElementById('mf-opt-fact'),
+        _mfPaye=document.getElementById('mf-opt-paye');
   if(_mfAtt) _mfAtt.textContent=tVocabStatut('att');
   if(_mfCours) _mfCours.textContent=tVocabStatut('cours');
   if(_mfRef) _mfRef.textContent=tVocabStatutPluriel('ref');
@@ -8904,13 +8910,24 @@ function renderMissions() {
   if(_mfPaye){
     const _familyPaye=BUSINESS_PROFILE_MAP[DATA.params?.metier]||DEFAULT_FAMILY;
     const _labelsPaye=STATUT_LABELS[_familyPaye]||STATUT_LABELS[DEFAULT_FAMILY];
-    if(_labelsPaye.factPayePl){ _mfPaye.style.display=''; _mfPaye.textContent=_labelsPaye.factPayePl; }
-    else { _mfPaye.style.display='none'; if(missionFilter==='paye') missionFilter='all'; }
+    if(_labelsPaye.factPayePl){ _mfPaye.hidden=false; _mfPaye.textContent=_labelsPaye.factPayePl; }
+    else { _mfPaye.hidden=true; if(missionFilter==='paye') missionFilter='all'; }
   }
+  const _mfSel=document.getElementById('mission-filter-select');
+  if(_mfSel && _mfSel.value!==missionFilter) _mfSel.value=missionFilter;
   const tbody=document.getElementById('missions-tbody'); tbody.innerHTML='';
   const bm={att:'b-att',cours:'b-cours',ref:'b-ref',fact:'b-fact'};
   const tvaOn=DATA.params.tva, tvaRate=DATA.params.tauxTVA/100;
-  let filtered=DATA.missions.filter(m=>missionFilter==='all'||(missionFilter==='paye'?estMissionPayee(m):m.statut===missionFilter)||(missionFilter==='cours'&&isRecurringStillActive(m)));
+  // "Facturées" exclut désormais les missions payées (statut dérivé, jamais stocké — voir
+  // estMissionPayee()) : sans ce filtre, une mission facturée puis payée restait dans les deux
+  // filtres à la fois, ce qui n'a pas de sens pour l'utilisatrice (retour Faustine, 2026-07).
+  let filtered=DATA.missions.filter(m=>{
+    if(missionFilter==='all') return true;
+    if(missionFilter==='paye') return estMissionPayee(m);
+    if(missionFilter==='fact') return m.statut==='fact'&&!estMissionPayee(m);
+    if(missionFilter==='cours') return m.statut==='cours'||isRecurringStillActive(m);
+    return m.statut===missionFilter;
+  });
   filtered.sort((a,b)=>{
     if(b.isManagement!==a.isManagement) return (b.isManagement?1:0)-(a.isManagement?1:0);
     if(missionSort==='oldest') return (a.id||'').localeCompare(b.id||'');
