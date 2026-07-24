@@ -23,11 +23,51 @@
 - ✅ Reformuler l'alerte concentration client : constat factuel + action concrète (relancer un prospect / garder un autre client actif)
 - ✅ Label score confirmé : affiche bien "Santé de votre activité"
 - ✅ Onboarding empty state déjà solide (4 étapes numérotées, progression visible, textes clairs) — aucune action requise
-- Reformuler le contenu interne des modals piliers (langage résiduel)
-- Descendre graphiques et donut en couche secondaire (scroll)
-- Fusionner TVA + URSSAF + provisions en un seul widget
-- Trajectoire duale sous chaque indicateur (Phase 1 semaine 3–4)
-- Indicateur de fraîcheur global (% des données disponibles)
+- ✅ Fusionner TVA + URSSAF + provisions en un seul widget (déjà fait via wProvisionsSide — "Argent à mettre de côté")
+- ❌ Indicateur de fraîcheur global en % — abandonné (9 juillet 2026) : la date simple ("Basé sur vos données du X") est jugée plus honnête et vérifiable qu'un pourcentage abstrait
+- Reformuler le contenu interne des modals piliers (langage résiduel) — à vérifier sur capture d'écran réelle avant de trancher
+- Descendre graphiques et donut en couche secondaire (scroll) — toujours pertinent, non fait
+
+### ✅ Nouveaux chantiers — décidés le 9 juillet 2026, faits (2026-07)
+Suite à l'audit du dashboard actuel (risque de ressembler à un logiciel de facturation générique type Freebe/Indy sur le bloc CA annuel / TH réel / graphique) :
+- ✅ CA annuel + revenu net du mois + graphique fusionnés dans "Votre trajectoire annuelle", avec trajectoire duale annuelle ("à ce rythme" vs "en reproduisant votre meilleur mois")
+- ✅ Trajectoire duale équivalente ajoutée pour le mois en cours (comparaison au même stade du mois vs le meilleur mois historique à ce même stade)
+- ✅ KPI "TH réel" fusionné dans le pilier Votre rentabilité (déjà dupliqué sur le même ratio) — le widget qui portait le bug de phrase mal routée a été remplacé, plus d'objet
+- ✅ Pilier Votre trésorerie enrichi : logique SASU/EURL (projection fin d'année, solde réel éditable) fusionnée dans le pilier ; version Micro/BNC/BIC enrichie des échéances URSSAF/TVA
+- ✅ Point ouvert tranché : la trésorerie SASU/EURL influence bien le score du pilier (plafonds 8/25 si projection négative, 16/25 si positive mais insuffisante)
+
+Détail complet de l'implémentation dans `CLAUDE.md`.
+
+### ✅ Retours & vocabulaire des statuts — décidé le 21 juillet 2026, fait (2026-07)
+Retour bêta-testeuse (Pauline, achat_revente) relayé par Faustine : le statut d'une vente et le traitement d'un retour sont deux choses différentes — une vente confirmée ne doit jamais être silencieusement réécrite par un retour/remboursement (principe "zéro boîte noire" appliqué au CA, pas seulement au texte).
+- ✅ `DATA.retours[]` (fabrication + achat_revente) : statut de la vente jamais modifié, retour tracé séparément (4 statuts seulement — `demande`/`accepte`/`rembourse`/`refuse`, volontairement sans étapes logistiques, hors périmètre d'un copilote de rentabilité)
+- ✅ CA net après remboursements rebranché sur le pilier Rentabilité, le bilan mensuel, les Archives — transparence "Ventes confirmées / Remboursements / CA net" plutôt qu'une marge silencieusement gonflée
+- ✅ Taux de retour en indicateur secondaire uniquement (jamais un KPI principal), visible seulement si la fonctionnalité est utilisée
+- ✅ Libellés de statut adaptés par famille (fabrication/achat_revente), sans jamais toucher aux valeurs internes ni au moteur de calcul
+- ✅ Nettoyage en passant : `wSynthese()` (widget dashboard) supprimé — code mort confirmé, aucun appelant
+
+Détail complet de l'implémentation dans `CLAUDE.md`.
+
+### ✅ Lots d'investissement — décidé le 21 juillet 2026, fait (2026-07)
+Retour bêta-testeuse (Pauline, achat_revente) : elle achète des lots de produits groupés puis revend chaque produit séparément — veut suivre coût/CA/marge par lot, sans gestion de stock article par article (explicitement hors périmètre).
+- ✅ `DATA.lots[]`, rattachement optionnel sur les dépenses et les ventes existantes (aucune structure parallèle dupliquée)
+- ✅ Statut du lot dérivé des chiffres (Rentabilisé / En cours), seule la clôture est une action manuelle
+- ✅ Rentabilité par vente individuelle **et** par lot dans son ensemble — jamais de répartition automatique des coûts du lot sur une vente (une perte volontaire compensée par une autre vente reste visible telle quelle)
+- ✅ Réservé à achat_revente uniquement
+
+**Question ouverte, non tranchée** : le même besoin existe potentiellement pour `fabricant_serie` (achat de matières premières en gros pour une série de production, revendue unité par unité) — décision de ne pas étendre sans signal terrain direct d'un utilisateur fabricant_serie, pour ne pas construire sur une simple analogie. Voir `ARCHITECTURE_PRODUIT.md` ("LOTS D'INVESTISSEMENT") pour le détail de cette décision.
+
+Détail complet de l'implémentation dans `CLAUDE.md`.
+
+### ✅ Chantier "vue calendrier" — décidé le 21 juillet 2026, fait (2026-07-24)
+Fusion du Planning dans la page Missions (toggle Tableau/Calendrier, plus d'onglet séparé), missions collectives, et une remise à plat plus profonde que prévu initialement du pilier Remplissage :
+- ✅ Vue Calendrier fusionnée dans Missions, responsive desktop/mobile, dernier choix (Tableau/Calendrier) persisté
+- ❌ Une première version du pilier Remplissage ("agrégation additive" — charge estimée pour les récurrentes, sessions pour les ponctuelles) a été construite puis **explicitement abandonnée**, jugée "trop trop complexe" par Faustine
+- ✅ Version finale, radicalement plus simple : **une seule source de vérité pour le pilier Remplissage — le temps planifié estimatif (`chargeEstimee`), jamais les sessions**, pour tous les profils sans exception
+- ✅ Formulaire "Gestion du temps" entièrement repensé en un seul modèle universel (fini le conditionnement par profil/modules) : temps planifié → sessions (dates + jours, cosmétique) → temps total estimé (préempli, toujours modifiable)
+- ✅ Sessions modifiables (pas seulement supprimables), données démo calendrier étendues aux 7 profils, fenêtres modales déplaçables (glisser par le titre — besoin remonté en passant : voir le tableau/agenda derrière une fenêtre ouverte)
+
+Détail complet de l'implémentation, de l'historique des versions essayées et des vérifications dans `CLAUDE.md` et `ARCHITECTURE_PRODUIT.md` ("SCORE DE SANTÉ — Pilier Remplissage").
 
 ---
 
