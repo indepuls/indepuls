@@ -3451,7 +3451,10 @@ function getExampleData(metier) {
   };
   const c = C[family] || C.service;
 
-  // ── Sessions calendrier pour les familles avec planning='calendrier' ──
+  // ── Sessions calendrier — générées pour toutes les familles ──
+  // La vue Calendrier est un simple toggle universel de l'onglet Missions (fusion Planning→
+  // Missions, 2026-07) : toute famille de profil doit donc voir un calendrier pré-rempli en
+  // mode démo, pas seulement chantier/fabrication (ancien gate lié à l'ex-modules.calendrier).
   // Génère un bloc de jours ouvrés dans le mois mk, à partir du jour `start`. `heures` reste
   // rempli sur ces sessions de démo pour rester représentatif de données historiques (le champ
   // "Durée" par session a été retiré du formulaire, 2026-07-25, mais les sessions existantes
@@ -3474,8 +3477,8 @@ function getExampleData(metier) {
   // du même nom : leurs heures totales (heuresSaisies compris) sont désormais rattachées au
   // mois où leur CA est reconnu, sans avoir besoin d'un tempsManuel daté.
   const tm = (id, mk, day, h) => ({id, date:`${mk}-${String(day).padStart(2,'0')}`, ms:h*3600000});
-  // Sessions démo par mission pour les familles à planning calendrier
-  const demoSessions = (family === 'chantier' || family === 'fabrication') ? {
+  // Sessions démo par mission, pour toutes les familles (voir note ci-dessus)
+  const demoSessions = {
     'ex-rec':  [...sess(mk4,3,2), ...sess(mk3,3,2), ...sess(mk2,3,2), ...sess(mk1,3,2), ...sess(mk0,3,2)],
     'ex-jan':  sess(mk4, 6, 5),
     'ex-fev':  sess(mk3, 8, 4),
@@ -3484,13 +3487,12 @@ function getExampleData(metier) {
     'ex-mai':  sess(mk1,15, 4),
     'ex-juin': sess(mk0, 2, 6),
     'ex-cours':[...sess(mk0,10, 3), ...sess(mk0,17, 3)],
-  } : {};
-  // Seul artisan bâtiment (famille 'chantier') a modules.calendrier réellement actif — fabrication
-  // (fabricant série / artisan sur commande) génère des sessions démo mais ne les affiche jamais
-  // ni ne les utilise (calendrier:false pour ces métiers), donc sans impact ici. Pour chantier,
-  // tempsPrevu d'une ponctuelle doit refléter la somme de ses sessions (source réelle, jamais un
-  // chiffre à part) plutôt que la valeur pensée pour la famille "service" — sinon même incohérence
-  // que celle remontée par Faustine sur ex-rec, mais côté ponctuelles.
+  };
+  // tempsPrevu d'une ponctuelle chantier doit refléter la somme de ses sessions (source réelle,
+  // jamais un chiffre à part) plutôt que la valeur pensée pour la famille "service" — sinon même
+  // incohérence que celle remontée par Faustine sur ex-rec, mais côté ponctuelles. Les autres
+  // familles gardent leur tempsPrevu "fallback" dédié (pensé par famille) même si elles ont
+  // désormais aussi des sessions calendrier — seul le remplissage visuel du calendrier change.
   const _isChantierFamily = family === 'chantier';
   const _sessH = id => (demoSessions[id]||[]).reduce((s,x) => s + (x.heures||0), 0);
   const _tp = (id, fallback) => _isChantierFamily ? (_sessH(id) > 0 ? _sessH(id) : null) : fallback;
