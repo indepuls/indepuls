@@ -330,6 +330,15 @@ html,body{overflow-x:hidden;}
   .notice-hero{padding:20px;}
   .notice-hero h2{font-size:18px;}
   .mob-hide{display:none !important;}
+  /* Vue Calendrier (Missions) — la grille 7 colonnes n'a plus la place pour des noms de mission
+     ni pour les boutons +/⏱ flottants (ils se chevauchaient, retour Faustine 2026-07-24) :
+     cases compactes avec de simples pastilles de couleur, actions déplacées dans le panneau
+     jour (clic sur une case) via renderPlanningDayPanel(). */
+  .planning-grid{gap:2px;}
+  .pcal-day{min-height:34px !important;padding:3px 2px !important;}
+  .pcal-daynum{font-size:10px !important;margin-bottom:0 !important;}
+  .pcal-bars,.pcal-chargebar,.pcal-addbtn,.pcal-timebtn{display:none !important;}
+  .pcal-dots{display:flex !important;}
 }
 
 /* 480px — g4 1col, padding minimal */
@@ -701,7 +710,7 @@ html,body{overflow-x:hidden;}
         <div class="mt12 flex gap10" style="flex-wrap:wrap;" id="missions-totals"></div>
       </div>
     </div>
-    <div id="missions-view-calendrier" style="display:none;max-width:1150px">
+    <div id="missions-view-calendrier" style="display:none">
       <div id="planning-content"></div>
     </div>
   </div>
@@ -3163,23 +3172,29 @@ function renderPlanning() {
       // le thème avec certaines couleurs du cycle, ex. jaune/vert clair sur fond sombre).
       return `<div style="background:${c}22;color:var(--text);border-left:2px solid ${c};border-radius:2px;padding:1px 3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;cursor:pointer;line-height:1.5" onclick="openMissionModal('${m.id}')" title="${(m.client||'')} — ${(m.description||'')}">${m.client||'—'}</div>`;
     }).join('');
+    // Mobile (≤640px, cf. media query) : la grille 7 colonnes n'a plus la place pour des noms de
+    // mission lisibles — remplacés par de simples pastilles de couleur (même colorMap que les
+    // barres), le détail complet restant accessible via le panneau jour (clic sur la case).
+    const dots = missions.slice(0,4).map(m=>`<span style="width:5px;height:5px;border-radius:50%;background:${colorMap[m.id]};flex-shrink:0"></span>`).join('')
+      + (missions.length>4?`<span style="font-size:8px;color:var(--tl);line-height:1">+${missions.length-4}</span>`:'');
     // Barre de charge journalière (visible seulement si sessions ont heures)
     const charge = modeHeures ? getChargeJourLocal(ds) : 0;
     const chargePct = modeHeures && !isWe ? Math.min(120, Math.round(charge / heuresParJour * 100)) : 0;
     const chargeCol = chargePct > 100 ? '#ef4444' : chargePct > 80 ? '#f59e0b' : '#10b981';
     const chargeBar = modeHeures && !isWe && missions.length > 0
-      ? `<div style="margin-top:3px;height:3px;border-radius:2px;background:var(--brd);overflow:hidden" title="${charge}h / ${heuresParJour}h capacité">
+      ? `<div class="pcal-chargebar" style="margin-top:3px;height:3px;border-radius:2px;background:var(--brd);overflow:hidden" title="${charge}h / ${heuresParJour}h capacité">
            <div style="height:100%;width:${Math.min(100,chargePct)}%;background:${chargeCol};transition:.3s"></div>
          </div>`
       : '';
     const isSelected = ds === _planningSelectedDay;
     const selBorder = isSelected ? `box-shadow:0 0 0 2px var(--acc);` : '';
-    return `<div style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);position:relative;cursor:pointer;${bgToday}${opWe}${selBorder}" onclick="selectPlanningDay('${ds}')">
-      <div style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
-      ${bars}
+    return `<div class="pcal-day" style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);position:relative;cursor:pointer;${bgToday}${opWe}${selBorder}" onclick="selectPlanningDay('${ds}')">
+      <div class="pcal-daynum" style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
+      <div class="pcal-bars">${bars}</div>
+      ${missions.length?`<div class="pcal-dots" style="display:none;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;margin-top:2px">${dots}</div>`:''}
       ${chargeBar}
-      <button type="button" onclick="event.stopPropagation();openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
-      <button type="button" onclick="event.stopPropagation();openAddTimeModalFromPlanning('${ds}')" title="Ajouter du temps le ${formatDateFR(ds)}" style="position:absolute;bottom:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:11px;cursor:pointer">⏱</button>
+      <button type="button" class="pcal-addbtn" onclick="event.stopPropagation();openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
+      <button type="button" class="pcal-timebtn" onclick="event.stopPropagation();openAddTimeModalFromPlanning('${ds}')" title="Ajouter du temps le ${formatDateFR(ds)}" style="position:absolute;bottom:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:11px;cursor:pointer">⏱</button>
     </div>`;
   }).join('');
 
@@ -3245,12 +3260,12 @@ function renderPlanning() {
   </div>`:''}
   <div class="planning-row" style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
     <div class="card" style="flex:1;min-width:0">
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+      <div class="planning-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
         ${wdH}
         ${calGrid}
       </div>
     </div>
-    <div class="card" id="planning-day-panel" style="width:230px;flex-shrink:0;display:none"></div>
+    <div class="card" id="planning-day-panel" style="width:260px;flex-shrink:0;display:none"></div>
   </div>
   ${missionsMois.length>0?`
   <div class="card">
@@ -3290,7 +3305,10 @@ function renderPlanningDayPanel() {
         <strong style="flex-shrink:0">${fmt(r.ms/3600000,1)}h</strong>
       </div>`).join('') : `<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun temps enregistré ce jour-là.</div>`}
     ${rows.length ? `<div style="display:flex;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--brd);font-weight:700;font-size:12px"><span>Total</span><span>${fmt(totalMs/3600000,1)}h</span></div>` : ''}
-    <button class="btn btn-out btn-xs mt10" style="width:100%;justify-content:center" onclick="openAddTimeModalFromPlanning('${ds}')">⏱ Ajouter du temps</button>
+    <div class="flex gap6 mt10">
+      <button class="btn btn-out btn-xs" style="flex:1;justify-content:center" onclick="openMissionModal(null,'${ds}')">+ ${tVocab('item')}</button>
+      <button class="btn btn-out btn-xs" style="flex:1;justify-content:center" onclick="openAddTimeModalFromPlanning('${ds}')">⏱ Temps</button>
+    </div>
   `;
 }
 
@@ -6427,11 +6445,14 @@ function wJalonFiscal() {
 let missionFilter='all', missionSort='newest', pendingFactId=null, timerInterval=null;
 
 // ── MISSIONS — VUE TABLEAU / CALENDRIER (fusion Planning→Missions, chantier "vue calendrier", 2026-07) ──
-// Remplace la page Planning dédiée : bascule visuelle en haut de la page Missions, en mémoire
-// seulement (comme missionFilter/missionSort) — repart sur "Tableau" à chaque rechargement.
-let missionsView = 'table';
-function setMissionsView(view) {
-  missionsView = view;
+// Remplace la page Planning dédiée : bascule visuelle en haut de la page Missions. Persistée
+// (localStorage, comme indepuls_last_page) pour retomber sur la même vue après un rechargement
+// ou un aller-retour vers une autre page (retour Faustine, 2026-07-24).
+let missionsView = (function() { try { return localStorage.getItem('indepuls_missions_view') || 'table'; } catch(e) { return 'table'; } })();
+// Applique l'état visuel (classes actives + affichage des 2 blocs) sans dépendre d'un clic —
+// appelée par setMissionsView() ET par renderMissions() à chaque rendu, pour rester juste même
+// juste après un rechargement de page (avant tout clic sur la bascule).
+function _applyMissionsView(view) {
   const btnTable = document.getElementById('missions-view-btn-table');
   const btnCal   = document.getElementById('missions-view-btn-calendrier');
   const zoneTable = document.getElementById('missions-view-table');
@@ -6440,6 +6461,11 @@ function setMissionsView(view) {
   if (btnCal)   btnCal.classList.toggle('active-filter', view === 'calendrier');
   if (zoneTable) zoneTable.style.display = view === 'table' ? '' : 'none';
   if (zoneCal)   zoneCal.style.display   = view === 'calendrier' ? '' : 'none';
+}
+function setMissionsView(view) {
+  missionsView = view;
+  try { localStorage.setItem('indepuls_missions_view', view); } catch(e) {}
+  _applyMissionsView(view);
   if (view === 'calendrier') renderPlanning();
 }
 
@@ -8897,6 +8923,7 @@ function getTrajectoireCompacte(m) {
   return `<div class="ts" style="color:${color};margin-top:2px">${emoji} ${reelLabel} ${fmt(reelDisp,1)}${unit} / Prévu ${fmt(prevuDisp,1)}${unit}${thTxt}</div>`;
 }
 function renderMissions() {
+  _applyMissionsView(missionsView);
   renderMissionsSummary(DATA.missions);
   const _mfAtt=document.getElementById('mf-opt-att'), _mfCours=document.getElementById('mf-opt-cours'),
         _mfRef=document.getElementById('mf-opt-ref'), _mfFact=document.getElementById('mf-opt-fact'),
