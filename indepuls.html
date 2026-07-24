@@ -337,7 +337,7 @@ html,body{overflow-x:hidden;}
   .planning-grid{gap:2px;}
   .pcal-day{min-height:34px !important;padding:3px 2px !important;}
   .pcal-daynum{font-size:10px !important;margin-bottom:0 !important;}
-  .pcal-bars,.pcal-chargebar,.pcal-addbtn,.pcal-timebtn{display:none !important;}
+  .pcal-bars,.pcal-addbtn,.pcal-timebtn{display:none !important;}
   .pcal-dots{display:flex !important;}
 }
 
@@ -3132,18 +3132,6 @@ function renderPlanning() {
   });
 
   const heuresParJour = DATA.params.heuresParJour || 7;
-  // Charge prévisionnelle par jour (h) — délègue à getChargeSessionJour (shared/core/planning.js),
-  // seul endroit qui sait interpréter une session bornée ou récurrente sans fin (y compris le
-  // filtre week-end, appliqué UNIQUEMENT aux sessions bornées désormais — une session sans fin
-  // peut couvrir le samedi/dimanche si sélectionnés).
-  const getChargeJourLocal = ds => {
-    let total = 0;
-    DATA.missions.forEach(m => {
-      if (m.isManagement) return;
-      (m.sessions||[]).forEach(s => { total += getChargeSessionJour(s, ds); });
-    });
-    return Math.round(total*10)/10;
-  };
   const rm = getTauxRemplissageMois(mk);
   const modeHeures = rm.mode === 'heures';
 
@@ -3177,22 +3165,12 @@ function renderPlanning() {
     // barres), le détail complet restant accessible via le panneau jour (clic sur la case).
     const dots = missions.slice(0,4).map(m=>`<span style="width:5px;height:5px;border-radius:50%;background:${colorMap[m.id]};flex-shrink:0"></span>`).join('')
       + (missions.length>4?`<span style="font-size:8px;color:var(--tl);line-height:1">+${missions.length-4}</span>`:'');
-    // Barre de charge journalière (visible seulement si sessions ont heures)
-    const charge = modeHeures ? getChargeJourLocal(ds) : 0;
-    const chargePct = modeHeures && !isWe ? Math.min(120, Math.round(charge / heuresParJour * 100)) : 0;
-    const chargeCol = chargePct > 100 ? '#ef4444' : chargePct > 80 ? '#f59e0b' : '#10b981';
-    const chargeBar = modeHeures && !isWe && missions.length > 0
-      ? `<div class="pcal-chargebar" style="margin-top:3px;height:3px;border-radius:2px;background:var(--brd);overflow:hidden" title="${charge}h / ${heuresParJour}h capacité">
-           <div style="height:100%;width:${Math.min(100,chargePct)}%;background:${chargeCol};transition:.3s"></div>
-         </div>`
-      : '';
     const isSelected = ds === _planningSelectedDay;
     const selBorder = isSelected ? `box-shadow:0 0 0 2px var(--acc);` : '';
     return `<div class="pcal-day" style="min-height:64px;border-radius:6px;padding:4px;border:1px solid var(--brd);position:relative;cursor:pointer;${bgToday}${opWe}${selBorder}" onclick="selectPlanningDay('${ds}')">
       <div class="pcal-daynum" style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
       <div class="pcal-bars">${bars}</div>
       ${missions.length?`<div class="pcal-dots" style="display:none;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;margin-top:2px">${dots}</div>`:''}
-      ${chargeBar}
       <button type="button" class="pcal-addbtn" onclick="event.stopPropagation();openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
       <button type="button" class="pcal-timebtn" onclick="event.stopPropagation();openAddTimeModalFromPlanning('${ds}')" title="Ajouter du temps le ${formatDateFR(ds)}" style="position:absolute;bottom:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:11px;cursor:pointer">⏱</button>
     </div>`;
@@ -3230,11 +3208,7 @@ function renderPlanning() {
   }).join('');
 
   const html = `
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
-    <div>
-      <h2 style="margin:0;font-size:20px;color:var(--pri)">📅 Planning</h2>
-      <div style="font-size:13px;color:var(--tl);margin-top:2px">Carnet de ${tVocab('items').toLowerCase()} — vue calendrier mensuelle</div>
-    </div>
+  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-out btn-sm" onclick="planningNav(-1)">‹</button>
       <span style="font-size:14px;font-weight:700;min-width:140px;text-align:center">${moisLabel}</span>
