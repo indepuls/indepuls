@@ -1641,14 +1641,7 @@ html,body{overflow-x:hidden;}
     <div class="ts" style="color:var(--tl);margin:2px 0 8px">À compléter si vous voulez voir votre taux de remplissage et vos sessions de travail sur le calendrier.</div>
     <div id="m-temps-gestion-zone" style="display:none">
       <div id="m-temps-gestion-collectif-zone" style="display:none;margin-bottom:12px">
-        <div class="alert al-info" style="font-size:12px;margin-bottom:10px">Pensez à comptabiliser votre temps de création, votre temps de suivi (réponses aux questions, feedback individuel, relectures, office hours entre les séances) et votre temps d'animation. Nous vous conseillons de créer ces catégories dans <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('params');setTimeout(()=>switchParamTab('offres',document.querySelector('#page-params [onclick*=offres]')),100)">Paramètres › Mes offres</span>.</div>
-        <div class="frow">
-          <div class="fgroup"><label class="flabel">Création (h)</label><input type="number" id="m-temps-creation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-          <div class="fgroup"><label class="flabel">Animation (h)</label><input type="number" id="m-temps-animation" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-          <div class="fgroup"><label class="flabel">Temps de suivi (h)</label><input type="number" id="m-temps-support" min="0" step="0.5" placeholder="0" oninput="updateCollectifTemps()"></div>
-        </div>
-        <div id="m-collectif-temps" class="ts" style="color:var(--tl)"></div>
-        <div class="ts mt4" style="color:var(--tl)">Temps estimé pour ce programme — le temps réellement passé s'enregistre séparément (chrono ou "+ temps"), comme pour toute autre mission.</div>
+        <div class="alert al-info" style="font-size:12px"><span>Pensez à comptabiliser votre temps de création, votre temps de suivi (réponses aux questions, feedback individuel, relectures, office hours entre les séances) et votre temps d'animation. Nous vous conseillons de créer ces catégories dans <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('params');setTimeout(()=>switchParamTab('offres',document.querySelector('#page-params [onclick*=offres]')),100)">Paramètres › Mes offres</span>, puis de renseigner un temps planifié global ci-dessous, comme pour toute autre mission.</span></div>
       </div>
       <div class="frow" id="m-charge-zone">
         <div class="fgroup">
@@ -1665,14 +1658,6 @@ html,body{overflow-x:hidden;}
           </select>
         </div>
       </div>
-      <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
-      <div class="fgroup" id="m-temps-prevu-zone">
-        <label class="flabel" id="m-temps-prevu-label">Temps total estimé sur cette mission (h)</label>
-        <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
-      </div>
-      <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
-      <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Cette estimation permet d'ajuster votre taux de remplissage et de comparer, à l'issue de la mission, avec le temps effectivement réalisé. Cette donnée est utile car elle impacte directement votre rentabilité future.</div>
-      <div id="m-trajectoire-detail"></div>
       <div id="m-planning-zone">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--brd)">📅 <span id="modal-sessions-label">Sessions</span> <span class="info-tip" id="m-sessions-tip" title="Renseignez vos plages de travail sur cette mission (ex : 3 jours cette semaine). Ces dates alimentent le Planning — vue calendrier mensuelle de votre carnet. Sans impact sur les calculs financiers.">?</span></div>
         <div id="m-sessions-copy" class="ts mb8" style="color:var(--tl);display:none"></div>
@@ -1708,6 +1693,14 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">La durée est calculée automatiquement (jours ouvrés × heures/jour). Modifiez-la si besoin.</div>
       </div>
+      <div class="divider" id="m-temps-prevu-divider" style="margin:10px 0"></div>
+      <div class="fgroup" id="m-temps-prevu-zone">
+        <label class="flabel" id="m-temps-prevu-label">Temps total estimé sur cette mission (h)</label>
+        <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
+      </div>
+      <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl);display:none"></div>
+      <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Cette estimation permet d'ajuster votre taux de remplissage et de comparer, à l'issue de la mission, avec le temps effectivement réalisé. Cette donnée est utile car elle impacte directement votre rentabilité future.</div>
+      <div id="m-trajectoire-detail"></div>
     </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
       <span id="m-advanced-arrow">▶</span> Options avancées
@@ -7189,41 +7182,24 @@ function toggleMissionType(val) {
   document.getElementById('m-montant-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'none':'');
   document.getElementById('m-montant-mixte-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'':'none');
   document.getElementById('m-rec-zone').style.display = isRec?'':'none';
-  document.getElementById('m-charge-zone').style.display = isCol?'none':'';
-  // Détail du temps collectif (création/animation/suivi) déplacé dans "Gestion du temps" —
-  // ne s'affiche que pour un programme collectif, jamais pour une mission individuelle.
+  // Temps planifié estimatif : visible pour toute mission, collectif compris (retour Faustine
+  // 2026-07-24 : "s'aligner au reste et mettre un temps global" — les 3 champs Création/
+  // Animation/Suivi dédiés au collectif ont été retirés, un seul temps planifié désormais).
+  // Petit rappel textuel (pas de champ) affiché uniquement pour un collectif — voir
+  // #m-temps-gestion-collectif-zone.
   const colTempsZone = document.getElementById('m-temps-gestion-collectif-zone');
   if (colTempsZone) colTempsZone.style.display = isCol?'':'none';
-  // Sélectionner "Programme collectif" révèle directement "Gestion du temps" — sinon les champs
-  // Création/Animation/Suivi resteraient invisibles par défaut. Ne referme jamais automatiquement
+  // Sélectionner "Programme collectif" révèle directement "Gestion du temps" — sinon le champ
+  // "Temps planifié estimatif" resterait invisible par défaut. Ne referme jamais automatiquement
   // (l'appel plus tardif dans openMissionModal(), basé sur les données réelles, a le dernier mot).
   if (isCol && typeof toggleTempsGestion === 'function') toggleTempsGestion(true);
-  if(isCol) { updateCollectifCA(); updateCollectifTemps(); }
+  if(isCol) updateCollectifCA();
 }
 function updateCollectifCA() {
   const n=parseFloat(document.getElementById('m-participants').value)||0;
   const p=parseFloat(document.getElementById('m-prix-part').value)||0;
   const el=document.getElementById('m-collectif-ca');
   if(el) el.textContent = n>0&&p>0 ? `CA total : ${fmtE(n*p)} (${n} × ${fmtE(p)})` : '';
-}
-function updateCollectifTemps() {
-  const c=parseFloat(document.getElementById('m-temps-creation').value)||0;
-  const a=parseFloat(document.getElementById('m-temps-animation').value)||0;
-  const s=parseFloat(document.getElementById('m-temps-support').value)||0;
-  const t=c+a+s;
-  const el=document.getElementById('m-collectif-temps');
-  if(el) el.textContent = t>0 ? `Total : ${fmt(t,1)} h` : '';
-  // Pré-remplissage éditable du temps prévu — jamais si déjà renseigné (même règle
-  // que updateTempsPrevuSuggestion). Ces 3 champs sont un temps ESTIMATIF (chantier "vue
-  // calendrier" Phase 3, 2026-07 — plus un temps réel comme avant, voir getMissionHeures), donc
-  // les reprendre comme base du "temps total estimé" est cohérent : même estimation, pas une
-  // conversion.
-  const tpChamp=document.getElementById('m-temps-prevu');
-  if(tpChamp && tpChamp.value==='' && t>0){
-    const _hjTP=DATA.params.heuresParJour||7;
-    const val=isJours()?t/_hjTP:t;
-    tpChamp.value=Math.round(val*10)/10;
-  }
 }
 function openMissionModal(id, prefillDate) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
@@ -7282,9 +7258,6 @@ function openMissionModal(id, prefillDate) {
   if(typeMission==='collectif'){
     document.getElementById('m-participants').value = m.nbParticipants||'';
     document.getElementById('m-prix-part').value = m.prixParParticipant||'';
-    document.getElementById('m-temps-creation').value = m.tempsCreation||'';
-    document.getElementById('m-temps-animation').value = m.tempsAnimation||'';
-    document.getElementById('m-temps-support').value = m.tempsSupport||'';
   }
   // Sessions (m-planning-zone) + charge estimée (m-charge-zone, sauf collectif) + "Gestion du
   // temps" sont désormais toujours visibles (chantier "vue calendrier", 2026-07 — plus de cases
@@ -7453,7 +7426,7 @@ function updateTempsPrevuZone(isRec) {
         const _hjTP=DATA.params.heuresParJour||7;
         const val=isJours()?heuresMois/_hjTP:heuresMois;
         const unit=isJours()?'j':'h';
-        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit}/mois pour le calcul de rentabilité (prévu vs réel).`;
+        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit}/mois pour le calcul de rentabilité (prévu vs réel, recalculé chaque mois).`;
       } else {
         deriveEl.textContent='La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps planifié ci-dessus.';
       }
@@ -7468,7 +7441,7 @@ function updateTempsPrevuZone(isRec) {
         const _hjTP=DATA.params.heuresParJour||7;
         const val=isJours()?totalSessions/_hjTP:totalSessions;
         const unit=isJours()?'j':'h';
-        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit} (somme de vos sessions) pour le calcul de rentabilité (prévu vs réel).`;
+        deriveEl.textContent=`≈ ${fmt(val,1)} ${unit} (somme de vos sessions) pour le calcul de rentabilité (prévu vs réel, sur toute la durée de la mission).`;
       } else {
         deriveEl.textContent="La comparaison prévu/réel sera possible dès qu'une session sera ajoutée ci-dessous.";
       }
@@ -7710,23 +7683,20 @@ function saveMission() {
   const chargeUnit=document.getElementById('m-charge-unit').value||'h_sem';
   const _hjSave=DATA.params.heuresParJour||7;
   const typeMissionVal=document.getElementById('m-type-mission').value||'individuelle';
-  // Récurrente (non collectif) : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli
-  // sur le prix (correctif "durée illimitée" + "zéro donnée inventée").
+  // Récurrente : tempsPrevu (mensuel) dérivé de chargeEstimee, jamais de repli sur le prix
+  // (correctif "durée illimitée" + "zéro donnée inventée").
   // Ponctuelle avec au moins une session renseignée : dérivé de la somme des sessions, jamais de
   // repli non plus — piloté par la présence de sessions, plus par une case Paramètres (chantier
   // "vue calendrier", 2026-07).
-  // Collectif ou ponctuelle sans session : saisie manuelle de #m-temps-prevu — pour un
-  // collectif, ce champ est déjà maintenu à jour en direct par updateCollectifTemps() (somme
-  // Création+Animation+Suivi, chantier "vue calendrier" Phase 3, 2026-07 : ces 3 champs sont
-  // désormais un temps ESTIMATIF comme "temps planifié", plus un temps réel comme avant — voir
-  // getMissionHeures), tout en respectant une correction manuelle éventuelle de l'utilisatrice
-  // (jamais écrasée, même principe que updateTempsPrevuSuggestion). Exclu explicitement des
-  // branches isRec/sessions : chargeEstimee est masqué pour un collectif (m-charge-zone caché),
-  // et ses sessions sont généralement vides — l'une ou l'autre renverrait injustement null.
+  // Sinon (ponctuelle sans session) : saisie manuelle de #m-temps-prevu, jamais écrasée (même
+  // principe que updateTempsPrevuSuggestion). Un programme collectif suit exactement la même
+  // logique que toute autre mission depuis le retrait de ses 3 champs Création/Animation/Suivi
+  // (retour Faustine 2026-07-24 : "s'aligner au reste et mettre un temps global") — aucun cas
+  // particulier restant pour typeMission==='collectif' ici.
   let tempsPrevu;
-  if(typeMissionVal!=='collectif' && isRec){
+  if(isRec){
     tempsPrevu=computeTempsPrevuRecurrente(chargeRaw||0, chargeUnit);
-  } else if(typeMissionVal!=='collectif' && editingSessions.length>0){
+  } else if(editingSessions.length>0){
     const _totalSessions=editingSessions.reduce((s,x)=>s+(x.heures||0),0);
     tempsPrevu=_totalSessions>0?_totalSessions:null;
   } else {
@@ -7749,9 +7719,6 @@ function saveMission() {
     typeMission:typeMissionVal,
     nbParticipants:parseInt(document.getElementById('m-participants').value)||0,
     prixParParticipant:parseFloat(document.getElementById('m-prix-part').value)||0,
-    tempsCreation:parseFloat(document.getElementById('m-temps-creation').value)||0,
-    tempsAnimation:parseFloat(document.getElementById('m-temps-animation').value)||0,
-    tempsSupport:parseFloat(document.getElementById('m-temps-support').value)||0,
     sourceAcquisition:document.getElementById('m-source-acq').value||'',
     quantite:parseInt(document.getElementById('m-quantite')?.value)||null,
     prixAchat:parseFloat(document.getElementById('m-prix-achat')?.value)||null,
@@ -11727,10 +11694,19 @@ function createMissionFromSim() {
     if (isCollectif) {
       document.getElementById('m-participants').value = document.getElementById('sim-participants-val')?.value || '';
       document.getElementById('m-prix-part').value    = document.getElementById('sim-prixpart-val')?.value || '';
-      document.getElementById('m-temps-creation').value  = document.getElementById('sim-creation-val')?.value || '';
-      document.getElementById('m-temps-animation').value = document.getElementById('sim-animation-val')?.value || '';
-      document.getElementById('m-temps-support').value   = document.getElementById('sim-support-val')?.value || '';
-      updateCollectifCA(); updateCollectifTemps();
+      // Les 3 champs dédiés Création/Animation/Suivi ont été retirés du formulaire mission
+      // (retour Faustine 2026-07-24) — un collectif suit désormais le "Temps planifié
+      // estimatif" global comme toute autre mission ; on préremplit ce total depuis le
+      // simulateur, jamais si l'utilisatrice a déjà saisi une valeur.
+      const _simT = (parseFloat(document.getElementById('sim-creation-val')?.value)||0)
+        + (parseFloat(document.getElementById('sim-animation-val')?.value)||0)
+        + (parseFloat(document.getElementById('sim-support-val')?.value)||0);
+      const _tpEl = document.getElementById('m-temps-prevu');
+      if (_simT > 0 && _tpEl && _tpEl.value === '') {
+        const _hjSim = DATA.params.heuresParJour || 7;
+        _tpEl.value = Math.round((isJours() ? _simT/_hjSim : _simT) * 10) / 10;
+      }
+      updateCollectifCA();
     } else {
       document.getElementById('m-montant').value = document.getElementById('sim-ca-val')?.value || '';
       if (isChantier) {
