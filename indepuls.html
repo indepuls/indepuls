@@ -1591,7 +1591,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div class="fgroup" id="m-montant-zone">
       <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
-      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000" oninput="updateTempsPrevuSuggestionDebounced()">
+      <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
     <div id="m-couts-directs-zone" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--brd)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1606,18 +1606,18 @@ html,body{overflow-x:hidden;}
       <div class="frow">
         <div class="fgroup">
           <label class="flabel">Prestation / service (€ HT)</label>
-          <input type="number" id="m-presta" step="10" min="0" placeholder="Ex : 1 500" oninput="updateMontantMixteTotal();updateTempsPrevuSuggestionDebounced()">
+          <input type="number" id="m-presta" step="10" min="0" placeholder="Ex : 1 500" oninput="updateMontantMixteTotal()">
         </div>
         <div class="fgroup">
           <label class="flabel">Vente / produit (€ HT)</label>
-          <input type="number" id="m-vente" step="10" min="0" placeholder="Ex : 500" oninput="updateMontantMixteTotal();updateTempsPrevuSuggestionDebounced()">
+          <input type="number" id="m-vente" step="10" min="0" placeholder="Ex : 500" oninput="updateMontantMixteTotal()">
         </div>
       </div>
       <div class="ts" id="m-mixte-total" style="font-weight:700;color:var(--pri)"></div>
     </div>
     <div id="m-rec-zone" style="display:none">
       <div class="frow" id="m-rec-amounts-row">
-        <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500" oninput="updateTempsPrevuSuggestionDebounced()"></div>
+        <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500"></div>
         <div class="fgroup" id="m-nb-mois-zone"><label class="flabel">Durée (nb de mois)</label><input type="number" id="m-nb-mois-rec" step="1" min="1" placeholder="Ex : 3"></div>
       </div>
       <div class="frow" id="m-rec-debut-row" style="align-items:flex-end">
@@ -7250,7 +7250,6 @@ function openMissionModal(id, prefillDate) {
     document.getElementById('m-temps-prevu').value=_tp!=null?Math.round((isJours()?_tp/_hjTP:_tp)*10)/10:'';
   }
   updateTempsPrevuZone(isRec);
-  updateTempsPrevuSuggestion();
   renderTrajectoireDetail(m);
   // Type de mission
   const typeMission = m?(m.typeMission||'individuelle'):'individuelle';
@@ -7466,26 +7465,6 @@ function updateTempsPrevuZone(isRec) {
     }
   }
 }
-// Suggestion en heures : prix ÷ taux horaire minimum cible (toujours en €/h, quel que soit le
-// profil — pertinent aussi en marge_commande, où getTauxHoraireMinCible() sert déjà de repère
-// secondaire). Lit le prix selon le mode courant (ponctuelle simple/mixte, ou récurrente).
-function getTempsPrevuSuggestionHeures() {
-  const isRec=document.getElementById('m-type-fact').value==='mensuelle';
-  const mixte=isActiviteMixte();
-  let prix=0;
-  if(isRec) prix=parseFloat(document.getElementById('m-montant-mens').value)||0;
-  else if(mixte) prix=(parseFloat(document.getElementById('m-presta').value)||0)+(parseFloat(document.getElementById('m-vente').value)||0);
-  else prix=parseFloat(document.getElementById('m-montant').value)||0;
-  // Garde-fou : en SASU/EURL sans rémunération nette cible configurée (remunerationNette=0),
-  // getTauxHoraireMinCible() ne reflète plus que les dépenses — un chiffre techniquement défini
-  // mais économiquement absurde une fois divisé dans un prix (ex. 700h pour une mission à 1800€).
-  // Le dashboard signale déjà ce cas ailleurs ("Configurer la rémunération") ; on l'applique ici
-  // aussi plutôt que de produire une suggestion trompeuse.
-  if(isSASU()&&!DATA.params.remunerationNette) return null;
-  const thMin=getTauxHoraireMinCible();
-  if(prix<=0||!thMin||thMin<=0) return null;
-  return prix/thMin;
-}
 // tempsPrevu (mensuel, en heures) pour une récurrente : dérivé de chargeEstimee/chargeUnit
 // converti en heures/mois — une récurrente est par nature un engagement continu, donc "X h/semaine"
 // se convertit en un total mensuel sans avoir besoin de connaître sa durée (contrairement à une
@@ -7500,21 +7479,6 @@ function computeTempsPrevuRecurrente(chargeRaw, chargeUnit) {
   }
   return null;
 }
-// Ne s'applique que si le champ est encore vide — ne jamais écraser une saisie déjà faite
-// (ou déjà suggérée puis laissée telle quelle, ce qui compte comme "déjà renseigné").
-function updateTempsPrevuSuggestion() {
-  const champ=document.getElementById('m-temps-prevu');
-  if(!champ||champ.value!=='') return;
-  const heures=getTempsPrevuSuggestionHeures();
-  if(heures==null) return;
-  const _hjTP=DATA.params.heuresParJour||7;
-  const val=isJours()?heures/_hjTP:heures;
-  champ.value=Math.round(val*10)/10;
-}
-// Même principe de debounce que recalcObjectifsDebounced (350ms) — recalcul en live pendant
-// la frappe du prix, sans relancer le calcul à chaque caractère.
-let _tempsPrevuTimer=null;
-function updateTempsPrevuSuggestionDebounced() { clearTimeout(_tempsPrevuTimer); _tempsPrevuTimer=setTimeout(updateTempsPrevuSuggestion, 350); }
 // ── TEMPS PRÉVU — détail trajectoire dans la fiche mission (chantier "Temps prévu", Phase 2) ──
 // TH = marge (prix − dépenses liées) / temps, intégré au fur et à mesure — basé sur le temps
 // réel dès qu'il existe, sinon sur le temps prévu (retour Faustine 2026-07 : le TH doit refléter
@@ -7579,18 +7543,18 @@ function toggleRecurrenceFields(val) {
   if(isRec){ document.getElementById('m-date-fact-zone').style.display='none'; }
   updateModaleMissionCopy(isRec);
   updateTempsPrevuZone(isRec);
-  updateTempsPrevuSuggestion();
   syncSessSansFinWithMission();
 }
-// En mensuelle, la case "sans fin" facturation et la case "sans fin" session recouvrent le même
-// engagement — poser la question 2 fois n'a pas de sens (retour Faustine, 2026-07). La case
-// session est donc masquée et pilotée dans les 2 sens par la case facturation ; en ponctuelle,
-// aucune notion de facturation récurrente n'existe, elle reste la seule case visible et
-// entièrement manuelle.
+// La case session "Récurrente, sans date de fin" reste toujours masquée à l'écran désormais
+// (retour Faustine 2026-07-24 : une ponctuelle a par définition toujours une date de fin
+// connue, cette case n'a donc plus de sens à lui montrer). En mensuelle, elle reste pilotée en
+// coulisses par la case "sans fin" de la facturation (même engagement, poser la question 2 fois
+// n'aurait pas de sens — retour Faustine, 2026-07) : invisible mais toujours synchronisée, pour
+// que sessionCouvreJour()/getChargeSessionJour() traitent bien la session comme "sans fin".
 function syncSessSansFinWithMission() {
   const isRec = document.getElementById('m-type-fact').value === 'mensuelle';
   const wrap = document.getElementById('m-sess-sansfin-wrap');
-  if (wrap) wrap.style.display = isRec ? 'none' : '';
+  if (wrap) wrap.style.display = 'none';
   if (isRec) {
     const sansFin = document.getElementById('m-sans-fin').checked;
     const sessSansFinEl = document.getElementById('m-sess-sansfin');
@@ -7688,8 +7652,12 @@ function saveMission() {
   // Ponctuelle avec au moins une session renseignée : dérivé de la somme des sessions, jamais de
   // repli non plus — piloté par la présence de sessions, plus par une case Paramètres (chantier
   // "vue calendrier", 2026-07).
-  // Sinon (ponctuelle sans session) : saisie manuelle de #m-temps-prevu, jamais écrasée (même
-  // principe que updateTempsPrevuSuggestion). Un programme collectif suit exactement la même
+  // Sinon (ponctuelle sans session) : saisie 100% manuelle de #m-temps-prevu — plus aucune
+  // suggestion prix÷objectif horaire ici (retour Faustine 2026-07-24, "pourquoi le montant du
+  // devis me met une suggestion de temps ?!" : updateTempsPrevuSuggestion()/
+  // getTempsPrevuSuggestionHeures() retirées, elles contredisaient le principe déjà appliqué à
+  // la récurrente juste au-dessus — "zéro donnée inventée", jamais de temps déduit du prix).
+  // Un programme collectif suit exactement la même
   // logique que toute autre mission depuis le retrait de ses 3 champs Création/Animation/Suivi
   // (retour Faustine 2026-07-24 : "s'aligner au reste et mettre un temps global") — aucun cas
   // particulier restant pour typeMission==='collectif' ici.
