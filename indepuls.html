@@ -159,6 +159,8 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 .modal-ov.hidden{display:none;}
 .modal{background:var(--card);border-radius:16px;padding:26px;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;animation:modalIn .15s ease;}
 .modal-title{font-family:'Playfair Display',Georgia,serif;font-size:19px;color:var(--pri);margin-bottom:18px;}
+.modal .modal-title{cursor:grab;user-select:none;}
+.modal .modal-title:active{cursor:grabbing;}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--brd);}
 .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
 .modal-head .modal-title{margin-bottom:4px;}
@@ -4585,8 +4587,44 @@ function renderAll() {
   updateDemoUI();
 }
 
-function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function openModal(id) {
+  const ov = document.getElementById(id);
+  ov.classList.remove('hidden');
+  // Repart toujours centrée à l'ouverture — une fenêtre déplacée puis refermée ne doit pas
+  // rouvrir hors champ la fois suivante (retour Faustine 2026-07-24 : pouvoir déplacer une
+  // fenêtre pour voir le tableau/agenda en dessous).
+  const modal = ov.querySelector('.modal');
+  if (modal) modal.style.transform = '';
+}
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// ── Fenêtres modales déplaçables (glisser par le titre) ──────────────────
+// Un seul gestionnaire délégué sur document plutôt qu'un binding par modale — fonctionne pour
+// toutes les fenêtres actuelles et futures sans rien ajouter à chacune. Désactivé en dessous de
+// 640px, où la modale devient une feuille plein écran ancrée en bas (voir CSS @media(max-width:
+// 640px) .modal{transform:none!important}) : rien à déplacer, une souris n'y est de toute façon
+// pas utilisée. Basé sur les événements souris (pas pointer/touch), donc naturellement inactif
+// au doigt.
+(function initModalDrag() {
+  let dragModal = null, startX = 0, startY = 0, origX = 0, origY = 0;
+  document.addEventListener('mousedown', e => {
+    const handle = e.target.closest('.modal .modal-title');
+    if (!handle || window.matchMedia('(max-width:640px)').matches) return;
+    dragModal = handle.closest('.modal');
+    if (!dragModal) return;
+    startX = e.clientX; startY = e.clientY;
+    const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(dragModal.style.transform || '');
+    origX = m ? parseFloat(m[1]) : 0;
+    origY = m ? parseFloat(m[2]) : 0;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragModal) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    dragModal.style.transform = `translate(${origX + dx}px, ${origY + dy}px)`;
+  });
+  document.addEventListener('mouseup', () => { dragModal = null; });
+})();
 
 // ── NOUVEAUTÉS — panneau éditorial (sidebar) ─────────────────
 // Tri défensif par date décroissante au moment de l'affichage (jamais au chargement) :
@@ -7656,7 +7694,7 @@ function saveMission() {
     // l'intégrité du calcul cumulé (Phase 2bis) sans pour autant déranger l'utilisatrice.
     const _chargeChanged = chargeRaw!=null && chargeRaw!==mExisting.chargeEstimee;
     if(_chargeChanged){
-      document.getElementById('modal-temps-prevu-choice').classList.remove('hidden');
+      openModal('modal-temps-prevu-choice');
     } else {
       confirmTempsPrevuChoice('prochain');
     }
@@ -7713,7 +7751,7 @@ function cancelTempsPrevuChoice() {
 let _causeDepassementMissionId=null;
 function openCauseDepassementModal(id) {
   _causeDepassementMissionId=id;
-  document.getElementById('modal-cause-depassement').classList.remove('hidden');
+  openModal('modal-cause-depassement');
 }
 function saveCauseDepassement(cause) {
   const m=DATA.missions.find(x=>x.id===_causeDepassementMissionId);
@@ -11656,7 +11694,7 @@ function onProfilChange(metier) {
     document.getElementById('profil-change-desc').textContent = PROFIL_DESCRIPTIONS[metier] || '';
     document.getElementById('profil-change-target').value = metier;
     document.getElementById('profil-change-prev').value = prev;
-    document.getElementById('modal-profil-change').classList.remove('hidden');
+    openModal('modal-profil-change');
   } else {
     applyProfile(metier);
     renderDashboard();

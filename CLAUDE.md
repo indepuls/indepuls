@@ -1589,6 +1589,15 @@ Retour de Faustine sur les captures d'écran du formulaire réorganisé : l'info
 - **Modification d'une session existante** (nouveau) : bouton ✏️ à côté du 🗑 dans `renderEditSessions()`, nouvelle fonction `editSessionInEdit(idx)` — précharge début/fin/jours de la session dans le formulaire et la retire de `editingSessions` (elle est ré-ajoutée, éventuellement corrigée, au clic "Valider"). Évite de devoir supprimer puis ressaisir une session pour corriger une simple date.
 - **Vérifié** : suites Node inchangées et vertes (73+44+18+99+11+32+6 assertions). Navigateur : nouvelle mission ponctuelle → cases Sam/Dim bien décochées par défaut ; ajout session 27/07→14/08 → `jours:[1,2,3,4,5]` ; clic ✏️ → formulaire prérempli avec ces valeurs, session retirée de la liste ; correction du début à 28/07 puis "Valider" → session mise à jour sans doublon ; aucune erreur console.
 
+### FEATURE — Fenêtres modales déplaçables (2026-07-24)
+Faustine : besoin récurrent de voir le tableau/agenda derrière une fenêtre ouverte (ex. formulaire mission) sans avoir à la fermer.
+
+- **`initModalDrag()`** (indepuls.html, juste après `openModal()`/`closeModal()`) : un seul gestionnaire délégué sur `document` (mousedown/mousemove/mouseup), poignée = `.modal .modal-title` — fonctionne pour toutes les modales existantes ET futures sans rien ajouter à chacune. Déplacement via `transform:translate()` appliqué à `.modal`, cumulatif (parse le `translate()` existant au mousedown pour repartir de la bonne origine).
+- **Désactivé sous 640px** (`matchMedia('(max-width:640px)')`) : la modale devient une feuille plein écran ancrée en bas avec `transform:none!important` (CSS existante) — rien à déplacer, et les événements souris ne se déclenchent de toute façon pas au doigt.
+- **Reset systématique à l'ouverture** : `openModal(id)` remet `modal.style.transform=''` — une fenêtre déplacée puis refermée ne rouvre jamais décalée. Les 3 endroits qui ouvraient une modale en contournant `openModal()` (`modal-temps-prevu-choice`, `modal-cause-depassement`, `modal-profil-change` — `classList.remove('hidden')` direct) sont passés par `openModal()` pour bénéficier du même reset.
+- **CSS** : `.modal .modal-title{cursor:grab}` / `:active{cursor:grabbing}` — affordance visuelle, aucune icône ajoutée.
+- **Vérifié** : suites Node inchangées et vertes. Navigateur : drag simulé (mousedown/mousemove/mouseup) sur le titre de la modale mission → `transform:translate(-150px,120px)` appliqué ; fermeture puis réouverture → transform vide (recentrée) ; en viewport mobile (375px), le même drag ne produit aucun transform (`computedTransform:'none'`, bottom sheet intact) ; aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
@@ -1839,7 +1848,7 @@ function tVocab(key) {
 
 ## Prochains chantiers identifiés
 
-### 0. Branchement des modules comportementaux *(en cours — priorité critique)*
+### 0. Branchement des modules comportementaux *(Phase 1 faite, Phase 3 superseded)*
 
 Principe : **profil = défauts, modules = comportement réel, dashboard = lit les modules**.
 Ne jamais utiliser la famille pour décider du comportement — utiliser `modules.*`.
@@ -1848,15 +1857,12 @@ Ne jamais utiliser la famille pour décider du comportement — utiliser `module
 - Tous les écrans utilisent `modules.objectif` pour le KPI affiché : `wKPIs()`, `buildAlerts()`, bilan mensuel, `wSynopsis()`, `renderObjectifsResult()`, `renderArchives()`, `getArchYearData()`.
 - `'th'` → KPI TH réel (€/h) · `'tjm'` → KPI TJM réel (€/j) · `'marge_commande'` → Gain moyen par commande
 
-**Phase 2 — `modules.uniteTemps` pilote h vs j partout** *(à faire après Phase 1)*
+**Phase 2 — `modules.uniteTemps` pilote h vs j partout** *(à faire, non prioritaire)*
 - `isJours()` déjà utilisé dans missions + simulateur — étendre au dashboard
 - Lier automatiquement `objectif==='tjm'` ↔ `uniteTemps==='jours'` (sans bloquer la personnalisation)
 
-**Phase 3 — `modules.planning` contrôle complet** *(après Phase 2)*
-- Supprimer toutes les références à `planning==='aucun'` (valeur supprimée)
-- Migration existants `'aucun'` → `'estime'` dans `migrate()`
-- Widget Remplissage / Pilier masqué si `planning==='aucun'` → remplacer par logique `'estime'`
-- Modale mission : `#m-charge-zone` visible si `'estime'`, sessions si `'calendrier'`
+**Phase 3 — `modules.planning` contrôle complet** ❌ *superseded par le chantier "vue calendrier" (2026-07-24, voir plus haut)*
+Cette phase envisageait un mode `'estime'` vs `'calendrier'` conditionnant l'affichage (`#m-charge-zone` OU sessions). Le chantier "vue calendrier" a pris une direction différente et plus simple, tranchée par Faustine après une version intermédiaire jugée "trop trop complexe" : **temps planifié estimatif + sessions coexistent toujours pour toute mission**, sans conditionner l'un à l'autre — chargeEstimee est l'unique source du pilier Remplissage, les sessions ne servent qu'au calendrier (positionnement + calcul du "temps total estimé", purement cosmétique pour le remplissage). Il n'y a donc plus de valeur `planning==='aucun'`/`'estime'`/`'calendrier'` à faire cohabiter — cette phase n'a plus lieu d'être telle que décrite ici.
 
 **Évolution future : suivi du temps par affaire** *(post-bêta)*
 - Chaque affaire pourrait choisir son mode : estimation heures/jours, sessions calendrier, aucun suivi détaillé
