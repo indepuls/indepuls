@@ -1658,7 +1658,7 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div id="m-planning-zone">
-        <div style="font-size:12px;font-weight:700;color:var(--text);margin:12px 0 4px;padding-top:10px;border-top:1px solid var(--brd)">Quand cette mission a-t-elle lieu ? <span class="info-tip" id="m-sessions-tip" title="Ces dates servent à calculer automatiquement le temps total estimé ci-dessous et à positionner la mission sur le calendrier. Sans impact sur votre taux de remplissage, qui se base uniquement sur le temps planifié ci-dessus.">?</span></div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);margin:12px 0 4px;padding-top:10px;border-top:1px solid var(--brd)">Quand cette mission a-t-elle lieu ? <span class="info-tip" id="m-sessions-tip" title="Ces dates positionnent la mission sur le calendrier et préremplissent le temps total ci-dessous (modifiable) ; elles alimentent le taux de remplissage de votre calendrier, mais pas le Score de Santé, basé uniquement sur le temps planifié ci-dessus. Les jours cochés ne servent qu'à filtrer l'affichage sur le calendrier.">?</span></div>
         <div id="m-sessions-list" style="margin-bottom:8px"></div>
         <div class="fgroup" id="m-sess-sansfin-wrap" style="margin:0 0 8px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
@@ -1674,15 +1674,14 @@ html,body{overflow-x:hidden;}
         <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">Vous pouvez ajouter plusieurs périodes si la mission a lieu en plusieurs fois (ex : un chantier repris quelques semaines plus tard).</div>
         <div class="fgroup mt10" id="m-sess-jours-wrap">
           <label class="flabel">Jours concernés</label>
-          <div class="ts mb4" style="color:var(--tl)">Uniquement pour choisir les jours où la mission apparaît sur le calendrier — sans impact sur le calcul.</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked style="width:auto">Lun</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked style="width:auto">Mar</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
             <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" checked style="width:auto">Sam</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" checked style="width:auto">Dim</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" style="width:auto">Sam</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" style="width:auto">Dim</label>
           </div>
         </div>
       </div>
@@ -1692,7 +1691,6 @@ html,body{overflow-x:hidden;}
         <input type="number" id="m-temps-prevu" step="0.5" min="0" placeholder="Ex : 10" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
       </div>
       <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl)">La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps total estimé ci-dessus.</div>
-      <div class="ts mt4" id="m-charge-note" style="color:var(--tl)">Cette estimation permet d'ajuster votre taux de remplissage et de comparer, à l'issue de la mission, avec le temps effectivement réalisé. Cette donnée est utile car elle impacte directement votre rentabilité future.</div>
       <div id="m-trajectoire-detail"></div>
     </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
@@ -2954,10 +2952,9 @@ function toggleSessSansFin() {
   document.getElementById('m-sess-help').textContent = on
     ? 'Sélectionnez les jours de la semaine ci-dessous — la session se répète chaque semaine, indéfiniment.'
     : "Sélectionnez les jours concernés ci-dessous si besoin, et n'hésitez pas à ajouter plusieurs périodes.";
-  // Défaut différent selon le mode : une session "sans fin" est un motif hebdomadaire (lun-ven
-  // par défaut, comme avant) ; une session datée n'a historiquement aucun filtre par jour (tous
-  // les jours de la plage comptent, week-ends inclus) — reflété ici en cochant tout par défaut.
-  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = on ? (cb.value !== '0' && cb.value !== '6') : true);
+  // Défaut lun-ven dans les deux modes (retour Faustine 2026-07-25 : le cas le plus courant est
+  // une activité en semaine) — l'utilisateur coche Sam/Dim lui-même si besoin.
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = (cb.value !== '0' && cb.value !== '6'));
 }
 
 function renderEditSessions() {
@@ -2999,6 +2996,7 @@ function renderEditSessions() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
       <span style="flex:1;font-size:12px">${range}${joursTxt}</span>
       ${hLabel}
+      <button class="btn btn-out btn-xs" onclick="editSessionInEdit(${i})" title="Modifier">✏️</button>
       <button class="btn btn-del btn-xs" onclick="removeSessionFromEdit(${i})">🗑</button>
     </div>`;
   }).join('');
@@ -3035,7 +3033,24 @@ function addSessionToEdit() {
   editingSessions.sort((a,b) => a.debut < b.debut ? -1 : 1);
   document.getElementById('m-sess-debut').value = '';
   document.getElementById('m-sess-fin').value = '';
-  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = true); // défaut bornée : tous les jours
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = (cb.value !== '0' && cb.value !== '6')); // défaut lun-ven
+  renderEditSessions();
+}
+
+// Charge une session existante dans le formulaire pour modification : préremplit début/fin/jours,
+// la retire de editingSessions (elle sera ré-ajoutée, éventuellement modifiée, au clic "Valider") —
+// évite à l'utilisateur de devoir supprimer puis ressaisir une session pour corriger une date.
+function editSessionInEdit(idx) {
+  const s = editingSessions[idx];
+  if (!s) return;
+  const sansFinEl = document.getElementById('m-sess-sansfin');
+  if (sansFinEl) sansFinEl.checked = !!s.sansFin;
+  toggleSessSansFin(); // affiche/masque "Fin" et remet les jours au défaut du mode, écrasé juste après
+  document.getElementById('m-sess-debut').value = s.debut || '';
+  document.getElementById('m-sess-fin').value = s.sansFin ? '' : (s.fin || s.debut || '');
+  const jours = (s.jours && s.jours.length) ? s.jours : [0, 1, 2, 3, 4, 5, 6];
+  document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = jours.includes(+cb.value));
+  editingSessions.splice(idx, 1);
   renderEditSessions();
 }
 
