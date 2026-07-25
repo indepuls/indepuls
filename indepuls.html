@@ -6227,16 +6227,28 @@ function wScoreSante(d) {
       const _rentLbl=_rentIsMarge?'marge':_rentIsChantier?'TJM':'TH';
       priorite=`Votre ${_rentLbl} réel est déjà bon — c'est le rythme annuel qui reste en retrait par rapport à votre objectif de revenu, probablement lié au nombre de ${tVocab('items').toLowerCase()} plutôt qu'à vos tarifs.`;
       prioriteNavPage='missions';
-    } else if(isSASU()){
+    } else if(isSASU()&&!(objNet>0)){
       // En SASU/EURL, objectifNetMensuel n'est qu'un champ de simulation isolé (page "Mes
       // objectifs") — seule remunerationNette (Paramètres > Fiscalité & charges) alimente
       // réellement getTauxHoraireMinCible() (voir shared/core/calculs.js). Renvoyer vers "Mes
       // objectifs" ici était faux et n'aidait pas la personne à trouver le bon champ (retour
       // Faustine, 2026-07-25). Lien direct vers le bon onglet plutôt que le bouton générique
       // "→ Onglet Paramètres" (prioriteNavPage laissé vide pour ne pas le dupliquer).
+      // Garde explicite `!(objNet>0)` (au lieu d'un simple "else" implicite) : ce message ne
+      // doit jamais s'afficher si l'objectif est en réalité défini (retour Faustine, 2026-07-25
+      // : "ce brief ne doit apparaître que quand des objectifs ne sont pas définis, jamais à un
+      // autre moment").
       priorite=`Définissez votre rémunération nette mensuelle dans <span class="step-cta" style="cursor:pointer" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Paramètres → Fiscalité &amp; charges</span> pour activer les recommandations de rentabilité.`;
-    } else {
+    } else if(!isSASU()&&!(objNet>0)){
       priorite=`Définissez votre objectif de revenu net dans <span class="step-cta" style="cursor:pointer" onclick="navigate('params');setTimeout(()=>switchParamTab('objectifs',document.querySelector('#page-params [onclick*=objectifs]')),100)">Paramètres → Mes objectifs</span> pour activer les recommandations de rentabilité.`;
+    } else {
+      // Filet de sécurité : la rentabilité ressort comme pilier le plus faible sans qu'aucune
+      // branche ci-dessus n'ait matché (objectif pourtant bien défini, pas de gap tarifaire ni
+      // de malus de rythme identifié — cas résiduel, ex. marge entre le seuil recommandé et le
+      // palier de score maximal). Message honnête plutôt que de retomber sur "définissez votre
+      // objectif", qui serait faux ici.
+      priorite=`Votre rentabilité mérite un coup d'œil — consultez le détail du pilier ci-dessous pour voir précisément ce qui joue.`;
+      prioriteNavPage=_navPageByPilier.rentabilité;
     }
   } else if(score>=85){
     if(annualAtRisk){
