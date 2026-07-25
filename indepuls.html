@@ -3135,6 +3135,19 @@ function renderPlanning() {
   const mkStr = d => `${year}-${pad(month)}-${pad(d)}`;
   const mFirst = `${year}-${pad(month)}-01`, mLast = `${year}-${pad(month)}-${pad(daysInMonth)}`;
 
+  // Panneau détail jour toujours affiché (retour Faustine 2026-07-25 : "toujours laissé
+  // apparaître le récap de temps du jour en cours à droite du calendrier") — jamais masqué :
+  // calé par défaut sur aujourd'hui si le mois affiché est le mois en cours, sinon sur le 1er
+  // jour du mois affiché (navigation vers un autre mois, jour précédemment sélectionné qui n'en
+  // fait plus partie). L'utilisateur garde la main pour cliquer un autre jour ensuite.
+  {
+    const _td = new Date();
+    const _todayStr = `${_td.getFullYear()}-${pad(_td.getMonth()+1)}-${pad(_td.getDate())}`;
+    if (!_planningSelectedDay || _planningSelectedDay < mFirst || _planningSelectedDay > mLast) {
+      _planningSelectedDay = (_todayStr >= mFirst && _todayStr <= mLast) ? _todayStr : mFirst;
+    }
+  }
+
   const missionsMois = DATA.missions.filter(m => {
     if (m.isManagement || m.statut === 'ref' || !(m.sessions||[]).length) return false;
     // Récurrente sans fin (2026-07) : pas de `fin` connue, donc "touche" tout mois >= son début.
@@ -3226,7 +3239,7 @@ function renderPlanning() {
         <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.client||'—'} <span style="font-weight:400;color:var(--tl)">${m.description||''}</span></div>
         <div class="ts" style="margin-top:1px">${range}</div>
       </div>
-      <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="event.stopPropagation();startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono">${m.timerRunning?'⏹':'▶'}</button>
+      <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="event.stopPropagation();startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono" style="opacity:1;flex-shrink:0;border:1px solid var(--brd);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center">${m.timerRunning?'⏹':'▶'}</button>
     </div>`;
   }).join('');
 
