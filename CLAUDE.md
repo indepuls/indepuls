@@ -1613,6 +1613,13 @@ Faustine : après avoir saisi rétroactivement des chantiers réalisés en débu
 - **Fix** (`renderMissions()`, tri `newest`/`oldest`) : trie désormais sur `m.dateFact` (date de facturation, qui reflète l'activité réelle) plutôt que sur `id`. Les missions **sans** `dateFact` (en cours, en attente, récurrentes) restent **toujours en tête**, quel que soit le sens du tri — ce sont les affaires actives qui demandent le plus d'attention ; parmi elles, fallback sur `id` (ordre de saisie). Les tris "A → Z" et "Montant ↓" ne sont pas concernés (déjà indépendants de la date).
 - **Vérifié** : suites Node inchangées et vertes. Navigateur : scénario reproduit (chantier daté janvier 2026 saisi "aujourd'hui" + chantier "en cours" sans date + chantier facturé juillet 2026) → ordre "Plus récent" : en cours, facturé juillet, facturé janvier ; ordre "Plus ancien" : en cours, facturé janvier, facturé juillet. Aucune erreur console.
 
+### FIX — Bouton Chrono manquant sur la ligne "Mon entreprise" (2026-07-25)
+Faustine : la colonne Chrono du tableau Missions n'affichait aucun bouton pour la ligne "Mon entreprise" (temps interne) — seul le raccourci de la sidebar ("⏱ Session") permettait de démarrer ce chrono, pour les personnes qui préfèrent agir depuis le tableau.
+
+- **Cause** : `renderMissions()` affichait `'—'` dans la cellule Chrono pour toute mission `isManagement` (branche `!m.isManagement ? <bouton> : '—'`), alors que `startTimer(id)` gère déjà nativement le cas `isManagement` (utilisé par `sbTimerToggle()` de la sidebar via `startTimer(getMgmtMission().id)`).
+- **Fix** : la cellule Chrono affiche désormais le même bouton ▶/⏹ pour toutes les lignes, y compris "Mon entreprise" — aucune nouvelle fonction, réutilisation directe de `startTimer(id)` déjà générique.
+- **Vérifié** : suites Node inchangées et vertes. Navigateur : clic sur le bouton de la ligne "Mon entreprise" → `timerRunning` passe à `true` ; second clic → repasse à `false` ; aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
