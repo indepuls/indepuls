@@ -6350,7 +6350,14 @@ function wScoreSante(d) {
     {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
   ];
   if(rowRentMois) rowsRent.push(rowRentMois);
-  if(pctObj!==null) rowsRent.push({lbl:'Objectif de revenu net mensuel atteint',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
+  // Libellé explicitement distingué de "(ce mois)" ci-dessus (rowRentMois) : pctObj est une
+  // MOYENNE sur tous les mois actifs depuis le début de l'année/l'ouverture, jamais le seul
+  // mois en cours — sans cette précision, "objectif mensuel atteint : 49 %" à côté d'un widget
+  // "Ma trajectoire annuelle" qui affiche "100 % de l'objectif" pour LE mois en cours se lit
+  // comme une contradiction, alors que ce sont deux mesures différentes (retour Faustine,
+  // 2026-07-25 : un excellent mois de juillet peut coexister avec une moyenne annuelle encore
+  // basse si les mois précédents étaient plus faibles).
+  if(pctObj!==null) rowsRent.push({lbl:'Objectif net — moyenne annuelle <span class="info-tip" title="Revenu net moyen par mois actif depuis le début de l\'année (ou l\'ouverture), pas le seul mois en cours — voir Ma trajectoire annuelle pour le chiffre du mois en cours.">?</span>',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
   // Remplissage — libellés adaptés à l'unité réelle retournée par getPilierRemplissage
   // (h/sem en estime/additif, h ou j en calendrier pur) : ne pas supposer h/sem partout.
