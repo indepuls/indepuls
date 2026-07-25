@@ -192,11 +192,10 @@ function makeData(overrides = {}) {
   assertEq('scorer 40 %',  P.scorerRemplissage(40),  12);
   assertEq('scorer 59 %',  P.scorerRemplissage(59),  12);
   assertEq('scorer 60 %',  P.scorerRemplissage(60),  18);
-  assertEq('scorer 74 %',  P.scorerRemplissage(74),  18);
-  assertEq('scorer 75 %',  P.scorerRemplissage(75),  25);
+  assertEq('scorer 79 %',  P.scorerRemplissage(79),  18);
+  assertEq('scorer 80 %',  P.scorerRemplissage(80),  25);
   assertEq('scorer 90 %',  P.scorerRemplissage(90),  25);
-  assertEq('scorer 91 %',  P.scorerRemplissage(91),  18);
-  assertEq('scorer 100 %', P.scorerRemplissage(100), 18);
+  assertEq('scorer 100 %', P.scorerRemplissage(100), 25);
   assertEq('scorer 101 %', P.scorerRemplissage(101), 5);
   assertEq('scorer 150 %', P.scorerRemplissage(150), 5);
 }

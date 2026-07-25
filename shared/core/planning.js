@@ -272,12 +272,17 @@ export function getTauxRemplissageAnnee(DATA) {
 // ── SCORE ─────────────────────────────────────────────────────
 
 // Barème commun aux deux moteurs : taux d'occupation (%) → points (0–25).
+// Zone idéale relevée à 80–100 % (retour Faustine, 2026-07-25) : la capacité (h/semaine) ne
+// représente déjà que le temps facturable déclaré par l'utilisateur — le temps de gestion/
+// admin/prospection est exclu en amont (voir "Jours/semaine, Heures/jour" dans Paramètres,
+// "temps facturable client uniquement"). Être à 100 % de CETTE capacité est donc l'objectif
+// recherché, pas un signal d'alerte — l'ancien palier 90–100 %→18 pénalisait à tort un
+// remplissage parfait comme s'il fallait "rester vigilant".
 export function scorerRemplissage(pct) {
-  if (pct < 40)  return 5;
-  if (pct < 60)  return 12;
-  if (pct < 75)  return 18;
-  if (pct <= 90) return 25;
-  if (pct <= 100) return 18;
+  if (pct < 40)   return 5;
+  if (pct < 60)   return 12;
+  if (pct < 80)   return 18;
+  if (pct <= 100) return 25;
   return 5; // surcharge >100 %
 }
 
@@ -339,12 +344,12 @@ function resultatHSemaine(DATA, methode, cap, charge) {
   if (pct > 100) {
     diagnostic = `Votre capacité facturable est dépassée (${pct} %). Risque de surcharge ou d'épuisement à moyen terme.`;
     conseil    = "Envisagez de déléguer, d'augmenter vos tarifs ou de refuser les missions les moins rentables.";
-  } else if (pct >= 90) {
-    diagnostic = `Votre planning est presque plein (${pct} %). Restez vigilant afin de conserver du temps pour le pilotage de votre activité.`;
-    conseil    = 'Évitez d\'accepter de nouvelles missions sans ajuster votre organisation ou vos tarifs.';
-  } else if (pct >= 75) {
-    diagnostic = 'Capacité utilisée de manière saine. Vous conservez une marge pour l\'administratif, la prospection et les imprévus.';
-    conseil    = `${fmt1(libre)} h disponibles par semaine — idéal pour le pilotage et les opportunités ponctuelles.`;
+  } else if (pct >= 80) {
+    diagnostic = `Votre planning est à son plein potentiel (${pct} %) — c'est l'objectif recherché : votre temps facturable est optimisé.`;
+    conseil    = "Continuez ainsi. Si de nouvelles demandes arrivent, pensez à ajuster vos tarifs plutôt qu'à vous surcharger.";
+  } else if (pct >= 60) {
+    diagnostic = `Bonne utilisation de votre capacité facturable (${pct} %). Il reste de la place pour de nouvelles missions.`;
+    conseil    = `${fmt1(libre)} h de capacité facturable encore disponibles par semaine — une belle marge de développement.`;
   } else if (pct >= 40) {
     diagnostic = "Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
     conseil    = `${fmt1(libre)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;
