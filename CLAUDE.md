@@ -1685,6 +1685,20 @@ Faustine : le widget "Ma trajectoire annuelle" affiche "100 % de l'objectif — 
 - **Fix** (`wScoreSante()`) : libellé renommé "Objectif net — moyenne annuelle", avec une infobulle ("?") qui explique explicitement le calcul et renvoie vers "Ma trajectoire annuelle" pour le chiffre du mois en cours — cohérent avec le principe "zéro boîte noire" (jamais un chiffre sans savoir d'où il vient). Aucun changement de calcul, uniquement de présentation.
 - **Vérifié** : suites Node inchangées et vertes. Navigateur : la ligne affiche "Objectif net — moyenne annuelle" avec l'infobulle (vérifiée via `data-tip`, le système de tooltip de l'app convertit `title`→`data-tip` au rendu) ; aucune erreur console.
 
+### ARCHITECTURE — Extraction TH/TJM réel brut vers shared/core (2026-07-25)
+Signalement d'une revue de code externe (Claude Cowork) sur la session : "le TJM n'a pas de fonction dédiée dans shared/core — c'est un calcul inline dans indepuls.html (`_kpi()`), donc structurellement intestable [...] c'est un chantier d'architecture à part." Faustine a demandé si attendre aggraverait la dette : oui — cette même logique a été retouchée 4 fois dans la seule journée du 2026-07-25 (les fixes Brief/pilier Rentabilité ci-dessus), et plus il y a d'utilisateurs réels, plus une erreur de refactor future coûterait cher. Traité tout de suite, tests d'abord.
+
+- **Périmètre volontairement restreint** : uniquement le TH/TJM "réel" utilisé par le pilier Rentabilité du Score de Santé (`wScoreSante()`), pas le calcul du Simulateur (`_kpi()`, `calcRentabilite()`) — sémantique différente (simulation à partir de champs de formulaire, pas de données réelles), ni la marge_commande (déjà partiellement couverte par `shared/core/affaires.js`, sujet séparé).
+- **`shared/core/calculs.js`** — 3 nouvelles fonctions, juste après `getTauxHoraireMinCible()` :
+  - `getTHBrutAnnuel(DATA, caBrut, hT)` — CA moins dépenses liées aux affaires (chantierId), ÷ heures. `caBrut`/`hT` restent des **paramètres** (déjà calculés et couverts ailleurs — `getCaFromMissions`, `getHeuresFact`, `getHeuresInterne`) : même convention que `resultatHSemaine()` dans `planning.js`, qui prend déjà `cap`/`charge` en paramètres plutôt que de les recalculer.
+  - `getTJMBrut(DATA, thBrut)` — conversion TH→TJM (`× heuresParJour`, arrondi) : le seul calcul réellement propre au TJM.
+  - `getTHBrutMois(DATA, mk, caMois, heuresMois)` — variante mensuelle, dépenses filtrées sur le mois `mk`.
+  - `_coutsAffairesTotal(DATA)` (privée) : regroupe les dépenses par `chantierId`, restreint aux missions non-gestion — copie locale volontaire du groupement de `getDepensesAffairesMap` (`affaires.js`) plutôt qu'un import, pour éviter une dépendance circulaire (`affaires.js` importe déjà `calculs.js` pour `getMissionHeures`).
+  - Bridgées via `shared/modes/unified.js` + `window.*` (bloc module fin de fichier), même pattern que le reste du moteur.
+- **`shared/tests/rentabilite_brute.test.js`** (nouveau, 7 assertions, écrit avant l'implémentation — rouge confirmé avant l'ajout des fonctions) : déduction des dépenses liées, exclusion des dépenses orphelines/gestion interne, division par zéro, conversion TJM, filtrage mensuel par date.
+- **`wScoreSante()`** (indepuls.html) : `thBrut`/`tjmBrut`/`tjmMin` (annuel) et `thMoisBrut`/`tjmMoisBrut` (mensuel) passent désormais par les fonctions extraites au lieu du calcul inline — `_rentCouts`/`_rentCoutsMois` (les reduce sur les missions) restent en place tels quels, toujours utilisés pour `.ca` par la branche marge_commande (hors périmètre de cette extraction).
+- **Vérifié** : suites Node vertes (44+18+9+7+11+32 assertions, dont les 7 nouvelles). Navigateur, comparaison avant/après sur les 3 modes d'objectif (démo artisan_batiment/tjm, prestataire_services/th, achat_revente/marge_commande) : valeurs strictement identiques à celles observées avant le refactor (ex. "TJM réel supérieur de 1 217 €/j", "Ce mois-ci : TJM de 952 €/j") — aucune régression, aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir

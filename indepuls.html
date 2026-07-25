@@ -5804,8 +5804,15 @@ function wScoreSante(d) {
       : (m.statut==='fact'?(m.montantDevis||0):0);
     return {ca:s.ca+en,couts:s.couts+co};
   },{ca:0,couts:0});
-  const thBrut=hT>0?(caBrut-_rentCouts.couts)/hT:0;
-  const tjmBrut=Math.round(thBrut*hj), tjmMin=Math.round(thMin*hj);
+  // getTHBrutAnnuel/getTJMBrut (shared/core/calculs.js, 2026-07-25) : ce calcul (CA moins
+  // dépenses liées aux affaires, ÷ heures, puis converti en TJM) vivait jusqu'ici inline ici et
+  // nulle part ailleurs — jamais couvert par les suites de tests (signalement d'une revue de
+  // code externe : "le TJM n'a pas de fonction dédiée dans shared/core"). Extrait sans changer
+  // le résultat : getTHBrutAnnuel() regroupe en interne les dépenses par chantierId exactement
+  // comme _rentCouts.couts ci-dessus (recalculé une seconde fois plutôt qu'un import direct de
+  // _rentCouts.couts, pour que la fonction reste testée telle qu'elle est réellement appelée).
+  const thBrut=getTHBrutAnnuel(caBrut,hT);
+  const tjmBrut=getTJMBrut(thBrut), tjmMin=getTJMBrut(thMin);
   const gapTjm=tjmMin-tjmBrut;
   // ── Marge brute % (fabrication / achat_revente)
   // Déduit les remboursements (DATA.retours statut='rembourse') du CA avant de calculer la
@@ -5884,11 +5891,11 @@ function wScoreSante(d) {
   // de calculer la marge du mois en cours.
   const _rentCaMoisNetRetours=_rentIsMarge?Math.max(0,_rentCoutsMois.ca-getMontantRembourseMois(curMk)):_rentCoutsMois.ca;
   const _margePctMois=_rentCaMoisNetRetours>0?Math.round((_rentCaMoisNetRetours-_rentCoutsMois.couts)/_rentCaMoisNetRetours*100):null;
-  // Même déduction des dépenses liées que thBrut (annuel, plus haut) — _rentCoutsMois.couts
-  // était déjà calculé pour _margePctMois mais jamais appliqué ici, seul thBrut avait été
-  // corrigé (voir chantier "dépenses liées jamais déduites du Score de Santé").
-  const thMoisBrut=hMoisTotal>0?(caMoisCourant-_rentCoutsMois.couts)/hMoisTotal:0;
-  const tjmMoisBrut=Math.round(thMoisBrut*hj);
+  // getTHBrutMois/getTJMBrut (shared/core/calculs.js, 2026-07-25) — même extraction que thBrut/
+  // tjmBrut (annuel, plus haut), variante mensuelle. Même déduction des dépenses liées que
+  // _rentCoutsMois.couts (recalculée en interne par la fonction, voir commentaire annuel).
+  const thMoisBrut=getTHBrutMois(curMk,caMoisCourant,hMoisTotal);
+  const tjmMoisBrut=getTJMBrut(thMoisBrut);
   let diagRentMois=null, rowRentMois=null;
   if(_rentIsMarge){
     if(_margePctMois!==null){
@@ -12133,6 +12140,9 @@ document.addEventListener('keydown', function(e) {
   window.getDepensesLignesMois  = (mk) => { sync(); return Mode.getDepensesLignesMois(mk); };
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
+  window.getTHBrutAnnuel        = (caBrut,hT) => { sync(); return Mode.getTHBrutAnnuel(caBrut,hT); };
+  window.getTJMBrut             = (thBrut)    => { sync(); return Mode.getTJMBrut(thBrut); };
+  window.getTHBrutMois          = (mk,caMois,heuresMois) => { sync(); return Mode.getTHBrutMois(mk,caMois,heuresMois); };
   window.getTVACollecteeMois              = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
   window.getTVACollecteeEncaissementsMois = (mk) => { sync(); return Mode.getTVACollecteeEncaissementsMois(mk); };
   window.getTVACollecteeDebitsMois        = (mk) => { sync(); return Mode.getTVACollecteeDebitsMois(mk); };

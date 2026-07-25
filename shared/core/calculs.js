@@ -498,6 +498,48 @@ export function getTauxHoraireMinCible(DATA) {
   return r > 0 ? ((p.objectifNetMensuel || 0) + dep) / r * 12 / hAn : 0;
 }
 
+// ── RENTABILITÉ BRUTE (TH/TJM RÉEL) ───────────────────────────
+// Le pilier Rentabilité du Score de Santé (mode 'th'/'tjm') calculait ces chiffres inline dans
+// indepuls.html (wScoreSante()), sans aucune fonction dédiée dans shared/core — donc jamais
+// couvert par les suites de tests. Extrait ici (2026-07-25, suite au signalement d'une revue de
+// code externe) en gardant `caBrut`/`hT`/`caMois`/`heuresMois` en paramètres : ces valeurs sont
+// déjà calculées et couvertes ailleurs (getCaFromMissions, getPonctuelsCA, getHeuresFact,
+// getHeuresInterne...) — même convention que resultatHSemaine() dans planning.js, qui prend déjà
+// cap/charge en paramètres plutôt que de les recalculer une seconde fois. Seule la déduction des
+// dépenses liées aux affaires (chantierId) avant division est le calcul propre à cette fonction.
+
+// Total des dépenses rattachées à une affaire (chantierId), restreint aux missions existantes
+// (hors gestion interne). Copie locale volontaire du groupement déjà fait par
+// getDepensesAffairesMap (shared/core/affaires.js) plutôt qu'un import : affaires.js importe déjà
+// calculs.js (getMissionHeures), un import dans l'autre sens créerait une dépendance circulaire.
+function _coutsAffairesTotal(DATA) {
+  const map = {};
+  DATA.depenses.forEach(d => { if (d.chantierId) map[d.chantierId] = (map[d.chantierId] || 0) + (d.montant || 0); });
+  return DATA.missions.filter(m => !m.isManagement).reduce((s, m) => s + (map[m.id] || 0), 0);
+}
+
+// TH réel brut annuel = (CA brut − dépenses liées aux affaires) ÷ heures travaillées.
+export function getTHBrutAnnuel(DATA, caBrut, hT) {
+  if (!(hT > 0)) return 0;
+  return (caBrut - _coutsAffairesTotal(DATA)) / hT;
+}
+
+// TJM réel brut = TH brut × heures/jour — seul calcul propre au TJM (le reste est un TH converti).
+export function getTJMBrut(DATA, thBrut) {
+  return Math.round(thBrut * (DATA.params.heuresParJour || 7));
+}
+
+// Variante mensuelle de getTHBrutAnnuel : dépenses liées filtrées sur le mois `mk` uniquement.
+export function getTHBrutMois(DATA, mk, caMois, heuresMois) {
+  if (!(heuresMois > 0)) return 0;
+  const couts = DATA.missions.filter(m => !m.isManagement).reduce((s, m) => {
+    const co = (DATA.depenses || []).filter(d => d.chantierId === m.id && d.date && d.date.slice(0, 7) === mk)
+      .reduce((a, d) => a + (d.montant || 0), 0);
+    return s + co;
+  }, 0);
+  return (caMois - couts) / heuresMois;
+}
+
 // ── SASU ─────────────────────────────────────────────────────
 
 // Net → coût total pour la société (charges patronales/salariales comprises via
