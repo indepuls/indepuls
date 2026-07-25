@@ -1620,6 +1620,13 @@ Faustine : la colonne Chrono du tableau Missions n'affichait aucun bouton pour l
 - **Fix** : la cellule Chrono affiche désormais le même bouton ▶/⏹ pour toutes les lignes, y compris "Mon entreprise" — aucune nouvelle fonction, réutilisation directe de `startTimer(id)` déjà générique.
 - **Vérifié** : suites Node inchangées et vertes. Navigateur : clic sur le bouton de la ligne "Mon entreprise" → `timerRunning` passe à `true` ; second clic → repasse à `false` ; aucune erreur console.
 
+### FEATURE — Bouton Chrono dans la vue Calendrier (2026-07-25)
+Faustine : pour les personnes qui préfèrent la vue Calendrier, avoir aussi un bouton pour démarrer le chrono d'une mission en cours sans repasser par le Tableau — dans l'esprit du Calendrier comme vue à part entière (mêmes capacités que le Tableau), pas une vue allégée.
+
+- **Emplacement retenu** : la liste "Missions ce mois" sous la grille (`renderPlanning()`, indepuls.html) — chaque ligne y affiche déjà client/description + temps prévu/réalisé, c'est l'endroit qui liste les missions individuellement (contrairement à la grille jour par jour, où une session ne représente pas nécessairement "la" mission active du moment).
+- **Implémentation** : même bouton `.timer-btn` ▶/⏹ que le Tableau, même fonction générique `startTimer(id)` (aucun nouveau code de gestion du temps) — `event.stopPropagation()` pour ne pas déclencher l'ouverture de la fiche mission (clic sur le reste de la ligne). Pas de restriction par statut : comme dans le Tableau, le chrono reste actionnable même sur une mission facturée (cohérence entre les deux vues).
+- **Vérifié** : suites Node inchangées et vertes. Navigateur : bouton présent sur chaque ligne de "Missions ce mois" ; clic → bascule `timerRunning` sans ouvrir la modale mission ; aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir

@@ -3199,6 +3199,7 @@ function renderPlanning() {
         <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.client||'—'} <span style="font-weight:400;color:var(--tl)">${m.description||''}</span></div>
         <div class="ts" style="margin-top:1px">${range}</div>
       </div>
+      <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="event.stopPropagation();startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono">${m.timerRunning?'⏹':'▶'}</button>
     </div>`;
   }).join('');
 
