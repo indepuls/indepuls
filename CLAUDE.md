@@ -1911,6 +1911,13 @@ Ces fonctionnalités iraient dans `shared/core/` (nouvelle logique métier) + wi
 ### 4. Export / bilan mensuel PDF *(moyen terme)*
 Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions, revenu net. Utile pour les rendez-vous comptables. Faisable en JS pur via `window.print()` avec une CSS `@media print` dédiée, sans dépendance externe. Commun à tous les profils.
 
+### 4bis. Export comptable basique — CSV recettes + dépenses *(moyen terme, idée validée 2026-07-25)*
+Distinct du point 4 ci-dessus : pas un récapitulatif lisible par un humain, mais des **lignes brutes réimportables** — la fonctionnalité manquante que des indépendants qui pilotent déjà avec Indépuls depuis un moment finissent par demander, au moment de transmettre à un expert-comptable sans ressaisir. Ne pas confondre avec le Livre des recettes existant (`exportRecettesPDF()`) : celui-ci est un registre légal PDF, encaissements seuls, masqué pour les SASU/EURL — pas un export comptable.
+
+- **Cadrage volontairement limité** (pas une comptabilité complète — exporter n'est pas gérer) : un CSV générique et neutre — date, type (recette/dépense), client/fournisseur, libellé, catégorie, montant HT, TVA (si `DATA.params.tva`), montant TTC, mode de règlement, référence justificative. Couvre recettes **et** dépenses, pour tous les profils y compris SASU/EURL.
+- **Point de vigilance identifié avant tout développement** : ne jamais présenter ce fichier comme "conforme" ou "prêt à importer" dans un format réglementaire (ex. FEC) ou un logiciel comptable précis — ce serait une promesse d'exactitude fiscale qu'Indépuls ne peut pas garantir. Toujours le présenter comme "vos données brutes, à donner telles quelles à votre comptable".
+- Zéro nouvelle saisie (pur export de données déjà existantes : `DATA.recettesManuel`/encaissements + `DATA.depenses`) — complexité contenue à une fonction de formatage CSV, aucun nouveau champ en base.
+
 ### 5. Synchronisation bancaire *(long terme)*
 Connexion à un agrégateur bancaire (Bridge API, Powens…) pour réconcilier automatiquement les encaissements avec les missions. Impact fort sur la qualité des données artisan (aujourd'hui saisie manuelle des encaissements). Nécessite un backend — hors portée du vanilla actuel.
 
