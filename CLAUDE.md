@@ -1598,6 +1598,14 @@ Faustine : besoin récurrent de voir le tableau/agenda derrière une fenêtre ou
 - **CSS** : `.modal .modal-title{cursor:grab}` / `:active{cursor:grabbing}` — affordance visuelle, aucune icône ajoutée.
 - **Vérifié** : suites Node inchangées et vertes. Navigateur : drag simulé (mousedown/mousemove/mouseup) sur le titre de la modale mission → `transform:translate(-150px,120px)` appliqué ; fermeture puis réouverture → transform vide (recentrée) ; en viewport mobile (375px), le même drag ne produit aucun transform (`computedTransform:'none'`, bottom sheet intact) ; aucune erreur console.
 
+### FEATURE — Taux réel net estimé, page Missions (2026-07-25)
+Faustine (relayant une demande de son mari) : le taux réel affiché par affaire est brut (marge − dépenses liées, divisée par le temps) ; besoin d'une estimation après URSSAF/impôts.
+
+- **Décision** : une estimation, pas un calcul officiel — l'URSSAF et l'impôt se calculent légalement sur le CA global (trimestre/année), jamais affaire par affaire. Le taux étant fixe en micro-BNC/BIC, l'appliquer à la marge d'une affaire donne une approximation honnête ; en SASU/EURL, `getTauxChargesPresta()` vaut 0 (rémunération non indexée sur le CA), l'estimation est donc moins pertinente mais affichée quand même — cohérent avec le choix déjà fait ailleurs dans l'app pour le même type de ratio ("netR", ~L5357).
+- **Implémentation** (`renderMissions()`, indepuls.html) : `_netRatio = 1 - getTauxChargesPresta() - getImpotsTaux()` calculé une seule fois avant la boucle (déjà branchées sur `shared/core/calculs.js` via le bridge `window.*`) ; `thNet = th * _netRatio` par ligne. Affiché en dessous du taux brut dans la même cellule : `≈ X€/j net` (ou `/h` selon l'unité), en gris (`var(--tl)`), pas une nouvelle colonne.
+- **Infobulle "Taux réel" mise à jour** pour expliquer les deux lignes et le caractère estimatif (jamais un calcul officiel).
+- **Vérifié** : suites Node inchangées et vertes. Navigateur (profil artisan bâtiment) : ligne "1 400,0 €/j" → "≈ 1 038,8 €/j net" ; ratio vérifié exact (`1-0,258-0 = 0,742`, `1038.8/1400 = 0,742`) ; aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir

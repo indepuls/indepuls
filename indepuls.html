@@ -704,7 +704,7 @@ html,body{overflow-x:hidden;}
             <thead><tr>
               <th id="missions-th-client">Client / Mission</th><th>Catégorie</th>
               <th>Montant</th><th>Statut</th><th>Facturée le</th>
-              <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel <span class="info-tip" title="CA de cette affaire moins les dépenses qui lui sont directement liées (matériaux, sous-traitance…), divisé par le temps passé. C'est un taux brut : vos cotisations sociales et vos impôts n'en sont pas encore déduits.">?</span></th><th>Notes</th><th>Chrono</th><th></th>
+              <th>Temps <span class="info-tip" title="Notez tout le temps réellement passé : échanges, préparation, déplacements, achats et travail facturable. Ce total sert à calculer votre taux horaire réel.">?</span></th><th>Taux réel <span class="info-tip" title="CA de cette affaire moins les dépenses qui lui sont directement liées (matériaux, sous-traitance…), divisé par le temps passé — un taux brut. En dessous, une estimation du taux net (après cotisations sociales et impôts) : elle applique à cette affaire le même taux de charges que celui utilisé pour votre revenu net global — une approximation, pas un calcul officiel (l'URSSAF et l'impôt se calculent sur votre CA total, jamais affaire par affaire).">?</span></th><th>Notes</th><th>Chrono</th><th></th>
             </tr></thead>
             <tbody id="missions-tbody"></tbody>
           </table>
@@ -8867,6 +8867,15 @@ function renderMissions() {
   let totD=0,totF=0,totH=0;
   // Un seul passage sur DATA.depenses pour tout le tableau (voir getDepensesAffairesMap).
   const _missionsCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
+  // Ratio net estimé (retour Faustine 2026-07-24, demande de son mari) : même taux global que
+  // celui déjà utilisé ailleurs dans l'app pour une estimation rapide (voir "netR", ~L5357),
+  // appliqué ici au taux réel (brut) de chaque affaire. Approximation assumée et non un calcul
+  // officiel : l'URSSAF/l'impôt se calculent légalement sur le CA global, jamais affaire par
+  // affaire — mais le taux étant fixe en micro-BNC/BIC, l'appliquer à la marge d'une affaire
+  // donne une estimation honnête. En SASU/EURL, getTauxChargesPresta() vaut 0 (la rémunération
+  // n'est pas un % direct du CA) : le ratio ne reflète alors que impotsTaux, moins pertinent —
+  // affiché quand même, cohérent avec le reste de l'app qui fait le même choix (ex: ~L5357).
+  const _netRatio=1-getTauxChargesPresta()-getImpotsTaux();
   filtered.forEach(m=>{
     const h=getMissionHeures(m),ms=getMissionTotalMs(m);
     const _isJours=DATA.params.modules?.uniteTemps==='jours', _hj=DATA.params.heuresParJour||7;
@@ -8876,6 +8885,7 @@ function renderMissions() {
     const _margeM=(m.montantDevis||0)-(_missionsCoutMap[m.id]||0);
     const th=m.montantDevis>0&&h>0?(_isJours?_margeM/(h/_hj):_margeM/h):null;
     const _thUnit=_isJours?'/j':'/h';
+    const thNet=th!=null?th*_netRatio:null;
     if(!m.isManagement){ totD+=m.montantDevis||0; if(m.statut==='fact') totF+=m.montantDevis||0; }
     totH+=h;
     const tr=document.createElement('tr'); if(m.isManagement) tr.className='row-pinned'; tr.id='mrow-'+m.id;
@@ -8889,7 +8899,7 @@ function renderMissions() {
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
       <td class="ts">${dateFactCell}</td>
       <td><span class="timer-disp" id="timer-${m.id}">${heuresMs(ms)}</span><div class="ts">${m.isManagement?'ce mois':h>0?fmt(h,1)+' h':''}</div>${m.isManagement?'':getTrajectoireCompacte(m)}</td>
-      <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}</td>
+      <td class="ts">${th?fmtE(th,1)+_thUnit:'—'}${thNet!=null?`<div style="color:var(--tl)">≈ ${fmtE(thNet,1)}${_thUnit} net</div>`:''}</td>
       <td class="ts" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.notes||'')}">${esc(m.notes||'—')}</td>
       <td>${!m.isManagement?`<button class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')">${m.timerRunning?'⏹':'▶'}</button>`:'—'}</td>
       <td>${!m.isManagement?`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button> <button class="btn btn-out btn-xs" onclick="openMissionModal('${m.id}')">✏️</button> <button class="btn btn-out btn-xs" onclick="openEncaissementsModal('${m.id}')" title="Encaissements">💰</button>${(DATA.params.modules?.objectif==='marge_commande'&&m.statut==='fact')?` <button class="btn btn-out btn-xs" onclick="ouvrirRetourModal('${m.id}')" title="Signaler un retour">↩️</button>`:''} <button class="btn btn-out btn-xs" onclick="duplicateMission('${m.id}')" title="Dupliquer">⧉</button> <button class="btn btn-del btn-xs" onclick="deleteMission('${m.id}')">🗑</button>`:`<button class="btn btn-out btn-xs" onclick="openAddTimeModal('${m.id}')">⏱️ Temps</button> <button class="btn btn-out btn-xs" onclick="openTempsInterneModal()" title="Historique mensuel">📊</button>`}</td>`;
