@@ -20,7 +20,7 @@
 > **⚠️ Piège critique — ne jamais laisser `DATA.isExample` interférer avec la synchronisation cloud (bug de perte de données corrigé le 2026-07-13, voir `loadFromCloud()`/`syncToCloud()` en fin de fichier).** Un utilisateur qui explore le mode démo (picker de profil) *avant* de se connecter à son vrai compte — un parcours parfaitement normal sur un même appareil — laisse `isExample:true` dans le `localStorage` de ce navigateur. Si `loadFromCloud()` refuse de charger les vraies données cloud à cause de cet état local résiduel, **et** que `syncToCloud()` n'a aucun garde-fou propre, le prochain `saveData()` écrase silencieusement les vraies données cloud de l'utilisatrice avec de la démo — perte de données irréversible côté serveur, en pleine bêta. Deux règles absolues, indépendantes l'une de l'autre, à ne **jamais** retirer ou contourner dans un futur changement :
 > 1. `loadFromCloud()` charge toujours les données cloud dès qu'elles existent pour l'utilisateur authentifié, **sans condition sur l'état local** (`DATA.isExample` ou autre) — une session authentifiée avec des données cloud existantes est toujours la source de vérité.
 > 2. `syncToCloud()` doit toujours commencer par `if (DATA.isExample) return;` — ne jamais synchroniser de la démo vers le cloud, quelle que soit la raison qui a mené à cet état. C'est le dernier rempart si (1) est un jour recassé par erreur.
-> Avant toute modification touchant `loadData()`, `loadFromCloud()`, `syncToCloud()`, `loadDemoWithCurrentParams()` ou `authLoadDemo()`, relire ce paragraphe et vérifier explicitement que ces deux garanties tiennent toujours.
+> Avant toute modification touchant `loadData()`, `loadFromCloud()`, `syncToCloud()`, `loadDemoWithCurrentParams()` ou `authLoadDemo()`, relire ce paragraphe et vérifier explicitement que ces deux garanties tiennent toujours. **Lancer aussi `node shared/tests/cloud_sync_guard.test.js` (2026-07-25)** — garde-fou automatisé qui échoue immédiatement si l'une des deux règles disparaît du code (voir section "Suites de tests" pour le détail). Ne remplace pas la relecture humaine, la complète.
 
 ## Architecture produit & Matrice fonctionnelle
 
@@ -254,11 +254,18 @@ $node = "C:\Program Files\nodejs\node.exe"
 & $node shared/tests/tva.test.js                          # 32 tests TVA (zones, collecte, déductible, régimes)
 & $node shared/tests/sasu_tresorerie.test.js              # 11 tests trésorerie SASU/EURL
 & $node shared/tests/affaires.test.js                     # 18 tests marge/TH réel par affaire
+& $node shared/tests/cloud_sync_guard.test.js             # garde-fou statique anti-régression (pas des assertions de calcul — voir ci-dessous)
 ```
 
-Total : 277 tests (7 suites).
+Total : 277 tests (7 suites) + 1 garde-fou statique.
 
 Total : environ **216 assertions** couvrant calculs, migrations, planning et règles fiscales 2026.
+
+### Garde-fou `cloud_sync_guard.test.js` (2026-07-25)
+
+Ne teste aucun calcul — vérifie par analyse de texte que `loadFromCloud()` et `syncToCloud()` contiennent toujours les 2 règles non négociables du fix du 13 juillet (voir paragraphe critique en tête de ce fichier) : le cloud charge toujours sans condition sur `isExample`, et `syncToCloud()` refuse toujours de synchroniser en mode démo (garde initial + revérification post-`await` sur une référence figée, fix du 21 juillet). Ce n'est pas un test d'intégration — `loadFromCloud`/`syncToCloud` restent des closures privées, jamais exposées sur `window`, donc jamais appelables directement dans un test Node classique. C'est un filet beaucoup plus modeste : si une future modification retire une des 2 lignes protectrices (par erreur, par un refactor, par une session future qui ne relit pas ce fichier), ce script échoue immédiatement avec un message explicite au lieu de laisser la régression atteindre la production silencieusement. **À lancer avant tout commit touchant `loadData()`, `loadFromCloud()`, `syncToCloud()`, `loadDemoWithCurrentParams()` ou `authLoadDemo()`.**
+
+**Limite assumée** : ce garde-fou protège contre la réapparition du bug déjà connu, pas contre une nouvelle classe de bug dans la même zone. Il ne remplace pas un vrai test d'intégration (voir "Prochains chantiers" — non construit faute d'exposer ces fonctions ou de mettre en place un test end-to-end type Playwright contre un compte Supabase de test).
 
 ## Architecture du dashboard (freelance & artisan)
 
