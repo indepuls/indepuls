@@ -196,8 +196,8 @@ function makeData(overrides = {}) {
   assertEq('scorer 80 %',  P.scorerRemplissage(80),  25);
   assertEq('scorer 90 %',  P.scorerRemplissage(90),  25);
   assertEq('scorer 100 %', P.scorerRemplissage(100), 25);
-  assertEq('scorer 101 %', P.scorerRemplissage(101), 5);
-  assertEq('scorer 150 %', P.scorerRemplissage(150), 5);
+  assertEq('scorer 101 %', P.scorerRemplissage(101), 18);
+  assertEq('scorer 150 %', P.scorerRemplissage(150), 18);
 }
 
 // ── getPilierRemplissage — mode 'aucun' ───────────────────────
@@ -237,10 +237,10 @@ function makeData(overrides = {}) {
   const D24 = makeData({ ...base, missions: [m24] });
   assertEq('estime 86 % → score 25', P.getPilierRemplissage(D24).score, 25);
 
-  // cap=28, charge=30 → pct=107 % (>100) → score 5 (surcharge)
+  // cap=28, charge=30 → pct=107 % (>100) → score 18 (surcharge, adoucie 2026-07-25)
   const m30 = { ...m5, chargeEstimee: 30 };
   const D30 = makeData({ ...base, missions: [m30] });
-  assertEq('estime 107 % → score 5 (surcharge)', P.getPilierRemplissage(D30).score, 5);
+  assertEq('estime 107 % → score 18 (surcharge adoucie)', P.getPilierRemplissage(D30).score, 18);
 
   // details normalisés
   const det = P.getPilierRemplissage(D24).details;

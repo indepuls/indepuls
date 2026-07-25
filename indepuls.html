@@ -6369,7 +6369,7 @@ function wScoreSante(d) {
     :_rentIsChantier
       ?`<strong>Données ·</strong> TJM réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne) × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
       :`<strong>Données ·</strong> TH réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne)<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
-  const methRempBareme=`<strong>Barème ·</strong> 80–100 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–80 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % ou &gt; 100 % → 5/25`;
+  const methRempBareme=`<strong>Barème ·</strong> 80–100 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–80 % ou &gt; 100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % → 5/25`;
   // Une seule méthode possible depuis la simplification radicale du chantier "vue calendrier"
   // (2026-07-24) : getPilierRemplissage() ne retourne plus jamais 'calendrier'/'additif', voir
   // shared/core/planning.js — les branches correspondantes ici étaient devenues du code mort.

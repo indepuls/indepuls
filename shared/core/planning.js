@@ -278,12 +278,15 @@ export function getTauxRemplissageAnnee(DATA) {
 // "temps facturable client uniquement"). Être à 100 % de CETTE capacité est donc l'objectif
 // recherché, pas un signal d'alerte — l'ancien palier 90–100 %→18 pénalisait à tort un
 // remplissage parfait comme s'il fallait "rester vigilant".
+// Dépassement de 100 % adouci à 18/25 (au lieu de 5) — même retour Faustine : un léger
+// dépassement mérite un rappel bienveillant ("attention à ne pas vous surcharger"), pas une
+// sanction aussi sévère qu'un remplissage très faible (<40 %, resté à 5/25).
 export function scorerRemplissage(pct) {
   if (pct < 40)   return 5;
   if (pct < 60)   return 12;
   if (pct < 80)   return 18;
   if (pct <= 100) return 25;
-  return 5; // surcharge >100 %
+  return 18; // surcharge >100 %
 }
 
 // ── POINT D'ENTRÉE UNIFIÉ ─────────────────────────────────────
@@ -342,8 +345,8 @@ function resultatHSemaine(DATA, methode, cap, charge) {
   const score = scorerRemplissage(pct);
   let diagnostic, conseil;
   if (pct > 100) {
-    diagnostic = `Votre capacité facturable est dépassée (${pct} %). Risque de surcharge ou d'épuisement à moyen terme.`;
-    conseil    = "Envisagez de déléguer, d'augmenter vos tarifs ou de refuser les missions les moins rentables.";
+    diagnostic = `Votre capacité facturable est dépassée (${pct} %). Attention à ne pas vous surcharger.`;
+    conseil    = "Gardez un œil sur votre rythme — envisagez de déléguer, d'augmenter vos tarifs ou d'espacer les prochaines missions si besoin.";
   } else if (pct >= 80) {
     diagnostic = `Votre planning est à son plein potentiel (${pct} %) — c'est l'objectif recherché : votre temps facturable est optimisé.`;
     conseil    = "Continuez ainsi. Si de nouvelles demandes arrivent, pensez à ajuster vos tarifs plutôt qu'à vous surcharger.";
