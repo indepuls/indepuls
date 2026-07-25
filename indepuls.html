@@ -5844,7 +5844,7 @@ function wScoreSante(d) {
     vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
     subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
-    else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
+    else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à mon seuil minimum.`;advRent='Vos '+tVocab('items').toLowerCase()+' sont rentables. Continuez ainsi.';}
     else if(sRent>=14){diagRent=`TJM réel proche de la cible — il reste ${fmtE(gapTjm,0)}/j à trouver.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos '+tVocab('items').toLowerCase()+'.';}
@@ -5854,7 +5854,7 @@ function wScoreSante(d) {
     subRent=thMin>0?`obj. min. ${fmtE(thMin,0)}/h`:'Cible non définie';
     const gapTh=thMin-thBrut;
     if(!hT){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
-    else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent='Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
+    else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`TH réel supérieur de ${fmtE(-gapTh,0)}/h à mon seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
     else if(sRent>=14){diagRent=`TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos '+tVocab('items').toLowerCase()+' les moins rentables.';}
@@ -6205,17 +6205,29 @@ function wScoreSante(d) {
     }
     prioriteNavPage=cap>0?_navPageByPilier.remplissage:'params';
   } else if(worst.n==='rentabilité'&&hT>0){
-    if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct)
+    if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct){
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
-    else if(_rentIsChantier&&tjmMin>0&&gapTjm>0)
+      prioriteNavPage=_navPageByPilier.rentabilité;
+    } else if(_rentIsChantier&&tjmMin>0&&gapTjm>0){
       priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
-    else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin)
+      prioriteNavPage=_navPageByPilier.rentabilité;
+    } else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin){
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
-    else
-      priorite=_rentIsMarge
-        ?`Ajoutez vos coûts directs sur vos ${tVocab('items').toLowerCase()} pour calculer votre marge et activer les recommandations de rentabilité.`
-        :`Définissez votre objectif de revenu net dans Paramètres → Mes objectifs pour activer les recommandations de rentabilité.`;
-    if(priorite) prioriteNavPage=_navPageByPilier.rentabilité;
+      prioriteNavPage=_navPageByPilier.rentabilité;
+    } else if(_rentIsMarge){
+      priorite=`Ajoutez vos coûts directs sur vos ${tVocab('items').toLowerCase()} pour calculer votre marge et activer les recommandations de rentabilité.`;
+      prioriteNavPage=_navPageByPilier.rentabilité;
+    } else if(isSASU()){
+      // En SASU/EURL, objectifNetMensuel n'est qu'un champ de simulation isolé (page "Mes
+      // objectifs") — seule remunerationNette (Paramètres > Fiscalité & charges) alimente
+      // réellement getTauxHoraireMinCible() (voir shared/core/calculs.js). Renvoyer vers "Mes
+      // objectifs" ici était faux et n'aidait pas la personne à trouver le bon champ (retour
+      // Faustine, 2026-07-25). Lien direct vers le bon onglet plutôt que le bouton générique
+      // "→ Onglet Paramètres" (prioriteNavPage laissé vide pour ne pas le dupliquer).
+      priorite=`Définissez votre rémunération nette mensuelle dans <span class="step-cta" style="cursor:pointer" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Paramètres → Fiscalité &amp; charges</span> pour activer les recommandations de rentabilité.`;
+    } else {
+      priorite=`Définissez votre objectif de revenu net dans <span class="step-cta" style="cursor:pointer" onclick="navigate('params');setTimeout(()=>switchParamTab('objectifs',document.querySelector('#page-params [onclick*=objectifs]')),100)">Paramètres → Mes objectifs</span> pour activer les recommandations de rentabilité.`;
+    }
   } else if(score>=85){
     if(annualAtRisk){
       priorite=trajAtteignable
