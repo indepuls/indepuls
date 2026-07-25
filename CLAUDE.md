@@ -1627,6 +1627,18 @@ Faustine : pour les personnes qui préfèrent la vue Calendrier, avoir aussi un 
 - **Implémentation** : même bouton `.timer-btn` ▶/⏹ que le Tableau, même fonction générique `startTimer(id)` (aucun nouveau code de gestion du temps) — `event.stopPropagation()` pour ne pas déclencher l'ouverture de la fiche mission (clic sur le reste de la ligne). Pas de restriction par statut : comme dans le Tableau, le chrono reste actionnable même sur une mission facturée (cohérence entre les deux vues).
 - **Vérifié** : suites Node inchangées et vertes. Navigateur : bouton présent sur chaque ligne de "Missions ce mois" ; clic → bascule `timerRunning` sans ouvrir la modale mission ; aucune erreur console.
 
+### FEATURE — Export comptable (CSV + PDF), Paramètres (2026-07-25)
+Idée couplant deux chantiers en attente (voir plus haut : "4bis. Export comptable basique" et "4. Export/bilan mensuel PDF") — Faustine a validé de les faire ensemble plutôt que de laisser une V2 en suspens : période au choix (mois en cours / année en cours / personnalisée) + choix du format (CSV détail ou PDF récapitulatif), avec un warning permanent sur le caractère non-officiel de l'export.
+
+- **Distinct du Livre des recettes** (`exportRecettesPDF()`/`exportRecettesCSV()`, existant) : celui-ci couvre recettes **et** dépenses, pour **tous les statuts y compris SASU/EURL** (le Livre des recettes est masqué pour eux) — pas un registre légal, un export des données déjà saisies.
+- **`getDepensesLignesMois(DATA, mk)`** (nouvelle fonction, `shared/core/calculs.js`, bridgée via `unified.js`/`window.*`) : comme `getDepensesMois()` mais retourne les lignes détaillées plutôt qu'un total — une dépense mensuelle active génère une ligne datée du 1er du mois, une annuelle une ligne datée de son jour d'ancrage. Testée dans `shared/tests/depenses_export.test.js` (9 assertions).
+- **`getExportComptablePeriodeMks()`** (indepuls.html) : résout la période choisie en liste de mk — commune au CSV et au PDF, pour ne jamais avoir deux logiques de période à maintenir. Dates personnalisées inversées (fin avant début) automatiquement corrigées (swap).
+- **`exportComptableCSV()`** : lignes brutes uniquement (recettes + dépenses, jamais de bilan agrégé) — même convention que `exportRecettesCSV()` (séparateur `;`, BOM UTF-8, décimales à la française).
+- **`exportComptablePDF()`** : récapitulatif par mois — **même formule que le bilan mensuel de la page Revenus** (`renderRevenus()` : CA brut, charges URSSAF+CFP, TVA collectée si activée, impôt estimé, dépenses, revenu net), jamais un second calcul divergent pour les mêmes chiffres. Même mécanisme d'impression que `exportRecettesPDF()` (`window.open`+`window.print()`).
+- **Warning permanent** (pas seulement au moment du téléchargement) : "Ce fichier reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité — vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle." — décision produit explicite pour éviter toute sur-promesse de conformité fiscale.
+- **Emplacement** : Paramètres, nouvelle carte "Export comptable" juste après "Livre des recettes" — visible pour tous les profils (pas gatée par `livreRecettesActif`/statut), cohérent avec l'endroit où on cherche naturellement un export de données.
+- **Vérifié** : suites Node inchangées et vertes (44+18+9+11+32 assertions). Navigateur : période "année" → 12 mk résolus ; période personnalisée avec dates inversées → corrigées automatiquement ; CSV généré (recettes + dépenses, catégorie/TVA remplies pour les dépenses) ; PDF généré (14 lignes = 12 mois + en-tête + total, warning présent) ; testé aussi en SASU avec Livre des recettes désactivé → fonctionne sans erreur ; aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
@@ -1908,15 +1920,11 @@ Le profil `chantier` (famille artisan bâtiment) est une adaptation du modèle g
 - Suivi des retenues de garantie
 Ces fonctionnalités iraient dans `shared/core/` (nouvelle logique métier) + widgets dédiés dans `indepuls.html`, conditionnés par famille/`modules.*` comme le reste de l'app.
 
-### 4. Export / bilan mensuel PDF *(moyen terme)*
-Générer un récapitulatif mensuel téléchargeable : CA, dépenses, provisions, revenu net. Utile pour les rendez-vous comptables. Faisable en JS pur via `window.print()` avec une CSS `@media print` dédiée, sans dépendance externe. Commun à tous les profils.
+### 4. Export / bilan mensuel PDF ✅ *implémenté (2026-07-25)*
+Couplé avec le point 4bis ci-dessous en une seule fonctionnalité "Export comptable" (Paramètres) — voir plus haut section "FEATURE — Export comptable (CSV + PDF)". Faustine a préféré livrer les deux d'un coup plutôt que de laisser une V2 en attente, la complexité restante (formule de bilan déjà existante dans `renderRevenus()`, réutilisée telle quelle) le permettait dans la même session.
 
-### 4bis. Export comptable basique — CSV recettes + dépenses *(moyen terme, idée validée 2026-07-25)*
-Distinct du point 4 ci-dessus : pas un récapitulatif lisible par un humain, mais des **lignes brutes réimportables** — la fonctionnalité manquante que des indépendants qui pilotent déjà avec Indépuls depuis un moment finissent par demander, au moment de transmettre à un expert-comptable sans ressaisir. Ne pas confondre avec le Livre des recettes existant (`exportRecettesPDF()`) : celui-ci est un registre légal PDF, encaissements seuls, masqué pour les SASU/EURL — pas un export comptable.
-
-- **Cadrage volontairement limité** (pas une comptabilité complète — exporter n'est pas gérer) : un CSV générique et neutre — date, type (recette/dépense), client/fournisseur, libellé, catégorie, montant HT, TVA (si `DATA.params.tva`), montant TTC, mode de règlement, référence justificative. Couvre recettes **et** dépenses, pour tous les profils y compris SASU/EURL.
-- **Point de vigilance identifié avant tout développement** : ne jamais présenter ce fichier comme "conforme" ou "prêt à importer" dans un format réglementaire (ex. FEC) ou un logiciel comptable précis — ce serait une promesse d'exactitude fiscale qu'Indépuls ne peut pas garantir. Toujours le présenter comme "vos données brutes, à donner telles quelles à votre comptable".
-- Zéro nouvelle saisie (pur export de données déjà existantes : `DATA.recettesManuel`/encaissements + `DATA.depenses`) — complexité contenue à une fonction de formatage CSV, aucun nouveau champ en base.
+### 4bis. Export comptable basique — CSV recettes + dépenses ✅ *implémenté (2026-07-25)*
+Distinct du Livre des recettes existant (`exportRecettesPDF()`/`exportRecettesCSV()`) : registre légal, encaissements seuls, masqué pour les SASU/EURL — pas un export comptable. Voir "FEATURE — Export comptable (CSV + PDF)" plus haut pour le détail complet.
 
 ### 5. Synchronisation bancaire *(long terme)*
 Connexion à un agrégateur bancaire (Bridge API, Powens…) pour réconcilier automatiquement les encaissements avec les missions. Impact fort sur la qualité des données artisan (aujourd'hui saisie manuelle des encaissements). Nécessite un backend — hors portée du vanilla actuel.

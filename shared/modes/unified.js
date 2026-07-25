@@ -33,6 +33,7 @@ export const getMoisDepuisOuverture   = () => C.getMoisDepuisOuverture(DATA);
 export const getMoisActifsAnnee       = () => C.getMoisActifsAnnee(DATA);
 
 export const getDepensesMois          = (mk) => C.getDepensesMois(DATA, mk);
+export const getDepensesLignesMois    = (mk) => C.getDepensesLignesMois(DATA, mk);
 export const getDepensesMoyenneMensuelle = () => C.getDepensesMoyenneMensuelle(DATA);
 
 export const getPonctuelsCA           = (mk) => C.getPonctuelsCA(DATA, mk);

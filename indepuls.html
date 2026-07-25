@@ -1023,6 +1023,33 @@ html,body{overflow-x:hidden;}
         <div class="ts mt6" style="color:var(--tl);line-height:1.6">Recommandé pour les micro-entreprises. Une fois activé, chaque encaissement peut être complété avec le mode de règlement et la référence de facture.</div>
         <div class="ts mt6" style="color:var(--tl);line-height:1.6">Vous pouvez ensuite l'exporter en PDF ou CSV pour le transmettre à votre expert-comptable ou à l'administration.</div>
       </div>
+      <div class="card mt16" id="export-comptable-block">
+        <div class="card-title mb8">Export comptable <span class="info-tip" title="Contrairement au livre des recettes (encaissements seuls, réservé aux micro-entreprises), cet export couvre vos recettes ET vos dépenses, pour tous les statuts — pratique pour transmettre vos chiffres à votre expert-comptable sans tout ressaisir.">?</span></div>
+        <div class="ts mb10" style="color:var(--tl);line-height:1.6">Téléchargez vos recettes et dépenses sur la période de votre choix, pour les transmettre à votre expert-comptable.</div>
+        <div class="frow" style="gap:10px;align-items:flex-end">
+          <div class="fgroup" style="margin:0">
+            <label class="flabel">Période</label>
+            <select id="exp-compta-periode" onchange="updateExportComptablePeriodeUI()">
+              <option value="mois">Mois en cours</option>
+              <option value="annee">Année en cours</option>
+              <option value="perso">Personnalisée</option>
+            </select>
+          </div>
+          <div class="fgroup" id="exp-compta-perso-wrap" style="margin:0;display:none">
+            <label class="flabel">Du</label>
+            <input type="month" id="exp-compta-debut">
+          </div>
+          <div class="fgroup" id="exp-compta-perso-wrap2" style="margin:0;display:none">
+            <label class="flabel">Au</label>
+            <input type="month" id="exp-compta-fin">
+          </div>
+        </div>
+        <div class="alert al-info mt10">⚠️ Ce fichier reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité — vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
+        <div class="mt10" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-out btn-sm" onclick="exportComptableCSV()">⬇ CSV — détail (recettes + dépenses)</button>
+          <button class="btn btn-out btn-sm" onclick="exportComptablePDF()">⬇ PDF — récapitulatif</button>
+        </div>
+      </div>
     </div>
 
     <!-- OBJECTIFS -->
@@ -7149,6 +7176,118 @@ function exportRecettesPDF() {
   w.document.close();
 }
 
+// ── EXPORT COMPTABLE (Paramètres, 2026-07-25) ──────────────────
+// Distinct du livre des recettes ci-dessus : couvre recettes ET dépenses, pour tous les statuts
+// (y compris SASU/EURL, exclus du livre des recettes) — pas un registre légal, juste un export
+// des données déjà saisies pour transmission à un expert-comptable, sans ressaisie.
+function updateExportComptablePeriodeUI() {
+  const perso = document.getElementById('exp-compta-periode').value === 'perso';
+  document.getElementById('exp-compta-perso-wrap').style.display = perso ? '' : 'none';
+  document.getElementById('exp-compta-perso-wrap2').style.display = perso ? '' : 'none';
+}
+// Résout la période choisie (mois en cours / année en cours / personnalisée) en une liste de
+// mk ('YYYY-MM') inclusifs — unité commune à l'export CSV (lignes brutes) et PDF (récap par
+// mois), pour ne jamais avoir deux logiques de période différentes à maintenir.
+function getExportComptablePeriodeMks() {
+  const type = document.getElementById('exp-compta-periode').value;
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const curMk = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  let debut, fin;
+  if (type === 'annee') { const y = DATA.currentYear || now.getFullYear(); debut = `${y}-01`; fin = `${y}-12`; }
+  else if (type === 'perso') {
+    debut = document.getElementById('exp-compta-debut').value || curMk;
+    fin = document.getElementById('exp-compta-fin').value || curMk;
+    if (fin < debut) { const t = debut; debut = fin; fin = t; }
+  } else { debut = curMk; fin = curMk; }
+  const mks = [];
+  let [y, m] = debut.split('-').map(Number);
+  const [yFin, mFin] = fin.split('-').map(Number);
+  while (y < yFin || (y === yFin && m <= mFin)) {
+    mks.push(`${y}-${pad(m)}`);
+    m++; if (m > 12) { m = 1; y++; }
+  }
+  return mks;
+}
+// CSV = lignes brutes (recettes + dépenses), jamais de bilan agrégé — c'est le PDF qui s'en
+// charge. Même convention que exportRecettesCSV() : séparateur ';', BOM UTF-8, décimales à la
+// française (virgule) pour une ouverture directe dans Excel/LibreOffice sans réglage manuel.
+function exportComptableCSV() {
+  const mks = getExportComptablePeriodeMks();
+  const mkSet = new Set(mks);
+  const recettes = getRecettesData().filter(r => r.date && mkSet.has(r.date.slice(0, 7)) && r.statut !== 'annulee');
+  const depenseLignes = mks.flatMap(mk => getDepensesLignesMois(mk));
+  const lines = [['Date', 'Type', 'Client / Fournisseur', 'Libellé', 'Catégorie', 'Montant HT (€)', 'TVA (€)', 'Mode de règlement', 'Référence'].join(';')];
+  recettes.forEach(r => {
+    lines.push([
+      r.date || '', 'Recette',
+      `"${(r.client || '').replace(/"/g, '""')}"`,
+      `"${(r.libelle || '').replace(/"/g, '""')}"`,
+      '', String(r.montant || 0).replace('.', ','), '',
+      LR_MODES[r.modeReglement] || r.modeReglement || '',
+      `"${(r.refJustificative || '').replace(/"/g, '""')}"`,
+    ].join(';'));
+  });
+  depenseLignes.forEach(d => {
+    lines.push([
+      d.date || '', 'Dépense', '',
+      `"${(d.libelle || '').replace(/"/g, '""')}"`,
+      `"${(d.categorie || 'Autre').replace(/"/g, '""')}"`,
+      String(d.montant || 0).replace('.', ','),
+      d.tvaDeductible ? String(d.montantTVA || 0).replace('.', ',') : '',
+      '', '',
+    ].join(';'));
+  });
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `export-comptable-${mks[0]}_${mks[mks.length - 1]}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const n = recettes.length + depenseLignes.length;
+  showToast(`✅ Export généré — ${n} ligne${n > 1 ? 's' : ''}`);
+}
+// PDF = récapitulatif par mois (CA brut, charges, impôt estimé, dépenses, revenu net), même
+// formule que le bilan mensuel de la page Revenus (renderRevenus()) — jamais un second calcul
+// divergent pour les mêmes chiffres. Même mécanisme d'impression que exportRecettesPDF().
+function exportComptablePDF() {
+  const mks = getExportComptablePeriodeMks();
+  const tva = DATA.params.tva;
+  let totBrut = 0, totCharges = 0, totTVA = 0, totImp = 0, totDep = 0, totNet = 0;
+  const rows = mks.map(mk => {
+    const ca = getCaFromMissions(mk), a = getPonctuelsCA(mk), brut = ca + a;
+    const { presta: bp, vente: bv } = getCaBreakdownMois(mk);
+    const imp = brut * getImpotsTaux();
+    const c = bp * getTauxChargesPresta() + bv * getTauxChargesVente();
+    const dep = getDepensesMois(mk);
+    const tresorerie = getPonctuelsTresorerie(mk);
+    const net = brut + tresorerie - c - imp - dep;
+    const tvaC = tva ? brut * (DATA.params.tauxTVA / 100) : 0;
+    totBrut += brut; totCharges += c; totTVA += tvaC; totImp += imp; totDep += dep; totNet += net;
+    return `<tr><td>${monthLabelFull(mk)}</td><td class="num">${fmtE(brut)}</td><td class="num">${fmtE(c)}</td>${tva ? `<td class="num">${fmtE(tvaC)}</td>` : ''}<td class="num">${fmtE(imp)}</td><td class="num">${fmtE(dep)}</td><td class="num">${fmtE(net)}</td></tr>`;
+  }).join('');
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Export comptable</title><style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#111;margin:24px}
+    h1{font-size:16px;margin-bottom:4px}p.sub{font-size:11px;color:#666;margin-bottom:10px}
+    .warn{font-size:11px;color:#92400e;background:#fffbeb;border-left:4px solid #f59e0b;padding:8px 10px;border-radius:4px;margin-bottom:16px;line-height:1.5}
+    table{width:100%;border-collapse:collapse}
+    th{background:#f0f4ff;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #ddd}
+    td{padding:5px 8px;border-bottom:1px solid #eee;vertical-align:top}
+    .num{text-align:right}
+    tfoot td{font-weight:700;border-top:2px solid #ddd;padding-top:8px}
+    @media print{body{margin:8px}button{display:none}}
+  </style></head><body>
+  <h1>📊 Export comptable — récapitulatif</h1>
+  <p class="sub">Période : ${monthLabelFull(mks[0])} → ${monthLabelFull(mks[mks.length - 1])} · Exporté le ${new Date().toLocaleDateString('fr-FR')} · ${DATA.params && DATA.params.nom ? DATA.params.nom : ''}</p>
+  <div class="warn">⚠️ Ce document reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité — vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
+  <table><thead><tr><th>Mois</th><th>CA brut</th><th>Charges URSSAF+CFP</th>${tva ? '<th>TVA collectée</th>' : ''}<th>Impôt estimé</th><th>Dépenses</th><th>Revenu net</th></tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr><td>Total</td><td class="num">${fmtE(totBrut)}</td><td class="num">${fmtE(totCharges)}</td>${tva ? `<td class="num">${fmtE(totTVA)}</td>` : ''}<td class="num">${fmtE(totImp)}</td><td class="num">${fmtE(totDep)}</td><td class="num">${fmtE(totNet)}</td></tr></tfoot>
+  </table>
+  <script>window.onload=function(){window.print()}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
 function navRecettesClick() {
   if(!DATA.params.livreRecettesActif){ showToast('📒 Pour activer le livre des recettes : Paramètres > Fiscalité & charges','var(--pri)'); return; }
   navigate('recettes');
@@ -11938,6 +12077,7 @@ document.addEventListener('keydown', function(e) {
   window.getMontantRembourseTotal = () => { sync(); return Mode.getMontantRembourseTotal(); };
   window.getCaRecurrenteADate   = (m, refDate) => { sync(); return Mode.getCaRecurrenteADate(m, refDate); };
   window.getDepensesMois        = (mk) => { sync(); return Mode.getDepensesMois(mk); };
+  window.getDepensesLignesMois  = (mk) => { sync(); return Mode.getDepensesLignesMois(mk); };
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
   window.getTVACollecteeMois              = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };

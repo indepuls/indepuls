@@ -125,6 +125,31 @@ export function getDepensesMois(DATA, mk) {
   return t;
 }
 
+// Comme getDepensesMois, mais retourne les lignes (pas seulement le total) — pour un export
+// (comptable, CSV) qui a besoin du détail transaction par transaction. Une dépense mensuelle
+// active ce mois-ci génère une ligne datée du 1er du mois (elle n'a pas de date propre à ce
+// mois précis, contrairement à une ponctuelle) ; une annuelle génère une ligne datée du jour
+// d'ancrage (`d.date`) dans l'année du mois demandé.
+export function getDepensesLignesMois(DATA, mk) {
+  if (isMonthBeforeOpening(DATA, mk)) return [];
+  const [y, mo] = mk.split('-').map(Number);
+  const lignes = [];
+  DATA.depenses.forEach(d => {
+    if (!d.date) return;
+    if (d.recurrence === 'mensuelle') {
+      if (depenseMensuelleActive(d, y, mo)) lignes.push({ ...d, date: `${mk}-01` });
+    } else {
+      const dm = new Date(d.date + 'T00:00:00'), dy = dm.getFullYear(), dmo = dm.getMonth() + 1;
+      if (d.recurrence === 'annuelle') {
+        if (dmo === mo) lignes.push({ ...d, date: `${y}-${String(mo).padStart(2, '0')}-${String(dm.getDate()).padStart(2, '0')}` });
+      } else if (dy === y && dmo === mo) {
+        lignes.push({ ...d });
+      }
+    }
+  });
+  return lignes;
+}
+
 export function getDepensesMoyenneMensuelle(DATA) {
   const actMois = getActiveMonthsInYear(DATA);
   if (actMois === 0) return 0;
