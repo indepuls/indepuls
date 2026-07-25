@@ -1606,6 +1606,13 @@ Faustine (relayant une demande de son mari) : le taux réel affiché par affaire
 - **Infobulle "Taux réel" mise à jour** pour expliquer les deux lignes et le caractère estimatif (jamais un calcul officiel).
 - **Vérifié** : suites Node inchangées et vertes. Navigateur (profil artisan bâtiment) : ligne "1 400,0 €/j" → "≈ 1 038,8 €/j net" ; ratio vérifié exact (`1-0,258-0 = 0,742`, `1038.8/1400 = 0,742`) ; aucune erreur console.
 
+### FIX — Tri "Plus récent"/"Plus ancien" basé sur la date de facturation (2026-07-25)
+Faustine : après avoir saisi rétroactivement des chantiers réalisés en début d'année (pour son mari), ceux-ci remontaient en tête de la liste "Plus récent" — devant des chantiers en cours ou facturés récemment.
+
+- **Cause** : le tri par défaut comparait `m.id` (`uuid() = Date.now().toString(36) + random`, ~L4170) — c'est-à-dire la date de **création de l'enregistrement dans Indépuls**, pas la date réelle du chantier. Une saisie rétroactive a un id "récent" (créé aujourd'hui) même si `dateFact` est ancienne.
+- **Fix** (`renderMissions()`, tri `newest`/`oldest`) : trie désormais sur `m.dateFact` (date de facturation, qui reflète l'activité réelle) plutôt que sur `id`. Les missions **sans** `dateFact` (en cours, en attente, récurrentes) restent **toujours en tête**, quel que soit le sens du tri — ce sont les affaires actives qui demandent le plus d'attention ; parmi elles, fallback sur `id` (ordre de saisie). Les tris "A → Z" et "Montant ↓" ne sont pas concernés (déjà indépendants de la date).
+- **Vérifié** : suites Node inchangées et vertes. Navigateur : scénario reproduit (chantier daté janvier 2026 saisi "aujourd'hui" + chantier "en cours" sans date + chantier facturé juillet 2026) → ordre "Plus récent" : en cours, facturé juillet, facturé janvier ; ordre "Plus ancien" : en cours, facturé janvier, facturé juillet. Aucune erreur console.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir

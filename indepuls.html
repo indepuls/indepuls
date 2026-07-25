@@ -8849,10 +8849,18 @@ function renderMissions() {
   });
   filtered.sort((a,b)=>{
     if(b.isManagement!==a.isManagement) return (b.isManagement?1:0)-(a.isManagement?1:0);
-    if(missionSort==='oldest') return (a.id||'').localeCompare(b.id||'');
     if(missionSort==='alpha') return (a.client||'').localeCompare(b.client||'');
     if(missionSort==='amount_desc') return (b.montantDevis||0)-(a.montantDevis||0);
-    return (b.id||'').localeCompare(a.id||''); // newest (default)
+    // "Plus récent"/"Plus ancien" : la date de facturation reflète l'activité réelle du chantier,
+    // contrairement à l'id (date de CRÉATION dans Indépuls — peut être très postérieure à la
+    // réalité pour une saisie rétroactive, retour Faustine 2026-07-25 : "j'ai rentré rétroactivement
+    // des chantiers du début d'année, ils remontent en haut de liste"). Les missions sans date de
+    // facturation connue (en cours, en attente, récurrentes) restent toujours en tête, quel que
+    // soit le sens choisi — ce sont les affaires actives qui demandent le plus d'attention.
+    const _noDateA=!a.dateFact, _noDateB=!b.dateFact;
+    if(_noDateA!==_noDateB) return _noDateA?-1:1;
+    if(_noDateA&&_noDateB) return missionSort==='oldest'?(a.id||'').localeCompare(b.id||''):(b.id||'').localeCompare(a.id||'');
+    return missionSort==='oldest'?(a.dateFact||'').localeCompare(b.dateFact||''):(b.dateFact||'').localeCompare(a.dateFact||'');
   });
   if(!filtered.length){
     const isEmpty=missionFilter==='all';
