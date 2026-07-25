@@ -6214,9 +6214,19 @@ function wScoreSante(d) {
     } else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin){
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
-    } else if(_rentIsMarge){
+    } else if(_rentIsMarge&&_margePct===null){
       priorite=`Ajoutez vos coûts directs sur vos ${tVocab('items').toLowerCase()} pour calculer votre marge et activer les recommandations de rentabilité.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
+    } else if(pctObj!==null&&pctObj<50){
+      // Rentabilité par affaire déjà bonne (tarifs/marge au-dessus du seuil — aucune des 3
+      // branches "gap" ci-dessus n'a matché) mais le score reste sous 25 à cause du malus
+      // pctObj<50% (rythme annuel en retrait) : sans cette branche, on retombait dans le
+      // fallback "définissez votre objectif" alors qu'il l'est déjà et que les tarifs n'ont
+      // rien à voir — message trompeur pour une activité par ailleurs saine (retour Faustine,
+      // 2026-07-25, compte de son mari : Score 97/100, TJM largement au-dessus du seuil).
+      const _rentLbl=_rentIsMarge?'marge':_rentIsChantier?'TJM':'TH';
+      priorite=`Votre ${_rentLbl} réel est déjà bon — c'est le rythme annuel qui reste en retrait par rapport à votre objectif de revenu, probablement lié au nombre de ${tVocab('items').toLowerCase()} plutôt qu'à vos tarifs.`;
+      prioriteNavPage='missions';
     } else if(isSASU()){
       // En SASU/EURL, objectifNetMensuel n'est qu'un champ de simulation isolé (page "Mes
       // objectifs") — seule remunerationNette (Paramètres > Fiscalité & charges) alimente
