@@ -10,6 +10,7 @@ import * as P from '../core/planning.js';
 import * as A from '../core/affaires.js';
 import * as S from '../core/storage.js';
 import * as D from '../core/diff.js';
+import { getWeekKey as _getWeekKey } from '../core/utils.js';
 import { getTauxStatut, TVA_SEUILS as _TVA_SEUILS } from '../core/taux.js';
 
 export const STORAGE_KEY    = 'indepuls';
@@ -18,6 +19,10 @@ export const SCHEMA_VERSION = 31;
 // indepuls.html (audit externe 2026-07-26, "duplication C" ; TODO laissé sur place le 2026-07
 // lors d'un chantier précédent, résolu ici).
 export const TVA_SEUILS = _TVA_SEUILS;
+// Chantier "brief hebdomadaire par email" (2026-07-27) : semaine ISO, réutilisée telle quelle
+// côté navigateur (snapshot hebdo dans wScoreSante()) et plus tard côté serveur (cron) — une
+// seule implémentation, jamais dupliquée.
+export const getWeekKey = _getWeekKey;
 
 let DATA = null;
 

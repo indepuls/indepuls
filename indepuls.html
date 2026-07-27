@@ -6260,6 +6260,26 @@ function wScoreSante(d) {
   // à rien de stable, c'était une dérive de nommage qui rendait cette branche inatteignable.
   const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'remplissage',art:'le ',s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
   const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
+
+  // Snapshot hebdomadaire (chantier "brief hebdomadaire par email", 2026-07-27) — capture le
+  // score global et le pilier le plus faible DÉJÀ calculés ci-dessus, jamais recalculés une
+  // seconde fois (même principe que le snapshot mensuel plus haut : zéro nouvelle logique
+  // métier, juste une persistance de ce qui existe déjà). Écrit uniquement si la semaine EN
+  // COURS a changé — une semaine déjà close n'est plus jamais retouchée. Ignoré en mode démo,
+  // même garde que le snapshot mensuel. Absence d'entrée pour la semaine en cours = signal
+  // "pas de session cette semaine", réutilisé tel quel par le futur job serveur (pas de
+  // mécanisme de détection d'activité séparé à construire).
+  if(!DATA.isExample){
+    if(!DATA.snapshotsHebdo) DATA.snapshotsHebdo={};
+    const _wk=getWeekKey();
+    const _snapHebdoNew={score,pilierFaible:worst.n};
+    const _snapHebdoOld=DATA.snapshotsHebdo[_wk];
+    if(!_snapHebdoOld||JSON.stringify(_snapHebdoOld)!==JSON.stringify(_snapHebdoNew)){
+      DATA.snapshotsHebdo[_wk]=_snapHebdoNew;
+      saveData();
+    }
+  }
+
   // Même mapping pilier→page que les appels pilierCard() plus bas (rentabilité→params,
   // remplissage/trésorerie/horizon→missions) et mêmes libellés que navLabels dans
   // openPilierDetail() — pour que le bouton du Brief pointe vers le même endroit et
@@ -12404,6 +12424,7 @@ document.addEventListener('keydown', function(e) {
   window.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
   window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
   window.TVA_SEUILS                = Mode.TVA_SEUILS;
+  window.getWeekKey                = Mode.getWeekKey; // pure, pas de dépendance à DATA
   window.getTVAZone                = Mode.getTVAZone;
   // Mode ombre — duplication B (audit externe 2026-07-26), instrumentation TEMPORAIRE.
   // Pas de wrapper sync() : fonctions pures, aucune dépendance à DATA (voir CLAUDE.md).

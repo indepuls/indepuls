@@ -25,6 +25,21 @@ export function getCurrentMk() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Semaine ISO 8601 (lundi-dimanche, la semaine 01 est celle qui contient le 4 janvier) —
+// chantier "brief hebdomadaire par email" (2026-07-27), fondation du snapshot hebdo. Extraite
+// ici (plutôt que locale à indepuls.html) car cette même clé doit pouvoir être recalculée à
+// l'identique côté serveur (cron) plus tard, sans dupliquer l'algorithme une seconde fois.
+export function getWeekKey(d = new Date()) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7; // lundi=0 … dimanche=6
+  date.setUTCDate(date.getUTCDate() - dayNum + 3); // jeudi de cette semaine
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const weekNum = 1 + Math.round((date - firstThursday) / (7 * 24 * 3600 * 1000));
+  return `${date.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
 export function getMonthKey(s) {
   return s ? s.slice(0, 7) : null;
 }
