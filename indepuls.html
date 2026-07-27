@@ -708,15 +708,23 @@ html,body{overflow-x:hidden;}
         <button class="btn btn-out btn-xs" onclick="setMissionsView('calendrier')" id="missions-view-btn-calendrier">📅 Calendrier</button>
         <!-- Widget "Temps interne" (ex-ligne "Mon entreprise" du tableau, chantier présentation
              2026-07-27) : partagé entre les deux vues (Tableau/Calendrier) puisqu'il vit dans la
-             barre commune, pas dans une vue en particulier. Même chrono global que le widget de
-             la sidebar (voir updateTiWidget(), appelée depuis updateSbTimer()) — pas un second
-             mécanisme de chrono, juste une deuxième surface d'affichage/contrôle. -->
-        <div class="flex gap6" id="ti-widget" style="align-items:center;flex-wrap:wrap;margin-left:auto;padding:5px 10px;border:1px solid var(--brd);border-radius:8px">
-          <span style="font-size:15px" title="Temps interne — gestion, admin, prospection…">🗂️</span>
-          <span style="font-weight:700;font-size:12.5px;white-space:nowrap">Temps interne</span>
-          <button class="timer-btn" id="ti-widget-btn" onclick="startTimer(getMgmtMission().id)"></button>
-          <span class="ts" id="ti-widget-total" style="white-space:nowrap"></span>
-          <a href="javascript:void(0)" onclick="openTempsInterneModal()" style="font-size:12px;text-decoration:underline;color:var(--acc);white-space:nowrap">Détail</a>
+             barre commune, pas dans une vue en particulier. Centré dans l'espace restant après le
+             toggle (retour Faustine : évite le grand vide d'un simple margin-left:auto qui
+             plaquait le widget contre le bord droit). Même chrono global que le widget de la
+             sidebar (voir updateTiWidget(), appelée depuis updateSbTimer()) — pas un second
+             mécanisme de chrono, juste une deuxième surface d'affichage/contrôle. Fond teinté
+             accent + bordure gauche, même traitement que .chip/#year-badge (retour Faustine :
+             donnée importante, mérite d'être visuellement valorisée, pas juste un encadré fin). -->
+        <div style="flex:1;display:flex;justify-content:center;min-width:200px">
+          <div class="flex gap6" id="ti-widget" style="align-items:center;flex-wrap:wrap;background:rgba(91,44,74,.08);border-left:4px solid var(--acc);border-radius:10px;padding:6px 14px 6px 12px">
+            <span style="font-size:17px" title="Temps interne — gestion, admin, prospection…">💼</span>
+            <span style="font-weight:700;font-size:12.5px;white-space:nowrap;color:var(--acc)">Temps interne</span>
+            <button class="timer-btn" id="ti-widget-btn" onclick="startTimer(getMgmtMission().id)"></button>
+            <span class="ts" id="ti-widget-total" style="white-space:nowrap;font-weight:700;color:var(--pri)"></span>
+            <span style="white-space:nowrap;font-size:12px">
+              <a href="javascript:void(0)" onclick="openAddTimeModal(getMgmtMission().id)" style="text-decoration:underline;color:var(--acc)">+ Temps</a>&nbsp;·&nbsp;<a href="javascript:void(0)" onclick="openTempsInterneModal()" style="text-decoration:underline;color:var(--acc)">Détail</a>
+            </span>
+          </div>
         </div>
       </div>
       <div id="missions-view-table">
