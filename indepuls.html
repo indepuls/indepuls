@@ -8844,22 +8844,31 @@ function rentabCatBody() {
 // via tempsManuel[].categorie, voir saveAddTime()). N'entre jamais dans un calcul de
 // rentabilité — ni CA, ni TH, ni Score de Santé. Masqué tant qu'aucune entrée n'est catégorisée.
 function tempsCategorieBody() {
-  const parMs={};
-  // Inclut le temps interne (mission isManagement) depuis le chantier 2026-07-27 : il se
-  // catégorise désormais exactement comme une vraie mission (voir saveAddTime()).
+  // Ventilé mission/interne par catégorie (retour Faustine 2026-07-27) : même code couleur que
+  // "Répartition du temps travaillé" juste au-dessus (renderChartTemps — accent = facturable/
+  // mission, sec = interne), pour une distinction visuelle cohérente sans dédoubler le nom des
+  // catégories (le temps interne se catégorise déjà comme une vraie mission, voir saveAddTime()).
+  const parMission={}, parInterne={};
   DATA.missions.forEach(m=>{
-    (m.tempsManuel||[]).forEach(e=>{ if(!e.categorie) return; parMs[e.categorie]=(parMs[e.categorie]||0)+(e.ms||0); });
+    const cible=m.isManagement?parInterne:parMission;
+    (m.tempsManuel||[]).forEach(e=>{ if(!e.categorie) return; cible[e.categorie]=(cible[e.categorie]||0)+(e.ms||0); });
   });
-  const cles=Object.keys(parMs);
+  const cles=[...new Set([...Object.keys(parMission),...Object.keys(parInterne)])];
   if(!cles.length) return '';
-  const totalMs=cles.reduce((s,c)=>s+parMs[c],0);
-  const maxMs=Math.max(...cles.map(c=>parMs[c]),1);
-  const rows=cles.sort((a,b)=>parMs[b]-parMs[a]).map(c=>{
-    const pct=Math.max(0,Math.min(100,parMs[c]/maxMs*100));
-    const partTotal=totalMs>0?Math.round(parMs[c]/totalMs*100):0;
-    return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ok" style="width:${pct}%"></div></div></div><div style="text-align:right;min-width:80px"><div class="fb">${fmt(parMs[c]/3600000,1)} h</div><div class="ts">${partTotal} %</div></div></div>`;
+  const totalParCat=c=>(parMission[c]||0)+(parInterne[c]||0);
+  const totalMs=cles.reduce((s,c)=>s+totalParCat(c),0);
+  const maxMs=Math.max(...cles.map(totalParCat),1);
+  const legende=`<div class="ts mb8" style="display:flex;gap:14px">
+    <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--acc);margin-right:4px;vertical-align:middle"></span>Missions</span>
+    <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--sec);margin-right:4px;vertical-align:middle"></span>Temps interne</span>
+  </div>`;
+  const rows=cles.sort((a,b)=>totalParCat(b)-totalParCat(a)).map(c=>{
+    const t=totalParCat(c), pct=Math.max(0,Math.min(100,t/maxMs*100));
+    const partTotal=totalMs>0?Math.round(t/totalMs*100):0;
+    const pctMission=t>0?(parMission[c]||0)/t*100:0, pctInterne=100-pctMission;
+    return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="prog-bar mt4" style="height:4px;display:flex"><div style="width:${pct}%;display:flex;overflow:hidden;border-radius:4px"><div style="width:${pctMission}%;background:var(--acc)"></div><div style="width:${pctInterne}%;background:var(--sec)"></div></div></div></div><div style="text-align:right;min-width:80px"><div class="fb">${fmt(t/3600000,1)} h</div><div class="ts">${partTotal} %</div></div></div>`;
   }).join('');
-  return `<div><div class="card-title" style="margin-bottom:10px;font-size:13px">🗂️ Temps par catégorie</div>${rows}</div>`;
+  return `<div><div class="card-title" style="margin-bottom:10px;font-size:13px">🗂️ Temps par catégorie</div>${legende}${rows}</div>`;
 }
 // ── TEMPS PRÉVU — "Ma précision d'estimation" (chantier "Temps prévu", Phase 3) ────────────
 // Analyse rétrospective multi-missions : dérive systématique par catégorie (Signal 1) et
