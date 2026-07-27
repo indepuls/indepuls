@@ -2830,15 +2830,15 @@ function getDefaultModules(metier) {
   // calendrier = page Planning + sessions visibles
   // estimation = champ charge estimée visible dans la modale affaire
   const M = {
-    prestataire_services: { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'th',             devis:false },
-    creatif_com:          { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'th',             devis:false },
-    evenementiel:         { calendrier:true,  estimation:true,  uniteTemps:'heures', objectif:'th',             devis:false },
-    artisan_batiment:     { calendrier:true,  estimation:false, uniteTemps:'jours',  objectif:'tjm',            devis:true  },
-    fabricant_serie:      { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande', devis:false },
-    artisan_commande:     { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande', devis:true  },
-    achat_revente:        { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande', devis:false },
+    prestataire_services: { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'th'             },
+    creatif_com:          { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'th'             },
+    evenementiel:         { calendrier:true,  estimation:true,  uniteTemps:'heures', objectif:'th'             },
+    artisan_batiment:     { calendrier:true,  estimation:false, uniteTemps:'jours',  objectif:'tjm'            },
+    fabricant_serie:      { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande' },
+    artisan_commande:     { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande' },
+    achat_revente:        { calendrier:false, estimation:true,  uniteTemps:'heures', objectif:'marge_commande' },
   };
-  return M[metier] ? {...M[metier]} : { calendrier:false, estimation:true, uniteTemps:'heures', objectif:'th', devis:false };
+  return M[metier] ? {...M[metier]} : { calendrier:false, estimation:true, uniteTemps:'heures', objectif:'th' };
 }
 function migrateMetierParam() {
   const m = DATA.params?.metier;
@@ -3888,6 +3888,12 @@ function migrate(data) {
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
+  // Champs fantômes (audit externe 2026-07-27) : plus écrits ni lus nulle part (le seul lecteur
+  // de modules.devis reflétait une case #mod-devis retirée du HTML depuis la fusion du
+  // simulateur, 2026-06 ; modules.simulateurOffre n'a plus de gate depuis la même fusion) —
+  // purgés des comptes existants pour ne plus les sérialiser à chaque sauvegarde.
+  delete data.params?.modules?.devis;
+  delete data.params?.modules?.simulateurOffre;
   // Migrer modePlanning → modules.calendrier + modules.estimation
   if (data.params?.modePlanning) {
     if (!data.params.modules) data.params.modules = getDefaultModules(data.params.metier);
@@ -12024,9 +12030,6 @@ function renderModulesUI() {
   // Toggle uniteTemps visible seulement en mode Marge (sinon implicite via objectif)
   const uniteZone = document.getElementById('mod-unite-zone');
   if (uniteZone) uniteZone.style.display = m.objectif === 'marge_commande' ? '' : 'none';
-  // devis switch
-  const modDevis = document.getElementById('mod-devis');
-  if (modDevis) modDevis.checked = !!m.devis;
   // objectif radios
   const objMap = {th:'th', tjm:'tjm', marge_commande:'marge'};
   ['th','tjm','marge_commande'].forEach(v => {

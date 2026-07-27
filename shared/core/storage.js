@@ -23,6 +23,13 @@ export function migrate(data, schemaVersion, deps = {}) {
 
   if (data.isExample === undefined) data.isExample = false;
 
+  // Champs fantômes (audit externe 2026-07-27) : plus écrits ni lus nulle part (le seul lecteur
+  // de modules.devis reflétait une case #mod-devis retirée du HTML depuis la fusion du
+  // simulateur, 2026-06 ; modules.simulateurOffre n'a plus de gate depuis la même fusion) —
+  // purgés des comptes existants pour ne plus les sérialiser à chaque sauvegarde.
+  delete data.params?.modules?.devis;
+  delete data.params?.modules?.simulateurOffre;
+
   // Migrations dépendant de getDefaultModules (vocabulaire/défauts par métier — fourni par
   // l'appelant, jamais recalculé ici). Ignorées si non fourni (ex. tests ciblant une autre
   // partie de migrate() sans avoir besoin de celle-ci).

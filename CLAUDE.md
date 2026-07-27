@@ -2036,6 +2036,19 @@ Sentry (mis en place la veille) a remonté 2 erreurs **non liées au mode ombre*
 
 **Corrigé** : règle `Cache-Control: no-cache, no-store, must-revalidate` étendue à `/shared/(.*)` dans `vercel.json`, même politique que les `.html`. 5 lignes, aucune logique applicative touchée.
 
+### FIX — Champs fantômes `modules.devis` / `modules.simulateurOffre` (repéré par un audit externe, 2026-07-27)
+
+Claude Cowork a signalé ces 2 champs comme "toujours sérialisés dans chaque sauvegarde sans plus aucun effet". Vérifié un par un avant toute modification :
+- **`modules.simulateurOffre`** : déjà totalement mort — plus écrit par `getDefaultModules()`, plus lu nulle part dans `indepuls.html`. Ne pouvait plus subsister que comme clé orpheline chez d'anciens comptes.
+- **`modules.devis`** : encore écrit par `getDefaultModules()` sur les 7 profils, mais lu à un **seul** endroit (`renderModulesUI()`, reflet visuel d'une case `#mod-devis`) — case **retirée du HTML** depuis la fusion du simulateur (2026-06), sans que ce reliquat JS ait été nettoyé. `document.getElementById('mod-devis')` renvoyait toujours `null` : champ strictement sans effet.
+
+**Corrigé** :
+- `devis:` retiré des 7 entrées de `getDefaultModules()` + du fallback (`indepuls.html`) — plus écrit pour les nouveaux profils.
+- 2 lignes mortes retirées de `renderModulesUI()` (référence à `#mod-devis`).
+- `delete data.params?.modules?.devis;` + `delete data.params?.modules?.simulateurOffre;` ajoutés dans `migrate()` — **aux deux endroits** (`indepuls.html` ET `shared/core/storage.js`, pour ne pas rouvrir un écart que le mode ombre signalerait aussitôt) — purge les comptes existants, même pattern que la purge déjà en place pour `dashboardWidgets`.
+
+**Vérifié** : tests-d'abord (`storage_migrations.test.js`, 4 nouvelles assertions, rouges avant le portage dans `storage.js`, vertes après) + suite complète Node re-passée (aucune régression). Navigateur : compte seedé avec `modules.devis:true` et `modules.simulateurOffre:false` → après `loadData()`, les deux clés ont disparu de `DATA.params.modules`, **zéro écart signalé par le mode ombre** (confirme que `storage.js` reste synchronisé après cette modification), `renderModulesUI()` toujours appelable sans erreur, aucune erreur console.
+
 **Vérifié (B étape 1/2, 2026-07-27)** : `storage_migrations.test.js` (32/32) + suite complète Node re-passée en entier après le portage (73+26+44+18+9+105+7+11+32+32 assertions, toutes vertes, cf. tableau récapitulatif plus bas) — aucune régression. Rien touché côté `indepuls.html`/`unified.js`/navigateur : `storage.js` reste non appelé en production, donc aucune vérification navigateur nécessaire à ce stade.
 
 ---

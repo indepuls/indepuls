@@ -56,6 +56,21 @@ section('migrate — modules.planning (string) → booléens');
   test('modules.planning supprimé', out.params.modules.planning, undefined);
 }
 
+section('migrate — champs fantômes modules.devis/simulateurOffre purgés (audit externe 2026-07-27)');
+{
+  const data = { params: { modules: { calendrier: true, devis: true, simulateurOffre: false } }, missions: [] };
+  const out = migrate(data, 31, { getDefaultModules, uuid, today });
+  test('modules.devis supprimé', out.params.modules.devis, undefined);
+  test('modules.simulateurOffre supprimé', out.params.modules.simulateurOffre, undefined);
+  test('reste des modules préservé', out.params.modules.calendrier, true);
+}
+section('migrate — champs fantômes absents : aucun crash');
+{
+  const data = { params: { modules: { calendrier: true } }, missions: [] };
+  const out = migrate(data, 31, { getDefaultModules, uuid, today });
+  test('modules.calendrier intact', out.params.modules.calendrier, true);
+}
+
 section('migrate — datation du temps réel (timerAccumulated → tempsManuel)');
 {
   const data = { params: {}, missions: [{ id: 'm1', timerAccumulated: 3600000 }] };
