@@ -1889,6 +1889,25 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- POPUP CATÉGORISATION DU TEMPS (chrono) — retour bêta 2026-07-27, même principe que
+     modal-lr-completer : facultative, jamais bloquante. -->
+<div class="modal-ov hidden" id="modal-timer-cat">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">🗂️ Catégoriser ce temps ?</div>
+    <div class="ts mb16" id="timer-cat-sub" style="color:var(--tl)"></div>
+    <input type="hidden" id="timer-cat-mission-id">
+    <input type="hidden" id="timer-cat-entry-id">
+    <div class="fgroup">
+      <label class="flabel">Catégorie <span class="ts">(facultatif)</span></label>
+      <select id="timer-cat-select"><option value="">— Aucune —</option></select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="fermerPopupTimerCat()">Passer</button>
+      <button class="btn btn-acc" onclick="enregistrerTimerCat()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RECETTE MANUELLE -->
 <!-- MODAL HISTORIQUE RECETTE -->
 <!-- MODAL HISTORIQUE RECETTE (lecture seule — badge "Modifiée") -->
@@ -2899,6 +2918,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-27', titre:'Le chrono vous propose maintenant de catégoriser le temps passé, avec la catégorie la plus fréquente déjà présélectionnée', icon:'⏱', merci:null },
   { date:'2026-07-27', titre:'Votre temps interne (gestion, admin…) se catégorise désormais comme une vraie mission, et se consulte d\'un coup d\'œil depuis la barre Missions', icon:'🗂️', merci:null },
   { date:'2026-07-21', titre:'Catégorisez votre temps passé (Administratif, Production...) et suivez sa répartition', icon:'🗂️', merci:'Merci à Prescillia pour l\'idée 🙏' },
   { date:'2026-07-21', titre:'Suivez la rentabilité de vos lots d\'achat groupé, vente par vente', icon:'📦', merci:'Merci à Pauline pour l\'idée 🙏' },
@@ -7115,6 +7135,35 @@ function enregistrerCompletion() {
   if(currentPage==='recettes') renderRecettes();
 }
 
+// Popup facultative de catégorisation à l'arrêt du chrono (retour bêta 2026-07-27) — voir
+// startTimer(). Présélectionne la catégorie la plus fréquente de la mission (getCategorieFrequenteMission),
+// donc zéro clic supplémentaire dans le cas le plus probable ; "Passer" ne modifie rien.
+function ouvrirPopupTimerCat(missionId, entryId, elapsedMs) {
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  document.getElementById('timer-cat-mission-id').value=missionId;
+  document.getElementById('timer-cat-entry-id').value=entryId;
+  const sub=document.getElementById('timer-cat-sub');
+  const who=m.isManagement?'ce temps interne':`« ${esc(m.client||'cette mission')} »`;
+  if(sub) sub.textContent=`${formatDureeHM(elapsedMs)} enregistrées sur ${who}.`;
+  const cats=DATA.categoriesTemps||[];
+  const freq=getCategorieFrequenteMission(m);
+  const sel=document.getElementById('timer-cat-select');
+  sel.innerHTML='<option value="">— Aucune —</option>'+cats.map(c=>`<option value="${c}"${c===freq?' selected':''}>${c}</option>`).join('');
+  openModal('modal-timer-cat');
+}
+function fermerPopupTimerCat() { closeModal('modal-timer-cat'); }
+function enregistrerTimerCat() {
+  const missionId=document.getElementById('timer-cat-mission-id').value;
+  const entryId=document.getElementById('timer-cat-entry-id').value;
+  const cat=document.getElementById('timer-cat-select').value;
+  const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  const entry=(m.tempsManuel||[]).find(e=>e.id===entryId); if(!entry) return;
+  if(cat) entry.categorie=cat; else delete entry.categorie;
+  saveData();
+  closeModal('modal-timer-cat');
+  if(currentPage==='missions') renderMissions();
+}
+
 function ouvrirRecetteManuelle(id) {
   const r=id?(DATA.recettesManuel||[]).find(x=>x.id===id):null;
   document.getElementById('lr-m-title').textContent=r?'Modifier la recette':'Nouvelle recette';
@@ -8281,20 +8330,25 @@ function goToMission(id) {
 }
 
 function commitTimer(x) {
-  // Arrête le chrono d'une mission et verse le temps au bon endroit
+  // Arrête le chrono d'une mission et verse le temps au bon endroit. Verse toujours dans
+  // tempsManuel (daté, id retourné) — y compris pour le temps interne depuis le chantier
+  // catégorisation (2026-07-27), pour permettre la catégorisation après-coup (voir
+  // ouvrirPopupTimerCat()) exactement comme pour une saisie manuelle (saveAddTime()). Le total
+  // mensuel scalaire DATA.tempsInterne reste la SEULE source lue par le moteur de calcul
+  // (getMissionTotalMs/getHeuresInterne côté shared/core ignorent tempsManuel pour isManagement,
+  // vérifié) — aucun double comptage possible.
   const elapsed=Date.now()-x.timerStart;
+  const entryId=uuid();
+  if(!x.tempsManuel) x.tempsManuel=[];
+  x.tempsManuel.push({id:entryId, date:today(), ms:elapsed});
   if(x.isManagement){
     if(!DATA.tempsInterne) DATA.tempsInterne={};
     const mk=getCurrentMk();
     addTempsInterne(mk, elapsed);
     x.timerAccumulated=0;
-  } else {
-    // Daté (chantier "Temps prévu", Étape 4) : timerAccumulated n'est plus jamais incrémenté,
-    // seulement lu pour compat rétro (getMissionTotalMs) sur les missions migrées.
-    if(!x.tempsManuel) x.tempsManuel=[];
-    x.tempsManuel.push({id:uuid(), date:today(), ms:elapsed});
   }
   x.timerRunning=false; x.timerStart=null;
+  return entryId;
 }
 function startTimer(id) {
   const m=DATA.missions.find(x=>x.id===id); if(!m) return;
@@ -8306,9 +8360,23 @@ function startTimer(id) {
       showToastIfReal(`⏸ Chrono ${who} arrêté — ${formatDureeHM(elapsed)} créditées.`, 'var(--acc)');
     }
   });
-  if(m.timerRunning) commitTimer(m);
-  else { m.timerRunning=true; m.timerStart=Date.now(); }
+  let _stoppedEntryId=null, _stoppedElapsed=0;
+  if(m.timerRunning){
+    _stoppedElapsed=Date.now()-m.timerStart;
+    _stoppedEntryId=commitTimer(m);
+  } else {
+    m.timerRunning=true; m.timerStart=Date.now();
+  }
   saveData(); renderMissions(); updateSbTimer();
+  // Popup de catégorisation (retour bêta 2026-07-27) : facultative, jamais bloquante — même
+  // principe que la popup de complétion du Livre des recettes (ouvrirPopupCompletion). N'apparaît
+  // que sur l'arrêt VOLONTAIRE du chrono qu'on vient de stopper ci-dessus, jamais sur l'arrêt
+  // automatique d'un AUTRE chrono lors d'un changement de mission (boucle forEach ci-dessus) —
+  // là, l'intention de l'utilisateur est de démarrer le nouveau chrono, pas de catégoriser
+  // l'ancien.
+  if(_stoppedEntryId&&(DATA.categoriesTemps||[]).length){
+    setTimeout(()=>ouvrirPopupTimerCat(id, _stoppedEntryId, _stoppedElapsed), 250);
+  }
 }
 
 let pendingRefId=null;
@@ -10234,6 +10302,17 @@ function saveCorrectTime() {
   showToastIfReal('✅ Temps corrigé.');
 }
 
+// Catégorie la plus fréquemment utilisée sur CETTE mission (retour bêta 2026-07-27, "idée 2") —
+// lecture différente de tempsManuel déjà présent, aucune nouvelle donnée stockée. Présélectionne
+// sans jamais forcer le choix (l'utilisateur peut toujours changer ou repartir sur "— Aucune —").
+function getCategorieFrequenteMission(m) {
+  const compte={};
+  ((m&&m.tempsManuel)||[]).forEach(e=>{ if(e.categorie) compte[e.categorie]=(compte[e.categorie]||0)+1; });
+  const cles=Object.keys(compte);
+  if(!cles.length) return undefined;
+  return cles.sort((a,b)=>compte[b]-compte[a])[0];
+}
+
 // ── AJOUT TEMPS MANUEL ───────────────────────────────────────
 function openAddTimeModal(id, presetDate) {
   document.getElementById('add-time-mission-id').value=id;
@@ -10255,7 +10334,8 @@ function openAddTimeModal(id, presetDate) {
     if(!m||!cats.length){
       catWrap.style.display='none';
     } else {
-      catSel.innerHTML='<option value="">— Aucune —</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+      const freq=getCategorieFrequenteMission(m);
+      catSel.innerHTML='<option value="">— Aucune —</option>'+cats.map(c=>`<option value="${c}"${c===freq?' selected':''}>${c}</option>`).join('');
       catWrap.style.display='';
     }
   }

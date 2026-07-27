@@ -2081,6 +2081,20 @@ Chantier 100% présentation (`indepuls.html` uniquement, aucune fonction `shared
 
 **Vérifié** : suite Node complète re-passée (aucune régression, calcul non touché). Navigateur : catégorie "Admin" alimentée par 1h de Temps interne + 30 min d'une mission → barre correctement scindée 66,7 % `--sec` / 33,3 % `--acc`, total "1,5 h" inchangé ; catégorie "Prospection" alimentée uniquement par une mission → barre 100 % `--acc`, 0 % `--sec` ; légende affichée au-dessus des barres.
 
+### FEATURE — Catégorie mémorisée par mission + popup de catégorisation au chrono (2026-07-27)
+
+Suite à l'audit externe (Claude Cowork) sur le suivi du temps (4 idées, voir item 8 de la roadmap pour l'idée 4 laissée en réserve), et à un constat de Faustine confirmé dans le code : **le chrono ne catégorisait jamais rien**. `commitTimer()` (appelée à l'arrêt du chrono) poussait `{id, date, ms}` dans `tempsManuel` sans jamais lire ni écrire de `categorie` — seule la modale "+ temps" (saisie manuelle) le faisait. Le chrono étant très probablement le geste le plus fréquent pour logger du temps, le widget "Temps par catégorie" (livré la veille) ne voyait donc qu'une minorité des données réelles.
+
+**Piège identifié avant de coder** (Cowork et moi d'accord sur ce point) : corriger en rendant la catégorie obligatoire à l'arrêt du chrono aurait réintroduit exactement la friction qu'on vient de décider d'éviter — le geste play/stop doit rester instantané. Solution retenue : une popup **facultative et non bloquante**, jamais un mur.
+
+**1. Catégorie mémorisée par mission** (`getCategorieFrequenteMission(m)`, nouvelle fonction dans `indepuls.html`) : compte les occurrences de `categorie` dans `m.tempsManuel` et retourne la plus fréquente — aucune nouvelle donnée stockée, juste une lecture différente de l'historique déjà présent. Branchée dans `openAddTimeModal()` : la modale manuelle présélectionne désormais cette catégorie au lieu de "— Aucune —" (l'utilisateur peut toujours changer).
+
+**2. Popup de catégorisation à l'arrêt du chrono** (`modal-timer-cat`, `ouvrirPopupTimerCat`/`fermerPopupTimerCat`/`enregistrerTimerCat`) — même gabarit et même principe que la popup de complétion déjà existante dans le Livre des recettes (`modal-lr-completer`) : ouverte avec un léger délai (250 ms) après l'arrêt du chrono, présélectionnée avec la catégorie la plus fréquente de la mission (donc **zéro clic supplémentaire dans le cas le plus probable**), "Passer" ne modifie rien. N'apparaît **que sur l'arrêt volontaire** du chrono qu'on vient de stopper — jamais sur l'arrêt automatique d'un *autre* chrono lors d'un changement de mission (l'intention de l'utilisateur dans ce cas est de démarrer le nouveau chrono, pas de catégoriser l'ancien).
+
+**Changement structurel nécessaire dans `commitTimer()`** : verse désormais **toujours** dans `tempsManuel` (avec l'id de l'entrée retourné, pour que la popup sache quelle entrée catégoriser) — y compris pour le temps interne (`isManagement`), qui n'y versait jamais rien avant ce chantier alors que `saveAddTime()` (saisie manuelle) le faisait déjà depuis le chantier du 2026-07-27 précédent. Vérifié dans `shared/core/calculs.js` avant de coder : `getMissionTotalMs()`/`getHeuresInterne()` (moteur de calcul) ignorent structurellement `tempsManuel` pour `isManagement` et ne lisent QUE le total scalaire `DATA.tempsInterne` — donc aucun double comptage possible, le moteur de calcul reste intact.
+
+**Vérifié** : suite Node complète (aucune régression). Navigateur : chrono sur une mission avec historique catégorisé → popup pré-cochée avec la bonne catégorie, "Enregistrer" catégorise l'entrée correctement ; chrono sur le Temps interne → même comportement, "Passer" laisse l'entrée sans `categorie` ; changement de mission pendant qu'un chrono tourne → arrêt automatique de l'ancien chrono, **popup non affichée** (confirmé) ; total scalaire `DATA.tempsInterne` toujours crédité correctement en parallèle de l'entrée `tempsManuel`.
+
 ---
 
 ## Prochains chantiers identifiés
@@ -2146,3 +2160,8 @@ Le RGAA n'est pas légalement obligatoire pour une app privée, mais recommandé
 - **Minimum (1-2h)** : associer chaque `<label>` à son `<input>` via `for="id"` ; ajouter une déclaration d'accessibilité sur le site ("accessibilité partielle, améliorations en cours")
 - **Complet (plusieurs jours)** : `role="button" tabindex="0"` sur les `<div onclick>` cliquables, gestionnaire Space/Entrée sur ces éléments, `aria-label` sur les boutons icônes sans texte, `aria-expanded` sur les accordéons
 À ne pas faire avant la béta — prioriser si un client le demande explicitement ou pour des appels d'offres entreprise/collectivité.
+
+### 8. Rappel de fin de journée si actif sans temps loggé *(idée en réserve, pas actée — 2026-07-27)*
+Proposée par un audit externe (Claude Cowork) parmi 4 idées d'amélioration du suivi du temps (les 3 autres — reprise en un clic du dernier chrono, catégorie mémorisée par mission, bascule session planifiée → réel — ont été discutées le même jour ; la catégorie mémorisée est déjà implémentée, voir plus bas). Idée : s'appuyer sur les écouteurs d'activité déjà en place (détection d'absence de chrono, `_recordActivity`/`ACTIVITY_STORAGE_KEY`) pour signaler en fin de journée "vous avez été actif aujourd'hui sans logger de temps sur une mission active".
+
+**Volontairement laissée de côté pour l'instant** — risque réel de dérive vers une notification culpabilisante, contraire au principe UX déjà acté "l'élan plutôt que la culpabilité" (voir VISION_PRODUIT.md). À ne reprendre que si un signal fort et répété (plusieurs bêta-testeuses, pas une seule) confirme le besoin — et dans ce cas, jamais sous forme de popup : au mieux une ligne positive dans le Brief quotidien ("Vous avez travaillé aujourd'hui ? Enregistrez ce temps en 10 secondes"), jamais un ton "vous avez oublié de...".
