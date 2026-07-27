@@ -4026,6 +4026,48 @@ function _migrateFromLegacy() {
   return false;
 }
 
+// ── MODE OMBRE — duplication B (audit externe 2026-07-26), instrumentation TEMPORAIRE ──
+// Calcule le résultat de shared/core/storage.js (migrate+applyDefaults, réconciliés le
+// 2026-07-27) sur une COPIE clonée des données brutes — jamais sur DATA lui-même, donc aucune
+// mutation possible du vrai state — et compare au résultat réellement affiché. Ne change JAMAIS
+// ce qui est affiché ou sauvegardé ; ne sert qu'à prouver, sur des comptes bêta-testeurs réels,
+// que storage.js est désormais un miroir fidèle avant d'envisager un vrai rebranchement (étape
+// 2/2, voir CLAUDE.md section "Duplication B"). À retirer une fois le point de suivi tranché.
+//
+// Conditions posées par une revue externe (Claude Cowork, 2026-07-27) avant d'écrire ce code :
+//   - le payload envoyé à Sentry ne contient que des CHEMINS de champs divergents, jamais de
+//     valeurs (voir shared/core/diff.js) — sinon on renvoie des noms de clients/montants à un
+//     service tiers en cas d'écart, ce qui rouvrirait un problème de confidentialité ;
+//   - dédoublonné par empreinte de la combinaison de chemins divergents (localStorage), jamais
+//     un événement par chargement, pour ne pas consommer le quota Sentry sur un bug systématique ;
+//   - preuve explicite (pas seulement "c'est dans un try/catch") que le vrai DATA n'a pas été
+//     modifié : on compare un instantané JSON avant/après l'appel, ci-dessous.
+function _shadowCheckStorageMigration(rawClone, realData) {
+  try {
+    const realDataSnapshotBefore = JSON.stringify(realData);
+    let shadow = window.__shadowMigrate(rawClone, SCHEMA_VERSION, { getDefaultModules, uuid, today });
+    shadow = window.__shadowApplyDefaults(shadow, getDefaultData(), { getDefaultModules, uuid, today });
+    if (JSON.stringify(realData) !== realDataSnapshotBefore) {
+      // Ne devrait jamais arriver : realData n'est jamais passé à migrate/applyDefaults
+      // ci-dessus, seul rawClone l'est. Si ce test échoue, c'est un bug d'instrumentation
+      // critique — on remonte l'alerte mais on ne touche surtout pas à realData nous-mêmes.
+      reportError('shadowStorageMigration.MUTATION_DETECTED', new Error('DATA réel modifié par le contrôle ombre — instrumentation à désactiver immédiatement'));
+      return;
+    }
+    const diffs = window.__shadowDiffPaths(shadow, realData);
+    if (!diffs.length) return;
+    const sig = diffs.slice().sort().join('|');
+    let hash = 0;
+    for (let i = 0; i < sig.length; i++) hash = (hash * 31 + sig.charCodeAt(i)) | 0;
+    const seenKey = 'indepuls_shadow_seen_' + hash;
+    if (localStorage.getItem(seenKey)) return; // déjà signalé une fois pour cette combinaison exacte
+    localStorage.setItem(seenKey, '1');
+    reportError('shadowStorageMigration', new Error('Écarts (chemins uniquement) : ' + diffs.slice(0, 20).join(', ')));
+  } catch (e) {
+    reportError('shadowStorageMigration.crash', e);
+  }
+}
+
 function loadData() {
   _migrateFromLegacy();
   try {
@@ -4068,9 +4110,17 @@ function loadData() {
       }
       return;
     }
+    // Clonée AVANT toute mutation (migrate()/applyDefaults() mutent leur argument en place) —
+    // c'est cette copie, jamais DATA, qui alimente le contrôle ombre juste en dessous. Isolée
+    // dans son propre try/catch : une panne ici ne doit jamais déclencher le catch(e) principal
+    // de loadData() (qui réinitialiserait DATA), l'instrumentation ombre est strictement
+    // annexe au chargement réel.
+    let _shadowRaw = null;
+    try { _shadowRaw = structuredClone(parsed); } catch (e) {}
     parsed = migrate(parsed);
     parsed = applyDefaults(parsed);
     DATA = parsed;
+    if (_shadowRaw) _shadowCheckStorageMigration(_shadowRaw, DATA);
   } catch(e) {
     DATA = getDefaultData();
     DATA._needsProfilePick = true;
@@ -12211,6 +12261,11 @@ document.addEventListener('keydown', function(e) {
   window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
   window.TVA_SEUILS                = Mode.TVA_SEUILS;
   window.getTVAZone                = Mode.getTVAZone;
+  // Mode ombre — duplication B (audit externe 2026-07-26), instrumentation TEMPORAIRE.
+  // Pas de wrapper sync() : fonctions pures, aucune dépendance à DATA (voir CLAUDE.md).
+  window.__shadowMigrate            = Mode.shadowMigrate;
+  window.__shadowApplyDefaults      = Mode.shadowApplyDefaults;
+  window.__shadowDiffPaths          = Mode.shadowDiffPaths;
   window.tvaZoneFill               = Mode.tvaZoneFill;
   window.tvaZoneKpi                = Mode.tvaZoneKpi;
   window.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };

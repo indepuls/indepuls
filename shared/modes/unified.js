@@ -9,6 +9,7 @@ import * as C from '../core/calculs.js';
 import * as P from '../core/planning.js';
 import * as A from '../core/affaires.js';
 import * as S from '../core/storage.js';
+import * as D from '../core/diff.js';
 import { getTauxStatut, TVA_SEUILS as _TVA_SEUILS } from '../core/taux.js';
 
 export const STORAGE_KEY    = 'indepuls';
@@ -137,3 +138,13 @@ export const getPilierRemplissage   = ()     => P.getPilierRemplissage(DATA);
 
 export function setData(newData) { DATA = newData; }
 export function getData() { return DATA; }
+
+// ── MODE OMBRE — duplication B (audit externe 2026-07-26), instrumentation TEMPORAIRE ──
+// Ces 3 exports ne sont PAS un rebranchement réel de storage.js : ils servent uniquement au
+// contrôle "ombre" dans indepuls.html (comparaison silencieuse sur une copie clonée, jamais
+// utilisée pour l'affichage réel — voir CLAUDE.md, section "Duplication B"). Nom préfixé
+// `shadow*` volontairement pour ne jamais les confondre avec un futur vrai bridge, et pour être
+// facilement grep-able le jour où l'instrumentation est retirée.
+export const shadowMigrate       = (data, schemaVersion, deps) => S.migrate(data, schemaVersion, deps);
+export const shadowApplyDefaults = (data, defaultData, deps)   => S.applyDefaults(data, defaultData, deps);
+export const shadowDiffPaths     = D.diffPaths;
