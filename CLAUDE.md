@@ -2030,6 +2030,12 @@ Revue externe (Claude Cowork, 2026-07-27) avant d'écrire ce code, 4 conditions 
 
 **Vérifié (mode ombre, 2026-07-27)** : `diff.test.js` (13/13, dont pureté et non-fuite de valeurs) + suite complète Node re-passée (aucune régression). Navigateur : données réelles seedées avec les 3 migrations les plus complexes (`modePlanning`, `timerAccumulated`, mission `collectif`) → `loadData()` produit le résultat attendu ET zéro écart ombre détecté (`storage.js` confirmé fidèle sur un cas réel, pas seulement synthétique). Écart volontairement provoqué en console → correctement détecté, chemins uniquement (jamais de valeurs), dédoublonné sur appels identiques. Aucune erreur console.
 
+### FIX — Cache HTTP manquant sur `shared/*.js` (repéré via Sentry, 2026-07-27)
+
+Sentry (mis en place la veille) a remonté 2 erreurs **non liées au mode ombre** (tag `context` absent, `handled:no`, `mechanism: auto.browser.global_handlers.onerror`) : `Mode.isRecurringStillActive is not a function` et `Mode.getTHBrutAnnuel is not a function` — exactement les 2 exports ajoutés à `unified.js` lors des chantiers précédents (duplication A, extraction TH/TJM). Cause : `vercel.json` forçait déjà `no-cache, no-store, must-revalidate` sur les `.html`, mais **aucune règle équivalente n'existait pour `shared/*.js`** — un navigateur ayant mis en cache une version antérieure d'`unified.js` continue de la servir même après qu'`indepuls.html` (toujours frais) appelle une fonction qui n'existait pas encore dans cette version-là. Bug pré-existant, sans lien avec le mode ombre (confirmé : premier rechargement de page juste après un déploiement de modification de `shared/*.js`, bien avant l'introduction du mode ombre).
+
+**Corrigé** : règle `Cache-Control: no-cache, no-store, must-revalidate` étendue à `/shared/(.*)` dans `vercel.json`, même politique que les `.html`. 5 lignes, aucune logique applicative touchée.
+
 **Vérifié (B étape 1/2, 2026-07-27)** : `storage_migrations.test.js` (32/32) + suite complète Node re-passée en entier après le portage (73+26+44+18+9+105+7+11+32+32 assertions, toutes vertes, cf. tableau récapitulatif plus bas) — aucune régression. Rien touché côté `indepuls.html`/`unified.js`/navigateur : `storage.js` reste non appelé en production, donc aucune vérification navigateur nécessaire à ce stade.
 
 ---
