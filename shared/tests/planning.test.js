@@ -134,6 +134,30 @@ function makeData(overrides = {}) {
     P.getChargeEstimeeTotal(makeData({ missions: [mBase, m2] })), 8);
 }
 
+// ── isRecurringStillActive — test direct (audit externe 2026-07-26, "duplication A") ──
+// Fonction désormais publique et bridgée (window.isRecurringStillActive) — remplace la copie
+// locale d'indepuls.html, qui avait déjà divergé une fois de celle-ci (statut 'ref' exclu ici,
+// mais pas dans l'autre copie, pendant un temps). Testée ici directement (pas seulement via
+// getChargeEstimeeTotal ci-dessus) pour ne jamais laisser cette régression précise réapparaître
+// silencieusement, même si un futur appelant cesse de passer par getChargeEstimeeTotal.
+{
+  const futureDate = `${new Date().getFullYear()}-01`;
+  assertEq('statut ref → toujours false, même sans nbMoisRec (bug déjà survenu)',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'ref', dateDebutRec: '2020-01', nbMoisRec: null }), false);
+  assertEq('statut ref → false même avec une fenêtre de dates encore valide',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'ref', dateDebutRec: futureDate, nbMoisRec: 120 }), false);
+  assertEq('non récurrente → toujours false',
+    P.isRecurringStillActive({ isRecurring: false, statut: 'cours', dateDebutRec: futureDate, nbMoisRec: 120 }), false);
+  assertEq('récurrente sans dateDebutRec → false',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'cours', dateDebutRec: null, nbMoisRec: 120 }), false);
+  assertEq('récurrente sans nbMoisRec connu (sans fin) → true tant que statut ≠ ref',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'fact', dateDebutRec: '2020-01', nbMoisRec: null }), true);
+  assertEq('récurrente avec fenêtre encore active → true',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'fact', dateDebutRec: futureDate, nbMoisRec: 120 }), true);
+  assertEq('récurrente avec fenêtre expirée → false',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'fact', dateDebutRec: '2020-01', nbMoisRec: 2 }), false);
+}
+
 // ── getTauxRemplissageMois ────────────────────────────────────
 {
   const mkJan = '2026-01'; // 31 jours, joursParSemaine=4 → ouvrables = round(31*4/7) = 18

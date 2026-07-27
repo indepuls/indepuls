@@ -1991,6 +1991,27 @@ function tVocab(key) {
 
 ---
 
+### ARCHITECTURE — Duplications HTML ↔ shared/core (audit externe 2026-07-26)
+
+Troisième point d'un audit externe (Claude Cowork), 3 duplications regroupées mais **de risque très inégal** — vérifiées une par une avant tout changement plutôt que traitées en bloc.
+
+**Duplication A — `isRecurringStillActive` ✅ résolue.** Copie privée `_isRecurringStillActive()` dans `shared/core/planning.js` + copie publique dans `indepuls.html`, déjà à l'origine d'un vrai bug (statut `'ref'` exclu dans l'une, pas dans l'autre, pendant un temps — voir plus haut). Renommée `isRecurringStillActive` (export public), bridgée via `unified.js`/`window.*` (même pattern que `sessionCouvreJour` — fonction pure, sans dépendance à `DATA`, donc pas besoin de `sync()` avant l'appel, gardé quand même pour la cohérence du bridge). Copie locale d'`indepuls.html` supprimée. **Test dédié ajouté** (`shared/tests/planning.test.js`, 7 assertions directes sur la fonction, dont le cas exact du bug déjà survenu) — la couverture existante ne testait le cas `'ref'` qu'indirectement via `getChargeEstimeeTotal()`.
+
+**Duplication C — `TVA_SEUILS` ✅ résolue.** `shared/core/taux.js` était déjà la vraie source (importée et utilisée en interne par `calculs.js`), mais jamais bridgée vers `indepuls.html`, qui redéclarait sa propre constante en dur avec un TODO laissé sur place (`// TODO: doublon avec shared/core/taux.js`, ajouté en 2026-07 lors d'un chantier précédent qui avait volontairement laissé la duplication de côté). Résolu simplement : re-export dans `unified.js` (`export const TVA_SEUILS = _TVA_SEUILS`) + `window.TVA_SEUILS = Mode.TVA_SEUILS` (assignation directe, pas de wrapper fonction — donnée statique, pas de dépendance à `DATA`, même pattern que `window.getTVAZone`). Constante locale + TODO supprimés d'`indepuls.html`.
+
+**Duplication B — `storage.js` mort en prod ❌ volontairement non traitée aujourd'hui.** Confirmée : `unified.js` importe `storage.js` (`import * as S from '../core/storage.js'`) mais `S` n'est **jamais référencé** ensuite — import mort. Mais plus grave qu'un simple mort : `storage.js` est **testé** (`unified_model.test.js` l'importe et teste `applyDefaults()`, tests verts) alors que sa logique a divergé de la version réellement exécutée (`migrate()`/`applyDefaults()` inline dans `indepuls.html`) — les tests donnent une **fausse confiance**. Divergences concrètes retrouvées le 2026-07-26 (`storage.js` n'a **aucune** de ces évolutions) :
+- Migration `modePlanning` → `modules.calendrier`/`modules.estimation` (booléens).
+- Migration `modules.planning` (string) → mêmes booléens.
+- Datation systématique du temps réel (`timerAccumulated` → `tempsManuel` daté, chantier "Temps prévu").
+- `v32` : ajout de `DATA.retours[]` (défaut `[]`).
+- `v33` : ajout de `DATA.lots[]` (défaut `[]`).
+
+`migrate()`/`applyDefaults()` tournent à **chaque chargement de l'app pour chaque utilisateur** — la duplication la plus sensible des trois. La réconcilier correctement (porter les 5 évolutions ci-dessus dans `storage.js`, rebrancher `unified.js`, supprimer les copies inline d'`indepuls.html`, tout revalider avec les 277+73 assertions existantes) mérite une session dédiée avec tests-d'abord, pas un ajout opportuniste à la suite de A et C. **Ne pas se contenter de brancher `storage.js` tel quel** — ça régresserait silencieusement retours/lots/migrations récentes pour tout le monde dès le premier chargement.
+
+**Vérifié (A + C)** : suites Node vertes (44+18+9+7+11+32 assertions, `planning.test.js` passé de 98 à 105 avec les nouveaux tests dédiés). Navigateur : `TVA_SEUILS` identique avant/après (37 500/41 250, 85 000/93 500 — "Seuil TVA : 69 %" affiché correctement sur la page Revenus) ; `isRecurringStillActive` bridgée et fonctionnelle (`typeof === 'function'`, cas `'ref'` retourne bien `false`) ; aucune erreur console.
+
+---
+
 ## Prochains chantiers identifiés
 
 ### 0. Branchement des modules comportementaux *(Phase 1 faite, Phase 3 superseded)*

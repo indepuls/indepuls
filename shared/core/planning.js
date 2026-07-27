@@ -161,8 +161,13 @@ export function getMissionsSessionDay(DATA, dateStr) {
   );
 }
 
-// Copie locale — les HTML gardent leur propre copie pour leurs autres usages.
-function _isRecurringStillActive(m) {
+// Une récurrente reste "active" tant que sa période courante n'est pas terminée, même si son
+// statut administratif est passé à 'fact' (facturé n'est qu'une étape administrative). Fonction
+// pure (aucune dépendance à DATA) — source unique désormais : bridgée via unified.js/window.*,
+// remplace la copie locale d'indepuls.html (audit externe 2026-07-26 : les deux copies avaient
+// déjà divergé une fois — un statut 'ref' exclu dans l'une, pas dans l'autre, pendant un temps ;
+// voir "duplication A" dans CLAUDE.md et le test dédié dans shared/tests/planning.test.js).
+export function isRecurringStillActive(m) {
   if (m.statut === 'ref') return false;
   if (!m.isRecurring || !m.dateDebutRec) return false;
   if (!m.nbMoisRec || m.nbMoisRec <= 0) return true;
@@ -193,7 +198,7 @@ export function getMissionChargeHSem(DATA, m) {
 
 export function getChargeEstimeeTotal(DATA) {
   return DATA.missions
-    .filter(m => !m.isManagement && (m.statut === 'cours' || _isRecurringStillActive(m)) && m.chargeEstimee > 0)
+    .filter(m => !m.isManagement && (m.statut === 'cours' || isRecurringStillActive(m)) && m.chargeEstimee > 0)
     .reduce((s, m) => s + getMissionChargeHSem(DATA, m), 0);
 }
 
@@ -376,7 +381,7 @@ export function getPilierRemplissage(DATA) {
   // estimation testée juste avant s'est révélée trop complexe à comprendre/tester en pratique).
   // Les sessions servent uniquement à afficher la mission sur le calendrier et à dériver le
   // "temps total estimé" (comparaison prévu/réel côté fiche mission) — jamais ce pilier.
-  const hasEstimation = DATA.missions.some(m => !m.isManagement && (m.statut === 'cours' || _isRecurringStillActive(m)) && m.chargeEstimee > 0);
+  const hasEstimation = DATA.missions.some(m => !m.isManagement && (m.statut === 'cours' || isRecurringStillActive(m)) && m.chargeEstimee > 0);
   if (!hasEstimation) {
     return {
       score: 12, valeur: '—', sousTitre: 'Non renseigné',

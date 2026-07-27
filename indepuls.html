@@ -3350,12 +3350,9 @@ function renderPlanningDayPanel() {
   `;
 }
 
-// Seuils TVA 2026 — source unique de vérité
-// TODO: doublon avec shared/core/taux.js — voir chantier de nettoyage TVA_SEUILS
-const TVA_SEUILS = {
-  prestation: { franchise: 37500, tolerance: 41250 },
-  achat:      { franchise: 85000, tolerance: 93500 }
-};
+// TVA_SEUILS → branchée sur core/taux.js via modes/unified.js (voir le bloc module en fin de
+// fichier). Duplication supprimée (2026-07-26, audit externe "duplication C") — shared/core/
+// taux.js est désormais la seule source, TODO laissé sur place en 2026-07 résolu.
 // getTVAZone → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // tvaZoneFill → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // tvaZoneKpi → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
@@ -4356,15 +4353,10 @@ function toHeuresSem(v, u) {
 }
 function getCapaciteHSem() { const p=DATA.params; return (p.heuresParJour||7)*(p.joursParSemaine||4); }
 function getMissionChargeHSem(m) { return toHeuresSem(m.chargeEstimee||0, m.chargeUnit||'h_sem'); }
-// Pour une mission récurrente, le statut "Facturé" indique une étape administrative,
-// mais l'activité reste considérée comme en cours jusqu'à la fin de la période prévue.
-function isRecurringStillActive(m) {
-  if (m.statut === 'ref') return false;
-  if (!m.isRecurring || !m.dateDebutRec) return false;
-  if (!m.nbMoisRec || m.nbMoisRec <= 0) return true;
-  const [sy, sm] = m.dateDebutRec.split('-').map(Number);
-  return new Date(sy, sm - 1 + m.nbMoisRec, 1) > new Date();
-}
+// isRecurringStillActive → branchée sur core/planning.js via modes/unified.js (voir le bloc
+// module en fin de fichier). Copie locale supprimée (2026-07-26, audit externe "duplication A")
+// — les deux copies avaient déjà divergé une fois (statut 'ref' exclu dans l'une, pas dans
+// l'autre) ; shared/core/planning.js est désormais la seule source.
 function getRecurringPeriodLabel(m) {
   if (!m.dateDebutRec) return '';
   const [sy, sm] = m.dateDebutRec.split('-').map(Number);
@@ -12197,6 +12189,7 @@ document.addEventListener('keydown', function(e) {
   window.getTempsJour           = (ds) => { sync(); return Mode.getTempsJour(ds); };
   window.getMissionsSessionDay  = (ds) => { sync(); return Mode.getMissionsSessionDay(ds); };
   window.sessionCouvreJour      = (s, ds) => { sync(); return Mode.sessionCouvreJour(s, ds); };
+  window.isRecurringStillActive = (m) => { sync(); return Mode.isRecurringStillActive(m); };
   window.getChargeSessionJour   = (s, ds) => { sync(); return Mode.getChargeSessionJour(s, ds); };
   window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
@@ -12216,6 +12209,7 @@ document.addEventListener('keydown', function(e) {
   window.getTVADeductibleMois      = (mk) => { sync(); return Mode.getTVADeductibleMois(mk); };
   window.getTVAProvisionMensuelle  = () => { sync(); return Mode.getTVAProvisionMensuelle(); };
   window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
+  window.TVA_SEUILS                = Mode.TVA_SEUILS;
   window.getTVAZone                = Mode.getTVAZone;
   window.tvaZoneFill               = Mode.tvaZoneFill;
   window.tvaZoneKpi                = Mode.tvaZoneKpi;

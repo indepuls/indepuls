@@ -9,10 +9,14 @@ import * as C from '../core/calculs.js';
 import * as P from '../core/planning.js';
 import * as A from '../core/affaires.js';
 import * as S from '../core/storage.js';
-import { getTauxStatut } from '../core/taux.js';
+import { getTauxStatut, TVA_SEUILS as _TVA_SEUILS } from '../core/taux.js';
 
 export const STORAGE_KEY    = 'indepuls';
 export const SCHEMA_VERSION = 31;
+// Source unique de vérité (shared/core/taux.js) — remplace la constante dupliquée en dur dans
+// indepuls.html (audit externe 2026-07-26, "duplication C" ; TODO laissé sur place le 2026-07
+// lors d'un chantier précédent, résolu ici).
+export const TVA_SEUILS = _TVA_SEUILS;
 
 let DATA = null;
 
@@ -118,6 +122,7 @@ export const joursOuvrésSemaine     = (debut, fin) => P.joursOuvrésSemaine(deb
 export const getChargeJour          = (dateStr)    => P.getChargeJour(DATA, dateStr);
 export const getMissionsSessionDay  = (dateStr)    => P.getMissionsSessionDay(DATA, dateStr);
 export const sessionCouvreJour      = P.sessionCouvreJour;
+export const isRecurringStillActive = P.isRecurringStillActive;
 export const getChargeSessionJour   = P.getChargeSessionJour;
 export const toHeuresSem            = (v, u) => P.toHeuresSem(DATA.params, v, u);
 export const getCapaciteHSem        = ()     => P.getCapaciteHSem(DATA);
