@@ -1189,6 +1189,32 @@ Faustine a signalé une perte totale des données de son mari : compte configur�
 
 **⚠️ Vigilance permanente exigée** — voir la note dédiée en tout début de ce fichier ("Instructions pour Claude Code"), à relire avant toute modification de `loadData()`, `loadFromCloud()`, `syncToCloud()`, `loadDemoWithCurrentParams()` ou `authLoadDemo()`.
 
+### INFRA SUPABASE — Filet de sécurité : sauvegarde automatique de `user_data` (2026-07-26)
+
+Comblait le trou explicitement signalé ci-dessus ("ce fix ne peut pas restaurer des données déjà écrasées") — après un audit externe (Claude Cowork) qui recommandait un filet de dernier recours côté base de données, indépendant du code applicatif : un bug totalement différent (pas le bug du 13 juillet, un autre, futur) qui écraserait de bonnes données n'avait aucun moyen d'être annulé.
+
+**Mis en place directement dans le SQL Editor Supabase du projet (pas dans ce dépôt — infrastructure, pas du code applicatif)** :
+- Table `public.user_data_backups` (`user_id`, `app_type`, `data` jsonb, `backed_up_at`) — historique des versions successives de chaque compte.
+- Trigger `trg_backup_user_data` (`BEFORE UPDATE ON public.user_data`) + fonction `backup_user_data()` : copie l'ancienne ligne dans `user_data_backups` avant chaque écrasement, puis **purge automatiquement au-delà des 20 dernières versions par compte** — `syncToCloud()` s'exécute à chaque `saveData()` (potentiellement des dizaines de fois par session), une table sans purge grossirait sans limite.
+- RLS activée sur `user_data_backups` + policy `"Users can view their own backups"` (`select` où `auth.uid() = user_id`) — pas utilisée aujourd'hui par l'app (consultation manuelle par Faustine via le SQL Editor), mais posée au cas où un historique serait un jour exposé côté utilisateur.
+- **`comment on table/function/trigger`** posés sur les 3 objets (visibles dans le Table Editor Supabase et via l'introspection du schéma) pour qu'un futur lecteur de la base — Faustine dans 6 mois, ou quelqu'un d'autre — comprenne le rôle de ces objets sans repasser par cette conversation ni ce fichier.
+
+**Procédure de restauration** (SQL Editor Supabase, pas depuis ce dépôt) :
+```sql
+-- 1. Retrouver une bonne version
+select backed_up_at, data from public.user_data_backups
+where user_id = '...' and app_type = 'indepuls'
+order by backed_up_at desc limit 10;
+
+-- 2. La réinjecter dans la table principale
+update public.user_data
+set data = '...(JSON retrouvé ci-dessus)...'::jsonb, updated_at = now()
+where user_id = '...' and app_type = 'indepuls';
+```
+Grâce à la règle du 13 juillet ("le cloud gagne toujours" dans `loadFromCloud()`), la personne récupère automatiquement cette version restaurée à sa prochaine ouverture/rechargement — aucune manipulation de son côté. **Point de vigilance** : si son onglet Indépuls est resté ouvert avec les mauvaises données en mémoire pendant la restauration, le moindre `saveData()` de sa part réécrase immédiatement la restauration (via `syncToCloud()`) — lui demander de fermer l'onglet avant de restaurer, rouvrir après.
+
+**Ce que ça ne couvre pas** : la concurrence entre deux sessions simultanées sur le même compte (deux appareils connectés en même temps) — classé priorité basse (suppose un usage concurrent réel, pas juste séquentiel), la table de sauvegarde couvre déjà ce cas en dernier recours (rien n'est perdu, juste récupérable manuellement). Vérifier aussi dans Supabase (Settings → Database → Backups) si le Point-in-Time Recovery est disponible sur le plan du projet — sinon cette table est le seul vrai filet.
+
 ### FIX — Picker de profil ressurgissait à chaque rechargement en mode démo (2026-07-21)
 
 Faustine reste volontairement en mode démo sur son compte (pour disposer de données d'exemple à tester) tout en étant connectée à son vrai compte — un usage non prévu à l'origine (le mode démo est pensé pour l'exploration avant/à la première connexion). Elle a signalé que son "cœur de métier" revenait systématiquement à une valeur différente de son choix à chaque rechargement de page (`artisan_batiment`, puis `prestataire_services` après un nouveau test) — reproductible à volonté, y compris juste après un "Réinitialiser l'application" complet (qui supprime pourtant la ligne cloud via `_deleteCloudData()`), ce qui a **invalidé ma première hypothèse** (un ancien snapshot cloud figé qui regagnait à chaque rechargement) — Faustine a eu raison de la remettre en question plutôt que de me laisser corriger sur une fausse piste.
