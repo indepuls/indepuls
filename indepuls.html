@@ -586,6 +586,34 @@ html,body{overflow-x:hidden;}
   .mob-kpi{min-width:0;flex:1 1 calc(50% - 3px);}
 }
 </style>
+<!-- Sentry (monitoring d'erreurs, 2026-07-26) — voir CLAUDE.md "INFRA — Sentry". Error Monitoring
+     uniquement (pas de session replay, pas de tracing, pas de logs) : ni activés côté projet
+     Sentry, ni demandés ici. Le loader script s'auto-initialise avec la config du dashboard ;
+     Sentry.onLoad() permet d'ajouter un filtre sans dupliquer l'init. -->
+<script src="https://js-de.sentry-cdn.com/16f3b537410a9bf2fd48287c98e42ac9.min.js" crossorigin="anonymous"></script>
+<script>
+  if (window.Sentry && typeof Sentry.onLoad === 'function') {
+    Sentry.onLoad(function () {
+      Sentry.init({
+        // Ne jamais remonter une erreur survenue en mode démo (données fictives) — DATA peut ne
+        // pas encore exister si l'erreur survient très tôt au chargement, d'où le try/catch.
+        beforeSend: function (event) {
+          try { if (window.DATA && window.DATA.isExample) return null; } catch (e) {}
+          return event;
+        },
+      });
+    });
+  }
+  // Point d'entrée unique pour signaler une erreur déjà rattrapée (try/catch silencieux) — log
+  // console (comme avant, pour le développement local) + Sentry si le SDK a chargé (production).
+  // Ne jamais laisser une erreur "avalée" sans aucune trace, même minime.
+  function reportError(context, err) {
+    console.error('[' + context + ']', err);
+    if (window.Sentry && typeof Sentry.captureException === 'function') {
+      Sentry.captureException(err, { tags: { context: context } });
+    }
+  }
+</script>
 </head>
 <body data-theme="obm">
 
@@ -5013,7 +5041,7 @@ function getEcheancesAVenir(d) {
   try{
     if(!isSASU()) echURSSAF=getNextUrssafEcheance();
     if(tvaOn) echTVA=getNextTVAEcheance();
-  }catch(e){}
+  }catch(e){reportError('getEcheancesAVenir',e);}
   const impotsTaux=getImpotsTaux();
   const caMoyMensuel=d.caBrut>0?Math.round(d.caBrut/mc):0;
   const _microS=['micro-bnc','micro-bic','micro-achat'];
@@ -5121,7 +5149,7 @@ function wProvisionsSide(d) {
         if(_mpi.pctPresta!==null&&_mpi.pctPresta>=40)
           _sP=`<br>Prestations : ${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)} (${_mpi.pctPresta} % du sous-plafond).`;
         return `<div style="font-size:11px;color:${_col};margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid ${_col}">${_msg}${_sP}<br><span style="opacity:.75">Distinct du seuil de franchise TVA · indicatif, non substitut à un conseil comptable.</span></div>`;
-      }catch(e){return '';}
+      }catch(e){reportError('wKPIs.plafondMicro',e);return '';}
     })()
     +'</div>';
 }
@@ -5313,7 +5341,7 @@ function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
     }
     if(_mpi&&_mpi.pctPresta!==null&&_mpi.pctPresta>=80)
       alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Sous-plafond prestations micro (activité mixte) : ${_mpi.pctPresta} % atteint (${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)}).`});
-  }catch(e){}
+  }catch(e){reportError('buildAlerts.plafondMicro',e);}
   // Alertes contextuelles : pipeline et facturation
   const moisAgeCtx=getMoisDepuisOuverture();
   if(moisAgeCtx===null||moisAgeCtx>=2){
@@ -6316,7 +6344,7 @@ function wScoreSante(d) {
       const ico=ech.daysLeft<=7?'🚨':ech.daysLeft<=21?'⏰':'📅';
       alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</div>`);
     });
-  } catch(e){}
+  } catch(e){reportError('echeancesFiscales',e);}
   const shown5=alertLines.slice(0,5).join('');
   const rest5=alertLines.length>5?alertLines.slice(5).join(''):'';
   const alertsSection=alertLines.length?`<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Alertes</div>${shown5}${rest5?`<div style="font-size:11px;color:var(--acc);cursor:pointer;margin-top:2px;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${alertLines.length-5} autre${alertLines.length-5>1?'s':''} →</div><div style="display:none">${rest5}</div>`:''}` + '</div>' : '';
@@ -10782,7 +10810,7 @@ function renderArchProgress(){
   if(netTrend!==null){ const sp=archSmartPct(currData.caNet,oldData.caNet); if(sp) bullets.push(`💶 Revenu net : <strong>${sp.text}</strong>`); }
   if(hTrend!==null&&oldData.heures>0){ const delta=Math.round(currData.heures-oldData.heures); if(Math.abs(delta)>5) bullets.push(`⏱ <strong>${delta>0?'+':''}${delta} heures</strong> facturées par an`); }
   if(currData.th>0&&oldData.th>0){ const sp=archSmartPct(currData.th,oldData.th); if(sp) bullets.push(`💰 Taux horaire : ${fmtE(oldData.th,0)}/h → <strong>${fmtE(currData.th,0)}/h</strong> (${sp.text})`); }
-  ARCH_INSIGHT_GENERATORS.forEach(g=>{ try{ const s=g.fn(currData,oldData,tVocab('item').toLowerCase()); if(s) bullets.push(`📡 ${s}`); }catch(e){} });
+  ARCH_INSIGHT_GENERATORS.forEach(g=>{ try{ const s=g.fn(currData,oldData,tVocab('item').toLowerCase()); if(s) bullets.push(`📡 ${s}`); }catch(e){reportError('archInsight.'+g.key,e);} });
   if(!bullets.length){ zone.innerHTML=''; return; }
   const interp=buildArchInterpretation(currData,oldData);
   const conclusionBlock=interp?`<div style="margin-top:14px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:13px;font-weight:600;color:var(--text);border-left:3px solid var(--acc)">${interp}</div>`:'';
