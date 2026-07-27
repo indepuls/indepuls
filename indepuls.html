@@ -706,6 +706,18 @@ html,body{overflow-x:hidden;}
       <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center" id="missions-view-toggle">
         <button class="btn btn-out btn-xs active-filter" onclick="setMissionsView('table')" id="missions-view-btn-table">📋 Tableau</button>
         <button class="btn btn-out btn-xs" onclick="setMissionsView('calendrier')" id="missions-view-btn-calendrier">📅 Calendrier</button>
+        <!-- Widget "Temps interne" (ex-ligne "Mon entreprise" du tableau, chantier présentation
+             2026-07-27) : partagé entre les deux vues (Tableau/Calendrier) puisqu'il vit dans la
+             barre commune, pas dans une vue en particulier. Même chrono global que le widget de
+             la sidebar (voir updateTiWidget(), appelée depuis updateSbTimer()) — pas un second
+             mécanisme de chrono, juste une deuxième surface d'affichage/contrôle. -->
+        <div class="flex gap6" id="ti-widget" style="align-items:center;flex-wrap:wrap;margin-left:auto;padding:5px 10px;border:1px solid var(--brd);border-radius:8px">
+          <span style="font-size:15px" title="Temps interne — gestion, admin, prospection…">🗂️</span>
+          <span style="font-weight:700;font-size:12.5px;white-space:nowrap">Temps interne</span>
+          <button class="timer-btn" id="ti-widget-btn" onclick="startTimer(getMgmtMission().id)"></button>
+          <span class="ts" id="ti-widget-total" style="white-space:nowrap"></span>
+          <a href="javascript:void(0)" onclick="openTempsInterneModal()" style="font-size:12px;text-decoration:underline;color:var(--acc);white-space:nowrap">Détail</a>
+        </div>
       </div>
       <div id="missions-view-table">
         <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
@@ -2879,6 +2891,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-27', titre:'Votre temps interne (gestion, admin…) se catégorise désormais comme une vraie mission, et se consulte d\'un coup d\'œil depuis la barre Missions', icon:'🗂️', merci:null },
   { date:'2026-07-21', titre:'Catégorisez votre temps passé (Administratif, Production...) et suivez sa répartition', icon:'🗂️', merci:'Merci à Prescillia pour l\'idée 🙏' },
   { date:'2026-07-21', titre:'Suivez la rentabilité de vos lots d\'achat groupé, vente par vente', icon:'📦', merci:'Merci à Pauline pour l\'idée 🙏' },
   { date:'2026-07-17', titre:'Une confirmation "✓ Enregistré" s\'affiche désormais dans Paramètres', icon:'✅', merci:null },
@@ -8824,7 +8837,9 @@ function rentabCatBody() {
 // rentabilité — ni CA, ni TH, ni Score de Santé. Masqué tant qu'aucune entrée n'est catégorisée.
 function tempsCategorieBody() {
   const parMs={};
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
+  // Inclut le temps interne (mission isManagement) depuis le chantier 2026-07-27 : il se
+  // catégorise désormais exactement comme une vraie mission (voir saveAddTime()).
+  DATA.missions.forEach(m=>{
     (m.tempsManuel||[]).forEach(e=>{ if(!e.categorie) return; parMs[e.categorie]=(parMs[e.categorie]||0)+(e.ms||0); });
   });
   const cles=Object.keys(parMs);
@@ -9116,7 +9131,11 @@ function renderMissions() {
   // "Facturées" exclut désormais les missions payées (statut dérivé, jamais stocké — voir
   // estMissionPayee()) : sans ce filtre, une mission facturée puis payée restait dans les deux
   // filtres à la fois, ce qui n'a pas de sens pour l'utilisatrice (retour Faustine, 2026-07).
+  // "Mon entreprise" (isManagement) n'apparaît plus dans ce tableau depuis le chantier
+  // présentation 2026-07-27 — déplacée vers le widget "🗂️ Temps interne" de la barre
+  // #missions-view-toggle (voir updateTiWidget()), partagé entre vue Tableau et Calendrier.
   let filtered=DATA.missions.filter(m=>{
+    if(m.isManagement) return false;
     if(missionFilter==='all') return true;
     if(missionFilter==='paye') return estMissionPayee(m);
     if(missionFilter==='fact') return m.statut==='fact'&&!estMissionPayee(m);
@@ -9124,7 +9143,6 @@ function renderMissions() {
     return m.statut===missionFilter;
   });
   filtered.sort((a,b)=>{
-    if(b.isManagement!==a.isManagement) return (b.isManagement?1:0)-(a.isManagement?1:0);
     if(missionSort==='alpha') return (a.client||'').localeCompare(b.client||'');
     if(missionSort==='amount_desc') return (b.montantDevis||0)-(a.montantDevis||0);
     // "Plus récent"/"Plus ancien" : la date de facturation reflète l'activité réelle du chantier,
@@ -10217,7 +10235,7 @@ function openAddTimeModal(id, presetDate) {
   const catSel=document.getElementById('add-time-cat');
   const cats=DATA.categoriesTemps||[];
   if(catWrap&&catSel){
-    if(!m||m.isManagement||!cats.length){
+    if(!m||!cats.length){
       catWrap.style.display='none';
     } else {
       catSel.innerHTML='<option value="">— Aucune —</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
@@ -10282,7 +10300,15 @@ function renderAddTimeCatBreakdown(id) {
 }
 function deleteTempsManuel(missionId, entryId) {
   const m=DATA.missions.find(x=>x.id===missionId); if(!m) return;
+  const entry=(m.tempsManuel||[]).find(e=>e.id===entryId);
   m.tempsManuel=(m.tempsManuel||[]).filter(e=>e.id!==entryId);
+  // Temps interne : garder DATA.tempsInterne (total mensuel, source de vérité du moteur de
+  // calcul) synchronisé — sinon supprimer une entrée catégorisée laisserait le total ce mois
+  // artificiellement gonflé par rapport au détail réellement affiché.
+  if(m.isManagement&&entry){
+    const mk=(entry.date||'').slice(0,7);
+    if(mk&&DATA.tempsInterne&&DATA.tempsInterne[mk]) DATA.tempsInterne[mk]=Math.max(0,DATA.tempsInterne[mk]-(entry.ms||0));
+  }
   saveData(); renderAddTimeLog(missionId); renderMissions(); updateSbTimer();
   if(currentPage==='dashboard') renderDashboard();
 }
@@ -10294,13 +10320,14 @@ function saveAddTime() {
   const ms=(h*3600+min*60)*1000; if(ms<=0) return;
   const date=document.getElementById('add-time-date').value||today();
   const catEl=document.getElementById('add-time-cat');
-  const categorie=(catEl&&!m.isManagement)?(catEl.value||undefined):undefined;
-  if(m.isManagement){
-    addTempsInterne(getCurrentMk(), ms);
-  } else {
-    if(!m.tempsManuel) m.tempsManuel=[];
-    m.tempsManuel.push({id:uuid(),date,ms,...(categorie?{categorie}:{})});
-  }
+  const categorie=catEl?(catEl.value||undefined):undefined;
+  // Temps interne (audit produit 2026-07-27) : catégorisable comme une vraie mission — verse
+  // aussi dans tempsManuel (détail + catégorie, cf. "Temps par catégorie"). Le total mensuel
+  // (DATA.tempsInterne, lu par le moteur de calcul via getHeuresInterne()) reste la source de
+  // vérité et continue d'être crédité en plus, jamais recalculé depuis tempsManuel.
+  if(m.isManagement) addTempsInterne(getCurrentMk(), ms);
+  if(!m.tempsManuel) m.tempsManuel=[];
+  m.tempsManuel.push({id:uuid(),date,ms,...(categorie?{categorie}:{})});
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
   if(catEl) catEl.value='';
@@ -11130,6 +11157,23 @@ function updateSbTimer() {
     btns.innerHTML=`<button class="sb-timer-btn" onclick="sbTimerToggle()">▶ Démarrer</button>`;
     _setInfoTip(ico, SB_TIMER_ICO_DEFAULT);
     _setInfoTip(tip, SB_TIMER_TIP_DEFAULT);
+  }
+  updateTiWidget();
+}
+
+// Widget "Temps interne" de la barre Missions (Tableau/Calendrier) — deuxième surface
+// d'affichage/contrôle sur le MÊME chrono que la sidebar (voir startTimer/getMgmtMission), pas
+// un mécanisme séparé. Appelée depuis updateSbTimer() : reste synchronisée à chaque tick de
+// startTimerInterval() et à chaque action qui change l'état du chrono, sans call site dédié.
+function updateTiWidget() {
+  const mgmt=getMgmtMission(); if(!mgmt) return;
+  const btn=document.getElementById('ti-widget-btn');
+  const tot=document.getElementById('ti-widget-total');
+  if(btn){ btn.className='timer-btn'+(mgmt.timerRunning?' running':''); btn.textContent=mgmt.timerRunning?'⏹':'▶'; }
+  if(tot){
+    const base=(DATA.tempsInterne&&DATA.tempsInterne[getCurrentMk()])||0;
+    const live=mgmt.timerRunning&&mgmt.timerStart?Date.now()-mgmt.timerStart:0;
+    tot.textContent=heuresMs(base+live)+' ce mois';
   }
 }
 
