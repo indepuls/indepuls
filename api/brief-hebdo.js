@@ -119,8 +119,7 @@ export default async function handler(req, res) {
     });
 
     if (!sendResp.ok) {
-      const detail = await sendResp.text().catch(() => null);
-      resultats.push({ user_id, envoye: false, raison: 'envoi_echoue', status: sendResp.status, detail });
+      resultats.push({ user_id, envoye: false, raison: 'envoi_echoue', status: sendResp.status });
       continue;
     }
 
