@@ -2095,7 +2095,7 @@ Suite à l'audit externe (Claude Cowork) sur le suivi du temps (4 idées, voir i
 
 **Vérifié** : suite Node complète (aucune régression). Navigateur : chrono sur une mission avec historique catégorisé → popup pré-cochée avec la bonne catégorie, "Enregistrer" catégorise l'entrée correctement ; chrono sur le Temps interne → même comportement, "Passer" laisse l'entrée sans `categorie` ; changement de mission pendant qu'un chrono tourne → arrêt automatique de l'ancien chrono, **popup non affichée** (confirmé) ; total scalaire `DATA.tempsInterne` toujours crédité correctement en parallèle de l'entrée `tempsManuel`.
 
-### FEATURE (en cours, phase 2/4) — Brief hebdomadaire par email (2026-07-27)
+### FEATURE (en cours, phase 3/4) — Brief hebdomadaire par email (2026-07-27)
 
 Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail") + Faustine : email hebdomadaire automatique, contenu déterministe (zéro IA générative), réutilisant les règles déjà en place plutôt que d'en inventer — réponse structurelle au risque de churn identifié dans un audit précédent (usage hebdo/mensuel = mémoire de valeur plus faible qu'un usage quotidien).
 
@@ -2122,7 +2122,16 @@ Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail")
 
 **Vérifié (phase 2/4)** : `briefHebdo.test.js` (13/13) + suite complète Node re-passée (aucune régression). Navigateur, bout en bout avec de vraies données : snapshot semaine précédente pré-existant (score 50) + rendu réel du Brief cette semaine (score 62) → `getDecisionBriefHebdo()` retourne bien `delta:+12` ; snapshot d'une semaine plus ancienne (pas la précédente exacte) → `inactif:true`, aucun delta fabriqué.
 
-**Reste à construire** : phase 3/4 (gabarit HTML de l'email — contraintes propres au HTML email à respecter, CSS très restreint par rapport au web classique — composant le texte final à partir des primitives ci-dessus), phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier).
+**Phase 3/4 livrée — gabarit HTML de l'email** (`shared/core/briefHebdoEmail.js`, `renderBriefHebdoEmailHtml(decision, {prenom, appUrl, unsubscribeUrl})`, tests d'abord — `shared/tests/briefHebdoEmail.test.js`, 25 assertions) :
+- Composé à partir des seules primitives de la phase 2 (`{inactif, score, delta, pilierFaible}`) — jamais de lecture directe de `DATA` dans ce module, séparation stricte décision/affichage. Retourne `{subject, html}`.
+- Textes délibérément **différents et plus courts** que le Brief in-app par pilier (`rentabilité`/`remplissage`/`trésorerie`/`horizon`) — pas un miroir des dizaines de variantes de `wScoreSante()`, une seule phrase générique par pilier, ton "élan" déjà en place, jamais "il manque" (vérifié par test, cas volontairement testés y compris à delta négatif).
+- Mise en page en **table HTML + styles inline uniquement** (pas de flexbox/grid/variables CSS — beaucoup de clients email les ignorent ou les cassent), couleurs de marque (bleu marine/prune/crème/beige).
+- Prénom échappé (`escapeHtml`) avant insertion — donnée utilisateur, jamais injectée telle quelle dans le HTML.
+- **Bug réel repéré à l'aperçu visuel, pas par les tests** : accents rendus cassés ("IndÃ©puls") faute de `<meta charset="utf-8">` dans le `<head>` — le gabarit n'avait pas de `<head>` du tout. Corrigé (`<head><meta charset="utf-8"><meta name="viewport"...><title>` ajoutés) + test dédié ajouté pour verrouiller la régression (`briefHebdoEmail.test.js` vérifie explicitement la présence de la balise). Rappel utile : un gabarit d'email peut être 100 % vert en tests unitaires (qui ne vérifient que le contenu textuel) et casser visuellement pour une raison que seul un rendu réel révèle — d'où l'aperçu généré et envoyé à Faustine avant de considérer cette phase terminée.
+
+**Vérifié (phase 3/4)** : `briefHebdoEmail.test.js` (25/25, y compris le test d'encodage) + suite complète Node re-passée (aucune régression). Rendu visuel réel généré pour 3 cas (score en hausse, en baisse, relance d'inactivité) et transmis à Faustine pour retour sur la mise en page — fichiers HTML statiques, rien envoyé, aucune infrastructure email touchée.
+
+**Reste à construire** : phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi).
 
 **Idée adjacente documentée, pas construite** : suivi de progression façon Duolingo (courbe de Score de Santé, séries de bons mois) — reformulée volontairement pour gamifier le **résultat** (série de mois où le score dépasse un seuil), jamais la **connexion** (streak d'usage quotidien à la Duolingo, qui casserait sans raison sur un produit à cadence hebdo/mensuelle et risquerait la même dérive culpabilisante déjà écartée pour l'idée 4 ci-dessus). Réutiliserait le même socle `DATA.snapshotsHebdo` construit ici. À reprendre une fois le brief email en place, pas avant.
 
