@@ -19,8 +19,12 @@ const JOURS_SEMAINE = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendr
 const APP_URL = 'https://indepuls.vercel.app/indepuls.html';
 const LOGO_URL = 'https://indepuls.vercel.app/assets/logo-indepuls.png';
 
+// Les nouvelles clés Supabase "Secret keys" (sb_secret_...) ne sont PAS des JWT — contrairement à
+// l'ancienne service_role, elles sont REJETÉES (403) si envoyées dans Authorization: Bearer.
+// Uniquement l'en-tête apikey (piège réel rencontré en testant en conditions réelles, corrigé
+// avant tout envoi — voir https://supabase.com/docs/guides/api/rest/auth pour la migration).
 function supabaseHeaders(secretKey) {
-  return { apikey: secretKey, Authorization: `Bearer ${secretKey}` };
+  return { apikey: secretKey };
 }
 
 // Signaux de matérialité pour UN compte — regroupés ici pour rester testables par injection
