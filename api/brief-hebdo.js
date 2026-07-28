@@ -70,7 +70,8 @@ export default async function handler(req, res) {
     headers: supabaseHeaders(secretKey),
   });
   if (!dataResp.ok) {
-    res.status(502).json({ error: 'supabase_user_data_failed', status: dataResp.status });
+    const detail = await dataResp.text().catch(() => null);
+    res.status(502).json({ error: 'supabase_user_data_failed', status: dataResp.status, detail });
     return;
   }
   const rows = await dataResp.json();
