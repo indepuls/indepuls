@@ -28,6 +28,7 @@ export const getWeekKey = _getWeekKey;
 // DATA côté serveur plus tard. Injectée ici pour permettre une vérification en conditions
 // réelles côté navigateur avant le branchement serveur.
 export const getDecisionBriefHebdo = (maintenant) => BH.getDecisionBriefHebdo(DATA, maintenant);
+export const doitEnvoyerBriefHebdo = BH.doitEnvoyerBriefHebdo; // pure, aucune dépendance à DATA
 
 let DATA = null;
 
