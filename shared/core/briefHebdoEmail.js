@@ -23,22 +23,43 @@ const ACTION_PAR_PILIER = {
 };
 const ACTION_PAR_DEFAUT = 'Direction Indépuls pour voir où concentrer votre attention cette semaine.';
 
+// Petit visuel du score (retour Faustine 2026-07-27, inspiration Duolingo "sans pression") : une
+// simple barre colorée, jamais un compteur de série/streak — pas de notion de jours consécutifs
+// à préserver, aucune mécanique qui pourrait culpabiliser en cas d'absence une semaine donnée.
+// Mêmes seuils de couleur que le Score de Santé in-app (voir wScoreSante(), scoreColor).
+// Tables imbriquées avec largeurs en pourcentage (pas de flexbox/grid) : le motif "barre de
+// progression" le plus fiable en email, y compris sur Outlook.
+function barreScore(score) {
+  if (score == null) return '';
+  const couleur = score >= 80 ? '#2d7a4f' : score >= 60 ? '#84cc16' : score >= 40 ? '#c97316' : score >= 20 ? '#f97316' : '#b91c1c';
+  const pct = Math.max(0, Math.min(100, score));
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0 0;">
+              <tr><td style="background:#e0dcd6;border-radius:6px;height:10px;font-size:0;line-height:0;">
+                <table role="presentation" cellpadding="0" cellspacing="0" width="${pct}%" style="height:10px;">
+                  <tr><td style="background:${couleur};border-radius:6px;height:10px;font-size:0;line-height:0;">&nbsp;</td></tr>
+                </table>
+              </td></tr>
+            </table>`;
+}
+
+// Retourne du HTML de niveau "bloc" (jamais enveloppé dans un <p> par l'appelant : un <table>
+// imbriqué dans un <p> est invalide et casse le rendu sur certains clients email).
 function messageCorps(decision) {
   if (decision.inactif) {
-    return 'Ça fait une semaine qu\'on ne vous a pas revue — 2 minutes suffisent pour garder une vue à jour sur votre activité.';
+    return '<p style="margin:0;">Ça fait une semaine qu\'on ne vous a pas revue. Deux minutes suffisent pour garder une vue à jour sur votre activité.</p>';
   }
   const action = ACTION_PAR_PILIER[decision.pilierFaible] || ACTION_PAR_DEFAUT;
   let phraseScore;
   if (decision.delta == null) {
     phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine.`;
   } else if (decision.delta > 0) {
-    phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine — <strong>+${decision.delta} points</strong> par rapport à la semaine dernière 👏`;
+    phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine, soit <strong>+${decision.delta} points</strong> de plus que la semaine dernière 👏`;
   } else if (decision.delta < 0) {
     phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine, en retrait de <strong>${Math.abs(decision.delta)} points</strong> par rapport à la semaine dernière.`;
   } else {
     phraseScore = `Votre Score de Santé est stable à <strong>${decision.score}/100</strong> cette semaine.`;
   }
-  return `${phraseScore}<br>${action}`;
+  return `<p style="margin:0;">${phraseScore}</p>${barreScore(decision.score)}<p style="margin:16px 0 0 0;">${action}</p>`;
 }
 
 function sujet(decision) {
@@ -71,7 +92,7 @@ export function renderBriefHebdoEmailHtml(decision, { prenom = '', appUrl = '#',
         <tr>
           <td style="padding:28px;color:${COULEURS.marine};font-size:15px;line-height:1.6;">
             <p style="margin:0 0 16px 0;">${salutation}</p>
-            <p style="margin:0 0 24px 0;">${corps}</p>
+            <div style="margin:0 0 24px 0;">${corps}</div>
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr><td style="background:${COULEURS.prune};border-radius:8px;">
                 <a href="${appUrl}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Ouvrir Indépuls</a>

@@ -82,6 +82,30 @@ section('Encodage — meta charset UTF-8 (retour visuel : accents cassés sans e
   ok('le <head> précède le <body>', html.indexOf('<head>') < html.indexOf('<body'));
 }
 
+section('Aucun tiret cadratin dans les textes (retour Faustine 2026-07-27 — "trop étiqueté IA")');
+{
+  const cas = [
+    { inactif: true, score: null, delta: null, pilierFaible: null },
+    { inactif: false, score: 62, delta: null, pilierFaible: 'horizon' },
+    { inactif: false, score: 70, delta: 15, pilierFaible: 'remplissage' },
+    { inactif: false, score: 45, delta: -18, pilierFaible: 'trésorerie' },
+  ];
+  cas.forEach((d, i) => {
+    const { html, subject } = renderBriefHebdoEmailHtml(d, baseOpts);
+    ok(`cas #${i} — pas de "—" dans le HTML`, !html.includes('—'));
+    ok(`cas #${i} — pas de "—" dans le sujet`, !subject.includes('—'));
+  });
+}
+
+section('Petit visuel — barre de score (jamais un compteur de série/streak)');
+{
+  const { html: htmlActif } = renderBriefHebdoEmailHtml({ inactif: false, score: 74, delta: null, pilierFaible: null }, baseOpts);
+  ok('la barre de score est présente quand un score existe', /background:#84cc16/.test(htmlActif));
+  const { html: htmlInactif } = renderBriefHebdoEmailHtml({ inactif: true, score: null, delta: null, pilierFaible: null }, baseOpts);
+  ok('aucune barre affichée en mode inactif (rien à mesurer)', !/border-radius:6px;height:10px/.test(htmlInactif));
+  ok('jamais de mot "série" ou "streak" (pas de mécanique à préserver)', !/(série|streak|jours? consécutifs?)/i.test(htmlActif));
+}
+
 section('Pilier inconnu ou absent — pas de crash, texte de repli générique');
 {
   const { html } = renderBriefHebdoEmailHtml({ inactif: false, score: 55, delta: null, pilierFaible: 'inexistant' }, baseOpts);

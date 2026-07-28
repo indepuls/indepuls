@@ -2131,7 +2131,14 @@ Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail")
 
 **Vérifié (phase 3/4)** : `briefHebdoEmail.test.js` (25/25, y compris le test d'encodage) + suite complète Node re-passée (aucune régression). Rendu visuel réel généré pour 3 cas (score en hausse, en baisse, relance d'inactivité) et transmis à Faustine pour retour sur la mise en page — fichiers HTML statiques, rien envoyé, aucune infrastructure email touchée.
 
-**Reste à construire** : phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi).
+**Retouches suite au retour de Faustine sur l'aperçu (même jour)** :
+- **Tirets cadratins retirés** des textes (phrase du delta positif, message d'inactivité) — signalés comme "trop étiqueté IA". Voir mémoire persistante `feedback_indepuls_eviter_tirets_cadratins` : consigne générale pour tout texte utilisateur final écrit pour Indépuls désormais, pas seulement cet email.
+- **Petit visuel ajouté** (`barreScore()`) : une simple barre colorée sous le score, mêmes seuils de couleur que le Score de Santé in-app. Inspiration Duolingo explicitement demandée "sans pression" — délibérément **pas** un compteur de série/streak (aucune notion de jours consécutifs à préserver, testé explicitement : `!/série|streak/i`). Construite en tables imbriquées à largeurs en pourcentage (motif le plus fiable en email, y compris Outlook), pas d'image à héberger.
+- **Logo** : demandé par Faustine, pas encore fait — nécessite qu'elle fournisse un fichier logo existant (aucun asset visuel trouvé dans le repo à ce jour, ni logo ni favicon). Une fois le fichier fourni, l'hébergement est simple et ne dépend pas du nom de domaine : l'URL Vercel actuelle (`indepuls.vercel.app`) est déjà publique et suffit pour servir une image dans l'email dès aujourd'hui.
+
+**Vérifié (retouches)** : `briefHebdoEmail.test.js` étendu à 36 assertions (dont : aucun tiret cadratin sur 4 cas × sujet+HTML, barre présente si score connu, absente en mode inactif, jamais de mot "série"/"streak") + suite complète Node re-passée (aucune régression). Nouveaux aperçus visuels générés et transmis à Faustine.
+
+**Reste à construire** : le logo (en attente du fichier de Faustine), phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi).
 
 **Idée adjacente documentée, pas construite** : suivi de progression façon Duolingo (courbe de Score de Santé, séries de bons mois) — reformulée volontairement pour gamifier le **résultat** (série de mois où le score dépasse un seuil), jamais la **connexion** (streak d'usage quotidien à la Duolingo, qui casserait sans raison sur un produit à cadence hebdo/mensuelle et risquerait la même dérive culpabilisante déjà écartée pour l'idée 4 ci-dessus). Réutiliserait le même socle `DATA.snapshotsHebdo` construit ici. À reprendre une fois le brief email en place, pas avant.
 
