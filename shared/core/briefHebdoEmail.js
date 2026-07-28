@@ -67,7 +67,20 @@ function sujet(decision) {
   return `Votre Score de Santé : ${decision.score}/100 cette semaine`;
 }
 
-export function renderBriefHebdoEmailHtml(decision, { prenom = '', appUrl = '#', unsubscribeUrl = '#' } = {}) {
+// En-tête : logo réel si fourni (logoUrl — data URI pour les aperçus locaux, URL hébergée en
+// production, phase 4), repli sur le texte "Indépuls" sinon (ex. tests unitaires qui ne passent
+// pas de logo). Le logo disponible (Indépuls_logo_navy_transparent.png) est en marine sur fond
+// transparent : fond d'en-tête clair ici pour qu'il reste lisible, pas de bandeau marine plein
+// comme dans la 1ʳᵉ version du gabarit. `alt` toujours renseigné : de nombreux clients email
+// bloquent les images par défaut.
+function enTete(logoUrl) {
+  if (logoUrl) {
+    return `<img src="${logoUrl}" alt="Indépuls" width="140" style="display:block;margin:0 auto;max-width:140px;height:auto;border:0;">`;
+  }
+  return `<span style="color:${COULEURS.marine};font-size:18px;font-weight:bold;">Indépuls</span>`;
+}
+
+export function renderBriefHebdoEmailHtml(decision, { prenom = '', appUrl = '#', unsubscribeUrl = '#', logoUrl = '' } = {}) {
   const prenomSafe = escapeHtml(prenom);
   const salutation = prenomSafe ? `Bonjour ${prenomSafe},` : 'Bonjour,';
   const corps = messageCorps(decision);
@@ -85,8 +98,8 @@ export function renderBriefHebdoEmailHtml(decision, { prenom = '', appUrl = '#',
     <tr><td align="center">
       <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;">
         <tr>
-          <td style="background:${COULEURS.marine};padding:18px 28px;">
-            <span style="color:${COULEURS.creme};font-size:18px;font-weight:bold;">Indépuls</span>
+          <td align="center" style="background:#ffffff;padding:24px 28px 16px 28px;border-bottom:2px solid ${COULEURS.prune};">
+            ${enTete(logoUrl)}
           </td>
         </tr>
         <tr>

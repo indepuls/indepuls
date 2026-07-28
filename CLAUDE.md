@@ -2138,7 +2138,11 @@ Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail")
 
 **Vérifié (retouches)** : `briefHebdoEmail.test.js` étendu à 36 assertions (dont : aucun tiret cadratin sur 4 cas × sujet+HTML, barre présente si score connu, absente en mode inactif, jamais de mot "série"/"streak") + suite complète Node re-passée (aucune régression). Nouveaux aperçus visuels générés et transmis à Faustine.
 
-**Reste à construire** : le logo (en attente du fichier de Faustine), phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi).
+**Logo intégré (même jour)** : fichier trouvé dans `OneDrive/Bureau/Indépuls/Logos/Indépuls_logo_navy_transparent.png` (2000×1520, marine sur transparent, sans slogan), copié dans `assets/logo-indepuls.png` du dépôt. `renderBriefHebdoEmailHtml()` accepte désormais un paramètre `logoUrl` (data URI pour les aperçus locaux aujourd'hui, URL hébergée en production phase 4) — `<img>` avec `alt="Indépuls"` toujours renseigné (images bloquées par défaut chez de nombreux clients email), repli sur le texte "Indépuls" si `logoUrl` absent (ex. tests unitaires). En-tête repensé en fond clair avec liseré prune (le logo disponible est marine sur transparent, illisible sur l'ancien bandeau marine plein).
+
+**Vérifié (logo)** : `briefHebdoEmail.test.js` étendu à 41 assertions (présence de `<img>`+`alt` avec `logoUrl`, repli texte sans). Navigateur : logo encodé en base64 et chargé avec succès dans un aperçu réel (`img.complete === true`, dimensions correctes 2000×1520) — fonctionne sans connexion ni hébergement, utile pour les aperçus locaux avant la mise en place de l'hébergement réel en phase 4.
+
+**Reste à construire** : phase 4/4 (cron Vercel + lecture Supabase + envoi Resend, hébergement réel du logo sur l'URL Vercel + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi).
 
 **Idée adjacente documentée, pas construite** : suivi de progression façon Duolingo (courbe de Score de Santé, séries de bons mois) — reformulée volontairement pour gamifier le **résultat** (série de mois où le score dépasse un seuil), jamais la **connexion** (streak d'usage quotidien à la Duolingo, qui casserait sans raison sur un produit à cadence hebdo/mensuelle et risquerait la même dérive culpabilisante déjà écartée pour l'idée 4 ci-dessus). Réutiliserait le même socle `DATA.snapshotsHebdo` construit ici. À reprendre une fois le brief email en place, pas avant.
 

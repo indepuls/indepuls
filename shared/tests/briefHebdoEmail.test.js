@@ -106,6 +106,21 @@ section('Petit visuel — barre de score (jamais un compteur de série/streak)')
   ok('jamais de mot "série" ou "streak" (pas de mécanique à préserver)', !/(série|streak|jours? consécutifs?)/i.test(htmlActif));
 }
 
+section('En-tête — logo réel si fourni, repli texte sinon');
+{
+  const { html: sansLogo } = renderBriefHebdoEmailHtml({ inactif: false, score: 60, delta: null, pilierFaible: null }, baseOpts);
+  ok('sans logoUrl : repli sur le texte "Indépuls"', /Indépuls<\/span>/.test(sansLogo));
+  ok('sans logoUrl : aucune balise <img>', !sansLogo.includes('<img'));
+
+  const { html: avecLogo } = renderBriefHebdoEmailHtml(
+    { inactif: false, score: 60, delta: null, pilierFaible: null },
+    { ...baseOpts, logoUrl: 'data:image/png;base64,AAAA' }
+  );
+  ok('avec logoUrl : balise <img> présente', avecLogo.includes('<img'));
+  ok('avec logoUrl : src correct', avecLogo.includes('src="data:image/png;base64,AAAA"'));
+  ok('avec logoUrl : alt renseigné (images bloquées par défaut chez de nombreux clients)', avecLogo.includes('alt="Indépuls"'));
+}
+
 section('Pilier inconnu ou absent — pas de crash, texte de repli générique');
 {
   const { html } = renderBriefHebdoEmailHtml({ inactif: false, score: 55, delta: null, pilierFaible: 'inexistant' }, baseOpts);
