@@ -499,8 +499,9 @@ function makeData(overrides = {}) {
   const MAINTENANT = new Date('2026-07-28T10:00:00');
   const hier = fmt(new Date('2026-07-27T00:00:00'));
   const avantHier = fmt(new Date('2026-07-26T00:00:00'));
-  const ilYA4Jours = fmt(new Date('2026-07-24T00:00:00'));
-  const ilYA10Jours = fmt(new Date('2026-07-18T00:00:00'));
+  const ilYA7Jours = fmt(new Date('2026-07-21T00:00:00'));
+  const ilYA8Jours = fmt(new Date('2026-07-20T00:00:00'));
+  const ilYA15Jours = fmt(new Date('2026-07-13T00:00:00'));
 
   const sHier = { debut: hier, fin: '2026-08-31', heures: 3.5 };
   const mBase = { id: 'm1', client: 'Client Test', isManagement: false, sessions: [sHier], tempsManuel: [] };
@@ -519,9 +520,13 @@ function makeData(overrides = {}) {
   const r3 = P.getSessionsSansTempsRecent(makeData({ missions: [mAujourdhui] }), MAINTENANT);
   assertEq('aujourd\'hui jamais inclus (pas de rétroactivité sur le jour même)', r3.length, 0);
 
-  const mLoin = { id: 'm3', client: 'Client Test', isManagement: false, sessions: [{ debut: ilYA10Jours, fin: ilYA4Jours, heures: 5 }], tempsManuel: [] };
+  const mLoin = { id: 'm3', client: 'Client Test', isManagement: false, sessions: [{ debut: ilYA15Jours, fin: ilYA8Jours, heures: 5 }], tempsManuel: [] };
   const r4 = P.getSessionsSansTempsRecent(makeData({ missions: [mLoin] }), MAINTENANT);
-  assertEq('session hors fenêtre (>3 jours) → aucune suggestion', r4.length, 0);
+  assertEq('session hors fenêtre par défaut (>7 jours) → aucune suggestion', r4.length, 0);
+
+  const mExactement7 = { id: 'm3b', client: 'Client Test', isManagement: false, sessions: [{ debut: ilYA7Jours, fin: ilYA7Jours, heures: 2 }], tempsManuel: [] };
+  const r4b = P.getSessionsSansTempsRecent(makeData({ missions: [mExactement7] }), MAINTENANT);
+  assertEq('exactement 7 jours en arrière (borne incluse, défaut hebdomadaire) → suggérée', r4b.length, 1);
 
   const mGestion = { id: 'm4', client: 'Interne', isManagement: true, sessions: [sHier], tempsManuel: [] };
   const r5 = P.getSessionsSansTempsRecent(makeData({ missions: [mGestion] }), MAINTENANT);

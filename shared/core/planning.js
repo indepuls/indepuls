@@ -158,7 +158,10 @@ export function getChargeJour(DATA, dateStr) {
 // n'est plus jamais signalée, sans qu'aucun état de suivi ne soit à purger nulle part. Une
 // suggestion déjà écartée (bouton "Non", DATA.alertsDismissed) n'est plus jamais reproposée pour
 // ce couple mission+date — même mécanisme que le "✓ Traité" des alertes du tableau de bord.
-export function getSessionsSansTempsRecent(DATA, maintenant = new Date(), joursMax = 3) {
+// Défaut à 7 jours (une semaine complète, pas 3) : le produit vise "15 min d'utilisation par
+// semaine" — une utilisatrice qui ne se connecte que le vendredi doit encore voir les sessions
+// du lundi, pas seulement les 3 derniers jours (retour Faustine, 2026-07-28 bis).
+export function getSessionsSansTempsRecent(DATA, maintenant = new Date(), joursMax = 7) {
   const pad = n => String(n).padStart(2, '0');
   const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const dismissed = DATA.alertsDismissed || {};
