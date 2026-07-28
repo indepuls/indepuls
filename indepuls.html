@@ -936,10 +936,10 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
       </div>
-      <div class="alert al-info mt16 mb0" style="font-size:12px">Ces réglages sont pré-configurés selon votre profil. Ajustez-les si votre façon de travailler est différente.</div>
       <div class="card mt16">
         <div class="card-title mb12">Tarification & objectif</div>
         <div class="divider mt4 mb12"></div>
+        <div class="ts mb12" style="color:var(--tl)">Pré-configuré selon votre profil — ajustez si votre façon de travailler est différente.</div>
         <div class="ts mb8" style="color:var(--tl)">Ce que je veux piloter en priorité :</div>
         <div style="display:flex;flex-direction:column;gap:7px">
           <label class="tva-regime-opt" id="mod-obj-th"><input type="radio" name="mod-objectif" value="th" onchange="saveModuleParam('objectif','th')"><div><strong>Mon taux horaire (€/h)</strong><div class="ts mt1">Idéal pour les prestations vendues au temps passé</div></div></label>
@@ -1203,6 +1203,30 @@ html,body{overflow-x:hidden;}
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-save" onclick="exportData()" style="display:inline-flex;justify-content:center">💾 <span>Exporter une sauvegarde</span></button>
           <button class="btn btn-out" onclick="importData()" style="display:inline-flex;justify-content:center">⬆ <span>Importer une sauvegarde</span></button>
+        </div>
+      </div>
+      <div class="card mb16">
+        <div class="card-header">
+          <div><div class="card-title">Notifications</div><div class="card-sub">Recevoir un point sur mon activité par email</div></div>
+        </div>
+        <div class="sw-wrap">
+          <label class="sw"><input type="checkbox" id="p-email-hebdo-sw" onchange="toggleEmailHebdo(this.checked)"><span class="sw-sl"></span></label>
+          <span style="font-weight:600">Recevoir un récap hebdomadaire par email</span>
+          <span class="info-tip" title="Vous ne recevrez cet email que les semaines où il y a quelque chose de notable à signaler (variation de votre score, échéance fiscale proche, alerte active), pas systématiquement chaque semaine. Vous recevrez malgré tout un point au moins une fois par mois.">?</span>
+        </div>
+        <div id="email-hebdo-detail" style="display:none;margin-top:12px">
+          <div class="fgroup">
+            <label class="flabel">Jour d'envoi</label>
+            <select id="p-email-hebdo-jour" onchange="saveParam('emailHebdoJour',this.value)">
+              <option value="lundi">Lundi</option>
+              <option value="mardi">Mardi</option>
+              <option value="mercredi">Mercredi</option>
+              <option value="jeudi">Jeudi</option>
+              <option value="vendredi">Vendredi</option>
+              <option value="samedi">Samedi</option>
+              <option value="dimanche">Dimanche</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="reset-zone">
@@ -2918,6 +2942,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-28', titre:'Activez un récap hebdomadaire par email sur l\'essentiel de votre activité, dans Paramètres > Personnalisation', icon:'📬', merci:null },
   { date:'2026-07-27', titre:'Le chrono vous propose maintenant de catégoriser le temps passé, avec la catégorie la plus fréquente déjà présélectionnée', icon:'⏱', merci:null },
   { date:'2026-07-27', titre:'Votre temps interne (gestion, admin…) se catégorise désormais comme une vraie mission, et se consulte d\'un coup d\'œil depuis la barre Missions', icon:'🗂️', merci:null },
   { date:'2026-07-21', titre:'Catégorisez votre temps passé (Administratif, Production...) et suivez sa répartition', icon:'🗂️', merci:'Merci à Prescillia pour l\'idée 🙏' },
@@ -3897,11 +3922,11 @@ function getDefaultData() {
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       dateOuverture:'', metier:'',
       livreRecettesActif:false,
-      // Brief hebdomadaire par email (chantier 2026-07-27/28) : champs invisibles pour l'instant
-      // — aucune case à cocher dans Paramètres ne les expose encore (activée en tout dernier,
-      // une fois le pipeline d'envoi réel vérifié de bout en bout, voir CLAUDE.md). Défaut à
-      // false : aucun envoi possible tant que la case n'existe pas.
-      emailHebdoActif:false, emailHebdoJour:'lundi'
+      // Brief hebdomadaire par email (chantier 2026-07-27/28) : activé par défaut pour les
+      // NOUVEAUX comptes uniquement (retour Faustine, pipeline vérifié de bout en bout, voir
+      // CLAUDE.md). applyDefaults() empêche explicitement ce défaut de s'appliquer
+      // rétroactivement aux comptes déjà existants qui n'ont jamais donné leur consentement.
+      emailHebdoActif:true, emailHebdoJour:'lundi'
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     categoriesTemps:['Administratif','Stratégie & conseil','Production & exécution','Communication','Reporting','Autre'],
@@ -3980,7 +4005,11 @@ function migrate(data) {
 function applyDefaults(data) {
   const def = getDefaultData();
   if (!data.params) data.params = def.params;
+  // emailHebdoActif : voir le commentaire équivalent dans shared/core/storage.js — le défaut
+  // "true" ne doit jamais s'appliquer rétroactivement à un compte préexistant sans consentement.
+  const _emailHebdoActifAbsent = data.params.emailHebdoActif === undefined;
   Object.keys(def.params).forEach(k => { if (data.params[k] === undefined) data.params[k] = def.params[k]; });
+  if (_emailHebdoActifAbsent) data.params.emailHebdoActif = false;
   if (!data.params.modules) {
     data.params.modules = getDefaultModules(data.params.metier);
   } else {
@@ -9907,6 +9936,11 @@ function toggleSalaries(val) {
   if(!val){ const el=document.getElementById('p-charges-salariales'); if(el) el.value=''; }
   recalcObjectifs();
 }
+function toggleEmailHebdo(val) {
+  saveParam('emailHebdoActif', val);
+  const det=document.getElementById('email-hebdo-detail');
+  if(det) det.style.display=val?'':'none';
+}
 function renderParams() {
   const p=DATA.params;
   document.getElementById('p-nom').value=p.nom||'';
@@ -9973,6 +10007,13 @@ function renderParams() {
   }
   const livreBlock=document.getElementById('livre-recettes-block');
   if(livreBlock) livreBlock.style.display=sasu?'none':'';
+  // Brief hebdomadaire par email
+  const ehSw=document.getElementById('p-email-hebdo-sw');
+  if(ehSw) ehSw.checked=!!(p.emailHebdoActif);
+  const ehDet=document.getElementById('email-hebdo-detail');
+  if(ehDet) ehDet.style.display=p.emailHebdoActif?'':'none';
+  const ehJour=document.getElementById('p-email-hebdo-jour');
+  if(ehJour) ehJour.value=p.emailHebdoJour||'lundi';
   // Modules
   renderModulesUI();
   if(currentParamTab==='objectifs') renderObjectifsResult();

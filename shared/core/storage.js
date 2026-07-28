@@ -80,9 +80,16 @@ export function applyDefaults(data, defaultData, deps = {}) {
   const { getDefaultModules, uuid, today } = deps;
   const def = defaultData;
   if (!data.params) data.params = def.params;
+  // emailHebdoActif : défaut global "true" pour les tout nouveaux comptes (getDefaultData()
+  // le pose déjà avant cet appel, donc jamais undefined ici pour eux) — mais un compte
+  // PRÉEXISTANT qui ne l'a jamais eu n'a donné aucun consentement : on capture l'absence avant
+  // le backfill générique pour le forcer à false ensuite, plutôt que de le laisser hériter du
+  // défaut destiné aux nouveaux comptes (retour Faustine 2026-07-28, voir CLAUDE.md).
+  const _emailHebdoActifAbsent = data.params.emailHebdoActif === undefined;
   Object.keys(def.params).forEach(k => {
     if (data.params[k] === undefined) data.params[k] = def.params[k];
   });
+  if (_emailHebdoActifAbsent) data.params.emailHebdoActif = false;
   if (getDefaultModules) {
     if (!data.params.modules) {
       data.params.modules = getDefaultModules(data.params.metier);

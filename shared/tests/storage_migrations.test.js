@@ -167,6 +167,32 @@ section('applyDefaults — migration collectif ignorée sans deps (pas de crash)
   test('tempsCreation intact si uuid/today non fournis', out.missions[0].tempsCreation, 2);
 }
 
+section('applyDefaults — emailHebdoActif : défaut "true" (nouveaux comptes) jamais rétroactif (2026-07-28, retour Faustine)');
+{
+  // Compte EXISTANT sans le champ (créé avant l'ajout de cette fonctionnalité) : même si le
+  // défaut global passe à true pour les nouveaux comptes, un compte préexistant n'a jamais donné
+  // son consentement — forcé à false plutôt que backfillé depuis def.params.
+  const data = { params: {}, missions: [] };
+  const def = { params: { emailHebdoActif: true, emailHebdoJour: 'lundi' } };
+  const out = applyDefaults(data, def);
+  test('compte existant sans le champ → reste à false (pas de consentement rétroactif)', out.params.emailHebdoActif, false);
+  test('emailHebdoJour backfillé normalement (pas sensible au consentement)', out.params.emailHebdoJour, 'lundi');
+}
+section('applyDefaults — emailHebdoActif déjà présent (vrai nouveau compte, ou déjà choisi) → jamais écrasé');
+{
+  const data = { params: { emailHebdoActif: true }, missions: [] };
+  const def = { params: { emailHebdoActif: true, emailHebdoJour: 'lundi' } };
+  const out = applyDefaults(data, def);
+  test('valeur déjà true (nouveau compte) préservée', out.params.emailHebdoActif, true);
+}
+section('applyDefaults — emailHebdoActif=false déjà choisi explicitement → jamais réactivé');
+{
+  const data = { params: { emailHebdoActif: false }, missions: [] };
+  const def = { params: { emailHebdoActif: true, emailHebdoJour: 'lundi' } };
+  const out = applyDefaults(data, def);
+  test('false explicite préservé', out.params.emailHebdoActif, false);
+}
+
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`Résultat : ${passed} tests passés, ${failed} échoués`);
 if (failed > 0) process.exit(1);
