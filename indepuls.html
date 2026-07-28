@@ -12425,6 +12425,7 @@ document.addEventListener('keydown', function(e) {
   window.getTVASeuilsStatut        = () => { sync(); return Mode.getTVASeuilsStatut(); };
   window.TVA_SEUILS                = Mode.TVA_SEUILS;
   window.getWeekKey                = Mode.getWeekKey; // pure, pas de dépendance à DATA
+  window.getDecisionBriefHebdo     = (maintenant) => { sync(); return Mode.getDecisionBriefHebdo(maintenant); };
   window.getTVAZone                = Mode.getTVAZone;
   // Mode ombre — duplication B (audit externe 2026-07-26), instrumentation TEMPORAIRE.
   // Pas de wrapper sync() : fonctions pures, aucune dépendance à DATA (voir CLAUDE.md).

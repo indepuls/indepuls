@@ -10,6 +10,7 @@ import * as P from '../core/planning.js';
 import * as A from '../core/affaires.js';
 import * as S from '../core/storage.js';
 import * as D from '../core/diff.js';
+import * as BH from '../core/briefHebdo.js';
 import { getWeekKey as _getWeekKey } from '../core/utils.js';
 import { getTauxStatut, TVA_SEUILS as _TVA_SEUILS } from '../core/taux.js';
 
@@ -23,6 +24,10 @@ export const TVA_SEUILS = _TVA_SEUILS;
 // côté navigateur (snapshot hebdo dans wScoreSante()) et plus tard côté serveur (cron) — une
 // seule implémentation, jamais dupliquée.
 export const getWeekKey = _getWeekKey;
+// Fonction de décision du brief hebdomadaire (phase 2/4) — portable, testable indépendamment de
+// DATA côté serveur plus tard. Injectée ici pour permettre une vérification en conditions
+// réelles côté navigateur avant le branchement serveur.
+export const getDecisionBriefHebdo = (maintenant) => BH.getDecisionBriefHebdo(DATA, maintenant);
 
 let DATA = null;
 

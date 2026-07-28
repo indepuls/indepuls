@@ -2095,7 +2095,7 @@ Suite à l'audit externe (Claude Cowork) sur le suivi du temps (4 idées, voir i
 
 **Vérifié** : suite Node complète (aucune régression). Navigateur : chrono sur une mission avec historique catégorisé → popup pré-cochée avec la bonne catégorie, "Enregistrer" catégorise l'entrée correctement ; chrono sur le Temps interne → même comportement, "Passer" laisse l'entrée sans `categorie` ; changement de mission pendant qu'un chrono tourne → arrêt automatique de l'ancien chrono, **popup non affichée** (confirmé) ; total scalaire `DATA.tempsInterne` toujours crédité correctement en parallèle de l'entrée `tempsManuel`.
 
-### FEATURE (en cours, phase 1/4) — Brief hebdomadaire par email (2026-07-27)
+### FEATURE (en cours, phase 2/4) — Brief hebdomadaire par email (2026-07-27)
 
 Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail") + Faustine : email hebdomadaire automatique, contenu déterministe (zéro IA générative), réutilisant les règles déjà en place plutôt que d'en inventer — réponse structurelle au risque de churn identifié dans un audit précédent (usage hebdo/mensuel = mémoire de valeur plus faible qu'un usage quotidien).
 
@@ -2113,7 +2113,16 @@ Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail")
 
 **Vérifié (phase 1/4)** : `utils.test.js` (8/8) + suite complète Node re-passée (aucune régression). Navigateur : `DATA.snapshotsHebdo` correctement peuplé avec le score et le pilier faible réels après rendu du Brief, idempotent au second rendu (pas de doublon), absent en mode démo. `migrate()`/`applyDefaults()` non touchés (le snapshot hebdo suit exactement le même patron d'initialisation paresseuse que le snapshot mensuel — `if(!DATA.snapshotsHebdo) DATA.snapshotsHebdo={}` local à `wScoreSante()`, pas une valeur par défaut du schéma) — donc aucun risque de rouvrir un écart avec le mode ombre de la duplication B.
 
-**Reste à construire** : phase 2/4 (fonction de décision portable — delta vs semaine précédente, détection "inactif cette semaine", texte court dans le ton "élan" déjà en place), phase 3/4 (gabarit HTML de l'email, contraintes propres au HTML email à respecter — CSS très restreint par rapport au web classique), phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier).
+**Phase 2/4 livrée — fonction de décision portable** (`shared/core/briefHebdo.js`, `getDecisionBriefHebdo(DATA, maintenant)`, tests d'abord — `shared/tests/briefHebdo.test.js`, 13 assertions) :
+- Fonction **de décision pure** uniquement — ne produit **aucun texte final** (le texte/la mise en forme vivent dans le gabarit d'email, phase 3 — séparation logique métier / affichage). Retourne `{inactif, score, delta, pilierFaible}`.
+- `inactif:true` dès qu'aucun snapshot n'existe pour la semaine ISO en cours — réutilise directement le "bonus de conception" de la phase 1, aucune détection d'activité séparée à construire.
+- **Choix délibéré, testé explicitement** : le delta ne compare JAMAIS à "la dernière semaine active trouvée", uniquement à la semaine ISO immédiatement précédente (calculée par arithmétique de date, `maintenant - 7 jours`, jamais par manipulation de chaîne sur la clé de semaine — un piège classique aux frontières d'année, voir le test dédié 2025→2026). Si cette semaine précise n'a pas de snapshot, `delta:null` plutôt qu'une comparaison fabriquée sur un intervalle plus long présentée à tort comme "vs la semaine dernière".
+- Piège révélé par les tests eux-mêmes (pas par le code) : un premier jeu de test supposait que 2025 avait 53 semaines ISO comme 2020/2026 — faux, 2025 n'en a que 52 (Jan 1 2025 n'est ni jeudi ni dans une année bissextile démarrant un mercredi). Corrigé dans le test, pas dans le code, une fois vérifié que le calcul de `getWeekKey()` était le bon.
+- Bridgée via `unified.js`/`window.getDecisionBriefHebdo` pour vérification en conditions réelles côté navigateur avant le branchement serveur (phase 4).
+
+**Vérifié (phase 2/4)** : `briefHebdo.test.js` (13/13) + suite complète Node re-passée (aucune régression). Navigateur, bout en bout avec de vraies données : snapshot semaine précédente pré-existant (score 50) + rendu réel du Brief cette semaine (score 62) → `getDecisionBriefHebdo()` retourne bien `delta:+12` ; snapshot d'une semaine plus ancienne (pas la précédente exacte) → `inactif:true`, aucun delta fabriqué.
+
+**Reste à construire** : phase 3/4 (gabarit HTML de l'email — contraintes propres au HTML email à respecter, CSS très restreint par rapport au web classique — composant le texte final à partir des primitives ci-dessus), phase 4/4 (cron Vercel + lecture Supabase + envoi Resend + case à cocher dans Paramètres, activée en tout dernier).
 
 **Idée adjacente documentée, pas construite** : suivi de progression façon Duolingo (courbe de Score de Santé, séries de bons mois) — reformulée volontairement pour gamifier le **résultat** (série de mois où le score dépasse un seuil), jamais la **connexion** (streak d'usage quotidien à la Duolingo, qui casserait sans raison sur un produit à cadence hebdo/mensuelle et risquerait la même dérive culpabilisante déjà écartée pour l'idée 4 ci-dessus). Réutiliserait le même socle `DATA.snapshotsHebdo` construit ici. À reprendre une fois le brief email en place, pas avant.
 
