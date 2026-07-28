@@ -23,6 +23,18 @@ const ACTION_PAR_PILIER = {
 };
 const ACTION_PAR_DEFAUT = 'Direction Indépuls pour voir où concentrer votre attention cette semaine.';
 
+// Bouton d'action (CTA) — adapté au pilier mis en avant plutôt qu'un "Ouvrir Indépuls" générique
+// à chaque fois (retour Faustine 2026-07-28), sauf quand aucune action précise n'est pointée
+// (score en hausse, aucun pilier faible connu).
+const CTA_PAR_PILIER = {
+  'rentabilité': 'Revoir mes tarifs',
+  'remplissage': 'Voir mon planning',
+  'trésorerie': 'Relancer mes encaissements',
+  'horizon': 'Voir ma trajectoire',
+};
+const CTA_DEFAUT = 'Ouvrir Indépuls';
+const CTA_INACTIF = 'Compléter ma semaine';
+
 // Petit visuel du score (retour Faustine 2026-07-27, inspiration Duolingo "sans pression") : une
 // simple barre colorée, jamais un compteur de série/streak — pas de notion de jours consécutifs
 // à préserver, aucune mécanique qui pourrait culpabiliser en cas d'absence une semaine donnée.
@@ -42,24 +54,38 @@ function barreScore(score) {
             </table>`;
 }
 
-// Retourne du HTML de niveau "bloc" (jamais enveloppé dans un <p> par l'appelant : un <table>
-// imbriqué dans un <p> est invalide et casse le rendu sur certains clients email).
-function messageCorps(decision) {
+// Retourne {corps, cta} — corps est du HTML de niveau "bloc" (jamais enveloppé dans un <p> par
+// l'appelant : un <table> imbriqué dans un <p> est invalide et casse le rendu sur certains
+// clients email), cta le libellé du bouton d'action, adapté au contenu affiché.
+function contenu(decision) {
   if (decision.inactif) {
-    return '<p style="margin:0;">Ça fait une semaine qu\'on ne vous a pas revue. Deux minutes suffisent pour garder une vue à jour sur votre activité.</p>';
+    return {
+      corps: '<p style="margin:0;">Ça fait une semaine qu\'on ne vous a pas revue. Deux minutes suffisent pour garder une vue à jour sur votre activité.</p>',
+      cta: CTA_INACTIF,
+    };
   }
-  const action = ACTION_PAR_PILIER[decision.pilierFaible] || ACTION_PAR_DEFAUT;
+
   let phraseScore;
   if (decision.delta == null) {
     phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine.`;
   } else if (decision.delta > 0) {
-    phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine, soit <strong>+${decision.delta} points</strong> de plus que la semaine dernière 👏`;
+    phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine, soit <strong>${decision.delta} points</strong> de plus que la semaine dernière 👏`;
   } else if (decision.delta < 0) {
     phraseScore = `Votre Score de Santé est de <strong>${decision.score}/100</strong> cette semaine, en retrait de <strong>${Math.abs(decision.delta)} points</strong> par rapport à la semaine dernière.`;
   } else {
     phraseScore = `Votre Score de Santé est stable à <strong>${decision.score}/100</strong> cette semaine.`;
   }
-  return `<p style="margin:0;">${phraseScore}</p>${barreScore(decision.score)}<p style="margin:16px 0 0 0;">${action}</p>`;
+
+  // Ne jamais faire suivre une bonne nouvelle d'une remarque sur une faiblesse (retour Faustine
+  // 2026-07-28 : ça retombe l'ambiance juste après avoir félicité). Uniquement dans ce cas, un
+  // encouragement générique remplace le texte lié au pilier faible, et le bouton reste générique
+  // (rien de précis à corriger n'est mis en avant).
+  const masquerPilier = decision.delta > 0;
+  const pilierTexte = masquerPilier ? 'Continuez sur cette lancée.' : (ACTION_PAR_PILIER[decision.pilierFaible] || ACTION_PAR_DEFAUT);
+  const cta = masquerPilier ? CTA_DEFAUT : (CTA_PAR_PILIER[decision.pilierFaible] || CTA_DEFAUT);
+
+  const corps = `<p style="margin:0;">${phraseScore}</p>${barreScore(decision.score)}<p style="margin:16px 0 0 0;">${pilierTexte}</p>`;
+  return { corps, cta };
 }
 
 function sujet(decision) {
@@ -83,7 +109,7 @@ function enTete(logoUrl) {
 export function renderBriefHebdoEmailHtml(decision, { prenom = '', appUrl = '#', unsubscribeUrl = '#', logoUrl = '' } = {}) {
   const prenomSafe = escapeHtml(prenom);
   const salutation = prenomSafe ? `Bonjour ${prenomSafe},` : 'Bonjour,';
-  const corps = messageCorps(decision);
+  const { corps, cta } = contenu(decision);
   const subject = sujet(decision);
 
   const html = `<!doctype html>
@@ -108,7 +134,7 @@ export function renderBriefHebdoEmailHtml(decision, { prenom = '', appUrl = '#',
             <div style="margin:0 0 24px 0;">${corps}</div>
             <table role="presentation" cellpadding="0" cellspacing="0">
               <tr><td style="background:${COULEURS.prune};border-radius:8px;">
-                <a href="${appUrl}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Ouvrir Indépuls</a>
+                <a href="${appUrl}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">${cta}</a>
               </td></tr>
             </table>
           </td>

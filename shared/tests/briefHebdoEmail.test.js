@@ -35,12 +35,18 @@ section('Actif, sans comparaison possible (delta=null)');
   ok('mentionne le pilier faible (horizon → trajectoire annuelle)', /trajectoire annuelle/i.test(html));
 }
 
-section('Actif, delta positif');
+section('Actif, delta positif — jamais de "+" redondant, jamais de faiblesse après une bonne nouvelle');
 {
-  const { html } = renderBriefHebdoEmailHtml({ inactif: false, score: 70, delta: 15, pilierFaible: 'remplissage' }, baseOpts);
+  const { html, subject } = renderBriefHebdoEmailHtml({ inactif: false, score: 70, delta: 15, pilierFaible: 'remplissage' }, baseOpts);
   ok('affiche le score', html.includes('70'));
-  ok('mentionne la progression avec le bon delta', /\+?15/.test(html));
-  ok('pilier remplissage → texte planning', /planning/i.test(html));
+  ok('mentionne le delta', html.includes('15'));
+  // Retour Faustine 2026-07-28 : "de plus" suit déjà le chiffre, le "+" devant est redondant.
+  ok('pas de "+15" (le "+" est redondant avec "de plus" juste après)', !html.includes('+15'));
+  // Retour Faustine 2026-07-28 : ne jamais faire suivre une bonne nouvelle d'une remarque sur
+  // une faiblesse — ça retombe l'ambiance juste après avoir félicité.
+  ok('ne mentionne PAS le pilier faible malgré pilierFaible=remplissage (progression positive)', !/planning/i.test(html));
+  ok('affiche un encouragement générique à la place', /lancée/i.test(html));
+  ok('sujet sans "+" non plus', !subject.includes('+15'));
 }
 
 section('Actif, delta négatif — ton "élan", jamais alarmiste');
@@ -119,6 +125,21 @@ section('En-tête — logo réel si fourni, repli texte sinon');
   ok('avec logoUrl : balise <img> présente', avecLogo.includes('<img'));
   ok('avec logoUrl : src correct', avecLogo.includes('src="data:image/png;base64,AAAA"'));
   ok('avec logoUrl : alt renseigné (images bloquées par défaut chez de nombreux clients)', avecLogo.includes('alt="Indépuls"'));
+}
+
+section('CTA adapté au contenu affiché (retour Faustine 2026-07-28)');
+{
+  const { html: htmlInactif } = renderBriefHebdoEmailHtml({ inactif: true, score: null, delta: null, pilierFaible: null }, baseOpts);
+  ok('inactif → CTA "Compléter ma semaine"', htmlInactif.includes('>Compléter ma semaine<'));
+
+  const { html: htmlTreso } = renderBriefHebdoEmailHtml({ inactif: false, score: 45, delta: -18, pilierFaible: 'trésorerie' }, baseOpts);
+  ok('pilier trésorerie (négatif) → CTA "Relancer mes encaissements"', htmlTreso.includes('>Relancer mes encaissements<'));
+
+  const { html: htmlRemplissage } = renderBriefHebdoEmailHtml({ inactif: false, score: 50, delta: null, pilierFaible: 'remplissage' }, baseOpts);
+  ok('pilier remplissage (sans comparaison) → CTA "Voir mon planning"', htmlRemplissage.includes('>Voir mon planning<'));
+
+  const { html: htmlPositif } = renderBriefHebdoEmailHtml({ inactif: false, score: 70, delta: 15, pilierFaible: 'remplissage' }, baseOpts);
+  ok('progression positive → CTA générique (aucune faiblesse mise en avant)', htmlPositif.includes('>Ouvrir Indépuls<'));
 }
 
 section('Pilier inconnu ou absent — pas de crash, texte de repli générique');

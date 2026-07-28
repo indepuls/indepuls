@@ -2142,7 +2142,20 @@ Idée d'un audit externe (Claude Cowork, "brief chaque fin de semaine par mail")
 
 **Vérifié (logo)** : `briefHebdoEmail.test.js` étendu à 41 assertions (présence de `<img>`+`alt` avec `logoUrl`, repli texte sans). Navigateur : logo encodé en base64 et chargé avec succès dans un aperçu réel (`img.complete === true`, dimensions correctes 2000×1520) — fonctionne sans connexion ni hébergement, utile pour les aperçus locaux avant la mise en place de l'hébergement réel en phase 4.
 
-**Reste à construire** : phase 4/4 (cron Vercel + lecture Supabase + envoi Resend, hébergement réel du logo sur l'URL Vercel + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi).
+**Retouches de contenu suite au 2ᵉ retour de Faustine sur les aperçus (2026-07-28)** :
+- Suppression du "+" redondant devant le delta positif ("soit +12 points de plus" → "soit 12 points de plus", "de plus" porte déjà le sens).
+- **Ne jamais faire suivre une bonne nouvelle d'une remarque sur une faiblesse** : quand le delta est positif, le texte lié au pilier faible est remplacé par un encouragement générique ("Continuez sur cette lancée."), jamais par le rappel "il reste de la place dans votre planning" juste après avoir félicité — casserait l'ambiance.
+- **CTA adapté au contenu affiché** (`CTA_PAR_PILIER`) au lieu d'un "Ouvrir Indépuls" systématique : "Relancer mes encaissements" (trésorerie), "Voir mon planning" (remplissage), "Revoir mes tarifs" (rentabilité), "Voir ma trajectoire" (horizon), "Compléter ma semaine" (inactif). Reste générique uniquement quand aucune faiblesse précise n'est mise en avant (progression positive).
+
+**Vérifié** : `briefHebdoEmail.test.js` étendu à 48 assertions (aucune régression). Nouveaux aperçus régénérés (logo inclus) et transmis à Faustine.
+
+**Question soulevée par Faustine, relayée à Claude Cowork — "une activité stable recevrait le même email chaque semaine".** Diagnostic confirmé et accepté : avec un seul axe (delta hebdo), une activité stable garde un delta proche de zéro et le même pilier faible d'une semaine à l'autre, donc littéralement le même contenu à chaque envoi — paradoxal, puisque c'est justement le profil qu'on ne veut pas perdre. Proposition de Cowork : un **seuil de matérialité** avant tout envoi (n'envoyer que si le score a bougé d'au moins 5 points, une échéance fiscale tombe sous 7 jours, une alerte concrète est active — impayé..., ou qu'aucun email n'est parti depuis 3-4 semaines) plutôt que de forcer un texte différent chaque semaine sans rien de neuf à dire.
+
+**Évaluation avant de coder** : fonctions déjà disponibles pour chaque condition, aucune nouvelle logique métier à inventer — `DATA.snapshotsHebdo` (phase 1) pour le delta de score, `getMissionsImpayees()` pour une alerte concrète, `getNextUrssafEcheance()`/`getNextTVAEcheance()` (retournent déjà `daysLeft`) pour l'échéance fiscale. Seule vraie nouveauté : suivre "depuis quand aucun email n'est parti" — ce n'est PAS une donnée que `snapshotsHebdo` peut fournir (il note des scores, pas des envois réels) ; c'est un suivi opérationnel qui appartient logiquement au cron lui-même (phase 4), pas à la fonction de décision pure de la phase 2.
+
+**Reste à trancher avec Faustine avant de coder** : construire la fonction de matérialité maintenant (extension testable de `briefHebdo.js`, prérequis recommandé par Cowork avant de brancher le cron) ou embarquée directement dans la phase 4.
+
+**Reste à construire** : phase 4/4 (cron Vercel + lecture Supabase + envoi Resend, hébergement réel du logo sur l'URL Vercel + case à cocher dans Paramètres, activée en tout dernier, une fois un vrai envoi test réussi) — précédée, si validé, du seuil de matérialité ci-dessus.
 
 **Idée adjacente documentée, pas construite** : suivi de progression façon Duolingo (courbe de Score de Santé, séries de bons mois) — reformulée volontairement pour gamifier le **résultat** (série de mois où le score dépasse un seuil), jamais la **connexion** (streak d'usage quotidien à la Duolingo, qui casserait sans raison sur un produit à cadence hebdo/mensuelle et risquerait la même dérive culpabilisante déjà écartée pour l'idée 4 ci-dessus). Réutiliserait le même socle `DATA.snapshotsHebdo` construit ici. À reprendre une fois le brief email en place, pas avant.
 
