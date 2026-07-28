@@ -490,6 +490,57 @@ function makeData(overrides = {}) {
 // resultatHSemaine() partagée reproduit à l'identique le calcul et les textes de la
 // branche 'estime' d'origine, et la branche 'calendrier' n'a subi aucune modification.
 
+// ── getSessionsSansTempsRecent (retour Faustine, 2026-07-28) ─────────────────
+// Panneau Planning : suggérer un rattrapage pour une session planifiée récente (hier,
+// jusqu'à joursMax jours en arrière — jamais plus loin, volontairement borné, pas une
+// vraie détection historique) dont aucun temps réel n'a été enregistré à sa date.
+{
+  const fmt = d => { const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+  const MAINTENANT = new Date('2026-07-28T10:00:00');
+  const hier = fmt(new Date('2026-07-27T00:00:00'));
+  const avantHier = fmt(new Date('2026-07-26T00:00:00'));
+  const ilYA4Jours = fmt(new Date('2026-07-24T00:00:00'));
+  const ilYA10Jours = fmt(new Date('2026-07-18T00:00:00'));
+
+  const sHier = { debut: hier, fin: '2026-08-31', heures: 3.5 };
+  const mBase = { id: 'm1', client: 'Client Test', isManagement: false, sessions: [sHier], tempsManuel: [] };
+
+  const r1 = P.getSessionsSansTempsRecent(makeData({ missions: [mBase] }), MAINTENANT);
+  assertEq('session planifiée hier, aucun temps loggé → 1 suggestion', r1.length, 1);
+  assertEq('suggestion : bon missionId', r1[0]?.missionId, 'm1');
+  assertEq('suggestion : bonne date', r1[0]?.date, hier);
+  assert('suggestion : heures planifiées > 0', (r1[0]?.heures || 0) > 0);
+
+  const mDejaLogge = { ...mBase, tempsManuel: [{ id: 't1', date: hier, ms: 3600000 }] };
+  const r2 = P.getSessionsSansTempsRecent(makeData({ missions: [mDejaLogge] }), MAINTENANT);
+  assertEq('temps déjà loggé ce jour-là → aucune suggestion', r2.length, 0);
+
+  const mAujourdhui = { id: 'm2', client: 'Client Test', isManagement: false, sessions: [{ debut: '2026-07-28', fin: '2026-08-31', heures: 2 }], tempsManuel: [] };
+  const r3 = P.getSessionsSansTempsRecent(makeData({ missions: [mAujourdhui] }), MAINTENANT);
+  assertEq('aujourd\'hui jamais inclus (pas de rétroactivité sur le jour même)', r3.length, 0);
+
+  const mLoin = { id: 'm3', client: 'Client Test', isManagement: false, sessions: [{ debut: ilYA10Jours, fin: ilYA4Jours, heures: 5 }], tempsManuel: [] };
+  const r4 = P.getSessionsSansTempsRecent(makeData({ missions: [mLoin] }), MAINTENANT);
+  assertEq('session hors fenêtre (>3 jours) → aucune suggestion', r4.length, 0);
+
+  const mGestion = { id: 'm4', client: 'Interne', isManagement: true, sessions: [sHier], tempsManuel: [] };
+  const r5 = P.getSessionsSansTempsRecent(makeData({ missions: [mGestion] }), MAINTENANT);
+  assertEq('mission isManagement ignorée', r5.length, 0);
+
+  const mSansHeures = { id: 'm5', client: 'Client Test', isManagement: false, sessions: [{ debut: hier, fin: '2026-08-31' }], tempsManuel: [] };
+  const r6 = P.getSessionsSansTempsRecent(makeData({ missions: [mSansHeures] }), MAINTENANT);
+  assertEq('session sans heures renseignées → rien à suggérer', r6.length, 0);
+
+  const dataAvecDismiss = makeData({ missions: [mBase] });
+  dataAvecDismiss.alertsDismissed = { [`sessTemps_m1_${hier}`]: Date.now() };
+  const r7 = P.getSessionsSansTempsRecent(dataAvecDismiss, MAINTENANT);
+  assertEq('suggestion déjà masquée (Non cliqué) → exclue', r7.length, 0);
+
+  const mAvantHier = { id: 'm6', client: 'Client Test', isManagement: false, sessions: [{ debut: avantHier, fin: '2026-08-31', heures: 1 }], tempsManuel: [] };
+  const r8 = P.getSessionsSansTempsRecent(makeData({ missions: [mAvantHier] }), MAINTENANT, 3);
+  assertEq('avant-hier, dans la fenêtre de 3 jours → suggestion incluse', r8.length, 1);
+}
+
 // ── Rapport ───────────────────────────────────────────────────
 console.log('\n' + '═'.repeat(70));
 console.log('  TESTS — shared/core/planning.js');

@@ -139,6 +139,7 @@ export const getMissionsSessionDay  = (dateStr)    => P.getMissionsSessionDay(DA
 export const sessionCouvreJour      = P.sessionCouvreJour;
 export const isRecurringStillActive = P.isRecurringStillActive;
 export const getChargeSessionJour   = P.getChargeSessionJour;
+export const getSessionsSansTempsRecent = (maintenant, joursMax) => P.getSessionsSansTempsRecent(DATA, maintenant, joursMax);
 export const toHeuresSem            = (v, u) => P.toHeuresSem(DATA.params, v, u);
 export const getCapaciteHSem        = ()     => P.getCapaciteHSem(DATA);
 export const getMissionChargeHSem   = (m)    => P.getMissionChargeHSem(DATA, m);

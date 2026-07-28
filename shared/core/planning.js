@@ -151,6 +151,35 @@ export function getChargeJour(DATA, dateStr) {
   return Math.round(total * 10) / 10;
 }
 
+// Sessions planifiées récentes (hier, jusqu'à joursMax jours en arrière — jamais aujourd'hui,
+// jamais plus loin) dont aucun temps réel n'a été enregistré à leur date. Volontairement borné
+// (retour Faustine, 2026-07-28) : pas une détection historique complète, juste un rattrapage
+// rapide proposé dans le panneau Planning — passé ce nombre de jours, une session non convertie
+// n'est plus jamais signalée, sans qu'aucun état de suivi ne soit à purger nulle part. Une
+// suggestion déjà écartée (bouton "Non", DATA.alertsDismissed) n'est plus jamais reproposée pour
+// ce couple mission+date — même mécanisme que le "✓ Traité" des alertes du tableau de bord.
+export function getSessionsSansTempsRecent(DATA, maintenant = new Date(), joursMax = 3) {
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const dismissed = DATA.alertsDismissed || {};
+  const resultats = [];
+  for (let i = 1; i <= joursMax; i++) {
+    const d = new Date(maintenant);
+    d.setDate(d.getDate() - i);
+    const ds = dateStr(d);
+    DATA.missions.forEach(m => {
+      if (m.isManagement) return;
+      if (!(m.sessions || []).some(s => sessionCouvreJour(s, ds))) return;
+      if ((m.tempsManuel || []).some(e => e.date === ds)) return;
+      const heures = (m.sessions || []).reduce((tot, s) => tot + getChargeSessionJour(s, ds), 0);
+      if (heures <= 0) return;
+      if (dismissed[`sessTemps_${m.id}_${ds}`]) return;
+      resultats.push({ missionId: m.id, client: m.client, date: ds, heures: Math.round(heures * 10) / 10 });
+    });
+  }
+  return resultats;
+}
+
 // Missions dont une session couvre la date donnée — n'importe quel mois, contrairement à la
 // copie locale de renderPlanning() (indepuls.html) qui restreint aux missions du mois affiché
 // (colorMap). Sert à présélectionner/proposer une mission à qui rattacher du temps depuis une

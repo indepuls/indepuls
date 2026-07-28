@@ -3394,15 +3394,46 @@ function selectPlanningDay(ds) {
   _planningSelectedDay = ds;
   renderPlanning(); // ré-affiche aussi la sélection (liseré) sur la case cliquée
 }
+// Rattrapage sessions récentes sans temps enregistré (retour Faustine, 2026-07-28) : affiché en
+// permanence en tête du panneau jour (pas un popup, jamais imposé à l'ouverture de l'app) — voir
+// getSessionsSansTempsRecent (shared/core/planning.js) pour la borne des 3 jours et la logique
+// de masquage définitif via "Non".
+function renderSessionsSansTempsBlock() {
+  const suggestions = getSessionsSansTempsRecent();
+  if (!suggestions.length) return '';
+  return suggestions.map(s => `
+    <div class="alert al-warn" style="margin-bottom:8px;padding:8px 10px;font-size:12px;line-height:1.5">
+      <div>La session prévue du <strong>${formatDateFR(s.date)}</strong> (${esc(s.client||tVocab('item'))}) n'a pas de temps enregistré. Souhaitez-vous en ajouter ?</div>
+      <div class="flex gap6 mt6">
+        <button class="btn btn-acc btn-xs" onclick="ouvrirRattrapageTemps('${s.missionId}','${s.date}',${s.heures})">Oui</button>
+        <button class="btn btn-out btn-xs" onclick="dismissSessionSansTemps('${s.missionId}','${s.date}')">Non</button>
+      </div>
+    </div>`).join('');
+}
+function ouvrirRattrapageTemps(missionId, ds, heures) {
+  openAddTimeModal(missionId, ds);
+  const h = Math.floor(heures), min = Math.round((heures - h) * 60);
+  const hEl = document.getElementById('add-time-h'), minEl = document.getElementById('add-time-min');
+  if (hEl) hEl.value = h || '';
+  if (minEl) minEl.value = min || '';
+}
+function dismissSessionSansTemps(missionId, ds) {
+  DATA.alertsDismissed = DATA.alertsDismissed || {};
+  DATA.alertsDismissed[`sessTemps_${missionId}_${ds}`] = Date.now();
+  saveData();
+  renderPlanningDayPanel();
+}
 function renderPlanningDayPanel() {
   const panel = document.getElementById('planning-day-panel');
   if (!panel) return;
-  if (!_planningSelectedDay) { panel.style.display = 'none'; return; }
+  const suggestionsHtml = renderSessionsSansTempsBlock();
+  if (!_planningSelectedDay && !suggestionsHtml) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  if (!_planningSelectedDay) { panel.innerHTML = suggestionsHtml; return; }
   const ds = _planningSelectedDay;
   const rows = getTempsJour(ds);
   const totalMs = rows.reduce((s, r) => s + r.ms, 0);
-  panel.style.display = '';
-  panel.innerHTML = `
+  panel.innerHTML = suggestionsHtml + `
     <div class="card-title" style="margin-bottom:8px;font-size:13px">${formatDateFR(ds)}</div>
     ${rows.length ? rows.map(r => `<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd);font-size:12px">
         <span style="overflow-wrap:anywhere">${esc(r.client||tVocab('item'))}${r.categorie?' · '+esc(r.categorie):''}</span>
@@ -12448,6 +12479,7 @@ document.addEventListener('keydown', function(e) {
   window.sessionCouvreJour      = (s, ds) => { sync(); return Mode.sessionCouvreJour(s, ds); };
   window.isRecurringStillActive = (m) => { sync(); return Mode.isRecurringStillActive(m); };
   window.getChargeSessionJour   = (s, ds) => { sync(); return Mode.getChargeSessionJour(s, ds); };
+  window.getSessionsSansTempsRecent = (maintenant, joursMax) => { sync(); return Mode.getSessionsSansTempsRecent(maintenant, joursMax); };
   window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
   window.estMissionPayee        = (m)  => { sync(); return Mode.estMissionPayee(m); };
