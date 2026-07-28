@@ -3896,7 +3896,12 @@ function getDefaultData() {
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       dateOuverture:'', metier:'',
-      livreRecettesActif:false
+      livreRecettesActif:false,
+      // Brief hebdomadaire par email (chantier 2026-07-27/28) : champs invisibles pour l'instant
+      // — aucune case à cocher dans Paramètres ne les expose encore (activée en tout dernier,
+      // une fois le pipeline d'envoi réel vérifié de bout en bout, voir CLAUDE.md). Défaut à
+      // false : aucun envoi possible tant que la case n'existe pas.
+      emailHebdoActif:false, emailHebdoJour:'lundi'
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     categoriesTemps:['Administratif','Stratégie & conseil','Production & exécution','Communication','Reporting','Autre'],

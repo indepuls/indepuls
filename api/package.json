@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Scope volontairement limité à ce dossier (pas de package.json à la racine) : indepuls.html reste 100% vanilla JS servi statiquement, et shared/tests/ mélange des fichiers ESM et CommonJS qui dépendent de la détection automatique de Node — un package.json racine casserait ce mélange. Ce fichier permet uniquement aux fonctions serverless Vercel de ce dossier d'importer directement shared/core/*.js (déjà en ESM) sans dupliquer la logique métier déjà testée."
+}

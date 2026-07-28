@@ -18,5 +18,11 @@
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/brief-hebdo",
+      "schedule": "0 7 * * *"
+    }
   ]
 }
