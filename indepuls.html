@@ -4359,14 +4359,11 @@ function themeColor(v) { return getComputedStyle(document.body).getPropertyValue
 // getTotalEncaisse → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // getResteAEncaisser → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // Missions facturées avec un reste à encaisser depuis ≥ 14 j, triées par ancienneté
-function getMissionsImpayees() {
-  const now=Date.now();
-  return DATA.missions
-    .filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&getResteAEncaisser(m)>0)
-    .map(m=>({m,days:Math.floor((now-new Date(m.dateFact+'T00:00:00'))/86400000),reste:getResteAEncaisser(m)}))
-    .filter(x=>x.days>=14)
-    .sort((a,b)=>b.days-a.days);
-}
+// getMissionsImpayees → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en
+// fin de fichier) — extraite lors du chantier "brief hebdomadaire par email" phase 4 (2026-07-28),
+// pour être réutilisable côté serveur (signal de matérialité "alerte active") sans duplication.
+// Même forme de retour qu'avant ({m,days,reste}, m = objet mission complet) — un appelant
+// (buildAlerts()) déstructure `m` directement (m.client, m.description), vérifié avant de porter.
 // Badge coloré d'ancienneté pour les sous-lignes d'encaissement
 function ageBadgeEncaissement(dateFact,reste){
   if(!dateFact||reste<=0) return '';
@@ -12408,6 +12405,9 @@ document.addEventListener('keydown', function(e) {
   window.getMissionTotalMs      = (m)  => { sync(); return Mode.getMissionTotalMs(m); };
   window.getResteAEncaisser     = (m)  => { sync(); return Mode.getResteAEncaisser(m); };
   window.estMissionPayee        = (m)  => { sync(); return Mode.estMissionPayee(m); };
+  window.getMissionsImpayees    = ()   => { sync(); return Mode.getMissionsImpayees(); };
+  window.getProchaineEcheanceUrssafDaysLeft = (maintenant) => { sync(); return Mode.getProchaineEcheanceUrssafDaysLeft(maintenant); };
+  window.getProchaineEcheanceTvaDaysLeft    = (maintenant) => { sync(); return Mode.getProchaineEcheanceTvaDaysLeft(maintenant); };
   window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
   window.getMissionHeuresMois   = (m, mk) => { sync(); return Mode.getMissionHeuresMois(m, mk); };

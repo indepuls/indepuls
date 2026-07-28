@@ -99,6 +99,9 @@ export const getTvaAVenirFinAnnee     = () => C.getTvaAVenirFinAnnee(DATA);
 export const getTotalEncaisse         = C.getTotalEncaisse;
 export const getResteAEncaisser       = C.getResteAEncaisser;
 export const estMissionPayee          = C.estMissionPayee;
+export const getMissionsImpayees      = () => C.getMissionsImpayees(DATA);
+export const getProchaineEcheanceUrssafDaysLeft = (maintenant) => C.getProchaineEcheanceUrssafDaysLeft(DATA, maintenant);
+export const getProchaineEcheanceTvaDaysLeft    = (maintenant) => C.getProchaineEcheanceTvaDaysLeft(DATA, maintenant);
 
 export const getMissionTotalMs        = (m) => C.getMissionTotalMs(DATA, m);
 export const getMissionHeures         = (m) => C.getMissionHeures(DATA, m);

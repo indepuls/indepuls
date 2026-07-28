@@ -628,6 +628,50 @@ export function getResteAEncaisser(m) {
   return Math.max(0, (m.montantDevis || 0) - getTotalEncaisse(m));
 }
 
+// Extraite d'indepuls.html (chantier "brief hebdomadaire par email" phase 4, 2026-07-28) — la
+// copie inline y est remplacée par un appel à ce pont, jamais dupliquée. Réutilisée telle quelle
+// par le signal de matérialité "alerte active" (getMissionsImpayees(DATA).length > 0), qui doit
+// pouvoir tourner côté serveur (cron) sans les autres globals d'indepuls.html.
+export function getMissionsImpayees(DATA) {
+  const now = Date.now();
+  return DATA.missions
+    .filter(m => !m.isManagement && !m.isRecurring && m.statut === 'fact' && m.dateFact && getResteAEncaisser(m) > 0)
+    .map(m => ({ m, days: Math.floor((now - new Date(m.dateFact + 'T00:00:00')) / 86400000), reste: getResteAEncaisser(m) }))
+    .filter(x => x.days >= 14)
+    .sort((a, b) => b.days - a.days);
+}
+
+// Échéances fiscales — DATE uniquement, jamais le montant (extraites d'indepuls.html,
+// getNextUrssafEcheance()/getNextTVAEcheance(), qui calculent aussi un montant non nécessaire
+// ici). Le signal de matérialité du brief hebdomadaire n'a besoin que d'un booléen "proche ou
+// non" — pas de la logique de calcul du montant provisionné, plus lourde et pas requise pour
+// cette décision. Ne pas confondre avec une réimplémentation parallèle : mêmes seuils de dates
+// exacts que les fonctions d'affichage, simplement sans le calcul du montant.
+export function getProchaineEcheanceUrssafDaysLeft(DATA, maintenant = new Date()) {
+  const regime = getUrssafRegime(DATA);
+  const y = maintenant.getFullYear(), m = maintenant.getMonth() + 1;
+  const daysLeft = d => Math.ceil((d - maintenant) / 86400000);
+  if (regime === 'mensuel') return daysLeft(new Date(y, m, 0));
+  const q = Math.ceil(m / 3), qEnd = q * 3;
+  const dueMo = qEnd === 12 ? 1 : qEnd + 1, dueY = qEnd === 12 ? y + 1 : y;
+  return daysLeft(new Date(dueY, dueMo, 0));
+}
+
+export function getProchaineEcheanceTvaDaysLeft(DATA, maintenant = new Date()) {
+  const regime = getTvaRegime(DATA);
+  if (regime === 'franchise') return null;
+  const y = maintenant.getFullYear(), m = maintenant.getMonth() + 1;
+  const daysLeft = d => Math.ceil((d - maintenant) / 86400000);
+  if (regime === 'mensuel') return daysLeft(new Date(y, m - 1, 25));
+  if (regime === 'trimestriel') {
+    const q = Math.ceil(m / 3), qEnd = q * 3;
+    const dueMo = qEnd === 12 ? 1 : qEnd + 1, dueY = qEnd === 12 ? y + 1 : y;
+    return daysLeft(new Date(dueY, dueMo - 1, 30));
+  }
+  // simplifié
+  return m < 7 ? daysLeft(new Date(y, 6, 31)) : daysLeft(new Date(y, 11, 31));
+}
+
 // Statut "Payé" dérivé — jamais stocké, jamais un champ séparé de m.statut ('fact' reste la
 // seule valeur interne). Réutilise getResteAEncaisser (donc getTotalEncaisse) plutôt que de
 // dupliquer la comparaison montant facturé/encaissé déjà utilisée par l'alerte "facture non
