@@ -174,7 +174,15 @@ export function getSessionsSansTempsRecent(DATA, maintenant = new Date(), joursM
       if (m.isManagement) return;
       if (!(m.sessions || []).some(s => sessionCouvreJour(s, ds))) return;
       if ((m.tempsManuel || []).some(e => e.date === ds)) return;
-      const heures = (m.sessions || []).reduce((tot, s) => tot + getChargeSessionJour(s, ds), 0);
+      // Repli sur le temps planifié estimatif (bug beta 2026-07-29) : addSessionToEdit()
+      // (indepuls.html) ne renseigne JAMAIS session.heures en usage réel ({debut,fin} ou
+      // {debut,sansFin,jours} seulement) — getChargeSessionJour() renvoie donc quasi toujours 0
+      // pour de vraies missions, la fonction ne suggérait en pratique jamais rien. chargeEstimee/
+      // chargeUnit est déjà la seule source de vérité pour le temps planifié ailleurs dans l'app
+      // (voir getPilierRemplissage ci-dessus) — réutilisé ici, réparti sur les jours ouvrés de la
+      // semaine, uniquement quand aucune heure n'est directement renseignée sur la session.
+      const heuresSession = (m.sessions || []).reduce((tot, s) => tot + getChargeSessionJour(s, ds), 0);
+      const heures = heuresSession > 0 ? heuresSession : getMissionChargeHSem(DATA, m) / Math.max(1, DATA.params.joursParSemaine || 5);
       if (heures <= 0) return;
       if (dismissed[`sessTemps_${m.id}_${ds}`]) return;
       resultats.push({ missionId: m.id, client: m.client, date: ds, heures: Math.round(heures * 10) / 10 });

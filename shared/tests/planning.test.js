@@ -544,6 +544,20 @@ function makeData(overrides = {}) {
   const mAvantHier = { id: 'm6', client: 'Client Test', isManagement: false, sessions: [{ debut: avantHier, fin: '2026-08-31', heures: 1 }], tempsManuel: [] };
   const r8 = P.getSessionsSansTempsRecent(makeData({ missions: [mAvantHier] }), MAINTENANT, 3);
   assertEq('avant-hier, dans la fenêtre de 3 jours → suggestion incluse', r8.length, 1);
+
+  // Repli sur le temps planifié estimatif (retour beta 2026-07-29) : addSessionToEdit() (indepuls.html)
+  // ne renseigne JAMAIS session.heures en usage réel ({debut,fin} ou {debut,sansFin,jours} seulement) —
+  // getChargeSessionJour() renvoyait donc toujours 0 pour de vraies missions, la fonction ne suggérait
+  // jamais rien en pratique. Repli sur chargeEstimee/chargeUnit (déjà la seule source de vérité pour le
+  // remplissage ailleurs dans l'app), réparti sur les jours ouvrés de la semaine.
+  const mChargeEstimee = { id: 'm7', client: 'Client Test', isManagement: false, chargeEstimee: 20, chargeUnit: 'h_sem', sessions: [{ debut: hier, fin: '2026-08-31' }], tempsManuel: [] };
+  const r9 = P.getSessionsSansTempsRecent(makeData({ missions: [mChargeEstimee] }), MAINTENANT);
+  assertEq('session sans heures mais chargeEstimee renseigné → suggérée quand même', r9.length, 1);
+  assertEq('heures dérivées de chargeEstimee/joursParSemaine (20/4 = 5h)', r9[0]?.heures, 5);
+
+  const mChargeEstimeeEtHeuresSession = { id: 'm8', client: 'Client Test', isManagement: false, chargeEstimee: 20, chargeUnit: 'h_sem', sessions: [{ debut: hier, fin: hier, heures: 3 }], tempsManuel: [] };
+  const r10 = P.getSessionsSansTempsRecent(makeData({ missions: [mChargeEstimeeEtHeuresSession] }), MAINTENANT);
+  assertEq('heures de session (3h) prioritaires sur chargeEstimee dérivé (5h) quand les deux existent', r10[0]?.heures, 3);
 }
 
 // ── Rapport ───────────────────────────────────────────────────
