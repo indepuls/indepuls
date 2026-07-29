@@ -12314,7 +12314,31 @@ function renderActiviteTypeUI() {
 }
 
 // ── INIT ─────────────────────────────────────────────────────
+// Détection d'un échec de chargement du module partagé (shared/modes/unified.js) — arrive
+// rarement, sur réseau instable (retour bêta 2026-07-29 : mission/temps saisis mais jamais
+// affichés, plusieurs erreurs Sentry "Mode.X is not a function" groupées sur un même appareil
+// mobile Android). Le <script type="module"> qui pose tout le pont window.* s'exécute avant
+// DOMContentLoaded — s'il échoue à charger (coupure réseau le temps du fetch), TOUTES les
+// fonctions branchées restent silencieusement indéfinies, sans aucun message pour l'utilisatrice
+// : les données sont bien enregistrées, mais l'affichage plante juste après, donnant l'impression
+// que rien ne s'est passé. Rien à réparer côté code (le module lui-même est correct, confirmé) —
+// juste rendre l'échec visible et actionnable plutôt que silencieux. getCaFromMissions choisi
+// comme sentinelle : la toute première fonction branchée dans le pont, toujours définie si le
+// chargement a réussi.
+function _afficherErreurChargementModule() {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = `
+    <div style="background:var(--card,#fff);border-radius:14px;padding:28px 24px;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+      <div style="font-size:36px;margin-bottom:12px">📶</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:8px;color:var(--text,#141538)">Le chargement a rencontré un problème</div>
+      <div style="font-size:13px;color:var(--tl,#666);line-height:1.6;margin-bottom:18px">Probablement une coupure réseau passagère. Vos données ne sont pas perdues — rechargez la page pour continuer.</div>
+      <button class="btn btn-acc" style="width:100%;justify-content:center" onclick="location.reload()">🔄 Recharger</button>
+    </div>`;
+  document.body.appendChild(ov);
+}
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.getCaFromMissions !== 'function') { _afficherErreurChargementModule(); return; }
   loadData();
   checkTimerGapOnResume(); // couvre le cas d'une fermeture complète d'onglet et réouverture plus tard
   migrateMetierParam();
