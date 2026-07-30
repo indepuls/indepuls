@@ -2398,3 +2398,17 @@ Faustine a testé le widget (via des post-it réels contenant ses retours — m�
 4. **"Il faudrait que les post-it tiennent à 2 sur la largeur"** — conteneur passé de `flex-direction:column` à `flex-wrap:wrap`, `.postit{width:calc(50% - 5px)}` au lieu d'une largeur fixe — 2 par ligne, s'adapte à la largeur réelle de la colonne plutôt qu'un nombre de pixels arbitraire.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (aucune régression, changements purement UI/données de démo). **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à reconfirmer par Faustine.
+
+---
+
+### BUG — "✓ Marquer payé" plantait au clic (2026-07-30)
+
+**Signalé par Faustine** (Sentry `JAVASCRIPT-8`, `SyntaxError: Invalid left-hand side in assignment`, navigateur Edge/Windows, production) : le bouton "Marquer payé" ajouté la veille ne faisait rien au clic.
+
+**Cause** : le `onclick` généré assignait via notation point avec une clé interpolée directement dans le code — `DATA.echeancesPayees.urssaf_2026-07-31 = true`. Un nom de propriété ne peut pas contenir de tirets en notation point : JavaScript interprète cette expression comme une **soustraction** (`urssaf_2026 - 07 - 31`), pas un accès de propriété — d'où l'erreur, systématique dès qu'une vraie date (toujours avec des tirets) entrait dans la clé. Bug introduit dès la construction de la fonctionnalité, jamais détecté avant (aucun test ne couvre la génération de `onclick` inline, comme pour tout le reste des attributs générés dans ce fichier).
+
+**Corrigé** : extraction dans une fonction dédiée `marquerEcheancePayee(key)` utilisant la notation crochets (`DATA.echeancesPayees[key]`), toujours sûre quelle que soit la clé — plus robuste que n'importe quelle astuce d'échappement dans le `onclick` inline. Vérifié concrètement avec une vraie clé datée (`urssaf_2026-07-31`) passée dans `new Function()` pour confirmer que le code généré est désormais syntaxiquement valide.
+
+**Renommé au passage** (retour Faustine) : "✓ Marquer payé" → "✅ J'ai payé" — plus fluide, tournure à la première personne cohérente avec le reste du produit.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression). **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à reconfirmer par Faustine, notamment sur Edge (navigateur où le crash a été observé).

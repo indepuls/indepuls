@@ -3432,6 +3432,19 @@ function dismissSessionSansTemps(missionId, ds) {
   saveData();
   renderPlanningDayPanel();
 }
+// "✅ J'ai payé" sur les alertes d'échéance URSSAF/TVA — fonction dédiée plutôt qu'une
+// assignation en dot-notation inline dans le onclick : la clé contient la date de l'échéance
+// (ex. "urssaf_2026-07-31"), et `DATA.echeancesPayees.urssaf_2026-07-31 = true` en dot-notation
+// est interprété par JS comme une SOUSTRACTION (urssaf_2026 - 07 - 31), pas un accès de
+// propriété — SyntaxError "Invalid left-hand side in assignment" en production (bug beta
+// 2026-07-30, remonté par Sentry). La notation crochets, elle, est toujours sûre quelle que soit
+// la clé.
+function marquerEcheancePayee(key) {
+  DATA.echeancesPayees = DATA.echeancesPayees || {};
+  DATA.echeancesPayees[key] = true;
+  saveData();
+  renderDashboard();
+}
 function renderPlanningDayPanel() {
   const panel = document.getElementById('planning-day-panel');
   if (!panel) return;
@@ -6543,7 +6556,7 @@ function wScoreSante(d) {
       if(DATA.echeancesPayees?.[payeeKey]) return;
       const cl=ech.daysLeft<=7?'al-err':ech.daysLeft<=21?'al-warn':'al-info';
       const ico=ech.daysLeft<=7?'🚨':ech.daysLeft<=21?'⏰':'📅';
-      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="DATA.echeancesPayees=DATA.echeancesPayees||{};DATA.echeancesPayees.${payeeKey}=true;saveData();renderDashboard();" title="Masquer jusqu'à la prochaine échéance">✓ Marquer payé</button></div>`);
+      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
   const shown5=alertLines.slice(0,5).join('');
