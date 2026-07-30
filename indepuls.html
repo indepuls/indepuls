@@ -1880,14 +1880,13 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Validité (jours)</label><input type="number" id="dv-validite" min="1" step="1" value="30"></div>
     </div>
     <div class="fgroup"><label class="flabel">Objet de la prestation</label><input type="text" id="dv-objet"></div>
-    <div class="fgroup"><label class="flabel">Désignation</label><input type="text" id="dv-designation"></div>
-    <div class="fgroup"><label class="flabel">Détail de la prestation</label><textarea id="dv-detail" rows="4" placeholder="Une ligne par élément — apparaît tel quel sur le devis"></textarea></div>
-    <div class="fgroup"><label class="flabel">Montant HT (€)</label><input type="number" id="dv-montant" step="10" min="0" oninput="rafraichirApercuDevisTotal()"></div>
+    <div id="dv-lignes-container"></div>
+    <button type="button" class="btn btn-out btn-sm mb12" onclick="ajouterLigneDevis()">+ Ajouter une ligne</button>
     <div id="dv-tva-apercu" class="ts mb8" style="color:var(--tl)"></div>
     <div class="fgroup"><label class="flabel">Conditions de paiement</label><textarea id="dv-conditions" rows="2"></textarea></div>
     <div class="fgroup"><label class="flabel">Modalités</label><textarea id="dv-modalites" rows="2"></textarea></div>
     <div class="modal-foot">
-      <button class="btn btn-out" onclick="closeModal('modal-devis')">Annuler</button>
+      <button class="btn btn-out" onclick="fermerGenerateurDevis()">Annuler</button>
       <button class="btn btn-acc" onclick="genererDevisPDF()">🖨️ Générer le PDF</button>
     </div>
   </div>
@@ -4049,7 +4048,7 @@ function getDefaultData() {
       emailHebdoActif:true, emailHebdoJour:'lundi',
       // Devis (chantier 2026-07-30) : optionnel, jamais requis, sert uniquement à pré-remplir
       // un devis généré depuis le Simulateur ou une fiche mission — voir CLAUDE.md.
-      siret:'', logoDataUrl:''
+      siret:'', logoDataUrl:'', devisConditionsDefaut:'', devisModalitesDefaut:''
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     categoriesTemps:['Administratif','Stratégie & conseil','Production & exécution','Communication','Reporting','Autre'],
@@ -10198,7 +10197,7 @@ function toggleEmailHebdo(val) {
 // — tout le reste de DATA est synchronisé en JSON à chaque sauvegarde ; un fichier image non
 // compressé alourdirait chaque sauvegarde, pas seulement celle du logo. Une largeur suffisante
 // pour un en-tête de devis (jamais pour de l'impression grand format) garde le poids négligeable.
-const LOGO_DEVIS_MAX_LARGEUR = 240;
+const LOGO_DEVIS_MAX_LARGEUR = 360;
 function uploadLogoDevis(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -10240,28 +10239,83 @@ const DEVIS_EXEMPLES_PAR_FAMILLE = {
   fabrication:   { objet: 'Ex : Fabrication sur mesure',          designation: 'Ex : Pièce ou commande' },
   achat_revente: { objet: 'Ex : Fourniture de matériel',          designation: 'Ex : Vente de marchandises' },
 };
-function ouvrirGenerateurDevis(prefill = {}) {
-  document.getElementById('dv-client-nom').value = prefill.client || '';
-  document.getElementById('dv-client-email').value = '';
-  document.getElementById('dv-client-adresse').value = '';
-  document.getElementById('dv-client-tel').value = '';
-  document.getElementById('dv-numero').value = '';
-  document.getElementById('dv-date').value = today();
-  document.getElementById('dv-validite').value = 30;
+// Lignes du devis (désignation/détail/montant) — retour Faustine, 2026-07-30 : un devis a
+// souvent plusieurs postes, pas juste un seul montant global. État transitoire (jamais persisté
+// dans DATA, cohérent avec le reste du générateur), reconstruit à chaque ouverture de la modale.
+let _devisLignes = [];
+function ajouterLigneDevis(designation = '', detail = '', montantHT = '') {
+  _devisLignes.push({ designation, detail, montantHT });
+  renderLignesDevis();
+}
+function supprimerLigneDevis(i) {
+  _devisLignes.splice(i, 1);
+  if (!_devisLignes.length) _devisLignes.push({ designation: '', detail: '', montantHT: '' });
+  renderLignesDevis();
+}
+function majLigneDevis(i, champ, valeur) {
+  if (_devisLignes[i]) _devisLignes[i][champ] = valeur;
+  if (champ === 'montantHT') rafraichirApercuDevisTotal();
+}
+function renderLignesDevis() {
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
+  const exemples = DEVIS_EXEMPLES_PAR_FAMILLE[family] || DEVIS_EXEMPLES_PAR_FAMILLE.service;
+  document.getElementById('dv-lignes-container').innerHTML = _devisLignes.map((l, i) => `
+    <div style="border:1px solid var(--brd);border-radius:8px;padding:12px;margin-bottom:10px;position:relative">
+      ${_devisLignes.length > 1 ? `<button type="button" onclick="supprimerLigneDevis(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--tl);cursor:pointer;font-size:12px" title="Supprimer cette ligne">✕</button>` : ''}
+      <div class="fgroup"><label class="flabel">Désignation</label><input type="text" placeholder="${exemples.designation}" value="${esc(l.designation)}" oninput="majLigneDevis(${i},'designation',this.value)"></div>
+      <div class="fgroup"><label class="flabel">Détail de la prestation</label><textarea rows="2" placeholder="Une ligne par élément — apparaît tel quel sur le devis" oninput="majLigneDevis(${i},'detail',this.value)">${esc(l.detail)}</textarea></div>
+      <div class="fgroup"><label class="flabel">Montant HT (€)</label><input type="number" step="10" min="0" value="${l.montantHT}" oninput="majLigneDevis(${i},'montantHT',this.value);rafraichirApercuDevisTotal()"></div>
+    </div>`).join('');
+  rafraichirApercuDevisTotal();
+}
+// Brouillon mémorisé par mission (retour Faustine, 2026-07-30 : "si je ferme le générateur et
+// que je retourne sur la mission, ça me demande de tout ressaisir — un peu pénible"). Stocké
+// directement sur la mission (m.devisBrouillon), jamais un vrai suivi de devis (pas de statut,
+// pas d'historique de versions, un seul brouillon écrasé à chaque fermeture) — juste éviter de
+// perdre une saisie en cours. _devisMissionId suit quelle mission est concernée ; null quand le
+// générateur est ouvert depuis le Simulateur (pas de mission à rattacher, brouillon perdu à la
+// fermeture — acceptable, le Simulateur est un usage plus ponctuel).
+let _devisMissionId = null;
+function ouvrirGenerateurDevis(prefill = {}, brouillon = null) {
   const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
   const exemples = DEVIS_EXEMPLES_PAR_FAMILLE[family] || DEVIS_EXEMPLES_PAR_FAMILLE.service;
   document.getElementById('dv-objet').placeholder = exemples.objet;
-  document.getElementById('dv-designation').placeholder = exemples.designation;
-  document.getElementById('dv-objet').value = prefill.description || '';
-  document.getElementById('dv-designation').value = prefill.description || '';
-  document.getElementById('dv-detail').value = '';
-  document.getElementById('dv-montant').value = prefill.montantHT || '';
-  document.getElementById('dv-conditions').value = 'Paiement à réception, par virement bancaire.';
-  document.getElementById('dv-modalites').value = "Le présent devis, une fois signé, fait office de bon pour accord.";
-  rafraichirApercuDevisTotal();
+  if (brouillon) {
+    document.getElementById('dv-client-nom').value = brouillon.client?.nom || '';
+    document.getElementById('dv-client-email').value = brouillon.client?.email || '';
+    document.getElementById('dv-client-adresse').value = brouillon.client?.adresse || '';
+    document.getElementById('dv-client-tel').value = brouillon.client?.tel || '';
+    document.getElementById('dv-numero').value = brouillon.numero || '';
+    document.getElementById('dv-date').value = brouillon.date || today();
+    document.getElementById('dv-validite').value = brouillon.validite || 30;
+    document.getElementById('dv-objet').value = brouillon.objet || '';
+    _devisLignes = brouillon.lignes?.length ? brouillon.lignes.map(l => ({ ...l })) : [{ designation: '', detail: '', montantHT: '' }];
+    document.getElementById('dv-conditions').value = brouillon.conditions || DATA.params?.devisConditionsDefaut || 'Paiement à réception, par virement bancaire.';
+    document.getElementById('dv-modalites').value = brouillon.modalites || DATA.params?.devisModalitesDefaut || "Le présent devis, une fois signé, fait office de bon pour accord.";
+  } else {
+    document.getElementById('dv-client-nom').value = prefill.client || '';
+    document.getElementById('dv-client-email').value = '';
+    document.getElementById('dv-client-adresse').value = '';
+    document.getElementById('dv-client-tel').value = '';
+    document.getElementById('dv-numero').value = '';
+    document.getElementById('dv-date').value = today();
+    document.getElementById('dv-validite').value = 30;
+    document.getElementById('dv-objet').value = prefill.description || '';
+    _devisLignes = [{ designation: prefill.description || '', detail: '', montantHT: prefill.montantHT || '' }];
+    // Conditions/modalités mémorisées d'un devis à l'autre (retour Faustine : "je n'ai pas envie
+    // de les retaper à chaque fois") — DATA.params.devisConditionsDefaut/devisModalitesDefaut,
+    // écrasées à chaque fermeture (voir fermerGenerateurDevis) avec ce que l'utilisatrice a
+    // réellement laissé, jamais un champ Paramètres séparé à maintenir en plus.
+    document.getElementById('dv-conditions').value = DATA.params?.devisConditionsDefaut || 'Paiement à réception, par virement bancaire.';
+    document.getElementById('dv-modalites').value = DATA.params?.devisModalitesDefaut || "Le présent devis, une fois signé, fait office de bon pour accord.";
+  }
+  renderLignesDevis();
   openModal('modal-devis');
 }
 function ouvrirGenerateurDevisMission() {
+  _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
+  if (mission?.devisBrouillon) { ouvrirGenerateurDevis({}, mission.devisBrouillon); return; }
   const client = document.getElementById('m-client')?.value || '';
   const description = document.getElementById('m-desc')?.value || '';
   const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
@@ -10271,8 +10325,29 @@ function ouvrirGenerateurDevisMission() {
 // l'utilisatrice). Le mode "Calculer un tarif" a son propre bouton, voir plus bas (le prix n'est
 // alors pas un input mais le résultat calculé, sans champ #sim-ca-val à relire).
 function ouvrirGenerateurDevisSim() {
+  _devisMissionId = null;
   const montantHT = parseFloat(document.getElementById('sim-ca-val')?.value) || 0;
   ouvrirGenerateurDevis({ client: '', description: '', montantHT });
+}
+// Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
+// la fin de genererDevisPDF(), pour ne jamais perdre une saisie qu'elle soit générée ou non.
+function fermerGenerateurDevis() {
+  if (_devisMissionId) {
+    const mission = DATA.missions.find(m => m.id === _devisMissionId);
+    if (mission) {
+      const val = id => (document.getElementById(id)?.value || '').trim();
+      mission.devisBrouillon = {
+        client: { nom: val('dv-client-nom'), email: val('dv-client-email'), adresse: val('dv-client-adresse'), tel: val('dv-client-tel') },
+        numero: val('dv-numero'), date: val('dv-date'),
+        validite: parseInt(document.getElementById('dv-validite')?.value, 10) || 30,
+        objet: val('dv-objet'), lignes: _devisLignes.map(l => ({ ...l })),
+        conditions: val('dv-conditions'), modalites: val('dv-modalites'),
+      };
+      saveData();
+    }
+  }
+  _devisMissionId = null;
+  closeModal('modal-devis');
 }
 function _devisTvaInfo(montantHT) {
   const p = DATA.params;
@@ -10281,8 +10356,11 @@ function _devisTvaInfo(montantHT) {
   const montantTVA = Math.round(montantHT * taux) / 100;
   return { montantTVA, totalTTC: Math.round((montantHT + montantTVA) * 100) / 100, mention: `TVA ${taux} %` };
 }
+function _devisTotalHT() {
+  return _devisLignes.reduce((s, l) => s + (parseFloat(l.montantHT) || 0), 0);
+}
 function rafraichirApercuDevisTotal() {
-  const montantHT = parseFloat(document.getElementById('dv-montant')?.value) || 0;
+  const montantHT = _devisTotalHT();
   const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
   const el = document.getElementById('dv-tva-apercu');
   if (el) el.textContent = DATA.params.tva
@@ -10296,30 +10374,38 @@ function rafraichirApercuDevisTotal() {
 function genererDevisPDF() {
   const p = DATA.params;
   const val = id => (document.getElementById(id)?.value || '').trim();
-  const montantHT = parseFloat(document.getElementById('dv-montant')?.value) || 0;
+  // Conditions/modalités mémorisées pour la prochaine fois (voir ouvrirGenerateurDevis).
+  saveParam('devisConditionsDefaut', val('dv-conditions'));
+  saveParam('devisModalitesDefaut', val('dv-modalites'));
+  const montantHT = _devisTotalHT();
   const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
   const dateStr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const dateDevis = val('dv-date');
   const validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
   const dateValidite = dateDevis ? new Date(new Date(dateDevis + 'T12:00:00').getTime() + validiteJours * 86400000) : null;
   const metierLbl = p.metier ? (PROFIL_LABELS[p.metier] || '') : '';
+  // Couleurs du thème choisi par l'utilisatrice·teur, pas celles de Faustine en dur (retour
+  // Faustine, 2026-07-30 : "les couleurs sont les miennes, pas forcément celles de l'utilisateur
+  // — ici mon mari") — même thème que le reste d'Indépuls, y compris pour un futur compte
+  // séparé sur un autre thème (Lavande, Pêche Douce, etc.).
+  const cPri = themeColor('--pri'), cAcc = themeColor('--acc'), cSec = themeColor('--sec'), cText = themeColor('--text'), cTl = themeColor('--tl');
 
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Devis${val('dv-numero') ? ' ' + val('dv-numero') : ''}</title><style>
-    body{font-family:Arial,sans-serif;font-size:12.5px;color:#141538;margin:32px;line-height:1.5}
+    body{font-family:Arial,sans-serif;font-size:12.5px;color:${cText};margin:32px;line-height:1.5}
     .entete{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
-    .titre{font-size:30px;font-weight:900;color:#141538;letter-spacing:1px}
+    .titre{font-size:30px;font-weight:900;color:${cPri};letter-spacing:1px}
     .meta{font-size:11px;color:#666;text-align:right}
-    .parties{display:flex;justify-content:space-between;gap:30px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #BB9E81}
+    .parties{display:flex;justify-content:space-between;gap:30px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid ${cSec}}
     .parties>div{flex:1}
-    .label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#5B2C4A;font-weight:700;margin-bottom:4px}
-    .objet{background:#141538;color:#fff;padding:10px 14px;font-size:12px;font-weight:700;margin-bottom:16px;border-radius:4px}
+    .label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:${cAcc};font-weight:700;margin-bottom:4px}
+    .objet{background:${cPri};color:#fff;padding:10px 14px;font-size:12px;font-weight:700;margin-bottom:16px;border-radius:4px}
     table{width:100%;border-collapse:collapse;margin-bottom:16px}
-    th{background:#141538;color:#fff;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+    th{background:${cPri};color:#fff;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
     td{padding:12px 10px;border-bottom:1px solid #eee;vertical-align:top}
     .totaux{margin-left:auto;width:280px;margin-bottom:20px}
     .totaux>div{display:flex;justify-content:space-between;padding:6px 10px}
-    .total-ttc{background:#141538;color:#fff;font-weight:700;font-size:14px;border-radius:4px}
+    .total-ttc{background:${cPri};color:#fff;font-weight:700;font-size:14px;border-radius:4px}
     .bas{display:flex;gap:30px;margin-bottom:20px;font-size:11px}
     .bas>div{flex:1}
     .signatures{display:flex;gap:30px;margin-top:30px;padding-top:16px;border-top:1px solid #ddd;font-size:11px}
@@ -10327,7 +10413,7 @@ function genererDevisPDF() {
     @media print{body{margin:12px}button{display:none}}
   </style></head><body>
   <div class="entete">
-    <div>${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:60px;max-width:180px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}</div>
+    <div>${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:100px;max-width:280px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}</div>
     <div class="titre">DEVIS</div>
   </div>
   <div class="meta" style="text-align:left;margin-bottom:16px">${val('dv-numero') ? `N° ${esc(val('dv-numero'))} · ` : ''}${dateDevis ? `Date : ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
@@ -10349,11 +10435,11 @@ function genererDevisPDF() {
   ${val('dv-objet') ? `<div class="objet">${esc(val('dv-objet'))}</div>` : ''}
   <table>
     <thead><tr><th>Désignation</th><th>Détail</th><th>Montant HT</th></tr></thead>
-    <tbody><tr>
-      <td><strong>${esc(val('dv-designation'))}</strong></td>
-      <td>${esc(val('dv-detail')).replace(/\n/g, '<br>')}</td>
-      <td>${fmtE(montantHT)}</td>
-    </tr></tbody>
+    <tbody>${_devisLignes.map(l => `<tr>
+      <td><strong>${esc(l.designation)}</strong></td>
+      <td>${esc(l.detail).replace(/\n/g, '<br>')}</td>
+      <td>${fmtE(parseFloat(l.montantHT) || 0)}</td>
+    </tr>`).join('')}</tbody>
   </table>
   <div class="totaux">
     <div>Sous-total HT<span>${fmtE(montantHT)}</span></div>
@@ -10371,7 +10457,7 @@ function genererDevisPDF() {
   <script>window.onload=function(){window.print()}<\/script>
   </body></html>`);
   w.document.close();
-  closeModal('modal-devis');
+  fermerGenerateurDevis();
 }
 function renderParams() {
   const p=DATA.params;
