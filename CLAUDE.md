@@ -2474,3 +2474,13 @@ Idée de Faustine : féliciter un instant marquant ("vous venez de dépasser vot
 **Océan et Havane jamais supprimés du CSS**, seulement retirés du sélecteur (`.theme-opt` dans le HTML) — un compte qui les avait déjà choisis avant ce changement continue de s'afficher correctement, aucun rendu cassé. `setTheme()` n'a aucune liste blanche à mettre à jour (accepte n'importe quelle chaîne), donc les deux nouveaux thèmes fonctionnent immédiatement sans changement de logique.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). Comptage confirmé : exactement 8 `data-theme-val` dans le sélecteur. **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à confirmer par Faustine : les 2 nouveaux thèmes s'appliquent correctement au clic, contraste lisible sur toutes les pages.
+
+---
+
+### FIX — Suppression complète du CSS Océan/Havane (2026-07-30 bis)
+
+Faustine est revenue sur la décision "gardés en CSS pour compatibilité" prise plus tôt le même jour : peu de bêta-testeurs actifs, pas la peine de garder du code mort pour un cas quasi inexistant. `themeMap` (`migrate()`, les **deux** copies — `indepuls.html` et `shared/core/storage.js`, discipline shadow-mode) étendue : `ocean`→`obm`, `havane`→`obm` (bascule automatique vers Signature). Au passage, `atlantique` (ancien alias qui pointait vers `ocean`) redirigé directement vers `obm` — sinon un très vieux compte jamais rouvert depuis le tout premier renommage de thèmes aurait migré vers `ocean`, un thème qui n'a plus de CSS depuis ce commit. Blocs CSS `[data-theme="ocean"]`/`[data-theme="havane"]` supprimés entièrement (`sepia`/`dark`, alias plus anciens et sans rapport avec le changement d'aujourd'hui, laissés intacts — hors du périmètre demandé).
+
+**Nouveautés** : entrée ajoutée annonçant les 2 nouveaux thèmes.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (aucune régression). **Vérification navigateur non faite** dans cette session — à confirmer par Faustine.

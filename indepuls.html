@@ -15,13 +15,9 @@
 [data-theme="eucalyptus"]{--pri:#284030;--acc:#3D6448;--bg:#F3F6F0;--sec:#8AAA90;--text:#284030;--tl:#6A8870;--brd:#D5E2D5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#284030;--sbt:#E5F0E5;--sba:#3A6048;--inp:#fff;}
 [data-theme="lavande"]{--pri:#3D2647;--acc:#8E7CC3;--bg:#F6F3FA;--sec:#C3AFD1;--text:#3D2647;--tl:#8A7391;--brd:#E3D9EC;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#3D2647;--sbt:#F0E9F5;--sba:#6B4E82;--inp:#fff;}
 [data-theme="peche"]{--pri:#4A2C28;--acc:#E8846B;--bg:#FDF6F0;--sec:#E8C4B8;--text:#4A2C28;--tl:#8A6358;--brd:#F0DCD0;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#4A2C28;--sbt:#F7E9E2;--sba:#B85A42;--inp:#fff;}
-/* Ocean et Havane : retirés du sélecteur (redondants avec Alpine et Latte Chic, retour Faustine
-   2026-07-30, remplacés par Lavande et Pêche Douce) mais gardés en CSS pour tout compte qui les
-   avait déjà choisis avant ce changement — jamais de rendu cassé pour un thème déjà actif. */
-[data-theme="ocean"]{--pri:#0C2D48;--acc:#186855;--bg:#F0F5F8;--sec:#4A8CAB;--text:#0C2D48;--tl:#4A7A94;--brd:#C5D8E5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#0C2D48;--sbt:#DFF0F8;--sba:#1A5A7A;--inp:#fff;}
-[data-theme="havane"]{--pri:#2C2F36;--acc:#9B5E34;--bg:#F5F2ED;--sec:#8C8780;--text:#2C2F36;--tl:#7A7570;--brd:#E2DDD5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#2C2F36;--sbt:#F2EFEA;--sba:#9B5E34;--inp:#fff;}
-/* Compat anciens noms (migration JS en cours) */
-[data-theme="atlantique"]{--pri:#0C2D48;--acc:#186855;--bg:#F0F5F8;--sec:#4A8CAB;--text:#0C2D48;--tl:#4A7A94;--brd:#C5D8E5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#0C2D48;--sbt:#DFF0F8;--sba:#1A5A7A;--inp:#fff;}
+/* Compat anciens noms (migration JS en cours) — Océan et Havane migrent directement vers
+   Signature (obm) depuis le retrait du sélecteur (2026-07-30), leur CSS n'est donc plus
+   nécessaire : peu de bêta-testeurs, mieux vaut ne pas garder de code mort. */
 [data-theme="sepia"]{--pri:#3A2010;--acc:#8B5A3C;--bg:#F9F5EF;--sec:#C4A882;--text:#3A2010;--tl:#7A6050;--brd:#E8DDD0;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#3A2010;--sbt:#F5ECE0;--sba:#6B3A20;--inp:#fff;}
 [data-theme="dark"]{--pri:#E2E8F0;--acc:#7BA8D4;--bg:#0F172A;--sec:#94A3B8;--text:#E2E8F0;--tl:#94A3B8;--brd:#1E293B;--ok:#4ade80;--warn:#fb923c;--err:#f87171;--card:#1E293B;--sb:#0A1020;--sbt:#E2E8F0;--sba:#2A3F5A;--inp:#1E293B;}
 
@@ -2956,6 +2952,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-07-30', titre:'Deux nouveaux thèmes visuels, Lavande et Pêche Douce, dans Paramètres > Personnalisation', icon:'🎨', merci:null },
   { date:'2026-07-28', titre:'Activez un récap hebdomadaire par email sur l\'essentiel de votre activité, dans Paramètres > Personnalisation', icon:'📬', merci:null },
   { date:'2026-07-27', titre:'Le chrono vous propose maintenant de catégoriser le temps passé, avec la catégorie la plus fréquente déjà présélectionnée', icon:'⏱', merci:null },
   { date:'2026-07-27', titre:'Votre temps interne (gestion, admin…) se catégorise désormais comme une vraie mission, et se consulte d\'un coup d\'œil depuis la barre Missions', icon:'🗂️', merci:null },
@@ -4019,7 +4016,7 @@ function migrate(data) {
   });
 
   // Renommages de thèmes (anciens identifiants → nouveaux)
-  const themeMap = {'atlantique':'ocean','sepia':'latte','dark':'nuit'};
+  const themeMap = {'atlantique':'obm','sepia':'latte','dark':'nuit','ocean':'obm','havane':'obm'};
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;

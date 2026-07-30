@@ -18,7 +18,7 @@ export function migrate(data, schemaVersion, deps = {}) {
     if (catMap[d.categorie]) d.categorie = catMap[d.categorie];
   });
 
-  const themeMap = { 'atlantique': 'ocean', 'sepia': 'latte', 'dark': 'nuit' };
+  const themeMap = { 'atlantique': 'obm', 'sepia': 'latte', 'dark': 'nuit', 'ocean': 'obm', 'havane': 'obm' };
   if (data.theme && themeMap[data.theme]) data.theme = themeMap[data.theme];
 
   if (data.isExample === undefined) data.isExample = false;
