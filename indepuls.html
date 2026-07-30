@@ -8,13 +8,18 @@
 <style>
 /* === THEMES === */
 :root,[data-theme="obm"]{--pri:#141538;--acc:#5B2C4A;--bg:#F1EFEA;--sec:#BB9E81;--text:#141538;--tl:#7a7a8a;--brd:#e0dcd6;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#141538;--sbt:#F1EFEA;--sba:#5B2C4A;--inp:#fff;}
-[data-theme="ocean"]{--pri:#0C2D48;--acc:#186855;--bg:#F0F5F8;--sec:#4A8CAB;--text:#0C2D48;--tl:#4A7A94;--brd:#C5D8E5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#0C2D48;--sbt:#DFF0F8;--sba:#1A5A7A;--inp:#fff;}
 [data-theme="nuit"]{--pri:#E2E8F0;--acc:#7BA8D4;--bg:#0F172A;--sec:#94A3B8;--text:#E2E8F0;--tl:#94A3B8;--brd:#1E293B;--ok:#4ade80;--warn:#fb923c;--err:#f87171;--card:#1E293B;--sb:#0A1020;--sbt:#E2E8F0;--sba:#2A3F5A;--inp:#1E293B;}
 [data-theme="rose"]{--pri:#5C2840;--acc:#A8607A;--bg:#FDF7F5;--sec:#C8A0B0;--text:#5C2840;--tl:#9A7080;--brd:#EDD5D0;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#5C2840;--sbt:#FDEEF2;--sba:#8A3A58;--inp:#fff;}
 [data-theme="latte"]{--pri:#3A2010;--acc:#8B5A3C;--bg:#F9F5EF;--sec:#C4A882;--text:#3A2010;--tl:#7A6050;--brd:#E8DDD0;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#3A2010;--sbt:#F5ECE0;--sba:#6B3A20;--inp:#fff;}
-[data-theme="havane"]{--pri:#2C2F36;--acc:#9B5E34;--bg:#F5F2ED;--sec:#8C8780;--text:#2C2F36;--tl:#7A7570;--brd:#E2DDD5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#2C2F36;--sbt:#F2EFEA;--sba:#9B5E34;--inp:#fff;}
 [data-theme="alpine"]{--pri:#1A3050;--acc:#4A6890;--bg:#F4F6F8;--sec:#7A95A8;--text:#1A3050;--tl:#6A8090;--brd:#D5E0E8;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#1A3050;--sbt:#E5EEF5;--sba:#2A4870;--inp:#fff;}
 [data-theme="eucalyptus"]{--pri:#284030;--acc:#3D6448;--bg:#F3F6F0;--sec:#8AAA90;--text:#284030;--tl:#6A8870;--brd:#D5E2D5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#284030;--sbt:#E5F0E5;--sba:#3A6048;--inp:#fff;}
+[data-theme="lavande"]{--pri:#3D2647;--acc:#8E7CC3;--bg:#F6F3FA;--sec:#C3AFD1;--text:#3D2647;--tl:#8A7391;--brd:#E3D9EC;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#3D2647;--sbt:#F0E9F5;--sba:#6B4E82;--inp:#fff;}
+[data-theme="peche"]{--pri:#4A2C28;--acc:#E8846B;--bg:#FDF6F0;--sec:#E8C4B8;--text:#4A2C28;--tl:#8A6358;--brd:#F0DCD0;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#4A2C28;--sbt:#F7E9E2;--sba:#B85A42;--inp:#fff;}
+/* Ocean et Havane : retirés du sélecteur (redondants avec Alpine et Latte Chic, retour Faustine
+   2026-07-30, remplacés par Lavande et Pêche Douce) mais gardés en CSS pour tout compte qui les
+   avait déjà choisis avant ce changement — jamais de rendu cassé pour un thème déjà actif. */
+[data-theme="ocean"]{--pri:#0C2D48;--acc:#186855;--bg:#F0F5F8;--sec:#4A8CAB;--text:#0C2D48;--tl:#4A7A94;--brd:#C5D8E5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#0C2D48;--sbt:#DFF0F8;--sba:#1A5A7A;--inp:#fff;}
+[data-theme="havane"]{--pri:#2C2F36;--acc:#9B5E34;--bg:#F5F2ED;--sec:#8C8780;--text:#2C2F36;--tl:#7A7570;--brd:#E2DDD5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#2C2F36;--sbt:#F2EFEA;--sba:#9B5E34;--inp:#fff;}
 /* Compat anciens noms (migration JS en cours) */
 [data-theme="atlantique"]{--pri:#0C2D48;--acc:#186855;--bg:#F0F5F8;--sec:#4A8CAB;--text:#0C2D48;--tl:#4A7A94;--brd:#C5D8E5;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#0C2D48;--sbt:#DFF0F8;--sba:#1A5A7A;--inp:#fff;}
 [data-theme="sepia"]{--pri:#3A2010;--acc:#8B5A3C;--bg:#F9F5EF;--sec:#C4A882;--text:#3A2010;--tl:#7A6050;--brd:#E8DDD0;--ok:#2d7a4f;--warn:#c97316;--err:#b91c1c;--card:#fff;--sb:#3A2010;--sbt:#F5ECE0;--sba:#6B3A20;--inp:#fff;}
@@ -1174,9 +1179,9 @@ html,body{overflow-x:hidden;}
             <div class="theme-swatches"><div class="swatch" style="background:#141538"></div><div class="swatch" style="background:#5B2C4A"></div><div class="swatch" style="background:#F1EFEA"></div><div class="swatch" style="background:#BB9E81"></div></div>
             <div class="theme-name">Signature</div>
           </div>
-          <div class="theme-opt" data-theme-val="ocean" onclick="setTheme('ocean')">
-            <div class="theme-swatches"><div class="swatch" style="background:#0C2D48"></div><div class="swatch" style="background:#186855"></div><div class="swatch" style="background:#F0F5F8"></div><div class="swatch" style="background:#4A8CAB"></div></div>
-            <div class="theme-name">Océan</div>
+          <div class="theme-opt" data-theme-val="lavande" onclick="setTheme('lavande')">
+            <div class="theme-swatches"><div class="swatch" style="background:#3D2647"></div><div class="swatch" style="background:#8E7CC3"></div><div class="swatch" style="background:#F6F3FA"></div><div class="swatch" style="background:#C3AFD1"></div></div>
+            <div class="theme-name">Lavande</div>
           </div>
           <div class="theme-opt" data-theme-val="nuit" onclick="setTheme('nuit')">
             <div class="theme-swatches"><div class="swatch" style="background:#0F172A"></div><div class="swatch" style="background:#7BA8D4"></div><div class="swatch" style="background:#1E293B"></div><div class="swatch" style="background:#94A3B8"></div></div>
@@ -1190,9 +1195,9 @@ html,body{overflow-x:hidden;}
             <div class="theme-swatches"><div class="swatch" style="background:#3A2010"></div><div class="swatch" style="background:#8B5A3C"></div><div class="swatch" style="background:#F9F5EF"></div><div class="swatch" style="background:#C4A882"></div></div>
             <div class="theme-name">Latte Chic</div>
           </div>
-          <div class="theme-opt" data-theme-val="havane" onclick="setTheme('havane')">
-            <div class="theme-swatches"><div class="swatch" style="background:#2C2F36"></div><div class="swatch" style="background:#9B5E34"></div><div class="swatch" style="background:#F5F2ED"></div><div class="swatch" style="background:#8C8780"></div></div>
-            <div class="theme-name">Havane</div>
+          <div class="theme-opt" data-theme-val="peche" onclick="setTheme('peche')">
+            <div class="theme-swatches"><div class="swatch" style="background:#4A2C28"></div><div class="swatch" style="background:#E8846B"></div><div class="swatch" style="background:#FDF6F0"></div><div class="swatch" style="background:#E8C4B8"></div></div>
+            <div class="theme-name">Pêche Douce</div>
           </div>
           <div class="theme-opt" data-theme-val="alpine" onclick="setTheme('alpine')">
             <div class="theme-swatches"><div class="swatch" style="background:#1A3050"></div><div class="swatch" style="background:#4A6890"></div><div class="swatch" style="background:#F4F6F8"></div><div class="swatch" style="background:#7A95A8"></div></div>

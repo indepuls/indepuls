@@ -2458,3 +2458,19 @@ Idée de Faustine : féliciter un instant marquant ("vous venez de dépasser vot
 **Rendu** : bandeau `al-ok` (vert) dans le Brief, juste après l'en-tête et avant "Action recommandée" — la bonne nouvelle passe en premier.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à confirmer par Faustine, notamment que le jalon "meilleur mois" ne se déclenche jamais sur un tout premier mois d'activité.
+
+---
+
+### FEATURE — Thèmes Lavande et Pêche Douce, retrait Océan/Havane (2026-07-30)
+
+**Question posée par Faustine** : l'audit Cowork comptait 11 thèmes alors que le sélecteur n'en affiche que 8 — thèmes cachés ? Vérifié par recherche de tous les `[data-theme="..."]` du CSS : 11 identifiants au total, mais 3 sont des **alias de rétrocompatibilité** (`atlantique`→ocean, `sepia`→latte, `dark`→nuit — voir `themeMap` dans `migrate()`), jamais exposés dans le sélecteur, juste conservés pour qu'un compte avec un ancien nom de thème sauvegardé continue de s'afficher correctement le temps de la migration. L'audit comptait les alias comme de vrais thèmes. Aucun thème caché : bien 8 sélectionnables.
+
+**Décision produit** : Faustine a remarqué que ses bêta-testeuses choisissent toutes "Rose Poudré" — signal de demande pour des thèmes plus féminins. Contrainte explicite : rester à 8 (pas d'ajout net), donc retirer 2 thèmes existants pour en ajouter 2 nouveaux.
+
+**Choix des 2 thèmes retirés justifié par les couleurs elles-mêmes, pas juste une préférence** : Océan (navy + bleu-vert) fait doublon avec Alpine (navy + bleu acier) — même famille "bleu professionnel froid" ; Havane (brun rouille + gris) fait doublon avec Latte Chic (brun caramel) — même famille "neutre chaud". Les retirer ne réduit donc pas vraiment la diversité de choix.
+
+**Lavande** (`--pri:#3D2647` aubergine, `--acc:#8E7CC3` lilas, `--bg:#F6F3FA`, `--sec:#C3AFD1` mauve poudré) et **Pêche Douce** (`--pri:#4A2C28` terracotta, `--acc:#E8846B` corail, `--bg:#FDF6F0`, `--sec:#E8C4B8` pêche poudré) — choisis pour ne pas recouper Rose Poudré (registres différents : violet sophistiqué vs chaud/coucher de soleil).
+
+**Océan et Havane jamais supprimés du CSS**, seulement retirés du sélecteur (`.theme-opt` dans le HTML) — un compte qui les avait déjà choisis avant ce changement continue de s'afficher correctement, aucun rendu cassé. `setTheme()` n'a aucune liste blanche à mettre à jour (accepte n'importe quelle chaîne), donc les deux nouveaux thèmes fonctionnent immédiatement sans changement de logique.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). Comptage confirmé : exactement 8 `data-theme-val` dans le sélecteur. **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à confirmer par Faustine : les 2 nouveaux thèmes s'appliquent correctement au clic, contraste lisible sur toutes les pages.
