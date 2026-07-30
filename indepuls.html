@@ -4660,7 +4660,7 @@ function getNextTVAEcheance() {
     const montant=Math.round(getTVACollecteeMois(prevMk)-getTVADeductibleMois(prevMk));
     const due=new Date(y,m-1,25);
     const moisLabel=new Date(y,m-2,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-    return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Prochaine échéance TVA'};
+    return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Prochaine échéance TVA',type:'tva',dateKey:due.toISOString().slice(0,10)};
   }
   if(regime==='trimestriel') {
     const q=Math.ceil(m/3), qEnd=q*3;
@@ -4671,16 +4671,16 @@ function getNextTVAEcheance() {
       const mk=`${y}-${String(mo).padStart(2,'0')}`;
       montant+=getTVACollecteeMois(mk)-getTVADeductibleMois(mk);
     }
-    return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`TVA T${q} ${y} (cumul)`};
+    return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`TVA T${q} ${y} (cumul)`,type:'tva',dateKey:due.toISOString().slice(0,10)};
   }
   if(regime==='simplifie') {
     const ann=getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle();
     if(m<7){
       const due=new Date(y,6,31);
-      return {montant:Math.round(ann*0.55),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte juillet (55 % TVA estimée)'};
+      return {montant:Math.round(ann*0.55),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte juillet (55 % TVA estimée)',type:'tva',dateKey:due.toISOString().slice(0,10)};
     } else {
       const due=new Date(y,11,31);
-      return {montant:Math.round(ann*0.40),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte décembre (40 % TVA estimée)'};
+      return {montant:Math.round(ann*0.40),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:'Acompte décembre (40 % TVA estimée)',type:'tva',dateKey:due.toISOString().slice(0,10)};
     }
   }
   return null;
@@ -4705,7 +4705,7 @@ function getNextUrssafEcheance() {
     const montant=Math.round(presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100+(isActiviteMixte()?vente*getTauxChargesVente():0));
     const due=new Date(y,m,0); // dernier jour du mois courant
     const moisLabel=new Date(y,m-2,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-    return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`URSSAF de ${moisLabel}`};
+    return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`URSSAF de ${moisLabel}`,type:'urssaf',dateKey:due.toISOString().slice(0,10)};
   }
   // trimestriel
   const q=Math.ceil(m/3), qEnd=q*3;
@@ -4717,7 +4717,7 @@ function getNextUrssafEcheance() {
     const {presta,vente}=getCaBreakdownMois(mk);
     montant+=presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100+(isActiviteMixte()?vente*getTauxChargesVente():0);
   }
-  return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`URSSAF T${q} ${y} (cumul)`};
+  return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`URSSAF T${q} ${y} (cumul)`,type:'urssaf',dateKey:due.toISOString().slice(0,10)};
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────
@@ -6522,13 +6522,21 @@ function wScoreSante(d) {
     const pctOM=Math.round(caNetMois/objNet*100);
     if(pctOM<80&&!_alertDismissed('objectifMensuel')){const _now=new Date(),_finMois=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_joursR=_finMois-_now.getDate()+1;alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver · encore <strong>${_joursR} jour${_joursR>1?'s':''}</strong> ce mois-ci.</span>${_dismissBtn('objectifMensuel')}</div>`);}
   }
-  // Prochaines échéances fiscales
+  // Prochaines échéances fiscales — "Marquer payé" (retour Faustine 2026-07-29) masque le
+  // rappel jusqu'à ce que la période change naturellement (dateKey change dès que la date limite
+  // est dépassée, voir getNextUrssafEcheance/getNextTVAEcheance) — jamais 15 jours comme les
+  // autres alertes, puisqu'on peut légitimement payer un mois entier à l'avance. Volontairement
+  // PAS d'option "reporté" : un vrai retard de paiement a un coût réel (majoration immédiate de
+  // 5%, puis mise en demeure) — simuler un report sans conséquence serait malhonnête (recherché
+  // avant de coder, voir CLAUDE.md).
   try {
     const echs=[getNextTVAEcheance(),getNextUrssafEcheance()].filter(e=>e&&e.montant>0);
     echs.forEach(ech=>{
+      const payeeKey=`${ech.type}_${ech.dateKey}`;
+      if(DATA.echeancesPayees?.[payeeKey]) return;
       const cl=ech.daysLeft<=7?'al-err':ech.daysLeft<=21?'al-warn':'al-info';
       const ico=ech.daysLeft<=7?'🚨':ech.daysLeft<=21?'⏰':'📅';
-      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</div>`);
+      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="DATA.echeancesPayees=DATA.echeancesPayees||{};DATA.echeancesPayees.${payeeKey}=true;saveData();renderDashboard();" title="Masquer jusqu'à la prochaine échéance">✓ Marquer payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
   const shown5=alertLines.slice(0,5).join('');
