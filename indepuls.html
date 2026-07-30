@@ -1879,8 +1879,8 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Date</label><input type="date" id="dv-date"></div>
       <div class="fgroup"><label class="flabel">Validité (jours)</label><input type="number" id="dv-validite" min="1" step="1" value="30"></div>
     </div>
-    <div class="fgroup"><label class="flabel">Objet de la prestation</label><input type="text" id="dv-objet" placeholder="Ex : Accompagnement stratégique"></div>
-    <div class="fgroup"><label class="flabel">Désignation</label><input type="text" id="dv-designation" placeholder="Ex : Mission sur-mesure"></div>
+    <div class="fgroup"><label class="flabel">Objet de la prestation</label><input type="text" id="dv-objet"></div>
+    <div class="fgroup"><label class="flabel">Désignation</label><input type="text" id="dv-designation"></div>
     <div class="fgroup"><label class="flabel">Détail de la prestation</label><textarea id="dv-detail" rows="4" placeholder="Une ligne par élément — apparaît tel quel sur le devis"></textarea></div>
     <div class="fgroup"><label class="flabel">Montant HT (€)</label><input type="number" id="dv-montant" step="10" min="0" oninput="rafraichirApercuDevisTotal()"></div>
     <div id="dv-tva-apercu" class="ts mb8" style="color:var(--tl)"></div>
@@ -10230,6 +10230,16 @@ function supprimerLogoDevis() {
 // Faustine : "tout le monde ne fera pas le simulateur en premier"). prefill = {client,
 // description, montantHT} — tous les champs restent modifiables une fois la modale ouverte,
 // ceci n'est qu'un point de départ.
+// Exemples de placeholder adaptés au profil (retour Faustine, 2026-07-30 : "Accompagnement
+// stratégique" n'a aucun sens en mode artisan) — jamais des valeurs, juste des exemples grisés
+// pour montrer le type de contenu attendu, cohérent avec le vocabulaire déjà adapté par profil
+// ailleurs dans l'app (tVocab).
+const DEVIS_EXEMPLES_PAR_FAMILLE = {
+  service:       { objet: 'Ex : Accompagnement stratégique',      designation: 'Ex : Mission sur-mesure' },
+  chantier:      { objet: 'Ex : Rénovation de salle de bain',     designation: 'Ex : Chantier de rénovation' },
+  fabrication:   { objet: 'Ex : Fabrication sur mesure',          designation: 'Ex : Pièce ou commande' },
+  achat_revente: { objet: 'Ex : Fourniture de matériel',          designation: 'Ex : Vente de marchandises' },
+};
 function ouvrirGenerateurDevis(prefill = {}) {
   document.getElementById('dv-client-nom').value = prefill.client || '';
   document.getElementById('dv-client-email').value = '';
@@ -10238,6 +10248,10 @@ function ouvrirGenerateurDevis(prefill = {}) {
   document.getElementById('dv-numero').value = '';
   document.getElementById('dv-date').value = today();
   document.getElementById('dv-validite').value = 30;
+  const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
+  const exemples = DEVIS_EXEMPLES_PAR_FAMILLE[family] || DEVIS_EXEMPLES_PAR_FAMILLE.service;
+  document.getElementById('dv-objet').placeholder = exemples.objet;
+  document.getElementById('dv-designation').placeholder = exemples.designation;
   document.getElementById('dv-objet').value = prefill.description || '';
   document.getElementById('dv-designation').value = prefill.description || '';
   document.getElementById('dv-detail').value = '';
