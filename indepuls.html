@@ -149,9 +149,10 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 [data-theme="dark"] .al-ok,[data-theme="nuit"] .al-ok{background:#0a2a15;color:#4ade80;}[data-theme="dark"] .al-info,[data-theme="nuit"] .al-info{background:#0a1a2a;color:#93c5fd;}
 
 /* === AIDE-MÉMOIRE (post-it) === */
-.postit{background:#fff8c4;color:#4a4324;border-radius:2px;padding:14px 14px 10px;width:100%;max-width:170px;min-height:90px;box-shadow:2px 3px 8px rgba(0,0,0,.18);position:relative;font-size:12.5px;line-height:1.5;word-break:break-word;flex-shrink:0;box-sizing:border-box;}
+.postit{background:#fff8c4;color:#4a4324;border-radius:2px;padding:14px 14px 10px;width:calc(50% - 5px);min-height:90px;box-shadow:2px 3px 8px rgba(0,0,0,.18);position:relative;font-size:12.5px;line-height:1.5;word-break:break-word;box-sizing:border-box;}
 .postit-del{position:absolute;top:3px;right:5px;background:none;border:none;color:#8a7f3f;cursor:pointer;font-size:12px;padding:2px 5px;line-height:1;}
 .postit-del:hover{color:#c0392b;}
+.postit-texte{outline:none;cursor:text;}
 .postit-vide{background:transparent;border:1.5px dashed #d9cf8f;box-shadow:none;color:var(--tl);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;transform:none !important;}
 [data-theme="dark"] .postit,[data-theme="nuit"] .postit{background:#e8d873;color:#2a2410;}
 [data-theme="dark"] .postit-vide,[data-theme="nuit"] .postit-vide{border-color:#4a4324;}
@@ -3744,7 +3745,13 @@ function getExampleData(metier) {
     },
     depenses,
     archives:{}, bilans:{},
-    tempsInterne:{[mk0]:25200000,[mk1]:28800000,[mk2]:25200000,[mk3]:25200000,[mk4]:28800000}
+    tempsInterne:{[mk0]:25200000,[mk1]:28800000,[mk2]:25200000,[mk3]:25200000,[mk4]:28800000},
+    // Aide-mémoire pré-rempli (retour Faustine, 2026-07-29) : le mode démo doit montrer le
+    // widget déjà utilisé, pas vide — deux exemples plausibles, jamais synchronisés (mode démo).
+    notesRapides:[
+      {id:'ex-note1', texte:'Penser à prendre mon rendez-vous avec mon comptable', date:mk0+'-20'},
+      {id:'ex-note2', texte:'Faire le devis de Mme L. d\'ici demain', date:mk0+'-22'}
+    ]
   };
 }
 
@@ -6491,7 +6498,7 @@ function wScoreSante(d) {
   // toujours le 'Traité' au premier coup d'œil") — reste un masquage temporaire (15 jours), jamais
   // une case à cocher façon todo-list : cocher donnerait l'impression que le constat d'état
   // (dépendance client, objectif sous la cible...) est réglé, alors qu'il n'a fait que se taire.
-  const _dismissBtn=k=>`<button type="button" class="btn btn-out btn-xs" onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.${k}=Date.now();saveData();renderDashboard();" style="flex-shrink:0" title="Masquer cette alerte pendant 15 jours">🔕 Masquer 15 j</button>`;
+  const _dismissBtn=k=>`<button type="button" class="btn btn-out btn-xs" onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.${k}=Date.now();saveData();renderDashboard();" style="flex-shrink:0" title="Elle réapparaîtra si c'est toujours d'actualité dans 15 jours. Sinon, vous ne la reverrez plus.">🔕 Masquer 15 j</button>`;
   const alertLines=[];
   // Client dominant
   const clientCA={};
@@ -10006,6 +10013,19 @@ function deleteNoteRapide(id) {
   saveData();
   renderDashboard();
 }
+// Édition directe dans le post-it (retour Faustine, 2026-07-29) : contenteditable plutôt qu'un
+// bouton/onglet "modifier" dédié — clic dans le texte, on tape, on clique ailleurs, c'est
+// enregistré. Lu via innerText (jamais innerHTML) pour ignorer tout balisage collé — seul du
+// texte brut est jamais stocké, réaffiché ensuite via esc() comme n'importe quel texte libre.
+function updateNoteRapide(id, el) {
+  const note = (DATA.notesRapides || []).find(n => n.id === id);
+  if (!note) return;
+  const texte = (el.innerText || '').trim();
+  if (!texte) { deleteNoteRapide(id); return; } // vidée → supprimée, cohérent avec "plus utile"
+  if (texte === note.texte) return;
+  note.texte = texte;
+  saveData();
+}
 function wNotesRapides() {
   const notes = DATA.notesRapides || [];
   return `
@@ -10014,11 +10034,11 @@ function wNotesRapides() {
       <input type="text" id="note-rapide-input" placeholder="Une idée qui passe…" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter'){addNoteRapide()}">
       <button class="btn btn-acc btn-sm" onclick="addNoteRapide()" style="flex-shrink:0">+</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
       ${notes.length ? notes.map((n,i) => `
         <div class="postit" style="transform:rotate(${i%2===0?-2:2}deg)">
           <button type="button" class="postit-del" onclick="deleteNoteRapide('${n.id}')" title="Supprimer">✕</button>
-          <div class="postit-texte">${esc(n.texte)}</div>
+          <div class="postit-texte" contenteditable="true" onblur="updateNoteRapide('${n.id}',this)">${esc(n.texte)}</div>
         </div>`).join('') : `<div class="postit postit-vide">Rien pour l'instant</div>`}
     </div>`;
 }

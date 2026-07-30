@@ -2385,3 +2385,16 @@ Idée de Faustine : un widget "boîte à idées"/"vide-cerveau" sur le tableau d
 **Construit** : chaque échéance porte désormais un `type` ('tva'/'urssaf') et un `dateKey` (date d'échéance ISO, stable tant que la période ne change pas). Bouton "✓ Marquer payé" à côté de l'alerte, écrit dans `DATA.echeancesPayees[type_dateKey]=true` — **masque jusqu'à la prochaine période**, pas 15 jours comme les autres alertes (`_dismissBtn`/`alertsDismissed`) : on peut légitimement payer un mois entier à l'avance, une fenêtre de 15 jours aurait fait réapparaître le rappel avant la vraie prochaine échéance. Même convention que `alertsDismissed` : pas d'entrée de migration dédiée (objet optionnel, lu via `?.`, jamais nettoyé — négligeable, une poignée d'entrées par an).
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` modifiée — seul le texte de retour des deux fonctions d'échéance gagne 2 champs). **Vérification navigateur non faite** dans cette session (même limite d'environnement documentée plus haut) — à confirmer par Faustine : marquer une échéance payée, vérifier qu'elle disparaît, recharger la page, vérifier qu'elle reste masquée.
+
+---
+
+### FIX/FEATURE — Retouches Aide-mémoire + infobulle "Masquer 15 j" (2026-07-29 ter)
+
+Faustine a testé le widget (via des post-it réels contenant ses retours — méthode astucieuse) et remonté 4 points :
+
+1. **Infobulle "Masquer 15 j" trop vague** — elle ne comprenait pas pourquoi 15 jours précisément. Texte complété : *"Elle réapparaîtra si c'est toujours d'actualité dans 15 jours. Sinon, vous ne la reverrez plus."* (`_dismissBtn()`).
+2. **Mode démo vide** — le widget n'avait aucun exemple pré-rempli en démo, contrairement au reste du contenu de démonstration. Deux notes ajoutées à `getExampleData()` (`notesRapides`), jamais synchronisées (comme tout le reste du mode démo).
+3. **Édition impossible** — Faustine voulait pouvoir cliquer dans le texte pour le compléter, sans bouton "modifier" dédié qui alourdirait l'interface. Résolu avec `contenteditable="true"` sur `.postit-texte` + `updateNoteRapide(id, el)` au `blur` — lu via `el.innerText` (jamais `innerHTML`, neutralise tout balisage collé), note vidée → supprimée automatiquement (cohérent avec "elle disparaît quand elle n'est plus utile").
+4. **"Il faudrait que les post-it tiennent à 2 sur la largeur"** — conteneur passé de `flex-direction:column` à `flex-wrap:wrap`, `.postit{width:calc(50% - 5px)}` au lieu d'une largeur fixe — 2 par ligne, s'adapte à la largeur réelle de la colonne plutôt qu'un nombre de pixels arbitraire.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (aucune régression, changements purement UI/données de démo). **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à reconfirmer par Faustine.
