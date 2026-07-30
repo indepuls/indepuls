@@ -10326,7 +10326,7 @@ function ouvrirGenerateurDevisMission() {
 // alors pas un input mais le résultat calculé, sans champ #sim-ca-val à relire).
 function ouvrirGenerateurDevisSim() {
   _devisMissionId = null;
-  const montantHT = parseFloat(document.getElementById('sim-ca-val')?.value) || 0;
+  const montantHT = _simMode === 'calculer' ? _simCalculerMontant : (parseFloat(document.getElementById('sim-ca-val')?.value) || 0);
   ouvrirGenerateurDevis({ client: '', description: '', montantHT });
 }
 // Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
@@ -12103,6 +12103,12 @@ function getSimulateurPreset() {
 // State session (non persisté — reset à chaque navigate)
 let _simUserFields = null;
 let _simMode = 'verifier';      // 'verifier' | 'calculer'
+// Mode "Calculer un tarif" : le CA est le résultat du calcul, pas un champ saisi (contrairement
+// à #sim-ca-val en mode "Vérifier"). Mémorisé ici pour que les boutons de la zone commune
+// (ouvrirGenerateurDevisSim, createMissionFromSim) restent au même endroit et lisent la même
+// source, quel que soit le mode (retour Faustine 2026-07-30 : le bouton devis ne doit pas
+// bouger entre les modes).
+let _simCalculerMontant = 0;
 let _simTempsMode = 'total';    // 'total' | 'sem' (service uniquement)
 
 function switchSimMode(mode) {
@@ -12412,9 +12418,13 @@ function renderSimOutputs(r) {
       </div>
       ${isCollectif && participants > 1 ? `<div style="margin-top:10px;padding:10px 14px;background:var(--bg);border-radius:8px"><div class="ts">Par participant : <strong>${fmtE(Math.ceil(prixMin/participants/10)*10)}</strong> min · <strong>${fmtE(Math.ceil(prixConfort/participants/10)*10)}</strong> avec marge</div></div>` : ''}
       ${advHtml}
-      <button class="btn btn-out btn-sm mt12" onclick="ouvrirGenerateurDevis({client:'',description:'',montantHT:${prixConfort}})">📄 Générer un devis (${fmtE(prixConfort)} HT)</button>
     </div>`;
-    document.getElementById('sim-create-zone').style.display = 'none';
+    // Bouton devis sorti de la carte de résultat (retour Faustine 2026-07-30 : il doit rester au
+    // même endroit, sous les deux colonnes, quel que soit le mode) — la zone commune lit
+    // _simCalculerMontant plutôt que #sim-ca-val, vide dans ce mode (le CA est un résultat, pas
+    // une saisie).
+    _simCalculerMontant = prixConfort;
+    document.getElementById('sim-create-zone').style.display = prixConfort > 0 ? '' : 'none';
     return;
   }
 
@@ -12683,7 +12693,7 @@ function createMissionFromSim() {
       }
       updateCollectifCA();
     } else {
-      document.getElementById('m-montant').value = document.getElementById('sim-ca-val')?.value || '';
+      document.getElementById('m-montant').value = _simMode === 'calculer' ? _simCalculerMontant : (document.getElementById('sim-ca-val')?.value || '');
       if (isChantier) {
         const hTemps = document.getElementById('sim-temps-val')?.value || '';
         const hTrajet = document.getElementById('sim-trajet-val')?.value || '';
