@@ -8,7 +8,7 @@
 // une seconde fois leur propre logique ici (même convention que resultatHSemaine() dans
 // planning.js, qui prend déjà cap/charge en paramètres plutôt que de les recalculer).
 
-import { getTHBrutAnnuel, getTJMBrut, getTHBrutMois } from '../core/calculs.js';
+import { getTHBrutAnnuel, getTJMBrut, getTHBrutMois, getTHBrutRoulant } from '../core/calculs.js';
 
 let passed = 0, failed = 0;
 function test(label, actual, expected) {
@@ -73,6 +73,27 @@ section('getTHBrutMois — même logique que l\'annuel, restreinte à un mois');
   // caMois=1000, heuresMois=10 → (1000-100)/10 = 90
   test('ne déduit que les dépenses datées dans le mois demandé', getTHBrutMois(D, '2026-03', 1000, 10), 90);
   test('heuresMois=0 → 0', getTHBrutMois(D, '2026-03', 1000, 0), 0);
+}
+
+section('getTHBrutRoulant — ne déduit que les dépenses datées dans la fenêtre de mois donnée (2026-07-30, fenêtre glissante "Ma rentabilité")');
+{
+  const D = {
+    params: {},
+    missions: [mkMission('m1')],
+    depenses: [
+      { chantierId: 'm1', montant: 100, date: '2026-03-15' }, // dans la fenêtre
+      { chantierId: 'm1', montant: 500, date: '2025-01-01' }, // hors fenêtre — jamais déduit
+    ],
+  };
+  const mks = ['2026-01', '2026-02', '2026-03'];
+  // caBrut=1000, hT=10 → (1000-100)/10 = 90
+  test('ne déduit que les dépenses dans les mois de la fenêtre', getTHBrutRoulant(D, mks, 1000, 10), 90);
+  test('hT=0 → 0', getTHBrutRoulant(D, mks, 1000, 0), 0);
+}
+section('getTHBrutRoulant — ignore les dépenses rattachées à une mission de gestion interne');
+{
+  const D = { params: {}, missions: [mkMission('mgmt', true)], depenses: [{ chantierId: 'mgmt', montant: 500, date: '2026-03-01' }] };
+  test('coûts liés à une mission de gestion ignorés', getTHBrutRoulant(D, ['2026-03'], 1000, 50), 20);
 }
 
 console.log(`\n${'─'.repeat(50)}`);

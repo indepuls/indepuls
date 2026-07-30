@@ -540,6 +540,22 @@ export function getTHBrutMois(DATA, mk, caMois, heuresMois) {
   return (caMois - couts) / heuresMois;
 }
 
+// Variante "fenêtre glissante" de getTHBrutAnnuel : dépenses liées filtrées sur l'ensemble des
+// mois de la fenêtre `mks`, jamais la vie entière (retour Faustine 2026-07-30 : le KPI "Ma
+// rentabilité" ne doit ni repartir à zéro chaque 1er janvier — instable sur 1-2 mois de recul,
+// comme pour le comparateur des Archives — ni accumuler indéfiniment depuis le début de
+// l'activité, comme le faisait getTHBrutAnnuel(caBrut,hT) avec un hT vie entière).
+export function getTHBrutRoulant(DATA, mks, caBrut, hT) {
+  if (!(hT > 0)) return 0;
+  const mkSet = new Set(mks);
+  const couts = DATA.missions.filter(m => !m.isManagement).reduce((s, m) => {
+    const co = (DATA.depenses || []).filter(d => d.chantierId === m.id && d.date && mkSet.has(d.date.slice(0, 7)))
+      .reduce((a, d) => a + (d.montant || 0), 0);
+    return s + co;
+  }, 0);
+  return (caBrut - couts) / hT;
+}
+
 // ── SASU ─────────────────────────────────────────────────────
 
 // Net → coût total pour la société (charges patronales/salariales comprises via

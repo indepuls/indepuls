@@ -88,6 +88,7 @@ export const getTauxHoraireMinCible   = () => C.getTauxHoraireMinCible(DATA);
 export const getTHBrutAnnuel          = (caBrut, hT) => C.getTHBrutAnnuel(DATA, caBrut, hT);
 export const getTJMBrut               = (thBrut) => C.getTJMBrut(DATA, thBrut);
 export const getTHBrutMois            = (mk, caMois, heuresMois) => C.getTHBrutMois(DATA, mk, caMois, heuresMois);
+export const getTHBrutRoulant         = (mks, caBrut, hT) => C.getTHBrutRoulant(DATA, mks, caBrut, hT);
 
 export const getSasuCoutRemuMensuel   = () => C.getSasuCoutRemuMensuel(DATA);
 export const getSasuCoutMensuelDepuisNet = (net) => C.getSasuCoutMensuelDepuisNet(DATA, net);

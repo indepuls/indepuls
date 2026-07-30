@@ -3806,7 +3806,7 @@ function getExampleData(metier) {
       tva:true, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
       dateOuverture:mk4, impotsTaux:11,
       remunerationNette:0, coutRemunerationPct:82, tresorerieParAnnee:{},
-      rentabClientSort:'ca', rentabCatSort:'ca', livreRecettesActif:true
+      rentabClientSort:'ca', rentabCatSort:'ca', rentabPeriode:'annee', livreRecettesActif:true
     },
     categories: c.categories,
     missions,
@@ -4037,7 +4037,7 @@ function getDefaultData() {
       seuilTVAVenteBase:85000, seuilTVAVenteMajore:93500,
       impotsTaux:0,
       remunerationNette:0, coutRemunerationPct:82, tresorerieParAnnee:{},
-      rentabClientSort:'ca', rentabCatSort:'ca',
+      rentabClientSort:'ca', rentabCatSort:'ca', rentabPeriode:'annee',
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       dateOuverture:'', metier:'',
@@ -5079,6 +5079,31 @@ function getHeuresMoisCoherentes(mk) {
   ,0);
   return hNonRec+hRecDatees;
 }
+// Fenêtre glissante pour "Ma rentabilité" (TH/TJM réel) — retour Faustine 2026-07-30. Les 12
+// derniers mois glissants une fois qu'on a assez de recul ; sinon tout l'historique disponible
+// depuis l'ouverture (identique au comportement d'avant tant qu'il n'y a pas encore un an
+// d'activité — donc aucune régression sur un compte tout neuf). Sans dateOuverture renseignée,
+// repli sur 12 mois glissants par défaut (ne peut pas savoir depuis quand l'activité a démarré).
+function getMoisRoulants12() {
+  const now=new Date();
+  const dO=DATA.params.dateOuverture;
+  const debut=dO?new Date(dO+'T12:00:00'):null;
+  const moisDepuisDebut=debut?(now.getFullYear()-debut.getFullYear())*12+(now.getMonth()-debut.getMonth())+1:null;
+  const n=(moisDepuisDebut!=null&&moisDepuisDebut<12&&moisDepuisDebut>0)?moisDepuisDebut:12;
+  const mks=[];
+  for(let i=n-1;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    mks.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  return mks;
+}
+function getRentabiliteRoulante() {
+  const mks=getMoisRoulants12();
+  const caBrut=mks.reduce((s,mk)=>s+getCaFromMissions(mk)+getPonctuelsCA(mk),0);
+  const caNet=mks.reduce((s,mk)=>s+getRevenuNetMois(mk),0);
+  const heures=mks.reduce((s,mk)=>s+getHeuresMoisCoherentes(mk)+((DATA.tempsInterne&&DATA.tempsInterne[mk])||0)/3600000,0);
+  return {mks,caBrut,caNet,heures,nbMois:mks.length,estPartielle:mks.length<12};
+}
 function renderDashboard() {
 const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisActifsAnnee().length,1);
   let caBrut=0, caVentes=0, caPonctuels=0, caTreso=0;
@@ -5094,11 +5119,14 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
   const caNet=getCaNetAnnuel(), caNetMoy=caNet/mc, objNet=isSASU()?(DATA.params.remunerationNette||0):DATA.params.objectifNetMensuel;
   const hF=getHeuresFact(), hI=getHeuresInterne(), hT=hF+hI;
   const thR=hT>0?caNet/hT:0;
+  const rentRoulante=getRentabiliteRoulante();
   const proj=mR.length>0?(caBrut/mR.length)*12:0;
   const caP=getCaPrestaSeuilAnnuel(), caV=getCaVenteSeuilAnnuel();
   const {franchise:_sf}=getTVASeuilsStatut();
   const tvaPct=_sf>0?(caP/_sf)*100:0;
-  const d={months,moisRealises:mR,moisCount:mc,caBrut,caVentes,caPonctuels,caTreso,caNet,caNetMoy,objNet,hF,hI,hT,thR,proj,tvaPct,caP,caV};
+  const d={months,moisRealises:mR,moisCount:mc,caBrut,caVentes,caPonctuels,caTreso,caNet,caNetMoy,objNet,hF,hI,hT,thR,proj,tvaPct,caP,caV,
+    caBrutRoulant:rentRoulante.caBrut,caNetRoulant:rentRoulante.caNet,hTRoulant:rentRoulante.heures,
+    rentMks:rentRoulante.mks,rentFenetreMois:rentRoulante.nbMois,rentFenetrePartielle:rentRoulante.estPartielle};
 
   // bannière démo gérée par updateDemoUI() via renderAll()
 
@@ -5503,7 +5531,11 @@ function wRepartitionCA(d) {
 }
 
 // ── CALCUL CENTRALISÉ DES ALERTES ────────────────────────────
-function buildAlerts({caBrut,caNetMoy,thR,hF,hI,caP,caV}) {
+function buildAlerts({caBrut,caNetMoy,hF,hI,caP,caV,caNetRoulant,hTRoulant}) {
+  // thR (ci-dessous) : fenêtre glissante plutôt que hT vie entière — mêmes retours Faustine
+  // 2026-07-30 que "Ma rentabilité" (voir getRentabiliteRoulante), ces alertes "Gain/Taux
+  // horaire réel bas" utilisaient la même valeur non bornée dans le temps.
+  const thR=hTRoulant>0?caNetRoulant/hTRoulant:0;
   const p=DATA.params, mixte=isActiviteMixte(), alerts=[];
   // Un seul passage sur DATA.depenses pour toute la fonction (voir getDepensesAffairesMap).
   const _buildAlertsCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
@@ -6038,6 +6070,14 @@ function toggleRentabCatSort(val) {
   const el=document.getElementById('acc-cat'); if(el) el.innerHTML=rentabCatBody();
   const msn=document.getElementById('msn-top-cats'); if(msn) msn.innerHTML=rentabCatBody();
 }
+// "Cette année" (défaut) vs "Depuis le début" — retour Faustine 2026-07-30 : les deux questions
+// sont légitimes et différentes ("qui sont mes meilleurs clients cette année" vs "depuis toujours"),
+// contrairement au reste du bandeau Missions (Facturé/Pertes/temps travaillé) qui, lui, ne doit
+// plus jamais être qu'une seule et même vue (annuelle).
+function toggleRentabPeriode(val) {
+  DATA.params.rentabPeriode=val; saveData();
+  const zone=document.getElementById('msn-rentab-zone'); if(zone) zone.outerHTML=rentabZoneHtml();
+}
 
 
 // ── SCORE DE SANTÉ ────────────────────────────────────────────
@@ -6083,7 +6123,10 @@ function wScoreSante(d) {
       </div>
     </div>`;
   }
-  const {thR,hT,objNet,caNetMoy,caBrut}=d;
+  const {thR,hT,objNet,caNetMoy,caBrut,caBrutRoulant,caNetRoulant,hTRoulant,rentMks,rentFenetreMois,rentFenetrePartielle}=d;
+  // "TH net estimé"/scoring rentabilité (branches th/tjm) : fenêtre glissante plutôt que hT/caBrut
+  // (vie entière) ou caNet annuel seul — voir getRentabiliteRoulante()/getMoisRoulants12().
+  const thRRoulant=hTRoulant>0?caNetRoulant/hTRoulant:0;
   // Même source que wTrajectoireAnnuelle() pour "Action recommandée" : les 4 piliers mesurent
   // la santé opérationnelle (rythme, capacité, trésorerie, pipeline), aucun ne mesure la
   // progression cumulée vers l'objectif annuel — un score élevé peut donc coexister avec un
@@ -6127,7 +6170,7 @@ function wScoreSante(d) {
   // le résultat : getTHBrutAnnuel() regroupe en interne les dépenses par chantierId exactement
   // comme _rentCouts.couts ci-dessus (recalculé une seconde fois plutôt qu'un import direct de
   // _rentCouts.couts, pour que la fonction reste testée telle qu'elle est réellement appelée).
-  const thBrut=getTHBrutAnnuel(caBrut,hT);
+  const thBrut=getTHBrutRoulant(rentMks,caBrutRoulant,hTRoulant);
   const tjmBrut=getTJMBrut(thBrut), tjmMin=getTJMBrut(thMin);
   const gapTjm=tjmMin-tjmBrut;
   // ── Marge brute % (fabrication / achat_revente)
@@ -6145,13 +6188,13 @@ function wScoreSante(d) {
     else{sRent=_margePct>=40?25:_margePct>=25?19:_margePct>=15?11:4;}
     if(pctObj!==null) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
   } else if(_rentIsChantier){
-    if(!hT||!tjmMin){sRent=12;}
+    if(!hTRoulant||!tjmMin){sRent=12;}
     else{const r=tjmBrut/tjmMin;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}
-    if(pctObj!==null&&hT>0&&tjmMin>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+    if(pctObj!==null&&hTRoulant>0&&tjmMin>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
   } else {
-    if(!hT||!thMin){sRent=12;}
+    if(!hTRoulant||!thMin){sRent=12;}
     else{const r=thBrut/thMin;sRent=r>=1?25:r>=.85?19:r>=.65?11:4;}
-    if(pctObj!==null&&hT>0&&thMin>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
+    if(pctObj!==null&&hTRoulant>0&&thMin>0) sRent=Math.max(0,Math.min(25,sRent+(pctObj<50?-3:0)));
   }
   // ── Valeur & sous-titre affichés
   let vRent,subRent,diagRent,advRent;
@@ -6164,19 +6207,19 @@ function wScoreSante(d) {
     else if(sRent>=7){diagRent=`Marge brute de ${_margePct}% — en dessous du seuil recommandé (${_seuilMargePct}%).`;advRent='Revoyez votre politique de prix ou réduisez vos coûts directs.';}
     else{diagRent=`Marge brute très faible (${_margePct}%) — risque sur la viabilité de l'activité.`;advRent='Action urgente : analysez les affaires les moins rentables et réévaluez vos prix.';}
   } else if(_rentIsChantier){
-    vRent=hT>0?fmtE(tjmBrut,0)+'/j':'—';
+    vRent=hTRoulant>0?fmtE(tjmBrut,0)+'/j':'—';
     subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
-    if(!hT){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
+    if(!hTRoulant){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
     else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à mon seuil minimum.`;advRent='Vos '+tVocab('items').toLowerCase()+' sont rentables. Continuez ainsi.';}
     else if(sRent>=14){diagRent=`TJM réel proche de la cible — il reste ${fmtE(gapTjm,0)}/j à trouver.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos '+tVocab('items').toLowerCase()+'.';}
     else{diagRent=`TJM réel très faible — objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les '+tVocab('items').toLowerCase()+' les moins rentables.';}
   } else {
-    vRent=hT>0?fmtE(thBrut,0)+'/h':'—';
+    vRent=hTRoulant>0?fmtE(thBrut,0)+'/h':'—';
     subRent=thMin>0?`obj. min. ${fmtE(thMin,0)}/h`:'Cible non définie';
     const gapTh=thMin-thBrut;
-    if(!hT){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
+    if(!hTRoulant){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
     else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`TH réel supérieur de ${fmtE(-gapTh,0)}/h à mon seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
     else if(sRent>=14){diagRent=`TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
@@ -6547,14 +6590,14 @@ function wScoreSante(d) {
       priorite=`Configurez votre temps planifié par semaine dans Paramètres pour activer les recommandations de remplissage.`;
     }
     prioriteNavPage=cap>0?_navPageByPilier.remplissage:'params';
-  } else if(worst.n==='rentabilité'&&hT>0){
+  } else if(worst.n==='rentabilité'&&hTRoulant>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct){
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(_rentIsChantier&&tjmMin>0&&gapTjm>0){
       priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
-    } else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hT>0&&thBrut<thMin){
+    } else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hTRoulant>0&&thBrut<thMin){
       priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(_rentIsMarge&&_margePct===null){
@@ -6674,7 +6717,7 @@ function wScoreSante(d) {
 
   // ── DONNÉES DÉTAILLÉES PAR PILIER ────────────────────────────
   // Rentabilité
-  const rentC=hT>0?(sRent>=20?'var(--ok)':sRent>=14?'var(--warn)':'var(--err)'):'var(--tl)';
+  const rentC=hTRoulant>0?(sRent>=20?'var(--ok)':sRent>=14?'var(--warn)':'var(--err)'):'var(--tl)';
   const _rentRembTotal=_rentIsMarge?getMontantRembourseTotal():0;
   // Taux de retour/remboursement — indicateur secondaire uniquement (jamais un KPI principal,
   // cohérent avec la règle existante qu'un revendeur ne voit jamais un KPI déconnecté du gain
@@ -6691,19 +6734,22 @@ function wScoreSante(d) {
     ..._rentRembTotal>0?[{lbl:'Remboursements',val:'-'+fmtE(_rentRembTotal),c:'var(--err)'}]:[],
     {lbl:'CA net'+(_rentRembTotal>0?' après remboursements':''), val:_rentCaNetRetours>0?fmtE(_rentCaNetRetours):'—', c:'var(--tl)'},
     {lbl:'Coûts directs',       val:_rentCouts.couts>0?fmtE(_rentCouts.couts):'—',       c:'var(--tl)'},
-    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
+    {lbl:'TH net estimé',       val:hTRoulant>0?fmtE(thRRoulant,0)+'/h':'—',             c:'var(--tl)'},
     ...(DATA.retours||[]).length>0?[{lbl:'Taux de retour',val:`${_rentTauxNombre??0}% des ventes · ${(_rentTauxValeur??0).toString().replace('.',',')}% du CA remboursé`,c:'var(--tl)'}]:[],
   ]:_rentIsChantier?[
-    {lbl:'TJM réel',            val:hT>0?fmtE(tjmBrut,0)+'/j':'—',                      c:rentC},
+    {lbl:'TJM réel',            val:hTRoulant>0?fmtE(tjmBrut,0)+'/j':'—',                      c:rentC},
     {lbl:'Seuil min. TJM',      val:tjmMin>0?fmtE(tjmMin,0)+'/j':'Non défini',           c:'var(--tl)'},
-    {lbl:'Écart TJM',           val:hT>0&&tjmMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hT>0&&tjmMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
-    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
+    {lbl:'Écart TJM',           val:hTRoulant>0&&tjmMin>0?(gapTjm<=0?'+'+fmtE(-gapTjm,0)+'/j':fmtE(gapTjm,0)+'/j manquants'):'—', c:hTRoulant>0&&tjmMin>0?(gapTjm<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'TH net estimé',       val:hTRoulant>0?fmtE(thRRoulant,0)+'/h':'—',             c:'var(--tl)'},
   ]:[
-    {lbl:'TH réel',             val:hT>0?fmtE(thBrut,0)+'/h':'—',                       c:rentC},
+    {lbl:'TH réel',             val:hTRoulant>0?fmtE(thBrut,0)+'/h':'—',                       c:rentC},
     {lbl:'Seuil min. TH',       val:thMin>0?fmtE(thMin,0)+'/h':'Non défini',             c:'var(--tl)'},
-    {lbl:'Écart TH',            val:hT>0&&thMin>0?((thMin-thBrut)<=0?'+'+fmtE(thBrut-thMin,0)+'/h':fmtE(thMin-thBrut,0)+'/h manquants'):'—', c:hT>0&&thMin>0?((thMin-thBrut)<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
-    {lbl:'TH net estimé',       val:hT>0?fmtE(thR,0)+'/h':'—',                           c:'var(--tl)'},
+    {lbl:'Écart TH',            val:hTRoulant>0&&thMin>0?((thMin-thBrut)<=0?'+'+fmtE(thBrut-thMin,0)+'/h':fmtE(thMin-thBrut,0)+'/h manquants'):'—', c:hTRoulant>0&&thMin>0?((thMin-thBrut)<=0?'var(--ok)':'var(--err)'):'var(--tl)'},
+    {lbl:'TH net estimé',       val:hTRoulant>0?fmtE(thRRoulant,0)+'/h':'—',             c:'var(--tl)'},
   ];
+  // Transparence sur la base de calcul (retour Faustine 2026-07-30 : "toujours transparent") —
+  // affichée dans les 3 branches, puisque "TH net estimé" ci-dessus dépend de hTRoulant partout.
+  if(hTRoulant>0) rowsRent.push({lbl:'Période de calcul',val:rentFenetrePartielle?`Depuis le début (${rentFenetreMois} mois)`:'12 derniers mois glissants',c:'var(--tl)'});
   if(rowRentMois) rowsRent.push(rowRentMois);
   // Libellé explicitement distingué de "(ce mois)" ci-dessus (rowRentMois) : pctObj est une
   // MOYENNE sur tous les mois actifs depuis le début de l'année/l'ouverture, jamais le seul
@@ -9103,22 +9149,62 @@ function getRentabComparateur() {
     color:v=>v===null?'wn':(ref>0?(v>=ref*1.1?'ok':v>=ref*.75?'wn':'bd'):(v>=60?'ok':v>=35?'wn':'bd')),
   };
 }
+// En-tête + sélecteur "Cette année / Depuis le début" (retour Faustine 2026-07-30) partagé par
+// Top clients ET Top offres — une seule question de période pour les deux, jamais désynchronisées.
+function rentabZoneHtml() {
+  const periode=DATA.params.rentabPeriode||'annee';
+  const btn=(val,lbl)=>`<button class="btn btn-xs ${periode===val?'btn-pri':'btn-out'}" onclick="toggleRentabPeriode('${val}')">${lbl}</button>`;
+  return `<div id="msn-rentab-zone">
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="font-size:13px">🏆 Top clients & offres</div>
+      <div style="display:flex;gap:4px">${btn('annee','Cette année')}${btn('total','Depuis le début')}</div>
+    </div>
+    <div class="g2" style="gap:12px;margin-top:10px">
+      <div id="msn-top-clients">${rentabClientsBody()}</div>
+      <div id="msn-top-cats">${rentabCatBody()}</div>
+    </div>
+  </div>`;
+}
 function rentabClientsBody() {
+  const periode=DATA.params.rentabPeriode||'annee';
   const sort=DATA.params.rentabClientSort||'ca';
   const cmp=getRentabComparateur();
   const _depMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
+  const cy=DATA.currentYear;
   const byC={};
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
-    if(!m.client) return;
-    if(!byC[m.client]) byC[m.client]={h:0,ca:0,couts:0,n:0};
-    byC[m.client].h+=getMissionHeures(m);
-    let contrib=false;
-    if(m.isRecurring){ byC[m.client].ca+=getCaRecurrenteADate(m); contrib=true; }
-    else if(m.statut==='fact'){ byC[m.client].ca+=m.montantDevis||0; contrib=true; }
-    if(contrib) byC[m.client].couts+=_depMap[m.id]||0;
-    byC[m.client].n++;
-  });
-  if(!Object.keys(byC).length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun client à afficher pour l\'instant.</div>';
+  if(periode==='total'){
+    DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
+      if(!m.client) return;
+      if(!byC[m.client]) byC[m.client]={h:0,ca:0,couts:0,n:0};
+      byC[m.client].h+=getMissionHeures(m);
+      let contrib=false;
+      if(m.isRecurring){ byC[m.client].ca+=getCaRecurrenteADate(m); contrib=true; }
+      else if(m.statut==='fact'){ byC[m.client].ca+=m.montantDevis||0; contrib=true; }
+      if(contrib) byC[m.client].couts+=_depMap[m.id]||0;
+      byC[m.client].n++;
+    });
+  } else {
+    // "Cette année" : uniquement le travail réellement résolu (facturé/reconnu) cette année,
+    // jamais les missions encore en cours/en attente (pas de date à leur rattacher) — même
+    // logique que "Facturé"/"Pertes sèches" du bandeau, jamais un simple filtre sur les
+    // heures vie entière (retour Faustine 2026-07-30).
+    const finAnnee=new Date(cy,11,31,12), finAvant=new Date(cy-1,11,31,12);
+    DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
+      if(!m.client) return;
+      let h=0,ca=0,contrib=false;
+      if(m.isRecurring){
+        ca=Math.max(0,getCaRecurrenteADate(m,finAnnee)-getCaRecurrenteADate(m,finAvant));
+        h=(m.tempsManuel||[]).filter(t=>(t.date||'').startsWith(String(cy))).reduce((s,t)=>s+(t.ms||0),0)/3600000;
+        contrib=ca>0||h>0;
+      } else if(m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(cy)){
+        ca=m.montantDevis||0; h=getMissionHeures(m); contrib=true;
+      }
+      if(!contrib) return;
+      if(!byC[m.client]) byC[m.client]={h:0,ca:0,couts:0,n:0};
+      byC[m.client].h+=h; byC[m.client].ca+=ca; byC[m.client].couts+=_depMap[m.id]||0; byC[m.client].n++;
+    });
+  }
+  if(!Object.keys(byC).length) return `<div class="ts" style="padding:8px 0;color:var(--tl)">Aucun client ${periode==='annee'?`facturé en ${cy}`:'à afficher'} pour l'instant.</div>`;
   const valOf=d=>cmp.value(d.ca,d.couts,d.h);
   const cls=Object.entries(byC).sort((a,b)=>sort==='th'?(valOf(b[1])||0)-(valOf(a[1])||0):b[1].ca-a[1].ca);
   const maxCA=Math.max(...cls.map(c=>c[1].ca),1),maxVal=Math.max(...cls.map(c=>valOf(c[1])||0),1);
@@ -9128,14 +9214,26 @@ function rentabClientsBody() {
   return sortBtns+top.map(renderRow).join('')+(rest.length?`<div class="ts mt8" style="cursor:pointer;color:var(--acc)" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${rest.length} autre${rest.length>1?'s':''} →</div><div style="display:none">${rest.map(renderRow).join('')}</div>`:'');
 }
 function rentabCatBody() {
+  const periode=DATA.params.rentabPeriode||'annee';
   const sort=DATA.params.rentabCatSort||'ca';
   const cmp=getRentabComparateur();
   const _depMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
+  const cy=DATA.currentYear;
   const byC={};
-  DATA.missions.filter(m=>!m.isManagement).forEach(m=>{const c=m.categorie||'Non catégorisé';if(!byC[c])byC[c]={h:0,ca:0,couts:0};byC[c].h+=getMissionHeures(m);if(m.statut==='fact'){byC[c].ca+=m.montantDevis;byC[c].couts+=_depMap[m.id]||0;}});
+  if(periode==='total'){
+    DATA.missions.filter(m=>!m.isManagement).forEach(m=>{const c=m.categorie||'Non catégorisé';if(!byC[c])byC[c]={h:0,ca:0,couts:0};byC[c].h+=getMissionHeures(m);if(m.statut==='fact'){byC[c].ca+=m.montantDevis;byC[c].couts+=_depMap[m.id]||0;}});
+  } else {
+    // Même règle que rentabClientsBody "cette année" : seul le travail facturé cette année compte.
+    DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
+      if(!(m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(cy))) return;
+      const c=m.categorie||'Non catégorisé';
+      if(!byC[c]) byC[c]={h:0,ca:0,couts:0};
+      byC[c].h+=getMissionHeures(m); byC[c].ca+=m.montantDevis||0; byC[c].couts+=_depMap[m.id]||0;
+    });
+  }
   const valOf=d=>cmp.value(d.ca,d.couts,d.h);
   const cats=Object.entries(byC).sort((a,b)=>sort==='th'?(valOf(b[1])||0)-(valOf(a[1])||0):b[1].ca-a[1].ca);
-  if(!cats.length) return '<div class="ts" style="padding:8px 0;color:var(--tl)">Aucune offre à afficher pour l\'instant.</div>';
+  if(!cats.length) return `<div class="ts" style="padding:8px 0;color:var(--tl)">Aucune offre ${periode==='annee'?`facturée en ${cy}`:'à afficher'} pour l'instant.</div>`;
   const totalH=Object.values(byC).reduce((s,v)=>s+v.h,0),totalCA=Object.values(byC).reduce((s,v)=>s+v.ca,0),totalCouts=Object.values(byC).reduce((s,v)=>s+(v.couts||0),0);
   const moyVal=valOf({ca:totalCA,couts:totalCouts,h:totalH});
   const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxVal=Math.max(...cats.map(([,v])=>valOf(v)||0),1);
@@ -9308,19 +9406,34 @@ function renderMissionsSummary(all) {
   const _masc=tVocabMasculin(), _itemLow=tVocab('item').toLowerCase(), _itemsLow=tVocab('items').toLowerCase();
   const enCours=actives.filter(m=>m.statut==='cours'||isRecurringStillActive(m));
   const enAtt=actives.filter(m=>m.statut==='att');
+  // "facturees" reste VIE ENTIÈRE (jamais filtré par année) : c'est la base de "À encaisser", qui
+  // doit continuer à montrer les impayés des années précédentes (retour Faustine 2026-07-30 —
+  // c'est exactement le bug qu'on vient de corriger en retirant le reset annuel des statuts).
   const facturees=actives.filter(m=>m.statut==='fact'&&!isRecurringStillActive(m));
+  // "Facturé" (CA de l'année), lui, doit correspondre au badge "📅 année" affiché juste à côté —
+  // sous-ensemble de facturees restreint à l'année en cours.
+  const factureesCetteAnnee=facturees.filter(m=>m.dateFact&&m.dateFact.slice(0,4)===String(DATA.currentYear));
   const caEnCours=enCours.reduce((s,m)=>s+(m.montantDevis||0),0);
   const caEnAtt=enAtt.reduce((s,m)=>s+(m.montantDevis||0),0);
-  const caFacture=facturees.reduce((s,m)=>s+(m.montantDevis||0),0);
+  const caFacture=factureesCetteAnnee.reduce((s,m)=>s+(m.montantDevis||0),0);
   const aEncaisser=facturees.filter(m=>!m.isRecurring&&getResteAEncaisser(m)>0);
   const totalReste=aEncaisser.reduce((s,m)=>s+getResteAEncaisser(m),0);
   const enRetard=getMissionsImpayees().length;
   const totM=actives.filter(m=>!m.isRecurring).length;
   const okM=actives.filter(m=>!m.isRecurring&&(m.statut==='cours'||m.statut==='fact')).length;
   const txT=totM?Math.round(okM/totM*100):0;
+  // "Pertes sèches" (heures perdues sur missions refusées) : reste vie entière — une mission
+  // refusée n'a pas de date fiable à laquelle la rattacher (pas de dateFact, aucun champ de
+  // date de création sur les missions aujourd'hui). Rescoper correctement par année demanderait
+  // d'ajouter un champ de date à la création des missions — hors périmètre de ce chantier,
+  // signalé à Faustine plutôt que fait à moitié.
   const pS=actives.filter(m=>m.statut==='ref').reduce((s,m)=>s+getMissionHeures(m),0);
-  const _hF=getHeuresFact(),_hI=getHeuresInterne();
   const _hRef=DATA.missions.filter(m=>m.statut==='ref').reduce((s,m)=>s+getMissionHeures(m),0);
+  // "Répartition du temps travaillé" : restreinte à l'année en cours (comme "Facturé" ci-dessus),
+  // contrairement à getHeuresFact()/getHeuresInterne() (vie entière) — retour Faustine 2026-07-30.
+  const _moisAnneeCourante=[]; for(let i=1;i<=12;i++) _moisAnneeCourante.push(`${DATA.currentYear}-${String(i).padStart(2,'0')}`);
+  const _hF=_moisAnneeCourante.reduce((s,mk)=>s+getHeuresMoisCoherentes(mk),0);
+  const _hI=_moisAnneeCourante.reduce((s,mk)=>s+((DATA.tempsInterne&&DATA.tempsInterne[mk])||0)/3600000,0);
 
   const sep=`<span style="color:var(--brd);font-size:18px;line-height:1;margin:0 1px;user-select:none">|</span>`;
   const st=(ico,lbl,val,clr)=>`<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><span>${ico}</span><span style="font-size:11px;color:var(--tl)">${lbl}</span><span style="font-weight:700;font-size:13px;${clr?'color:'+clr+';':''}">${val}</span></span>`;
@@ -9352,15 +9465,11 @@ function renderMissionsSummary(all) {
         ${card('🔄','En cours',enCours.length+' '+(enCours.length>1?_itemsLow:_itemLow),fmtE(caEnCours)+' de CA en cours','')}
         ${card('📩','En attente',enAtt.length+' '+(enAtt.length>1?_itemsLow:_itemLow),enAtt.length>0?fmtE(caEnAtt)+' potentiels':`Aucun${_masc?'':'e'} ${_itemLow} en attente`,'')}
         ${card('💰','À encaisser',aEncaisser.length>0?fmtE(totalReste):'Tout encaissé',aEncaisser.length>0?(aEncaisser.length+' mission'+(aEncaisser.length>1?'s':'')+' · '+(enRetard>0?enRetard+' en retard':'À jour')):aEncaisser.length===0&&facturees.length>0?'✓ Aucun impayé':'—',aEncaisser.length>0&&enRetard>0?'var(--warn)':aEncaisser.length>0?'var(--warn)':'var(--ok)')}
-        ${card('✅','CA facturé',fmtE(caFacture),facturees.length+' mission'+(facturees.length>1?'s':'')+(facturees.length>0?' terminée'+(facturees.length>1?'s':''):''),'var(--ok)')}
+        ${card('✅','CA facturé',fmtE(caFacture),factureesCetteAnnee.length+' mission'+(factureesCetteAnnee.length>1?'s':'')+(factureesCetteAnnee.length>0?' terminée'+(factureesCetteAnnee.length>1?'s':''):''),'var(--ok)')}
         ${card('🎯','Taux de transformation',txT+' %',okM+' accepté'+(_masc?'':'e')+(okM>1?'s':'')+' sur '+totM+' '+(totM>1?_itemsLow:_itemLow),'')}
         ${card('📭','Pertes sèches',fmt(pS,1)+' h','sur '+_itemsLow+' refusé'+(_masc?'s':'es'),pS>5?'var(--warn)':'')}
       </div>
-      <div style="margin-top:14px"><div class="card-title" style="margin-bottom:10px;font-size:13px">🏆 Top clients & offres</div></div>
-      <div class="g2" style="gap:12px">
-        <div id="msn-top-clients">${rentabClientsBody()}</div>
-        <div id="msn-top-cats">${rentabCatBody()}</div>
-      </div>
+      ${rentabZoneHtml()}
       ${(()=>{
         const temps=(_hF>0||_hI>0)?`<div><div class="card-title" style="margin-bottom:10px;font-size:13px">⏱ Répartition du temps travaillé</div><canvas id="chart-temps" style="width:100%" height="70"></canvas></div>`:'';
         const tpsCat=tempsCategorieBody();
@@ -11359,6 +11468,41 @@ function verifierChangementAnnee() {
       :`📦 ${nbArchivees} années archivées automatiquement. Bienvenue en ${anneeReelle} !`);
   }
 }
+// Détail mois par mois d'une année (archivée ou en cours) — retour Faustine 2026-07-30 : garder
+// la ligne annuelle telle quelle par défaut, mais permettre de dérouler le détail si souhaité,
+// sans rien stocker de nouveau (recalculé à la volée depuis les missions/revenus existants,
+// jamais perdus depuis qu'on a arrêté de réinitialiser DATA.revenus à l'archivage). État
+// d'ouverture volontairement non persisté (variable de module, pas DATA) : un simple confort de
+// consultation, pas une préférence à retenir d'une session à l'autre.
+let _archDetailOuvert={};
+function toggleArchDetail(y) { _archDetailOuvert[y]=!_archDetailOuvert[y]; renderArchives(); }
+// getMoisActifsAnnee/getRevenuNetMois dépendent de DATA.currentYear (fromMk/toMk, isMonthBeforeOpening)
+// — on le fait pointer temporairement sur l'année demandée le temps du calcul, puis on le
+// restaure. Synchrone, aucun risque de réentrance.
+function getArchDetailMensuel(y) {
+  const cyOrig=DATA.currentYear;
+  DATA.currentYear=y;
+  const rows=[];
+  for(let i=1;i<=12;i++){
+    const mk=`${y}-${String(i).padStart(2,'0')}`;
+    if(isMonthBeforeOpening(mk)) continue;
+    const caBrut=getCaFromMissions(mk)+getPonctuelsCA(mk);
+    const caNet=getRevenuNetMois(mk);
+    const heures=getHeuresMoisCoherentes(mk)+((DATA.tempsInterne&&DATA.tempsInterne[mk])||0)/3600000;
+    rows.push({mk,caBrut,caNet,heures});
+  }
+  DATA.currentYear=cyOrig;
+  return rows;
+}
+function archDetailMensuelHtml(y) {
+  const rows=getArchDetailMensuel(y);
+  if(!rows.length) return `<div class="ts" style="color:var(--tl)">Aucun mois actif sur ${y} (avant l'ouverture de l'activité).</div>`;
+  const trs=rows.map(r=>{
+    const label=new Date(r.mk+'-01T12:00').toLocaleDateString('fr-FR',{month:'long'});
+    return `<tr><td style="padding:4px 8px;text-transform:capitalize">${label}</td><td style="padding:4px 8px;text-align:right">${fmtE(r.caBrut)}</td><td style="padding:4px 8px;text-align:right">${fmtE(r.caNet)}</td><td style="padding:4px 8px;text-align:right">${r.heures>0?fmt(r.heures,1)+' h':'—'}</td></tr>`;
+  }).join('');
+  return `<div class="tbl-wrap"><table style="font-size:12px"><thead><tr><th style="padding:4px 8px;text-align:left">Mois</th><th style="padding:4px 8px;text-align:right">CA Brut</th><th style="padding:4px 8px;text-align:right">Revenu net</th><th style="padding:4px 8px;text-align:right">Heures</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+}
 function renderArchives() {
   document.getElementById('archive-year-label').textContent=DATA.currentYear;
   document.getElementById('next-year-label').textContent=DATA.currentYear+1;
@@ -11398,8 +11542,14 @@ function renderArchives() {
     const kpi=_archKpiVal(d);
     const rowStyle=isCurrent?'style="font-weight:700"':isEmpty?'style="opacity:.45"':'';
     const yrCell=`${y}${isCurrent?' <span class="chip">En cours</span>':isEmpty?' <span class="ts">— à compléter</span>':d.manual?' <span class="ts">(manuel)</span>':''}`;
-    const delCell=isCurrent?'<td></td>':isEmpty?'<td></td>':`<td style="display:flex;gap:4px"><button class="btn btn-out btn-xs" onclick="openEditArchiveModal(${y})">✏️</button><button class="btn btn-del btn-xs" onclick="deleteArchive(${y})">🗑</button></td>`;
-    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="${tVocab('items')}">${isEmpty?'—':d.missions||'—'}</td><td data-label="${_archKpiLbl}">${isEmpty?'—':_archKpiFmt(kpi)}</td>${delCell}</tr>`;
+    // Détail dépliable non proposé pour les années vides (rien à montrer) ni les archives
+    // manuelles (pas de missions réelles derrière — le détail mensuel afficherait des zéros
+    // trompeurs à côté du total annuel saisi à la main).
+    const detailOuvert=!!_archDetailOuvert[y];
+    const toggleBtn=(isEmpty||d.manual)?'':`<button class="btn btn-out btn-xs" onclick="toggleArchDetail(${y})" title="Détail mois par mois">${detailOuvert?'▾':'▸'}</button>`;
+    const delCell=isCurrent?`<td>${toggleBtn}</td>`:isEmpty?'<td></td>':`<td style="display:flex;gap:4px">${toggleBtn}<button class="btn btn-out btn-xs" onclick="openEditArchiveModal(${y})">✏️</button><button class="btn btn-del btn-xs" onclick="deleteArchive(${y})">🗑</button></td>`;
+    const detailRow=(detailOuvert&&!isEmpty&&!d.manual)?`<tr><td colspan="7" style="padding:10px 14px;background:var(--bg)">${archDetailMensuelHtml(y)}</td></tr>`:'';
+    return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="${tVocab('items')}">${isEmpty?'—':d.missions||'—'}</td><td data-label="${_archKpiLbl}">${isEmpty?'—':_archKpiFmt(kpi)}</td>${delCell}</tr>${detailRow}`;
   }).join('');
   document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>${tVocab('items')}</th><th>${_archKpiLbl}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const kpiD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:heuresC,missions:missionsC}:(DATA.archives[y]||{}); return _archKpiVal(d); });
@@ -13091,6 +13241,7 @@ document.addEventListener('keydown', function(e) {
   window.getTHBrutAnnuel        = (caBrut,hT) => { sync(); return Mode.getTHBrutAnnuel(caBrut,hT); };
   window.getTJMBrut             = (thBrut)    => { sync(); return Mode.getTJMBrut(thBrut); };
   window.getTHBrutMois          = (mk,caMois,heuresMois) => { sync(); return Mode.getTHBrutMois(mk,caMois,heuresMois); };
+  window.getTHBrutRoulant       = (mks,caBrut,hT) => { sync(); return Mode.getTHBrutRoulant(mks,caBrut,hT); };
   window.getTVACollecteeMois              = (mk) => { sync(); return Mode.getTVACollecteeMois(mk); };
   window.getTVACollecteeEncaissementsMois = (mk) => { sync(); return Mode.getTVACollecteeEncaissementsMois(mk); };
   window.getTVACollecteeDebitsMois        = (mk) => { sync(); return Mode.getTVACollecteeDebitsMois(mk); };
