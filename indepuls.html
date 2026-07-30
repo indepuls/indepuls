@@ -148,11 +148,13 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 [data-theme="dark"] .al-warn,[data-theme="nuit"] .al-warn{background:#2a200a;color:#fbbf24;}[data-theme="dark"] .al-err,[data-theme="nuit"] .al-err{background:#2a0a0a;color:#f87171;}
 [data-theme="dark"] .al-ok,[data-theme="nuit"] .al-ok{background:#0a2a15;color:#4ade80;}[data-theme="dark"] .al-info,[data-theme="nuit"] .al-info{background:#0a1a2a;color:#93c5fd;}
 
-/* === PENSE-BÊTE (post-it) === */
-.postit{background:#fff8c4;color:#4a4324;border-radius:2px;padding:14px 14px 10px;width:150px;min-height:110px;box-shadow:2px 3px 8px rgba(0,0,0,.18);position:relative;font-size:12.5px;line-height:1.5;word-break:break-word;flex-shrink:0;}
+/* === AIDE-MÉMOIRE (post-it) === */
+.postit{background:#fff8c4;color:#4a4324;border-radius:2px;padding:14px 14px 10px;width:100%;max-width:170px;min-height:90px;box-shadow:2px 3px 8px rgba(0,0,0,.18);position:relative;font-size:12.5px;line-height:1.5;word-break:break-word;flex-shrink:0;box-sizing:border-box;}
 .postit-del{position:absolute;top:3px;right:5px;background:none;border:none;color:#8a7f3f;cursor:pointer;font-size:12px;padding:2px 5px;line-height:1;}
 .postit-del:hover{color:#c0392b;}
+.postit-vide{background:transparent;border:1.5px dashed #d9cf8f;box-shadow:none;color:var(--tl);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;transform:none !important;}
 [data-theme="dark"] .postit,[data-theme="nuit"] .postit{background:#e8d873;color:#2a2410;}
+[data-theme="dark"] .postit-vide,[data-theme="nuit"] .postit-vide{border-color:#4a4324;}
 
 /* === VALIDATION CHAMPS === */
 @keyframes fieldShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
@@ -329,7 +331,7 @@ html,body{overflow-x:hidden;}
   .table-wrap{-webkit-overflow-scrolling:touch;}
   .frow,.frow3{grid-template-columns:1fr;}
   .ss-grid{grid-template-columns:1fr !important;grid-template-rows:auto !important;}
-  .ss-brief{grid-column:1 !important;grid-row:auto !important;}
+  .ss-brief,.ss-postit{grid-column:1 !important;grid-row:auto !important;}
   .tab-hd{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .tab-btn{white-space:nowrap;padding:8px 12px;font-size:12px;}
   .kpi{padding:14px 16px;}
@@ -5103,7 +5105,6 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
   // ── Zones fixes (non personnalisables) ───────────────────────
   let fixed = '';
   fixed += '<div class="w-mb">'+wScoreSante(d)+'</div>';
-  fixed += '<div class="w-mb">'+wNotesRapides()+'</div>';
 
   // ── Trajectoire annuelle + Répartition/Provisions (2 colonnes) ──
   // Colonne droite : Rémunération recommandée (SASU/EURL seulement) en tête, puis
@@ -6680,7 +6681,7 @@ function wScoreSante(d) {
   }).join('');
   const _mecCard=_actives.length?`<div class="card" style="padding:8px 14px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--ok);font-weight:700;margin-bottom:4px">● ${tVocab('itemsEnCours')} · ${_actives.length}</div>${_activeRows}</div>`:'';
   return `<div>
-    <div class="ss-grid" style="display:grid;grid-template-columns:280px 1fr;grid-template-rows:auto 1fr;gap:12px;margin-bottom:12px;align-items:start">
+    <div class="ss-grid" style="display:grid;grid-template-columns:280px 1fr 220px;grid-template-rows:auto 1fr;gap:12px;margin-bottom:12px;align-items:start">
       ${_mecCard}
       <div class="card ss-brief" style="grid-column:2;grid-row:1/3;padding:16px 18px">
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:4px">📋 Brief</div>
@@ -6701,6 +6702,9 @@ function wScoreSante(d) {
         </div>
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:7px">Santé de l'activité</div>
         <div style="font-size:12px;color:var(--text);line-height:1.5">${diagGlobal}</div>
+      </div>
+      <div class="card ss-postit" style="grid-column:3;grid-row:1/3;padding:16px 18px">
+        ${wNotesRapides()}
       </div>
     </div>
     <div class="g4" style="gap:10px">
@@ -9996,21 +10000,19 @@ function deleteNoteRapide(id) {
 }
 function wNotesRapides() {
   const notes = DATA.notesRapides || [];
-  return `<div class="card">
-    <div class="card-title mb8">📝 Pense-bête</div>
-    <div class="ts mb10" style="color:var(--tl)">Notez une idée qui passe, supprimez-la quand elle n'est plus utile.</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <input type="text" id="note-rapide-input" placeholder="Ex : Relancer Untel, penser à…" style="flex:1" onkeydown="if(event.key==='Enter'){addNoteRapide()}">
-      <button class="btn btn-acc btn-sm" onclick="addNoteRapide()" style="flex-shrink:0">+ Ajouter</button>
+  return `
+    <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:10px">📌 Aide-mémoire</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <input type="text" id="note-rapide-input" placeholder="Une idée qui passe…" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter'){addNoteRapide()}">
+      <button class="btn btn-acc btn-sm" onclick="addNoteRapide()" style="flex-shrink:0">+</button>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
       ${notes.length ? notes.map((n,i) => `
         <div class="postit" style="transform:rotate(${i%2===0?-2:2}deg)">
           <button type="button" class="postit-del" onclick="deleteNoteRapide('${n.id}')" title="Supprimer">✕</button>
           <div class="postit-texte">${esc(n.texte)}</div>
-        </div>`).join('') : `<div class="ts" style="color:var(--tl)">Rien pour l'instant.</div>`}
-    </div>
-  </div>`;
+        </div>`).join('') : `<div class="postit postit-vide">Rien pour l'instant</div>`}
+    </div>`;
 }
 function toggleSalaries(val) {
   saveParam('chargesSalariales', val ? (DATA.params.chargesSalariales||0) : 0);
