@@ -11293,18 +11293,70 @@ function saveArchiveManuelle() {
   setArchive(y,{caBrut:parseFloat(document.getElementById('arch-ca-brut').value)||0,caNet:parseFloat(document.getElementById('arch-ca-net').value)||0,heures:parseFloat(document.getElementById('arch-heures').value)||0,missions:parseInt(document.getElementById('arch-missions').value)||0,manual:true});
   saveData(); closeModal('modal-archive'); renderArchives();
 }
+// Heures et nb de missions RÉELLEMENT rattachées à l'année y — contrairement à
+// getHeuresFact()/getHeuresInterne() (totaux VIE ENTIÈRE, indépendants de toute année : ils ne
+// filtrent que sur le statut de la mission, jamais sur une date), qui n'étaient tenus corrects
+// pour une année donnée que par effet de bord de la remise à zéro annuelle des statuts (retirée
+// ci-dessous, voir archiveCurrentYear/verifierChangementAnnee). Sans cette béquille, "heures" et
+// "missions" auraient continué à s'accumuler d'année en année dans les Archives. Repris de la
+// même logique que getHeuresMoisCoherentes(mk), déjà la référence pour la cohérence mensuelle du
+// pilier Rentabilité (retour Faustine antérieur) : on recompose l'année mois par mois plutôt que
+// de s'appuyer sur le statut courant des missions.
+function getArchAnnuelStats(y) {
+  const mks=[]; for(let i=1;i<=12;i++) mks.push(`${y}-${String(i).padStart(2,'0')}`);
+  const heures=mks.reduce((s,mk)=>s+getHeuresMoisCoherentes(mk)+((DATA.tempsInterne&&DATA.tempsInterne[mk])||0)/3600000,0);
+  const missions=DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(y)).length;
+  return {heures,missions};
+}
+// Snapshot figé de l'année y — DATA.currentYear doit valoir y au moment de l'appel (getCaAnnuelBrut/
+// getCaNetAnnuel en dépendent). Partagé par le bouton manuel et la bascule automatique.
+function _snapshotAnneeCourante(y) {
+  return {caBrut:getCaAnnuelBrut(),caNet:getCaNetAnnuel(),...getArchAnnuelStats(y),manual:false};
+}
 function archiveCurrentYear() {
   const y=DATA.currentYear;
   if(!confirm(`Archiver l'année ${y} et passer à ${y+1} ?`)) return;
-  setArchive(y,{caBrut:getCaAnnuelBrut(),caNet:getCaNetAnnuel(),heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length,manual:false});
+  setArchive(y,_snapshotAnneeCourante(y));
   if(isSASU()){
     const tresoFinAnnee=getSasuTresorerieEstimee();
     if(!DATA.params.tresorerieParAnnee) DATA.params.tresorerieParAnnee={};
     DATA.params.tresorerieParAnnee[y+1]=Math.round(tresoFinAnnee);
   }
-  DATA.currentYear=y+1; DATA.revenus={};
-  DATA.missions.forEach(m=>{ if(!m.isManagement&&m.statut==='fact') m.statut='cours'; m.dateFact=null; });
+  DATA.currentYear=y+1;
+  // Ni DATA.revenus ni les statuts des missions ne sont touchés (retour Faustine 2026-07-30) :
+  // les revenus ponctuels sont déjà rangés par mois ("YYYY-MM"), jamais lus au-delà de l'année en
+  // cours (getMoisActifsAnnee) — les réinitialiser ne faisait que perdre le détail de l'année
+  // écoulée pour rien. Et un statut de mission ne doit jamais changer au seul motif qu'on tourne
+  // la page de l'année (voir aussi verifierChangementAnnee, qui applique la même règle).
   saveData(); renderAll(); showToast(`✅ Année ${y} archivée. Bienvenue en ${y+1} !`);
+}
+// Bascule automatique et silencieuse (retour Faustine 2026-07-30 : "la personne ne devrait même
+// pas avoir à archiver elle-même une année"). Appelée une fois au chargement (voir
+// DOMContentLoaded) : dès que l'horloge réelle dépasse DATA.currentYear, archive chaque année
+// manquante l'une après l'autre (boucle plutôt qu'un simple +1, pour couvrir une absence
+// prolongée à cheval sur plusieurs changements d'année) puis avance DATA.currentYear — sans
+// aucune confirmation à cliquer, juste un toast informatif après coup (principe "zéro boîte
+// noire" : on informe, on ne bloque pas).
+function verifierChangementAnnee() {
+  const anneeReelle=new Date().getFullYear();
+  let nbArchivees=0;
+  while(DATA.currentYear<anneeReelle){
+    const y=DATA.currentYear;
+    setArchive(y,_snapshotAnneeCourante(y));
+    if(isSASU()){
+      const tresoFinAnnee=getSasuTresorerieEstimee();
+      if(!DATA.params.tresorerieParAnnee) DATA.params.tresorerieParAnnee={};
+      DATA.params.tresorerieParAnnee[y+1]=Math.round(tresoFinAnnee);
+    }
+    DATA.currentYear=y+1;
+    nbArchivees++;
+  }
+  if(nbArchivees>0){
+    saveData();
+    showToast(nbArchivees===1
+      ?`📦 ${anneeReelle-1} archivée automatiquement. Bienvenue en ${anneeReelle} !`
+      :`📦 ${nbArchivees} années archivées automatiquement. Bienvenue en ${anneeReelle} !`);
+  }
 }
 function renderArchives() {
   document.getElementById('archive-year-label').textContent=DATA.currentYear;
@@ -11317,6 +11369,7 @@ function renderArchives() {
   const years=[]; for(let y=firstY;y<=cy;y++) years.push(y);
   const allY=archivedY; // conservé pour compatibilité
   const caBrutC=getCaAnnuelBrut(), caNetC=getCaNetAnnuel();
+  const {heures:heuresC,missions:missionsC}=getArchAnnuelStats(cy);
   const caBD=years.map(y=>y===cy?caBrutC:(DATA.archives[y]||{}).caBrut||0);
   const caNd=years.map(y=>y===cy?caNetC:(DATA.archives[y]||{}).caNet||0);
   requestAnimationFrame(()=>{ drawBarChart('chart-archives',years.map(String),[{label:'CA brut',data:caBD,color:themeColor('--acc')||'#5B2C4A'},{label:'Revenu net',data:caNd,color:themeColor('--sec')||'#BB9E81'}],{height:260}); });
@@ -11340,7 +11393,7 @@ function renderArchives() {
   const rows=years.map(y=>{
     const isCurrent=y===cy, isArchived=!!DATA.archives[y];
     const isEmpty=!isCurrent&&!isArchived;
-    const d=isCurrent?{caBrut:caBrutC,caNet:caNetC,heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length}:(DATA.archives[y]||{});
+    const d=isCurrent?{caBrut:caBrutC,caNet:caNetC,heures:heuresC,missions:missionsC}:(DATA.archives[y]||{});
     const kpi=_archKpiVal(d);
     const rowStyle=isCurrent?'style="font-weight:700"':isEmpty?'style="opacity:.45"':'';
     const yrCell=`${y}${isCurrent?' <span class="chip">En cours</span>':isEmpty?' <span class="ts">— à compléter</span>':d.manual?' <span class="ts">(manuel)</span>':''}`;
@@ -11348,7 +11401,7 @@ function renderArchives() {
     return `<tr ${rowStyle}><td data-label="Année">${yrCell}</td><td data-label="CA Brut">${isEmpty?'—':fmtE(d.caBrut||0)}</td><td data-label="Revenu net">${isEmpty?'—':fmtE(d.caNet||0)}</td><td data-label="Heures">${isEmpty?'—':d.heures?fmt(d.heures,0)+' h':'—'}</td><td data-label="${tVocab('items')}">${isEmpty?'—':d.missions||'—'}</td><td data-label="${_archKpiLbl}">${isEmpty?'—':_archKpiFmt(kpi)}</td>${delCell}</tr>`;
   }).join('');
   document.getElementById('archives-table-zone').innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Année</th><th>CA Brut</th><th>Revenu net</th><th>Heures</th><th>${tVocab('items')}</th><th>${_archKpiLbl}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  const kpiD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:getHeuresFact()+getHeuresInterne(),missions:DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length}:(DATA.archives[y]||{}); return _archKpiVal(d); });
+  const kpiD=years.map(y=>{ const d=y===cy?{caNet:caNetC,heures:heuresC,missions:missionsC}:(DATA.archives[y]||{}); return _archKpiVal(d); });
   requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:`${_archKpiLbl} (€${_archKpiUnit})`,data:kpiD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
   renderArchCompare(); renderArchProgress();
 
@@ -11398,11 +11451,10 @@ function getArchYearData(y){
   const _hj=DATA.params.heuresParJour||7;
   function _kpi(caNet,h,m){ if(_objMod==='tjm') return h>0?caNet/h*_hj:0; if(_objMod==='marge_commande') return m>0?caNet/m:0; return h>0?caNet/h:0; }
   if(y===cy){
-    const h=getHeuresFact()+getHeuresInterne();
+    const {heures:h,missions}=getArchAnnuelStats(y);
     // Déduit les remboursements de l'année en cours — les années archivées (DATA.archives[y],
     // branche ci-dessous) sont des snapshots figés, jamais recalculés rétroactivement.
     const caNet=getCaNetAnnuel()-(_objMod==='marge_commande'?getMontantRembourseAnnuel(y):0), caBrut=getCaAnnuelBrut();
-    const missions=DATA.missions.filter(m=>!m.isManagement&&m.statut==='fact').length;
     return {caBrut,caNet,heures:h,missions,th:h>0?caNet/h:0,kpi:_kpi(caNet,h,missions)};
   }
   const d=DATA.archives[y]||{};
@@ -11519,6 +11571,25 @@ function renderArchCompare(refYear){
   const opts=archivedY.map(y=>`<option value="${y}"${String(y)===String(ref)?'selected':''}>${y}</option>`).join('');
   const avgOpt=archivedY.length>1?`<option value="avg"${'avg'===String(ref)?'selected':''}> Moy. (${archivedY.join(', ')})</option>`:'';
   const selector=`<div style="margin-bottom:14px"><div style="font-size:10px;font-weight:700;color:var(--tl);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px">Comparer avec</div><select onchange="renderArchCompare(this.value)" style="font-size:12px;padding:5px 8px;border:1px solid var(--brd);border-radius:6px;background:var(--card);color:var(--text);width:100%;cursor:pointer">${opts}${avgOpt}</select></div>`;
+  // Moins de 2 mois pleins de recul sur l'année en cours : un écart en % (voire "forte baisse")
+  // n'a pas de sens statistique sur un si petit échantillon et peut être franchement démoralisant
+  // (retour Faustine 2026-07-30, testé en conditions réelles : 1 mission sur 2 semaines comparée
+  // à une année complète affichait "-88%, forte baisse"). On masque le comparatif chiffré et on
+  // affiche les valeurs brutes de l'année en cours, sans jugement — le comparatif réapparaît de
+  // lui-même dès que proRated dispose d'assez de mois pour être fiable.
+  const tropTotPourComparer=isCurrentYear&&elapsedMonths<2;
+  if(tropTotPourComparer){
+    const thTxt=currData.th>0?`${fmtE(currData.th,0)}/h`:'—';
+    const rawRow=(icon,label,val)=>`<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--tl);margin-bottom:2px">${icon} ${label}</div><div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.3">${val}</div></div>`;
+    compareZone.innerHTML=`<div style="padding:8px 0 0 16px;border-left:2px solid var(--brd)">${selector}
+      <div style="font-size:12px;color:var(--tl);background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:12px;line-height:1.6">⏳ Encore tôt pour comparer ${cy} à une année complète — revenez dans quelques semaines.</div>
+      ${rawRow('📈',"Chiffre d'affaires",fmtE(currData.caBrut))}
+      ${rawRow('💶','Revenu net',fmtE(currData.caNet))}
+      ${rawRow('⏱','Heures facturées',fmt(currData.heures,0)+' h')}
+      ${rawRow('💰','Taux horaire réel',thTxt)}
+    </div>`;
+    return;
+  }
   const proRateNote=proRated?`<div id="arch-prorate-note" style="display:none;margin-top:7px;padding:7px 9px;background:var(--card);border-radius:6px;border:1px solid var(--brd);font-size:11px;color:var(--tl);line-height:1.6">Calcul : on divise les données annuelles de ${refLabel} par ${(12/elapsedMonths).toFixed(1)} (= 12 ÷ ${elapsedMonths} mois). Exemple : si ${refLabel} = ${fmtE(refDataRaw.caBrut)} de CA, l'estimation sur ${elapsedMonths} mois = <strong>${fmtE(Math.round(refData.caBrut))}</strong>. C'est une estimation linéaire — les mois peuvent varier.</div>`:'' ;
   const inProgressBadge=isCurrentYear?`<div style="font-size:11px;color:#92701a;background:#fef9e7;border:1px solid #f5d96a;border-radius:6px;padding:5px 9px;margin-bottom:12px;line-height:1.6">🟡 <strong>Jan–${todayMoName} ${cy}</strong> vs <strong>Jan–${todayMoName} ${refLabel}</strong> <button onclick="var n=document.getElementById('arch-prorate-note');n.style.display=n.style.display==='none'?'block':'none'" style="cursor:pointer;font-size:10px;font-weight:800;color:var(--acc);background:transparent;border:1px solid var(--acc);border-radius:50%;width:15px;height:15px;padding:0;line-height:1;vertical-align:middle">?</button><br><span style="opacity:.85">Données de ${refLabel} pro-ratées sur ${elapsedMonths} mois.</span>${proRateNote}</div>`:'';
   function kpiRow(icon,label,curr,prev,fmtAbs,altDisplay){
@@ -11554,6 +11625,9 @@ function renderArchProgress(){
   // Pro-ration identique au widget de comparaison pour rester cohérent
   const now=new Date(), isCurrentYear=cy===now.getFullYear();
   const elapsedMonths=now.getMonth()+1;
+  // Même garde-fou que renderArchCompare : moins de 2 mois de recul rend toute tendance
+  // long-terme statistiquement absurde (et démoralisante) sur une année à peine commencée.
+  if(isCurrentYear&&elapsedMonths<2){ zone.innerHTML=''; return; }
   const oldDataRaw=getArchYearData(oldestY);
   const oldData=isCurrentYear&&elapsedMonths<12?{
     caBrut:oldDataRaw.caBrut*elapsedMonths/12,
@@ -12878,6 +12952,7 @@ function _afficherBandeauNouvelleVersion() {
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.getCaFromMissions !== 'function') { _afficherErreurChargementModule(); return; }
   loadData();
+  verifierChangementAnnee(); // avant tout rendu : DATA.currentYear doit être à jour dès le premier renderAll()
   checkTimerGapOnResume(); // couvre le cas d'une fermeture complète d'onglet et réouverture plus tard
   migrateMetierParam();
   document.body.setAttribute('data-theme', DATA.theme || 'obm');
