@@ -947,6 +947,26 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div class="card mt16">
+        <div class="card-title mb4">Informations pour mes devis</div>
+        <div class="ts mb12" style="color:var(--tl)">Optionnel — utile uniquement si vous générez des devis depuis Indépuls (Simulateur ou fiche mission).</div>
+        <div class="frow">
+          <div class="fgroup">
+            <label class="flabel">N° SIRET <span class="info-tip" title="Sert uniquement à pré-remplir vos devis (mention obligatoire) — jamais utilisé ailleurs dans Indépuls, jamais transmis à un tiers.">?</span></label>
+            <input type="text" id="p-siret" placeholder="Ex : 123 456 789 00012" oninput="saveParam('siret',this.value)">
+          </div>
+          <div class="fgroup">
+            <label class="flabel">Logo (optionnel)</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <img id="p-logo-preview" style="display:none;height:40px;max-width:120px;object-fit:contain;border:1px solid var(--brd);border-radius:6px;background:#fff;padding:4px">
+              <input type="file" id="p-logo-input" accept="image/*" onchange="uploadLogoDevis(this.files[0])" style="display:none">
+              <button type="button" class="btn btn-out btn-sm" onclick="document.getElementById('p-logo-input').click()">📎 Choisir un logo</button>
+              <button type="button" class="btn btn-out btn-sm" id="p-logo-remove" style="display:none;color:var(--err);border-color:var(--err)" onclick="supprimerLogoDevis()">🗑</button>
+            </div>
+            <div class="ts mt4" style="color:var(--tl)">Redimensionné automatiquement, léger à synchroniser.</div>
+          </div>
+        </div>
+      </div>
+      <div class="card mt16">
         <div class="card-title mb12">Tarification & objectif</div>
         <div class="divider mt4 mb12"></div>
         <div class="ts mb12" style="color:var(--tl)">Pré-configuré selon votre profil — ajustez si votre façon de travailler est différente.</div>
@@ -1456,7 +1476,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div id="sim-create-zone" style="display:none;margin-top:12px">
       <button class="btn btn-acc" id="sim-create-btn" onclick="createMissionFromSim()">+ Créer une mission depuis ce test</button>
-
+      <button class="btn btn-out" onclick="ouvrirGenerateurDevisSim()">📄 Générer un devis</button>
       <span class="ts ml8" style="color:var(--tl)">Pré-remplit le formulaire mission avec ces données.</span>
     </div>
   </div>
@@ -1827,12 +1847,51 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
     </div>
     <div class="modal-foot">
+      <button class="btn btn-out" style="margin-right:auto" onclick="ouvrirGenerateurDevisMission()">📄 Devis</button>
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
     </div>
   </div>
 </div>
 
+<!-- ═══ GÉNÉRATEUR DE DEVIS (chantier 2026-07-30) ═══════════════
+     Génération et export uniquement — jamais de statut (envoyé/accepté), jamais de relance,
+     jamais de conversion en facture, jamais d'historique. Le prix est repris du Simulateur ou
+     d'une mission, mais tout reste entièrement modifiable avant export : ce formulaire n'est
+     qu'un point de départ, jamais un template figé (retour Faustine, 2026-07-30). Voir CLAUDE.md. -->
+<div class="modal-ov hidden" id="modal-devis">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">📄 Générer un devis</div>
+    <div class="ts mb16" style="color:var(--tl)">Document non suivi par Indépuls — une fois généré, à vous de l'envoyer et d'en assurer le suivi.</div>
+    <div class="card-title mb8" style="font-size:13px">Client</div>
+    <div class="frow">
+      <div class="fgroup"><label class="flabel">Nom / Entreprise</label><input type="text" id="dv-client-nom"></div>
+      <div class="fgroup"><label class="flabel">Email</label><input type="email" id="dv-client-email"></div>
+    </div>
+    <div class="frow">
+      <div class="fgroup"><label class="flabel">Adresse</label><input type="text" id="dv-client-adresse"></div>
+      <div class="fgroup"><label class="flabel">Téléphone</label><input type="text" id="dv-client-tel"></div>
+    </div>
+    <div class="divider mt8 mb8"></div>
+    <div class="card-title mb8" style="font-size:13px">Devis</div>
+    <div class="frow">
+      <div class="fgroup"><label class="flabel">N° (optionnel)</label><input type="text" id="dv-numero" placeholder="Ex : 2026-014"></div>
+      <div class="fgroup"><label class="flabel">Date</label><input type="date" id="dv-date"></div>
+      <div class="fgroup"><label class="flabel">Validité (jours)</label><input type="number" id="dv-validite" min="1" step="1" value="30"></div>
+    </div>
+    <div class="fgroup"><label class="flabel">Objet de la prestation</label><input type="text" id="dv-objet" placeholder="Ex : Accompagnement stratégique"></div>
+    <div class="fgroup"><label class="flabel">Désignation</label><input type="text" id="dv-designation" placeholder="Ex : Mission sur-mesure"></div>
+    <div class="fgroup"><label class="flabel">Détail de la prestation</label><textarea id="dv-detail" rows="4" placeholder="Une ligne par élément — apparaît tel quel sur le devis"></textarea></div>
+    <div class="fgroup"><label class="flabel">Montant HT (€)</label><input type="number" id="dv-montant" step="10" min="0" oninput="rafraichirApercuDevisTotal()"></div>
+    <div id="dv-tva-apercu" class="ts mb8" style="color:var(--tl)"></div>
+    <div class="fgroup"><label class="flabel">Conditions de paiement</label><textarea id="dv-conditions" rows="2"></textarea></div>
+    <div class="fgroup"><label class="flabel">Modalités</label><textarea id="dv-modalites" rows="2"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-devis')">Annuler</button>
+      <button class="btn btn-acc" onclick="genererDevisPDF()">🖨️ Générer le PDF</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL SAISIE MULTIPLE MISSIONS -->
 <div class="modal-ov hidden" id="modal-bulk-missions">
   <div class="modal" style="max-width:1040px">
@@ -3987,7 +4046,10 @@ function getDefaultData() {
       // NOUVEAUX comptes uniquement (retour Faustine, pipeline vérifié de bout en bout, voir
       // CLAUDE.md). applyDefaults() empêche explicitement ce défaut de s'appliquer
       // rétroactivement aux comptes déjà existants qui n'ont jamais donné leur consentement.
-      emailHebdoActif:true, emailHebdoJour:'lundi'
+      emailHebdoActif:true, emailHebdoJour:'lundi',
+      // Devis (chantier 2026-07-30) : optionnel, jamais requis, sert uniquement à pré-remplir
+      // un devis généré depuis le Simulateur ou une fiche mission — voir CLAUDE.md.
+      siret:'', logoDataUrl:''
     },
     categories:['Gestion de projet','Coordination','Stratégie','Contenu & communication','Formation','Administratif','Prospection','Autre'],
     categoriesTemps:['Administratif','Stratégie & conseil','Production & exécution','Communication','Reporting','Autre'],
@@ -10131,12 +10193,185 @@ function toggleEmailHebdo(val) {
   const det=document.getElementById('email-hebdo-detail');
   if(det) det.style.display=val?'':'none';
 }
+// ── LOGO DEVIS (chantier 2026-07-30) ───────────────────────────
+// Redimensionné et compressé côté navigateur avant stockage (canvas, aucune nouvelle dépendance)
+// — tout le reste de DATA est synchronisé en JSON à chaque sauvegarde ; un fichier image non
+// compressé alourdirait chaque sauvegarde, pas seulement celle du logo. Une largeur suffisante
+// pour un en-tête de devis (jamais pour de l'impression grand format) garde le poids négligeable.
+const LOGO_DEVIS_MAX_LARGEUR = 240;
+function uploadLogoDevis(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(1, LOGO_DEVIS_MAX_LARGEUR / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      saveParam('logoDataUrl', canvas.toDataURL('image/png'));
+      renderParams();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function supprimerLogoDevis() {
+  saveParam('logoDataUrl', '');
+  const el = document.getElementById('p-logo-input');
+  if (el) el.value = '';
+  renderParams();
+}
+
+// ── GÉNÉRATEUR DE DEVIS (chantier 2026-07-30) ──────────────────
+// Point d'entrée commun, appelé depuis la fiche mission ET depuis le Simulateur (retour
+// Faustine : "tout le monde ne fera pas le simulateur en premier"). prefill = {client,
+// description, montantHT} — tous les champs restent modifiables une fois la modale ouverte,
+// ceci n'est qu'un point de départ.
+function ouvrirGenerateurDevis(prefill = {}) {
+  document.getElementById('dv-client-nom').value = prefill.client || '';
+  document.getElementById('dv-client-email').value = '';
+  document.getElementById('dv-client-adresse').value = '';
+  document.getElementById('dv-client-tel').value = '';
+  document.getElementById('dv-numero').value = '';
+  document.getElementById('dv-date').value = today();
+  document.getElementById('dv-validite').value = 30;
+  document.getElementById('dv-objet').value = prefill.description || '';
+  document.getElementById('dv-designation').value = prefill.description || '';
+  document.getElementById('dv-detail').value = '';
+  document.getElementById('dv-montant').value = prefill.montantHT || '';
+  document.getElementById('dv-conditions').value = 'Paiement à réception, par virement bancaire.';
+  document.getElementById('dv-modalites').value = "Le présent devis, une fois signé, fait office de bon pour accord.";
+  rafraichirApercuDevisTotal();
+  openModal('modal-devis');
+}
+function ouvrirGenerateurDevisMission() {
+  const client = document.getElementById('m-client')?.value || '';
+  const description = document.getElementById('m-desc')?.value || '';
+  const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
+  ouvrirGenerateurDevis({ client, description, montantHT });
+}
+// Depuis le Simulateur (mode "Vérifier un prix" — sim-create-zone, prix déjà saisi par
+// l'utilisatrice). Le mode "Calculer un tarif" a son propre bouton, voir plus bas (le prix n'est
+// alors pas un input mais le résultat calculé, sans champ #sim-ca-val à relire).
+function ouvrirGenerateurDevisSim() {
+  const montantHT = parseFloat(document.getElementById('sim-ca-val')?.value) || 0;
+  ouvrirGenerateurDevis({ client: '', description: '', montantHT });
+}
+function _devisTvaInfo(montantHT) {
+  const p = DATA.params;
+  if (!p.tva) return { montantTVA: 0, totalTTC: montantHT, mention: 'TVA non applicable, art. 293 B du CGI' };
+  const taux = p.tauxTVA || 20;
+  const montantTVA = Math.round(montantHT * taux) / 100;
+  return { montantTVA, totalTTC: Math.round((montantHT + montantTVA) * 100) / 100, mention: `TVA ${taux} %` };
+}
+function rafraichirApercuDevisTotal() {
+  const montantHT = parseFloat(document.getElementById('dv-montant')?.value) || 0;
+  const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
+  const el = document.getElementById('dv-tva-apercu');
+  if (el) el.textContent = DATA.params.tva
+    ? `Sous-total HT : ${fmtE(montantHT)} · ${mention} : ${fmtE(montantTVA)} · Total TTC : ${fmtE(totalTTC)}`
+    : `${mention} · Total : ${fmtE(montantHT)}`;
+}
+// Génère le devis dans un nouvel onglet (même convention que le Livre des recettes/l'Export
+// comptable, indepuls.html) puis déclenche l'impression native du navigateur ("Enregistrer en
+// PDF") — aucune librairie PDF ajoutée, cohérent avec le zéro-dépendance déjà en place partout
+// ailleurs dans Indépuls.
+function genererDevisPDF() {
+  const p = DATA.params;
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const montantHT = parseFloat(document.getElementById('dv-montant')?.value) || 0;
+  const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
+  const dateStr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const dateDevis = val('dv-date');
+  const validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
+  const dateValidite = dateDevis ? new Date(new Date(dateDevis + 'T12:00:00').getTime() + validiteJours * 86400000) : null;
+  const metierLbl = p.metier ? (PROFIL_LABELS[p.metier] || '') : '';
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Devis${val('dv-numero') ? ' ' + val('dv-numero') : ''}</title><style>
+    body{font-family:Arial,sans-serif;font-size:12.5px;color:#141538;margin:32px;line-height:1.5}
+    .entete{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+    .titre{font-size:30px;font-weight:900;color:#141538;letter-spacing:1px}
+    .meta{font-size:11px;color:#666;text-align:right}
+    .parties{display:flex;justify-content:space-between;gap:30px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #BB9E81}
+    .parties>div{flex:1}
+    .label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#5B2C4A;font-weight:700;margin-bottom:4px}
+    .objet{background:#141538;color:#fff;padding:10px 14px;font-size:12px;font-weight:700;margin-bottom:16px;border-radius:4px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px}
+    th{background:#141538;color:#fff;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+    td{padding:12px 10px;border-bottom:1px solid #eee;vertical-align:top}
+    .totaux{margin-left:auto;width:280px;margin-bottom:20px}
+    .totaux>div{display:flex;justify-content:space-between;padding:6px 10px}
+    .total-ttc{background:#141538;color:#fff;font-weight:700;font-size:14px;border-radius:4px}
+    .bas{display:flex;gap:30px;margin-bottom:20px;font-size:11px}
+    .bas>div{flex:1}
+    .signatures{display:flex;gap:30px;margin-top:30px;padding-top:16px;border-top:1px solid #ddd;font-size:11px}
+    .signatures>div{flex:1}
+    @media print{body{margin:12px}button{display:none}}
+  </style></head><body>
+  <div class="entete">
+    <div>${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:60px;max-width:180px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}</div>
+    <div class="titre">DEVIS</div>
+  </div>
+  <div class="meta" style="text-align:left;margin-bottom:16px">${val('dv-numero') ? `N° ${esc(val('dv-numero'))} · ` : ''}${dateDevis ? `Date : ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
+  <div class="parties">
+    <div>
+      <strong>${esc(p.nom || '')}</strong><br>
+      ${metierLbl ? esc(metierLbl) + '<br>' : ''}
+      ${p.siret ? `SIRET : ${esc(p.siret)}<br>` : ''}
+      ${mention}
+    </div>
+    <div>
+      <div class="label">Adressé à</div>
+      ${val('dv-client-nom') ? esc(val('dv-client-nom')) + '<br>' : ''}
+      ${val('dv-client-email') ? esc(val('dv-client-email')) + '<br>' : ''}
+      ${val('dv-client-adresse') ? esc(val('dv-client-adresse')) + '<br>' : ''}
+      ${val('dv-client-tel') ? esc(val('dv-client-tel')) : ''}
+    </div>
+  </div>
+  ${val('dv-objet') ? `<div class="objet">${esc(val('dv-objet'))}</div>` : ''}
+  <table>
+    <thead><tr><th>Désignation</th><th>Détail</th><th>Montant HT</th></tr></thead>
+    <tbody><tr>
+      <td><strong>${esc(val('dv-designation'))}</strong></td>
+      <td>${esc(val('dv-detail')).replace(/\n/g, '<br>')}</td>
+      <td>${fmtE(montantHT)}</td>
+    </tr></tbody>
+  </table>
+  <div class="totaux">
+    <div>Sous-total HT<span>${fmtE(montantHT)}</span></div>
+    ${p.tva ? `<div>${mention}<span>${fmtE(montantTVA)}</span></div>` : ''}
+    <div class="total-ttc">Total TTC<span>${fmtE(totalTTC)}</span></div>
+  </div>
+  <div class="bas">
+    <div><div class="label">Conditions de paiement</div>${esc(val('dv-conditions')).replace(/\n/g,'<br>')}</div>
+    <div><div class="label">Modalités</div>${esc(val('dv-modalites')).replace(/\n/g,'<br>')}</div>
+  </div>
+  <div class="signatures">
+    <div><div class="label">Bon pour accord — client</div>Nom, date et signature</div>
+    <div><div class="label">Signature — prestataire</div>${esc(p.nom || '')}</div>
+  </div>
+  <script>window.onload=function(){window.print()}<\/script>
+  </body></html>`);
+  w.document.close();
+  closeModal('modal-devis');
+}
 function renderParams() {
   const p=DATA.params;
   document.getElementById('p-nom').value=p.nom||'';
   document.getElementById('p-statut').value=p.statut||'micro-bnc';
   document.getElementById('p-date-ouverture').value=p.dateOuverture||'';
   document.getElementById('p-metier').value=p.metier||'';
+  const pSiretEl=document.getElementById('p-siret');
+  if(pSiretEl) pSiretEl.value=p.siret||'';
+  const pLogoPreview=document.getElementById('p-logo-preview'), pLogoRemove=document.getElementById('p-logo-remove');
+  if(pLogoPreview){
+    if(p.logoDataUrl){ pLogoPreview.src=p.logoDataUrl; pLogoPreview.style.display=''; if(pLogoRemove) pLogoRemove.style.display=''; }
+    else { pLogoPreview.style.display='none'; if(pLogoRemove) pLogoRemove.style.display='none'; }
+  }
   const cbLivre=document.getElementById('p-livre-recettes');
   if(cbLivre) cbLivre.checked=!!(p.livreRecettesActif);
   // "Que vendez-vous ?" radio
@@ -12077,6 +12312,7 @@ function renderSimOutputs(r) {
       </div>
       ${isCollectif && participants > 1 ? `<div style="margin-top:10px;padding:10px 14px;background:var(--bg);border-radius:8px"><div class="ts">Par participant : <strong>${fmtE(Math.ceil(prixMin/participants/10)*10)}</strong> min · <strong>${fmtE(Math.ceil(prixConfort/participants/10)*10)}</strong> avec marge</div></div>` : ''}
       ${advHtml}
+      <button class="btn btn-out btn-sm mt12" onclick="ouvrirGenerateurDevis({client:'',description:'',montantHT:${prixConfort}})">📄 Générer un devis (${fmtE(prixConfort)} HT)</button>
     </div>`;
     document.getElementById('sim-create-zone').style.display = 'none';
     return;

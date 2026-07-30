@@ -2484,3 +2484,31 @@ Faustine est revenue sur la décision "gardés en CSS pour compatibilité" prise
 **Nouveautés** : entrée ajoutée annonçant les 2 nouveaux thèmes.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (aucune régression). **Vérification navigateur non faite** dans cette session — à confirmer par Faustine.
+
+---
+
+### FEATURE — Générateur de devis PDF (2026-07-30)
+
+Idée relayée par l'audit Cowork ("fiche de proposition tarifaire" / "devis PDF simplifié depuis le simulateur"). Faustine hésitait entre ne rien faire et construire un vrai système complet de devis (relance, statut, conversion en facture) — "j'ai du mal à faire les choses à moitié".
+
+**Recadrage avant de coder** : le vrai clivage n'est pas "petit export" vs "grand générateur", mais **export** vs **facturation** — deux produits différents, pas deux tailles du même. Écarté : suivi de statut (envoyé/accepté), relance, conversion en facture, historique/tableau de bord des devis — la pente naturelle qui transforme un générateur de devis en presque-Freebe/Indy, exactement ce qu'Indépuls refuse depuis le début (déjà documenté comme une force du produit dans l'audit Cowork lui-même).
+
+**Question de fond de Faustine, tranchée par la recherche plutôt que devinée** : "dans quel contexte quelqu'un ferait ses devis sur Indépuls mais pas ses factures ?" Deux faits vérifiés :
+1. Un devis a des mentions légales obligatoires limitées (SIRET, statut TVA, prix HT/TTC, validité) — rien de comparable à une facture. Pour le **bâtiment, le devis est obligatoire quel que soit le montant** (100€ pour les autres prestations) — pas un cas de niche.
+2. La réforme de la facturation électronique impose, à partir de **septembre 2027**, l'émission des factures via une plateforme certifiée — construire un générateur de factures aujourd'hui reviendrait à construire quelque chose qui devra être refait/intégré à une plateforme tierce sous 12-24 mois. Le devis n'est concerné par aucune réforme de ce type. La ligne rouge n'est donc pas seulement philosophique, elle est aussi réglementaire et durable.
+
+Sources : [Devis auto-entrepreneur : mentions obligatoires](https://www.portail-autoentrepreneur.fr/academie/gestion-auto-entreprise/facturation/modele-devis-auto-entrepreneur), [Mention obligatoire sur devis](https://www.tolteck.com/fr-fr/autoentrepreneur-la-mention-obligatoire-sur-un-devis-guide-complet-2026/).
+
+**Première proposition écartée** : un document "non contractuel" pour rester prudent — Faustine a fait remarquer que ça produirait un document inutile (ni vrai devis acceptable par un client, ni autre chose de concret). Corrigé : un **vrai** devis, avec les bonnes mentions — la restriction porte sur ce qu'Indépuls fait *après* la génération (rien), pas sur la réalité du document.
+
+**Visuel** : Faustine a fourni son propre modèle de devis (PDF, bandeaux navy/prune, tableau désignation/détail/montant, conditions de paiement, signatures) — repris fidèlement dans le gabarit HTML.
+
+**Construit** :
+- **Paramètres → Mon activité** : nouvelle carte "Informations pour mes devis" — champ SIRET (optionnel, infobulle expliquant l'usage exclusif de pré-remplissage) + upload de logo. `DATA.params.siret`, `DATA.params.logoDataUrl` — ajoutés à `getDefaultData()`, backfill générique suffisant (pas de garde spécifique nécessaire, aucun enjeu de consentement rétroactif contrairement à `emailHebdoActif`).
+- **Logo** : `uploadLogoDevis(file)` redimensionne et compresse via `<canvas>` (largeur max 240px) avant stockage en base64 dans `DATA.params.logoDataUrl` — reste dans le même mécanisme de synchronisation JSON que le reste de l'app (pas de nouveau bucket de stockage Supabase, pas de nouvelle étape d'infrastructure pour Faustine). Choix explicitement motivé : un fichier non compressé alourdirait *chaque* sauvegarde, pas seulement celle du logo — sujet déjà traité aujourd'hui pour la fiabilité sur réseau faible (artisans sur chantier).
+- **Modale `#modal-devis`** : formulaire entièrement éditable (client, n°/date/validité, objet, désignation/détail, montant HT, conditions de paiement, modalités) — jamais un template figé, cohérent avec la demande explicite de personnalisation.
+- **`genererDevisPDF()`** : réutilise la convention déjà en place dans l'app (Livre des recettes, Export comptable) — `window.open('','_blank')` + `document.write()` d'un document HTML autonome stylé + `window.onload=()=>window.print()`. Aucune librairie PDF ajoutée, cohérent avec le zéro-dépendance historique du projet.
+- **Deux points d'entrée**, comme demandé ("tout le monde ne fera pas le simulateur en premier") : bouton "📄 Devis" dans le pied de la fiche mission (`ouvrirGenerateurDevisMission()`, lit directement les champs du formulaire en cours d'édition) ; et dans le Simulateur, à la fois pour le mode "Calculer un tarif" (bouton inline avec le prix conseillé avec marge de sécurité) et pour le mode "Vérifier un prix" (`ouvrirGenerateurDevisSim()`, ajouté à côté du bouton existant "+ Créer une mission depuis ce test"). Le mode "Prix d'achat maximum" n'a volontairement pas de bouton devis — ce prix est ce qu'on paie un fournisseur, pas ce qu'on facture un client.
+- **Jamais persisté** : aucun champ du devis n'est écrit dans `DATA` — génération strictement éphémère, cohérent à la lettre avec "aucun suivi".
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée — feature purement UI/génération de document). Équilibre `<div>`/`</div>` vérifié pour la modale (25/25). **Vérification navigateur non faite** dans cette session (même limite d'environnement documentée plus haut) — à confirmer par Faustine : ouverture depuis les deux points d'entrée, rendu du PDF généré (logo, mentions TVA correctes selon franchise/assujetti, impression propre).
