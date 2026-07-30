@@ -6476,7 +6476,11 @@ function wScoreSante(d) {
   // jamais sur les échéances fiscales (URSSAF/TVA) : de l'argent réel à verser à une date
   // réelle, un dismiss de 15 jours y créerait un risque de rater un paiement.
   const _alertDismissed=k=>{const ts=DATA.alertsDismissed?.[k];return !!(ts&&(Date.now()-ts<15*24*60*60*1000));};
-  const _dismissBtn=k=>`<span onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.${k}=Date.now();saveData();renderDashboard();" style="cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0" title="Masquer cette alerte pendant 15 jours">✓ Traité</span>`;
+  // Bouton plus visible qu'un simple lien texte (retour Faustine 2026-07-29 : "je ne trouve pas
+  // toujours le 'Traité' au premier coup d'œil") — reste un masquage temporaire (15 jours), jamais
+  // une case à cocher façon todo-list : cocher donnerait l'impression que le constat d'état
+  // (dépendance client, objectif sous la cible...) est réglé, alors qu'il n'a fait que se taire.
+  const _dismissBtn=k=>`<button type="button" class="btn btn-out btn-xs" onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.${k}=Date.now();saveData();renderDashboard();" style="flex-shrink:0" title="Masquer cette alerte pendant 15 jours">🔕 Masquer 15 j</button>`;
   const alertLines=[];
   // Client dominant
   const clientCA={};

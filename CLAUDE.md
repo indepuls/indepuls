@@ -2340,3 +2340,13 @@ Dernière des 4 idées de l'audit (voir section 8 ci-dessus) à être construite
 **Pourquoi une simple comparaison de contenu plutôt qu'un numéro de version** : évite d'avoir à se souvenir d'incrémenter manuellement une constante à chaque commit (risque réel d'oubli qui rendrait le mécanisme silencieusement inopérant) — la comparaison de contenu brut est automatique et ne peut pas devenir obsolète.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline (aucune erreur de syntaxe), suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). **Non testable unitairement** (dépend de `fetch()` et du DOM navigateur, comme les autres mécanismes de ce type déjà présents dans l'app — `checkTimerGapOnResume()`, suivi d'activité — jamais couverts par la suite Node pour la même raison) ; logique volontairement simple (une référence, une comparaison, un bandeau) pour limiter le risque. **Vérification navigateur non faite** dans cette session (même limite d'environnement documentée plus haut). À confirmer par Faustine : modifier puis pousser un commit, revenir sur un onglet Indépuls déjà ouvert (ou attendre 10 min), vérifier l'apparition du bandeau.
+
+---
+
+### FIX — Bouton "masquer une alerte" trop peu visible (2026-07-29)
+
+Retour Faustine : le petit lien texte "✓ Traité" (`_dismissBtn()`, tableau de bord) "pas toujours visible au premier coup d'œil". Proposition initiale de Faustine : le transformer en case à cocher façon todo-list. **Challengé avant de coder** : la plupart de ces alertes sont des constats d'état récurrents (dépendance à un client, objectif mensuel sous la cible, échéance fiscale proche), pas des tâches ponctuelles — cocher donnerait une fausse impression que le problème est réglé, alors qu'on a seulement demandé à ne plus en entendre parler pendant 15 jours. Irait à l'encontre du principe "zéro boîte noire" (jamais de fausse impression de certitude/clôture). Faustine a été convaincue par l'argument.
+
+**Retenu à la place** : même mécanisme (masquage 15 jours, `DATA.alertsDismissed`), rendu simplement plus visible — un vrai bouton `btn btn-out btn-xs` ("🔕 Masquer 15 j") au lieu d'un `<span>` texte discret. Zéro changement de logique, uniquement de présentation.
+
+**Vérifié** : `node --check` + suite Node complète (aucune fonction de `calculs.js` touchée, changement purement visuel). `.alert` déjà en `display:flex` (bascule en `display:block` sur mobile via media query existante) — le bouton s'aligne naturellement à côté du texte comme le faisait l'ancien `<span>`, aucun ajustement CSS nécessaire.
