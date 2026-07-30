@@ -71,6 +71,9 @@ export function migrate(data, schemaVersion, deps = {}) {
   // v33 : lots d'investissement (achat_revente) — comptes existants sans la clé, tableau vide
   // par défaut, aucune perte de données possible.
   if (!data.lots) data.lots = [];
+  // v34 : pense-bête (post-it libres, tableau de bord) — comptes existants sans la clé, tableau
+  // vide par défaut, aucune perte de données possible (retour Faustine, 2026-07-29).
+  if (!data.notesRapides) data.notesRapides = [];
 
   data.schemaVersion = schemaVersion;
   return data;

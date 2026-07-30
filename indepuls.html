@@ -148,6 +148,12 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 [data-theme="dark"] .al-warn,[data-theme="nuit"] .al-warn{background:#2a200a;color:#fbbf24;}[data-theme="dark"] .al-err,[data-theme="nuit"] .al-err{background:#2a0a0a;color:#f87171;}
 [data-theme="dark"] .al-ok,[data-theme="nuit"] .al-ok{background:#0a2a15;color:#4ade80;}[data-theme="dark"] .al-info,[data-theme="nuit"] .al-info{background:#0a1a2a;color:#93c5fd;}
 
+/* === PENSE-BÊTE (post-it) === */
+.postit{background:#fff8c4;color:#4a4324;border-radius:2px;padding:14px 14px 10px;width:150px;min-height:110px;box-shadow:2px 3px 8px rgba(0,0,0,.18);position:relative;font-size:12.5px;line-height:1.5;word-break:break-word;flex-shrink:0;}
+.postit-del{position:absolute;top:3px;right:5px;background:none;border:none;color:#8a7f3f;cursor:pointer;font-size:12px;padding:2px 5px;line-height:1;}
+.postit-del:hover{color:#c0392b;}
+[data-theme="dark"] .postit,[data-theme="nuit"] .postit{background:#e8d873;color:#2a2410;}
+
 /* === VALIDATION CHAMPS === */
 @keyframes fieldShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 .field-invalid{border-color:var(--err)!important;animation:fieldShake .3s;}
@@ -3970,7 +3976,7 @@ function getDefaultData() {
       chargeEstimee:null, chargeUnit:'h_sem', encaissements:[],
       typeMission:'individuelle', nbParticipants:0, prixParParticipant:0, tempsCreation:0, tempsAnimation:0, tempsSupport:0
     }],
-    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[], retours:[], lots:[]
+    revenus:{}, depenses:[], archives:{}, bilans:{}, tempsInterne:{}, recettesManuel:[], retours:[], lots:[], notesRapides:[]
   };
 }
 
@@ -4029,6 +4035,9 @@ function migrate(data) {
   // par défaut, aucune perte de données possible. Les dépenses/ventes sans lotId continuent de
   // fonctionner exactement comme avant (champ optionnel, jamais requis).
   if (!data.lots) data.lots = [];
+  // v34 : pense-bête (post-it libres, tableau de bord) — comptes existants sans la clé, tableau
+  // vide par défaut, aucune perte de données possible (retour Faustine, 2026-07-29).
+  if (!data.notesRapides) data.notesRapides = [];
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -5094,6 +5103,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
   // ── Zones fixes (non personnalisables) ───────────────────────
   let fixed = '';
   fixed += '<div class="w-mb">'+wScoreSante(d)+'</div>';
+  fixed += '<div class="w-mb">'+wNotesRapides()+'</div>';
 
   // ── Trajectoire annuelle + Répartition/Provisions (2 colonnes) ──
   // Colonne droite : Rémunération recommandée (SASU/EURL seulement) en tête, puis
@@ -9963,6 +9973,44 @@ function switchParamTab(tab, btn) {
   if(tab==='fiscalite'||tab==='avance') renderTvaParams();
   if(tab==='perso') renderThemes();
   if(tab==='activite') renderModulesUI();
+}
+// ── PENSE-BÊTE (post-it libres, tableau de bord, 2026-07-29) ──
+// Bloc-notes volontairement minimal (retour Faustine) : noter une idée qui passe, la supprimer
+// plus tard. Aucun lien avec le reste du moteur (pas de calcul, pas de mission associée, pas de
+// rappel programmé) — juste un ajout/suppression sur DATA.notesRapides, pour ne jamais dériver
+// vers un mini-outil de prise de notes complet.
+function addNoteRapide() {
+  const el = document.getElementById('note-rapide-input');
+  const texte = (el?.value || '').trim();
+  if (!texte) return;
+  if (!DATA.notesRapides) DATA.notesRapides = [];
+  DATA.notesRapides.unshift({ id: uuid(), texte, date: today() });
+  el.value = '';
+  saveData();
+  renderDashboard();
+}
+function deleteNoteRapide(id) {
+  DATA.notesRapides = (DATA.notesRapides || []).filter(n => n.id !== id);
+  saveData();
+  renderDashboard();
+}
+function wNotesRapides() {
+  const notes = DATA.notesRapides || [];
+  return `<div class="card">
+    <div class="card-title mb8">📝 Pense-bête</div>
+    <div class="ts mb10" style="color:var(--tl)">Notez une idée qui passe, supprimez-la quand elle n'est plus utile.</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input type="text" id="note-rapide-input" placeholder="Ex : Relancer Untel, penser à…" style="flex:1" onkeydown="if(event.key==='Enter'){addNoteRapide()}">
+      <button class="btn btn-acc btn-sm" onclick="addNoteRapide()" style="flex-shrink:0">+ Ajouter</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px">
+      ${notes.length ? notes.map((n,i) => `
+        <div class="postit" style="transform:rotate(${i%2===0?-2:2}deg)">
+          <button type="button" class="postit-del" onclick="deleteNoteRapide('${n.id}')" title="Supprimer">✕</button>
+          <div class="postit-texte">${esc(n.texte)}</div>
+        </div>`).join('') : `<div class="ts" style="color:var(--tl)">Rien pour l'instant.</div>`}
+    </div>
+  </div>`;
 }
 function toggleSalaries(val) {
   saveParam('chargesSalariales', val ? (DATA.params.chargesSalariales||0) : 0);

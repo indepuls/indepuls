@@ -102,6 +102,16 @@ section('migrate — v33 : lots[] par défaut si absent');
   const out = migrate({ params: {}, missions: [] }, 31, { getDefaultModules, uuid, today });
   test('lots=[]', out.lots, []);
 }
+section('migrate — v34 : notesRapides[] par défaut si absent (pense-bête, 2026-07-29)');
+{
+  const out = migrate({ params: {}, missions: [] }, 31, { getDefaultModules, uuid, today });
+  test('notesRapides=[]', out.notesRapides, []);
+}
+section('migrate — v34 : notesRapides[] existant préservé');
+{
+  const out = migrate({ params: {}, missions: [], notesRapides: [{ id: 'n1', texte: 'test' }] }, 31, { getDefaultModules, uuid, today });
+  test('notesRapides préservé', out.notesRapides, [{ id: 'n1', texte: 'test' }]);
+}
 
 section('applyDefaults — modules manquants entièrement complétés via getDefaultModules');
 {

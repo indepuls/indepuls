@@ -2350,3 +2350,17 @@ Retour Faustine : le petit lien texte "✓ Traité" (`_dismissBtn()`, tableau de
 **Retenu à la place** : même mécanisme (masquage 15 jours, `DATA.alertsDismissed`), rendu simplement plus visible — un vrai bouton `btn btn-out btn-xs` ("🔕 Masquer 15 j") au lieu d'un `<span>` texte discret. Zéro changement de logique, uniquement de présentation.
 
 **Vérifié** : `node --check` + suite Node complète (aucune fonction de `calculs.js` touchée, changement purement visuel). `.alert` déjà en `display:flex` (bascule en `display:block` sur mobile via media query existante) — le bouton s'aligne naturellement à côté du texte comme le faisait l'ancien `<span>`, aucun ajustement CSS nécessaire.
+
+---
+
+### FEATURE — Pense-bête (post-it libres, tableau de bord, 2026-07-29)
+
+Idée de Faustine : un widget "boîte à idées"/"vide-cerveau" sur le tableau de bord, façon post-it — noter une pensée qui passe, la supprimer plus tard. **Évalué avant de coder** : plus faible sur le critère n°1 (ne sert pas directement "est-ce que ça va", commodité générique plutôt que spécifique au pilotage financier), mais complexité et risque très faibles (aucun calcul, aucune interaction avec le reste du moteur), et Faustine a assumé ce compromis explicitement. Décidé volontairement **minimal** pour éviter toute dérive vers un mini-outil de prise de notes complet : ajouter/supprimer, rien d'autre (pas de rappel programmé, pas de lien vers une mission, pas de mise en forme).
+
+**Modèle de données** : `DATA.notesRapides` — tableau de `{id, texte, date}`. Ajouté à `getDefaultData()` et migré en v34 (`migrate()`, comptes existants sans la clé → tableau vide, aucune perte de données) dans les **deux** copies (`indepuls.html` et `shared/core/storage.js`, discipline shadow-mode). Tests : `shared/tests/storage_migrations.test.js` +2 assertions (défaut vide + préservation d'un tableau existant).
+
+**Fonctions** (`indepuls.html`) : `addNoteRapide()` lit `#note-rapide-input`, ajoute en tête de `DATA.notesRapides` (les plus récentes en premier), valide aussi sur Entrée. `deleteNoteRapide(id)` filtre le tableau. Les deux appellent `saveData()` + `renderDashboard()`, aucune logique métier.
+
+**Widget** : `wNotesRapides()`, placé juste après le Score de Santé sur le tableau de bord. Visuel post-it (`.postit`, fond jaune pâle, léger `box-shadow`, rotation alternée ±2° pour un effet pile de notes) — volontairement identifiable comme un post-it dans tous les thèmes plutôt que recoloré par thème (comme `al-warn`, une simple bascule de teinte pour le thème sombre suffit à rester lisible). Texte utilisateur toujours passé par `esc()` avant insertion HTML (protection XSS, même discipline que partout ailleurs dans l'app pour du texte libre).
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression). **Vérification navigateur non faite** dans cette session (même limite d'environnement documentée plus haut) — Faustine doit valider le rendu visuel et dire ce qu'elle en pense avant d'itérer, comme convenu ("code un truc, je te dis ce que j'en pense").
