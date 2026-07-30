@@ -2442,3 +2442,19 @@ Retour Faustine : "Ma trajectoire annuelle", "Où part mon chiffre d'affaires" e
 **Sélecteur Année/Mois déplacé** dans "Où part mon chiffre d'affaires" : il vivait dans l'en-tête toujours visible, alors qu'il n'a aucun intérêt à rester affiché quand la carte est repliée (rien à basculer si le contenu est masqué). Descendu dans le corps repliable, juste au-dessus du donut.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (aucune régression). Équilibre `<div>`/`</div>` revérifié pour `wRepartitionCA` après restructuration (32/32). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine, en particulier la persistance en mode démo après ce correctif.
+
+---
+
+### FEATURE — Jalons motivants dans le Brief (2026-07-30)
+
+Idée de Faustine : féliciter un instant marquant ("vous venez de dépasser votre meilleur mois", "vous venez d'atteindre votre objectif annuel"), pas juste décrire un état comme le fait déjà `phraseCombinee`. Cohérent avec "l'élan plutôt que la culpabilité" déjà en place — le tableau de bord ne célébrait jusqu'ici jamais un vrai moment.
+
+**Piège signalé par Faustine avant de coder, vérifié dans le code existant** : `bestMonth` (`getTrajectoireAnnuelleInfo()`) peut être le **mois en cours lui-même** (`months12.filter(c=>!c.isFut)` inclut le mois courant, pas de garde d'exclusion). Comparer directement le CA du mois en cours à `bestMonth.brut` aurait donc pu se féliciter à tort de "battre son meilleur mois" dès la toute première activité — puisque ce "meilleur mois" aurait été lui-même.
+
+**`getJalonsMotivants(objNet)`** (`indepuls.html`, à côté de `getTrajectoireAnnuelleInfo`) : calcule sa propre comparaison, indépendante de `bestMonth`, en exigeant explicitement un **autre** mois réel (`mk !== curMk`) avec du CA réel (`>0`) avant de proposer le jalon "nouveau meilleur mois" — s'il n'existe aucun autre mois à dépasser (premier mois d'activité), le jalon ne se déclenche jamais, quel que soit le CA du mois en cours. Second jalon (objectif annuel atteint) sans ce piège : comparaison directe CA réalisé vs objectif annuel, aucune ambiguïté possible.
+
+**Volontairement éphémère, sans mécanisme de masquage dédié** : chaque jalon est scopé à sa période (mois ou année) — une fois celle-ci terminée, la condition redevient naturellement fausse, pas besoin d'un `alertsDismissed` séparé. Reste affiché tant que la condition est vraie dans le mois/l'année en cours (assumé positif plutôt que répétitif, contrairement à une alerte de vigilance).
+
+**Rendu** : bandeau `al-ok` (vert) dans le Brief, juste après l'en-tête et avant "Action recommandée" — la bonne nouvelle passe en premier.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à confirmer par Faustine, notamment que le jalon "meilleur mois" ne se déclenche jamais sur un tout premier mois d'activité.
