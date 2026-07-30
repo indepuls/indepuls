@@ -1477,7 +1477,7 @@ html,body{overflow-x:hidden;}
     <div id="sim-create-zone" style="display:none;margin-top:12px">
       <button class="btn btn-acc" id="sim-create-btn" onclick="createMissionFromSim()">+ Créer une mission depuis ce test</button>
       <button class="btn btn-out" onclick="ouvrirGenerateurDevisSim()">📄 Générer un devis</button>
-      <span class="ts ml8" style="color:var(--tl)">Pré-remplit le formulaire mission avec ces données.</span>
+      <span class="ts ml8" style="color:var(--tl)">Deux actions indépendantes : vous pouvez créer la mission, générer le devis, ou les deux.</span>
     </div>
   </div>
 
@@ -10383,7 +10383,6 @@ function genererDevisPDF() {
   const dateDevis = val('dv-date');
   const validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
   const dateValidite = dateDevis ? new Date(new Date(dateDevis + 'T12:00:00').getTime() + validiteJours * 86400000) : null;
-  const metierLbl = p.metier ? (PROFIL_LABELS[p.metier] || '') : '';
   // Couleurs du thème choisi par l'utilisatrice·teur, pas celles de Faustine en dur (retour
   // Faustine, 2026-07-30 : "les couleurs sont les miennes, pas forcément celles de l'utilisateur
   // — ici mon mari") — même thème que le reste d'Indépuls, y compris pour un futur compte
@@ -10413,14 +10412,15 @@ function genererDevisPDF() {
     @media print{body{margin:12px}button{display:none}}
   </style></head><body>
   <div class="entete">
-    <div>${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:100px;max-width:280px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}</div>
+    <div>
+      ${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:100px;max-width:280px;display:block;margin-bottom:8px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}
+      <div class="meta" style="text-align:left">${val('dv-numero') ? `Devis n°${esc(val('dv-numero'))}` : 'Devis'}${dateDevis ? ` · ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
+    </div>
     <div class="titre">DEVIS</div>
   </div>
-  <div class="meta" style="text-align:left;margin-bottom:16px">${val('dv-numero') ? `N° ${esc(val('dv-numero'))} · ` : ''}${dateDevis ? `Date : ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
   <div class="parties">
     <div>
       <strong>${esc(p.nom || '')}</strong><br>
-      ${metierLbl ? esc(metierLbl) + '<br>' : ''}
       ${p.siret ? `SIRET : ${esc(p.siret)}<br>` : ''}
       ${mention}
     </div>
