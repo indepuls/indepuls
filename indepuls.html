@@ -5292,7 +5292,8 @@ function wProvisionsSide(d) {
 
 
   return '<div class="card" style="border-left:4px solid '+urgBorder+'">'
-    +'<div class="card-title" style="margin-bottom:12px">🏦 Argent à mettre de côté</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="card-title" style="margin-bottom:0">🏦 Argent à mettre de côté</div>'+_widgetToggleBtn('provisions')+'</div>'
+    +'<div style="display:'+(_widgetReplie('provisions')?'none':'')+'">'
     +'<div style="background:rgba(201,115,22,.07);border-radius:10px;padding:14px 16px;border-left:3px solid var(--warn);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">'
       +'<div>'
         +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">À conserver sur le compte</div>'
@@ -5304,10 +5305,10 @@ function wProvisionsSide(d) {
       const caMoisBrut=getCaFromMissions(curMk)+getPonctuelsCA(curMk);
       if(!totalAConserver||caMoisBrut<=0) return '';
       if(caMoisBrut>=totalAConserver)
-        return '<div style="font-size:12px;color:var(--ok);margin-bottom:10px;display:flex;gap:6px"><span>🟢</span><span><strong>Situation confortable</strong> — les revenus du mois couvrent mes provisions à venir.</span></div>';
+        return '<div style="font-size:12px;color:var(--ok);margin-bottom:10px;display:flex;gap:6px"><span>🟢</span><span><strong>Situation confortable</strong> : les revenus du mois couvrent mes provisions à venir.</span></div>';
       if(caMoisBrut>=totalAConserver*0.5)
-        return '<div style="font-size:12px;color:var(--warn);margin-bottom:10px;display:flex;gap:6px"><span>🟠</span><span><strong>À surveiller</strong> — les revenus du mois ne couvrent qu\'une partie des provisions à constituer.</span></div>';
-      return '<div style="font-size:12px;color:var(--err);margin-bottom:10px;display:flex;gap:6px"><span>🔴</span><span><strong>Vigilance</strong> — vos prochaines échéances risquent de peser sur votre trésorerie.</span></div>';
+        return '<div style="font-size:12px;color:var(--warn);margin-bottom:10px;display:flex;gap:6px"><span>🟠</span><span><strong>À surveiller</strong> : les revenus du mois ne couvrent qu\'une partie des provisions à constituer.</span></div>';
+      return '<div style="font-size:12px;color:var(--err);margin-bottom:10px;display:flex;gap:6px"><span>🔴</span><span><strong>Vigilance</strong> : vos prochaines échéances risquent de peser sur votre trésorerie.</span></div>';
     })()
     +(repartRows.length?'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">Répartition</div>'+rowHtml:'')
     +(()=>{
@@ -5333,6 +5334,7 @@ function wProvisionsSide(d) {
         return `<div style="font-size:11px;color:${_col};margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid ${_col}">${_msg}${_sP}<br><span style="opacity:.75">Distinct du seuil de franchise TVA · indicatif, non substitut à un conseil comptable.</span></div>`;
       }catch(e){reportError('wKPIs.plafondMicro',e);return '';}
     })()
+    +'</div>'
     +'</div>';
 }
 
@@ -5408,8 +5410,9 @@ function wRepartitionCA(d) {
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div><div class="card-title">💰 Où part mon chiffre d'affaires ?</div>
       <div class="card-sub">${vue==='annee'?`Année ${DATA.currentYear}`:moisLbl} · CA encaissé : ${fmtE(cur.ca)}</div></div>
-      <div style="display:flex;gap:6px">${btn('annee','Année')}${btn('mois','Mois')}</div>
+      <div style="display:flex;gap:6px;align-items:center">${btn('annee','Année')}${btn('mois','Mois')}${_widgetToggleBtn('repartitionCA')}</div>
     </div>
+    <div style="display:${_widgetReplie('repartitionCA')?'none':''}">
     <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center;margin-bottom:14px">
       <div style="position:relative;width:160px;height:160px;flex-shrink:0">
         <div style="width:160px;height:160px;border-radius:50%;background:${gradient}"></div>
@@ -5425,6 +5428,7 @@ function wRepartitionCA(d) {
       ${pctAlt!==null?`<div style="font-size:11px;color:var(--tl);margin-top:4px">${altLbl} : <strong>${pctAlt} %</strong></div>`:''}
     </div>
     ${tvaNote}
+    </div>
   </div>`;
 }
 
@@ -5735,7 +5739,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     const moisLabelBest=new Date(by,bm-1,1).toLocaleDateString('fr-FR',{month:'long'});
     const curCaADate=getCaMissionsADate(curMk,todayJour);
     const bestCaADate=getCaMissionsADate(bestMonth.mk,jourCompare);
-    phraseMeilleurMois=`Au ${todayJour} du mois, j'ai encaissé <strong>${fmtE(curCaADate,0)}</strong> de CA — mon meilleur mois (${moisLabelBest}) en était à <strong>${fmtE(bestCaADate,0)}</strong> au même stade.`;
+    phraseMeilleurMois=`Au ${todayJour} du mois, j'ai encaissé <strong>${fmtE(curCaADate,0)}</strong> de CA : mon meilleur mois (${moisLabelBest}) en était à <strong>${fmtE(bestCaADate,0)}</strong> au même stade.`;
   }
 
   // ── PHRASE DE DIAGNOSTIC COMBINÉE (annuel + mensuel dans la même phrase) ──
@@ -5746,16 +5750,16 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
     phraseCombinee=phraseAnnuel;
   } else {
     const rAn=annualAtPace/annualTarget;
-    if(rAn>=1&&pctObj>=100) phraseCombinee=`🟢 Je suis sur la bonne trajectoire — objectif annuel en vue, et objectif du mois déjà atteint.`;
+    if(rAn>=1&&pctObj>=100) phraseCombinee=`🟢 Je suis sur la bonne trajectoire : objectif annuel en vue, et objectif du mois déjà atteint.`;
     else if(rAn>=1&&pctObj<100) phraseCombinee=`🟢 Ma trajectoire annuelle est bonne. Il reste <strong>${fmtE(objNet-caNetMois)}</strong> à trouver ce mois-ci pour rester dans le rythme.`;
-    else if(rAn<1&&pctObj>=100) phraseCombinee=`🟠 Bon mois, mais l'objectif annuel reste incertain à ce rythme — continuez sur cette lancée.`;
-    else phraseCombinee=`🔴 L'année comme le mois sont en dessous de vos objectifs — <strong>${fmtE(objNet-caNetMois)}</strong> à trouver ce mois-ci pour redresser la trajectoire.`;
+    else if(rAn<1&&pctObj>=100) phraseCombinee=`🟠 Bon mois, mais l'objectif annuel reste incertain à ce rythme : continuez sur cette lancée.`;
+    else phraseCombinee=`🔴 L'année comme le mois sont en dessous de vos objectifs : <strong>${fmtE(objNet-caNetMois)}</strong> à trouver ce mois-ci pour redresser la trajectoire.`;
   }
 
   return `<div class="card">
-    <div class="card-header"><div class="card-title">📊 Ma trajectoire annuelle</div></div>
+    <div class="card-header"><div class="card-title">📊 Ma trajectoire annuelle</div>${_widgetToggleBtn('trajectoire')}</div>
     <div style="font-size:14px;color:var(--text);line-height:1.55;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">${phraseCombinee}</div>
-
+    <div style="display:${_widgetReplie('trajectoire')?'none':''}">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Sur l'année</div>
     <div class="kpi-label">CA ${p.tva?'HT ':''}annuel ${DATA.currentYear}</div>
     <div class="kpi-val" style="font-size:22px">${fmtE(caBrut)}</div>
@@ -5789,6 +5793,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
       <div style="font-size:11px;color:var(--tl);line-height:1.6;margin-top:9px">
         ${phraseMeilleurMois?phraseMeilleurMois+'<br>':''}${phraseNet}
       </div>
+    </div>
     </div>
   </div>`;
 }
@@ -10054,6 +10059,23 @@ function wNotesRapides() {
           <div class="postit-texte" contenteditable="true" onblur="updateNoteRapide('${n.id}',this)">${esc(n.texte)}</div>
         </div>`).join('') : `<div class="postit postit-vide">Rien pour l'instant</div>`}
     </div>`;
+}
+// ── WIDGETS DÉPLIABLES (tableau de bord, 2026-07-30) ──────────
+// Retour Faustine : "Ma trajectoire annuelle", "Où part mon chiffre d'affaires" et "Argent à
+// mettre de côté" devraient pouvoir se replier, titre (et pour la trajectoire, la phrase de
+// diagnostic) toujours visibles. État persistant (DATA.widgetsReplies, synchronisé comme le
+// reste), pas juste une préférence locale — cohérent avec le principe "vos réglages vous suivent
+// partout" déjà en place pour le thème.
+function _widgetReplie(key) { return !!(DATA.widgetsReplies||{})[key]; }
+function toggleWidgetReplie(key) {
+  DATA.widgetsReplies = DATA.widgetsReplies || {};
+  DATA.widgetsReplies[key] = !DATA.widgetsReplies[key];
+  saveData();
+  renderDashboard();
+}
+function _widgetToggleBtn(key) {
+  const replie = _widgetReplie(key);
+  return `<button type="button" onclick="toggleWidgetReplie('${key}')" style="background:none;border:none;cursor:pointer;color:var(--tl);font-size:15px;padding:2px 4px;flex-shrink:0;line-height:1" title="${replie?'Déplier':'Replier'}">${replie?'▸':'▾'}</button>`;
 }
 function toggleSalaries(val) {
   saveParam('chargesSalariales', val ? (DATA.params.chargesSalariales||0) : 0);

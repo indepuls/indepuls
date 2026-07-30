@@ -2412,3 +2412,19 @@ Faustine a testé le widget (via des post-it réels contenant ses retours — m�
 **Renommé au passage** (retour Faustine) : "✓ Marquer payé" → "✅ J'ai payé" — plus fluide, tournure à la première personne cohérente avec le reste du produit.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression). **Vérification navigateur non faite** dans cette session (même limite d'environnement) — à reconfirmer par Faustine, notamment sur Edge (navigateur où le crash a été observé).
+
+---
+
+### FEATURE — Widgets dépliables (tableau de bord, 2026-07-30)
+
+Retour Faustine : "Ma trajectoire annuelle", "Où part mon chiffre d'affaires" et "Argent à mettre de côté" devraient pouvoir se replier, pour désencombrer le tableau de bord — avec une nuance explicite pour la trajectoire, qui couvre à la fois le mensuel et l'annuel : garder au moins la phrase de diagnostic (rond de couleur + texte) visible même repliée, pas juste le titre.
+
+**Mécanisme générique** (`_widgetReplie(key)`, `toggleWidgetReplie(key)`, `_widgetToggleBtn(key)`) : état persistant dans `DATA.widgetsReplies` (synchronisé comme le thème, pas juste une préférence locale au navigateur), même convention légère que `alertsDismissed`/`echeancesPayees` (objet optionnel, lu via `||{}`, aucune entrée de migration dédiée). Chevron ▾/▸ dans l'en-tête de chaque widget, `event` non nécessaire (le clic sur le bouton ne déclenche aucune action de la carte elle-même, contrairement à d'autres cartes cliquables ailleurs dans l'app).
+
+**Traitement différencié, comme demandé** :
+- `wTrajectoireAnnuelle` : titre + phrase de diagnostic (`phraseCombinee`, déjà avec son rond de couleur 🟢/🟠/🔴) toujours visibles ; tout le reste (CA annuel, mini-graphique, revenu net du mois) replié.
+- `wProvisionsSide` ("Argent à mettre de côté") et `wRepartitionCA` ("Où part mon CA") : titre seul visible replié, comme demandé explicitement (pas de phrase-résumé pour ces deux-là, contrairement à la trajectoire).
+
+**Nettoyage de tirets cadratins au passage** (retour Faustine sur une phrase précise, étendu par cohérence aux phrases de diagnostic voisines dans les mêmes fonctions, jamais aux séparateurs compacts "pourcentage — valeur" utilisés partout ailleurs dans l'app, catégorie différente d'une vraie phrase) : 6 occurrences corrigées dans `wTrajectoireAnnuelle` et `wProvisionsSide`, remplacées par ":" ou une virgule selon le contexte.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). Équilibre des balises `<div>`/`</div>` vérifié manuellement pour les 3 fonctions modifiées (comptage identique de part et d'autre, aucune fuite de structure). **Vérification navigateur non faite** dans cette session (même limite d'environnement documentée plus haut) — à confirmer par Faustine : chevron replie/déplie bien chaque widget, la phrase de la trajectoire reste visible repliée, l'état survit à un rechargement.
