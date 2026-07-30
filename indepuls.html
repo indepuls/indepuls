@@ -12337,6 +12337,39 @@ function _afficherErreurChargementModule() {
     </div>`;
   document.body.appendChild(ov);
 }
+// ── DÉTECTION D'UNE NOUVELLE VERSION DÉPLOYÉE ─────────────────
+// Contexte (retour Faustine, 2026-07-29) : période de changements fréquents — un onglet resté
+// ouvert plusieurs jours peut tourner sur une version qui contient déjà un bug corrigé, sans que
+// personne ne le sache. Compare périodiquement le contenu réellement servi à celui chargé au
+// démarrage ; jamais de rechargement automatique (perdrait une saisie en cours) — juste un
+// bandeau discret proposant de recharger, jamais un popup qui s'impose.
+let _versionRefContent = null;
+let _nouvelleVersionAffichee = false;
+const VERSION_CHECK_INTERVAL = 10 * 60 * 1000; // 10 min
+
+async function _capturerVersionReference() {
+  try {
+    const res = await fetch(location.pathname, { cache: 'no-store' });
+    _versionRefContent = await res.text();
+  } catch (e) { /* pas grave, capturé au prochain contrôle */ }
+}
+async function _verifierNouvelleVersion() {
+  if (_nouvelleVersionAffichee || !_versionRefContent) return;
+  try {
+    const res = await fetch(location.pathname, { cache: 'no-store' });
+    const contenuActuel = await res.text();
+    if (contenuActuel !== _versionRefContent) _afficherBandeauNouvelleVersion();
+  } catch (e) { /* réseau indisponible — retenté au prochain contrôle */ }
+}
+function _afficherBandeauNouvelleVersion() {
+  if (_nouvelleVersionAffichee) return;
+  _nouvelleVersionAffichee = true;
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:9998;background:var(--pri,#141538);color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;font-size:13px;max-width:90vw';
+  el.innerHTML = `<span>✨ Une nouvelle version d'Indépuls est disponible.</span><button class="btn btn-acc btn-sm" style="flex-shrink:0" onclick="location.reload()">🔄 Recharger</button>`;
+  document.body.appendChild(el);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof window.getCaFromMissions !== 'function') { _afficherErreurChargementModule(); return; }
   loadData();
@@ -12367,8 +12400,10 @@ document.addEventListener('DOMContentLoaded', () => {
     _lastResizeWidth = window.innerWidth;
     clearTimeout(rt); rt=setTimeout(()=>renderPage(currentPage),200);
   });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState==='visible') checkTimerGapOnResume(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState==='visible') { checkTimerGapOnResume(); _verifierNouvelleVersion(); } });
   window.addEventListener('focus', checkTimerGapOnResume);
+  _capturerVersionReference();
+  setInterval(_verifierNouvelleVersion, VERSION_CHECK_INTERVAL);
 });
 
 // ── INFO-TIP : clic pour afficher/masquer ────────────────────
