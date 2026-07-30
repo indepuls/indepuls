@@ -4228,16 +4228,21 @@ function loadData() {
     if (parsed.isExample) {
       const savedMetier = parsed.params?.metier;
       const savedParams = parsed.params;
-      // alertsDismissed est un champ racine de DATA (pas sous .params) — DATA = demoData plus
-      // bas repart d'un objet frais qui ne l'a jamais eu, sinon "Traité" réapparaîtrait à
-      // chaque F5 en mode démo (bug repéré en retour bêta).
+      // alertsDismissed/echeancesPayees/widgetsReplies sont des champs racine de DATA (pas sous
+      // .params) — DATA = demoData plus bas repart d'un objet frais qui ne les a jamais eus,
+      // sinon "Traité"/"J'ai payé"/l'état replié des widgets réapparaîtraient à chaque F5 en
+      // mode démo (bug repéré en retour bêta — widgetsReplies, 2026-07-30).
       const savedAlertsDismissed = parsed.alertsDismissed;
+      const savedEcheancesPayees = parsed.echeancesPayees;
+      const savedWidgetsReplies = parsed.widgetsReplies;
       const demoData = getExampleData(savedMetier);
       // Capturé AVANT "DATA = demoData" (qui rend les deux variables identiques, même objet) —
       // le lire après coup renverrait la valeur déjà fusionnée/écrasée, pas l'originale.
       const demoDateOuverture = demoData.params.dateOuverture;
       DATA = demoData;
       if (savedAlertsDismissed) DATA.alertsDismissed = savedAlertsDismissed;
+      if (savedEcheancesPayees) DATA.echeancesPayees = savedEcheancesPayees;
+      if (savedWidgetsReplies) DATA.widgetsReplies = savedWidgetsReplies;
       if (savedParams) {
         DATA.params = { ...demoData.params, ...savedParams };
         // Même garde qu'à la création (loadDemoWithCurrentParams) : un dateOuverture vide
@@ -5407,12 +5412,13 @@ function wRepartitionCA(d) {
   const tvaNote=p.tva?(()=>{const tv=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());return tv>0?`<div style="font-size:11px;color:var(--tl);margin-top:8px;padding:6px 10px;background:var(--bg);border-radius:6px">ℹ️ Base : CA HT. TVA non incluse (flux neutre). TVA nette à reverser : <strong>${fmtE(vue==='annee'?tv:Math.round(tv/mc))}</strong>.</div>`:''})():'';
   const btn=(v,lbl)=>`<button onclick="DATA.repartitionVue='${v}';renderDashboard()" style="padding:4px 12px;border-radius:16px;border:1.5px solid ${vue===v?'var(--pri)':'var(--brd)'};background:${vue===v?'var(--pri)':'transparent'};color:${vue===v?'#fff':'var(--tl)'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">${lbl}</button>`;
   return `<div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div class="card-header">
       <div><div class="card-title">💰 Où part mon chiffre d'affaires ?</div>
       <div class="card-sub">${vue==='annee'?`Année ${DATA.currentYear}`:moisLbl} · CA encaissé : ${fmtE(cur.ca)}</div></div>
-      <div style="display:flex;gap:6px;align-items:center">${btn('annee','Année')}${btn('mois','Mois')}${_widgetToggleBtn('repartitionCA')}</div>
+      ${_widgetToggleBtn('repartitionCA')}
     </div>
     <div style="display:${_widgetReplie('repartitionCA')?'none':''}">
+    <div style="display:flex;gap:6px;margin-bottom:14px">${btn('annee','Année')}${btn('mois','Mois')}</div>
     <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center;margin-bottom:14px">
       <div style="position:relative;width:160px;height:160px;flex-shrink:0">
         <div style="width:160px;height:160px;border-radius:50%;background:${gradient}"></div>
@@ -5757,7 +5763,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   }
 
   return `<div class="card">
-    <div class="card-header"><div class="card-title">📊 Ma trajectoire annuelle</div>${_widgetToggleBtn('trajectoire')}</div>
+    <div class="card-header"><div class="card-title">📊 Ma trajectoire mensuelle et annuelle</div>${_widgetToggleBtn('trajectoire')}</div>
     <div style="font-size:14px;color:var(--text);line-height:1.55;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">${phraseCombinee}</div>
     <div style="display:${_widgetReplie('trajectoire')?'none':''}">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Sur l'année</div>
@@ -10074,8 +10080,10 @@ function toggleWidgetReplie(key) {
   renderDashboard();
 }
 function _widgetToggleBtn(key) {
+  // Texte à côté du chevron (retour Faustine, 2026-07-30) : la flèche seule était trop discrète,
+  // à peine visible.
   const replie = _widgetReplie(key);
-  return `<button type="button" onclick="toggleWidgetReplie('${key}')" style="background:none;border:none;cursor:pointer;color:var(--tl);font-size:15px;padding:2px 4px;flex-shrink:0;line-height:1" title="${replie?'Déplier':'Replier'}">${replie?'▸':'▾'}</button>`;
+  return `<button type="button" onclick="toggleWidgetReplie('${key}')" style="display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;padding:3px 6px;flex-shrink:0" title="${replie?'Déplier':'Replier'}">${replie?'Voir le détail ▸':'Masquer ▾'}</button>`;
 }
 function toggleSalaries(val) {
   saveParam('chargesSalariales', val ? (DATA.params.chargesSalariales||0) : 0);

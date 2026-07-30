@@ -2428,3 +2428,17 @@ Retour Faustine : "Ma trajectoire annuelle", "Où part mon chiffre d'affaires" e
 **Nettoyage de tirets cadratins au passage** (retour Faustine sur une phrase précise, étendu par cohérence aux phrases de diagnostic voisines dans les mêmes fonctions, jamais aux séparateurs compacts "pourcentage — valeur" utilisés partout ailleurs dans l'app, catégorie différente d'une vraie phrase) : 6 occurrences corrigées dans `wTrajectoireAnnuelle` et `wProvisionsSide`, remplacées par ":" ou une virgule selon le contexte.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée (aucune régression, aucune fonction de `calculs.js` touchée). Équilibre des balises `<div>`/`</div>` vérifié manuellement pour les 3 fonctions modifiées (comptage identique de part et d'autre, aucune fuite de structure). **Vérification navigateur non faite** dans cette session (même limite d'environnement documentée plus haut) — à confirmer par Faustine : chevron replie/déplie bien chaque widget, la phrase de la trajectoire reste visible repliée, l'état survit à un rechargement.
+
+---
+
+### FIX — Retouches widgets dépliables (2026-07-30 bis)
+
+**Vraie cause de la non-persistance en mode démo trouvée** : `loadData()` régénère volontairement `getExampleData()` à chaque rechargement en mode démo ("garantit que les mises à jour du contenu démo sont immédiatement visibles", voir le commentaire déjà en place), et ne préservait explicitement que `params` et `alertsDismissed` par-dessus les données fraîches — `widgetsReplies` (et `echeancesPayees`, oublié pour la même raison lors du chantier précédent) en étaient absents, donc réinitialisés à chaque F5. Corrigé en ajoutant les deux à la liste des champs explicitement préservés, même endroit, même motif que `alertsDismissed`. **Aucun problème en dehors du mode démo** : un vrai compte ne régénère jamais ses données depuis `getDefaultData()`, seul le mode démo a ce comportement particulier.
+
+**Chevron trop discret** : texte ajouté à côté de la flèche ("Voir le détail ▸" / "Masquer ▾") plutôt que la flèche seule.
+
+**Titre corrigé** : "Ma trajectoire annuelle" → "Ma trajectoire mensuelle et annuelle" (le widget couvre bien les deux, pas seulement l'année).
+
+**Sélecteur Année/Mois déplacé** dans "Où part mon chiffre d'affaires" : il vivait dans l'en-tête toujours visible, alors qu'il n'a aucun intérêt à rester affiché quand la carte est repliée (rien à basculer si le contenu est masqué). Descendu dans le corps repliable, juste au-dessus du donut.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (aucune régression). Équilibre `<div>`/`</div>` revérifié pour `wRepartitionCA` après restructuration (32/32). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine, en particulier la persistance en mode démo après ce correctif.
