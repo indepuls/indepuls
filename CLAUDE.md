@@ -2666,3 +2666,17 @@ Retourne aussi `tvaCollectee`/`tvaRecuperee` en plus des montants nets, pour que
 **UI** : nouveau sélecteur "Augmentez vos prix" / "Gardez le même prix total" sur la carte statut (`etsiCard4Html()`, ré-render isolé de la carte via `toggleEtsiPrixHypothese()` — les autres cartes ne sont pas affectées). Ligne de détail affichée sous les 4 cases quand pertinent ("TVA collectée : -X · TVA récupérée : +Y · net positif/négatif"). État non persisté, comme le reste de "Et si ?". Modale "Comment c'est calculé ?" mise à jour en conséquence.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (19 tests dans `etsi_simulateur.test.js`, dont 4 nouveaux couvrant les deux hypothèses de prix, 0 échec).
+
+---
+
+### FIX/FEATURE — Transparence sur la fenêtre de calcul + cohérence dépenses (2026-07-30 quattuordecies)
+
+Faustine a demandé confirmation : le CA utilisé pour "Et si je changeais de statut ?" est-il celui du mois en cours, ou une moyenne — "car si on fait la simulation sur un bon ou un mauvais mois, ça change tout" ? Réponse : c'était déjà la moyenne glissante des 12 derniers mois (même source que "Ma rentabilité", `getRentabiliteRoulante()`), mais rien ne le disait sur la carte — demande explicite de le signaler.
+
+**Ajouté** : une ligne sur la carte statut précisant la base de calcul ("Basé sur la moyenne de vos 12 derniers mois glissants" ou "vos X premiers mois d'activité" si moins d'un an d'historique).
+
+**Question complémentaire de Faustine** : et les dépenses, sur quelle période ? Audit du code : les dépenses récurrentes (mensuelle/annuelle) sont des montants **configurés et constants** (ex. un abonnement à 30€/mois) — aucune volatilité à lisser, la fenêtre de calcul n'a structurellement aucun effet dessus. En revanche, la TVA récupérée sur les dépenses **ponctuelles** (fournitures de chantier, etc.) était filtrée sur "l'année civile en cours" (`d.date.slice(0,4)===DATA.currentYear`), pas sur la fenêtre glissante du CA — un vrai risque de "bon ou mauvais mois" si un gros achat one-shot tombe tôt ou tard dans l'année.
+
+**Corrigé** : `_depensesTvaMoyenneMensuelle(DATA, mks)` prend maintenant la fenêtre glissante (`mks`, la même que celle du CA — `getRentabiliteRoulante().mks`, déjà calculée) en paramètre, et filtre les dépenses ponctuelles dessus plutôt que sur l'année civile. Rétrocompatible (repli sur les 12 mois de l'année civile si `mks` non fourni) — `getComparateurStatuts` la relaie en 4ᵉ paramètre.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (20 tests dans `etsi_simulateur.test.js`, dont 1 nouveau prouvant que le filtre suit bien la fenêtre glissante fournie et non l'année civile, 0 échec).

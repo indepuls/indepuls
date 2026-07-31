@@ -12988,7 +12988,7 @@ function etsiCard4Html() {
   const statutActuel=DATA.params.statut||'micro';
   const isMicroActuel=statutActuel==='micro';
   const rentRoulante=getRentabiliteRoulante();
-  const comp=getComparateurStatuts(rentRoulante.caBrut/Math.max(1,rentRoulante.nbMois),_etsiPrixAugmentes);
+  const comp=getComparateurStatuts(rentRoulante.caBrut/Math.max(1,rentRoulante.nbMois),_etsiPrixAugmentes,rentRoulante.mks);
   const cellStatut=(isActuel,label,sub,val)=>`<div style="background:var(--bg);border-radius:8px;padding:8px 10px;${isActuel?'border:1.5px solid var(--acc)':''}">
     <div class="ts" style="font-weight:700;text-transform:uppercase;font-size:10px">${label}${isActuel?' · actuel':''}</div>
     <div class="ts" style="color:var(--tl);margin-bottom:4px">${sub}</div>
@@ -13006,7 +13006,8 @@ function etsiCard4Html() {
   return `<div id="etsi-card4-zone">
     <div class="card">
       <div class="card-header"><div class="card-title">🏢 Et si je changeais de statut ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('statut')">Comment c'est calculé ?</button></div>
-      <div class="ts" style="color:var(--tl);margin-bottom:10px">Estimation indicative à CA et dépenses constants.</div>
+      <div class="ts" style="color:var(--tl);margin-bottom:4px">Estimation indicative à CA et dépenses constants.</div>
+      <div class="ts" style="color:var(--tl);margin-bottom:10px">Basé sur la moyenne de ${rentRoulante.estPartielle?`vos ${rentRoulante.nbMois} premiers mois d'activité`:'vos 12 derniers mois glissants'} — pas un seul mois isolé, pour ne pas dépendre d'un mois particulièrement bon ou mauvais.</div>
       <div class="ts mb8" style="font-weight:700;color:var(--tl);text-transform:uppercase;font-size:10px">Si vous passiez à la TVA, vous...</div>
       <div style="display:flex;gap:4px;margin-bottom:10px">
         ${btnHyp('augmente','Augmentez vos prix (HT + TVA en plus)')}
@@ -13458,7 +13459,7 @@ document.addEventListener('keydown', function(e) {
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
   window.getTauxHoraireMinCibleSimule = (overrides) => { sync(); return Mode.getTauxHoraireMinCibleSimule(overrides); };
-  window.getComparateurStatuts  = (caBrutMensuel,prixAugmentes) => { sync(); return Mode.getComparateurStatuts(caBrutMensuel,prixAugmentes); };
+  window.getComparateurStatuts  = (caBrutMensuel,prixAugmentes,mks) => { sync(); return Mode.getComparateurStatuts(caBrutMensuel,prixAugmentes,mks); };
   window.getTHBrutAnnuel        = (caBrut,hT) => { sync(); return Mode.getTHBrutAnnuel(caBrut,hT); };
   window.getTJMBrut             = (thBrut)    => { sync(); return Mode.getTJMBrut(thBrut); };
   window.getTHBrutMois          = (mk,caMois,heuresMois) => { sync(); return Mode.getTHBrutMois(mk,caMois,heuresMois); };

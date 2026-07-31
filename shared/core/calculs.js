@@ -537,16 +537,27 @@ export function getTauxHoraireMinCibleSimule(DATA, overrides = {}) {
 //    (montant TTC réel, hors affaire pour les récurrentes ; ponctuelles de l'année, y compris
 //    liées à une affaire) — assumé comme une estimation, jamais présenté comme une donnée
 //    réellement suivie (voir ETSI_METH['statut'], indepuls.html).
-function _depensesTvaMoyenneMensuelle(DATA) {
+//
+// Les dépenses PONCTUELLES sont filtrées sur `mks` (la même fenêtre glissante de 12 mois que le
+// CA — voir getRentabiliteRoulante(), indepuls.html), pas "l'année civile en cours" : un gros
+// achat one-shot fait début janvier serait sinon dilué sur 1 seul mois écoulé (résultat très
+// instable), ou au contraire lissé sur 11 mois en décembre — retour Faustine 2026-07-30 : "si on
+// fait la simulation sur un bon ou un mauvais mois, ça change tout". Les récurrentes
+// (mensuelle/annuelle) restent sur `getActiveMonthsInYear`, sans incidence : ce sont des montants
+// CONFIGURÉS et constants (ex. un abonnement à 30€/mois), pas des transactions historiques
+// variables — aucune volatilité à lisser, contrairement au CA ou aux achats ponctuels.
+function _depensesTvaMoyenneMensuelle(DATA, mks) {
   const actMois = getActiveMonthsInYear(DATA);
   if (actMois === 0) return 0;
+  const cy = DATA.currentYear;
+  const fenetre = mks && mks.length ? mks : Array.from({ length: 12 }, (_, i) => `${cy}-${String(i + 1).padStart(2, '0')}`);
   if (DATA.params.tva) {
     const recurrentes = DATA.depenses
       .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId && d.tvaDeductible)
       .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montantTVA || 0) / actMois : (d.montantTVA || 0)), 0);
     const ponctuelles = DATA.depenses
-      .filter(d => d.recurrence === 'ponctuelle' && d.tvaDeductible && d.date && d.date.slice(0, 4) === String(DATA.currentYear))
-      .reduce((s, d) => s + (d.montantTVA || 0), 0) / actMois;
+      .filter(d => d.recurrence === 'ponctuelle' && d.tvaDeductible && d.date && fenetre.includes(d.date.slice(0, 7)))
+      .reduce((s, d) => s + (d.montantTVA || 0), 0) / fenetre.length;
     return recurrentes + ponctuelles;
   }
   const taux = (DATA.params.tauxTVA || 20) / 100;
@@ -555,8 +566,8 @@ function _depensesTvaMoyenneMensuelle(DATA) {
     .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId)
     .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montant || 0) / actMois : (d.montant || 0)), 0);
   const ponctuelles = DATA.depenses
-    .filter(d => d.recurrence === 'ponctuelle' && d.date && d.date.slice(0, 4) === String(DATA.currentYear))
-    .reduce((s, d) => s + (d.montant || 0), 0) / actMois;
+    .filter(d => d.recurrence === 'ponctuelle' && d.date && fenetre.includes(d.date.slice(0, 7)))
+    .reduce((s, d) => s + (d.montant || 0), 0) / fenetre.length;
   return (recurrentes + ponctuelles) * facteurExtraction;
 }
 
@@ -582,13 +593,13 @@ function _depensesTvaMoyenneMensuelle(DATA) {
 // - EURL/SASU : coût de rémunération forfaitaire 45%/82%, les mêmes valeurs déjà utilisées
 //   ailleurs dans Indépuls par défaut pour ces deux statuts (voir applyProfile/statut change).
 // Estimation indicative à CA et dépenses constants — le message est porté par l'UI, pas ici.
-export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true) {
+export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true, mks) {
   const dep = getDepensesMoyenneMensuelle(DATA) + (DATA.params.chargesAnnuellesCompl || 0) / 12 + (DATA.params.chargesSalariales || 0);
   const impotsTaux = getImpotsTaux(DATA);
   const tauxChargesMicro = ((DATA.params.tauxURSSAF || 0) + (DATA.params.tauxCFP || 0)) / 100;
   const r = 1 - tauxChargesMicro - impotsTaux;
   const microSansTVA = r > 0 ? caBrutMensuel * r - dep : 0;
-  const tvaRecuperee = _depensesTvaMoyenneMensuelle(DATA);
+  const tvaRecuperee = _depensesTvaMoyenneMensuelle(DATA, mks);
   const tauxTVA = (DATA.params.tauxTVA || 20) / 100;
   let microAvecTVA, tvaCollectee;
   if (prixAugmentes) {

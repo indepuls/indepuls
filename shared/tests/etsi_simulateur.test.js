@@ -99,6 +99,21 @@ section('getComparateurStatuts — compte déjà en TVA : compte aussi les dépe
   // 240€ de TVA ponctuelle éligible sur l'année, moyennée sur 12 mois = 20€/mois
   test('TVA ponctuelle de l\'année moyennée sur 12 mois', c.microAvecTVA - c.microSansTVA, 20);
 }
+section('getComparateurStatuts — `mks` (fenêtre glissante) prime sur "l\'année civile en cours" pour les ponctuelles, comme pour le CA (retour Faustine 2026-07-30 : "si on fait la simulation sur un bon ou un mauvais mois, ça change tout")');
+{
+  const D = {
+    currentYear: 2026,
+    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0, tva: true }),
+    depenses: [
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2025-08-01' }, // hors année civile 2026, DANS la fenêtre glissante fournie
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2026-03-01' }, // dans l'année civile 2026, HORS de la fenêtre glissante fournie
+    ],
+  };
+  const fenetreGlissante = ['2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02']; // 7 mois, ne couvre pas mars 2026
+  const c = getComparateurStatuts(D, 3000, true, fenetreGlissante);
+  // Seule la ligne d'août 2025 est dans la fenêtre : 120€ / 7 mois
+  test('filtre sur la fenêtre glissante fournie, pas sur l\'année civile', c.microAvecTVA - c.microSansTVA, 120 / 7);
+}
 section('getComparateurStatuts — compte SANS TVA activée : la case "TVA déductible" n\'existe jamais côté saisie (retour Faustine 2026-07-30 : "il n\'a pas la TVA, la case n\'est jamais cochée") — estime au taux configuré plutôt que 0');
 {
   const D = {
