@@ -13097,7 +13097,15 @@ function etsiRecalc() {
     if(r.heures>0){
       const heuresSemMoyen=r.heures/Math.max(1,r.nbMois)/4.33;
       const tempsGagne=hausse>0?heuresSemMoyen*(1-1/(1+hausse/100)):0;
-      document.getElementById('etsi-temps-out').textContent=hausse>0?fmt(tempsGagne,1)+' h':'—';
+      // Sous 1h, l'affichage en heures décimales ("0,1 h") ne parle à personne — en minutes
+      // en dessous de ce seuil, en heures (+ minutes si non rond) au-dessus (retour Faustine).
+      let tempsTxt='—';
+      if(hausse>0){
+        const totalMin=Math.round(tempsGagne*60);
+        if(totalMin<60) tempsTxt=totalMin+' min';
+        else { const h=Math.floor(totalMin/60), m=totalMin%60; tempsTxt=h+'h'+(m>0?String(m).padStart(2,'0'):''); }
+      }
+      document.getElementById('etsi-temps-out').textContent=tempsTxt;
     } else {
       document.getElementById('etsi-temps-out').textContent='—';
     }
