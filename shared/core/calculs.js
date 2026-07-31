@@ -521,17 +521,26 @@ export function getTauxHoraireMinCibleSimule(DATA, overrides = {}) {
   return r > 0 ? (objectifNetMensuel + dep) / r * 12 / hAn : 0;
 }
 
-// Dépenses récurrentes (hors affaire, hors ponctuel) dont la TVA serait récupérable, moyennées
-// au mois — même filtre exact que getDepensesMoyenneMensuelle, restreint aux lignes marquées
-// tvaDeductible. Jamais gated par DATA.params.tva (contrairement à getTVADeductibleMois) : sert
-// justement à simuler "et si la TVA était activée", donc doit rester calculable même quand elle
-// ne l'est pas réellement aujourd'hui.
+// TVA récupérable moyennée au mois, toutes dépenses tvaDeductible confondues — récurrentes
+// (même filtre exact que getDepensesMoyenneMensuelle, hors affaire) ET ponctuelles de l'année en
+// cours (retour Faustine 2026-07-30 : "mon mari a beaucoup de fournitures pour les chantiers,
+// ponctuelles" — la TVA récupérable réelle d'un indépendant vient souvent d'achats one-shot, y
+// compris liés à une affaire, pas d'abonnements récurrents ; les ponctuelles ne sont donc PAS
+// exclues ici même si elles le sont de getDepensesMoyenneMensuelle, qui répond à une question
+// différente : la charge structurelle mensuelle, pas la TVA récupérable sur l'année). Jamais
+// gated par DATA.params.tva (contrairement à getTVADeductibleMois) : sert justement à simuler
+// "et si la TVA était activée", donc doit rester calculable même quand elle ne l'est pas
+// réellement aujourd'hui.
 function _depensesTvaMoyenneMensuelle(DATA) {
   const actMois = getActiveMonthsInYear(DATA);
   if (actMois === 0) return 0;
-  return DATA.depenses
+  const recurrentes = DATA.depenses
     .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId && d.tvaDeductible)
     .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montantTVA || 0) / actMois : (d.montantTVA || 0)), 0);
+  const ponctuelles = DATA.depenses
+    .filter(d => d.recurrence === 'ponctuelle' && d.tvaDeductible && d.date && d.date.slice(0, 4) === String(DATA.currentYear))
+    .reduce((s, d) => s + (d.montantTVA || 0), 0) / actMois;
+  return recurrentes + ponctuelles;
 }
 
 // Comparateur "Et si je changeais de statut ?" — reprend un CA brut mensuel réel (déjà calculé

@@ -69,19 +69,35 @@ section('getComparateurStatuts — micro sans TVA, dépenses réelles déduites'
   const c = getComparateurStatuts(D, 3000);
   test('micro sans TVA = CA x (1-charges) - dépenses', c.microSansTVA, 2400);
 }
-section('getComparateurStatuts — micro avec TVA récupère la TVA déductible réelle des dépenses (recurrentes, hors ponctuel/affaire)');
+section('getComparateurStatuts — micro avec TVA récupère la TVA déductible réelle des dépenses récurrentes (hors affaire)');
 {
   const D = {
+    currentYear: 2026,
     params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }),
     depenses: [
       { recurrence: 'mensuelle', montant: 120, montantTVA: 20, tvaDeductible: true },
-      { recurrence: 'ponctuelle', montant: 500, montantTVA: 83, tvaDeductible: true, date: '2026-03-01' }, // jamais compté (ponctuelle)
       { recurrence: 'mensuelle', montant: 50, montantTVA: 8, tvaDeductible: false }, // jamais compté (pas déductible)
-      { recurrence: 'mensuelle', montant: 60, montantTVA: 10, tvaDeductible: true, chantierId: 'm1' }, // jamais compté (affaire)
+      { recurrence: 'mensuelle', montant: 60, montantTVA: 10, tvaDeductible: true, chantierId: 'm1' }, // jamais compté (affaire, récurrente)
     ],
   };
   const c = getComparateurStatuts(D, 3000);
-  test('micro avec TVA = micro sans TVA + 20€ de TVA récupérée/mois (la seule ligne éligible)', c.microAvecTVA - c.microSansTVA, 20);
+  test('micro avec TVA = micro sans TVA + 20€ de TVA récupérée/mois (la seule ligne récurrente éligible)', c.microAvecTVA - c.microSansTVA, 20);
+}
+section('getComparateurStatuts — micro avec TVA compte aussi les dépenses PONCTUELLES de l\'année en cours, même liées à une affaire (retour Faustine 2026-07-30 : fournitures de chantier)');
+{
+  const D = {
+    currentYear: 2026,
+    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }),
+    depenses: [
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2026-03-01' }, // compté (année en cours)
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2026-06-01', chantierId: 'chantier1' }, // compté même liée à une affaire
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2025-11-01' }, // jamais compté (année précédente)
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: false, date: '2026-03-01' }, // jamais compté (pas déductible)
+    ],
+  };
+  const c = getComparateurStatuts(D, 3000);
+  // 240€ de TVA ponctuelle éligible sur l'année, moyennée sur 12 mois = 20€/mois
+  test('TVA ponctuelle de l\'année moyennée sur 12 mois', c.microAvecTVA - c.microSansTVA, 20);
 }
 section('getComparateurStatuts — EURL (45%) donne un net supérieur à SASU (82%) sur le même CA');
 {
