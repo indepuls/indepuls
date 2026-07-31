@@ -12996,7 +12996,7 @@ function renderEtSiPage() {
     <div class="card">
       <div class="card-header"><div class="card-title">💼 Et si je changeais mon rythme de travail ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('rythme')">Comment c'est calculé ?</button></div>
       <div class="fgroup"><label class="flabel">Revenu net visé / mois</label><input type="range" min="1500" max="8000" step="100" value="${DATA.params.objectifNetMensuel||DATA.params.remunerationNette||3500}" id="etsi-obj" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-obj-out"></div></div>
-      <div class="fgroup"><label class="flabel">Semaines de congés en plus</label><input type="range" min="0" max="15" value="0" id="etsi-vac" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-vac-out"></div></div>
+      <div class="fgroup"><label class="flabel">Semaines de congés (total sur l'année)</label><input type="range" min="0" max="20" value="${Math.max(0,52-(DATA.params.semainesParAn||44))}" id="etsi-vac" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-vac-out"></div></div>
       <div class="fgroup"><label class="flabel">Heures facturées / semaine</label><input type="range" min="5" max="45" value="${Math.round((DATA.params.heuresParJour||7)*(DATA.params.joursParSemaine||4))}" id="etsi-hsem" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-hsem-out"></div></div>
       <div style="border-top:1px solid var(--brd);padding-top:10px;margin-top:6px">
         <div class="ts">${_isChantier?'TJM':'Taux horaire'} cible pour ce rythme</div>
@@ -13071,9 +13071,9 @@ function etsiRecalc() {
   if(objEl){
     const obj=parseFloat(objEl.value)||0, vac=parseFloat(document.getElementById('etsi-vac').value)||0, hsem=parseFloat(document.getElementById('etsi-hsem').value)||0;
     document.getElementById('etsi-obj-out').textContent=fmtE(obj)+' / mois';
-    document.getElementById('etsi-vac-out').textContent=vac+' semaine'+(vac>1?'s':'');
+    document.getElementById('etsi-vac-out').textContent=vac+' semaine'+(vac>1?'s':'')+' de congés';
     document.getElementById('etsi-hsem-out').textContent=hsem+' h/semaine';
-    const semainesParAn=Math.max(1,(DATA.params.semainesParAn||44)-vac);
+    const semainesParAn=Math.max(1,52-vac);
     const joursParSemaine=hj>0?hsem/hj:0;
     const th=getTauxHoraireMinCibleSimule({heuresParJour:hj,joursParSemaine,semainesParAn,objectifNetMensuel:obj,remunerationNette:obj});
     const thActuel=getTauxHoraireMinCible();
