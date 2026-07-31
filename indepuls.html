@@ -13001,8 +13001,8 @@ function etsiCard4Html() {
   // Détail collecté/récupéré — jamais une boîte noire (retour Faustine : "tu regardes si c'est
   // en + ou en - ?"). tvaCollectee=0 quand les prix augmentent (transit pur, rien à montrer).
   const detailTva=comp.tvaCollectee>0
-    ?`<div class="ts mt4" style="color:var(--tl)">TVA collectée sur vos factures : <strong style="color:var(--err)">-${fmtE(Math.round(comp.tvaCollectee))}</strong> · TVA récupérée sur vos achats : <strong style="color:var(--ok)">+${fmtE(Math.round(comp.tvaRecuperee))}</strong> · net ${comp.tvaRecuperee-comp.tvaCollectee>=0?'positif':'négatif'}</div>`
-    :(comp.tvaRecuperee>0?`<div class="ts mt4" style="color:var(--tl)">TVA récupérée sur vos achats : <strong style="color:var(--ok)">+${fmtE(Math.round(comp.tvaRecuperee))}</strong> (la TVA collectée sur vos factures est reversée à l'État, sans impact ici).</div>`:'');
+    ?`<div class="ts mt4" style="color:var(--tl)">Par mois : TVA collectée sur vos factures, reversée à l'État : <strong style="color:var(--err)">-${fmtE(Math.round(comp.tvaCollectee))}</strong> · TVA récupérée sur vos achats : <strong style="color:var(--ok)">+${fmtE(Math.round(comp.tvaRecuperee))}</strong> · net ${comp.tvaRecuperee-comp.tvaCollectee>=0?'positif':'négatif'}</div>`
+    :(comp.tvaRecuperee>0?`<div class="ts mt4" style="color:var(--tl)">Par mois : TVA récupérée sur vos achats : <strong style="color:var(--ok)">+${fmtE(Math.round(comp.tvaRecuperee))}</strong> (la TVA collectée sur vos factures est intégralement reversée à l'État, sans impact ici).</div>`:'');
   return `<div id="etsi-card4-zone">
     <div class="card">
       <div class="card-header"><div class="card-title">🏢 Et si je changeais de statut ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('statut')">Comment c'est calculé ?</button></div>
