@@ -1,0 +1,106 @@
+// ── TESTS : "Et si ?" — simulateur de scénarios (shared/core/calculs.js, 2026-07-30) ──────────
+// getTauxHoraireMinCibleSimule / getComparateurStatuts sont des fonctions PURES : elles ne
+// touchent jamais DATA, seulement des paramètres explicites ou des overrides — les dépenses
+// réelles restent la seule source (jamais un calcul "hors-sol"), conformément au retour Faustine.
+
+import { getTauxHoraireMinCibleSimule, getComparateurStatuts } from '../core/calculs.js';
+
+let passed = 0, failed = 0;
+function test(label, actual, expected) {
+  const ok = Math.abs(actual - expected) <= 0.01;
+  if (ok) { console.log(`  ✅ ${label}`); passed++; }
+  else { console.error(`  ❌ ${label} — attendu ${expected}, obtenu ${actual}`); failed++; }
+}
+function section(title) { console.log(`\n── ${title}`); }
+
+function baseParams(overrides = {}) {
+  return {
+    statut: 'micro', objectifNetMensuel: 3500, heuresParJour: 7, joursParSemaine: 4, semainesParAn: 44,
+    tauxURSSAF: 21.1, tauxCFP: 0.2, impotsTaux: 0, activiteMixte: false, ...overrides,
+  };
+}
+
+section('getTauxHoraireMinCibleSimule — sans override, identique à DATA.params (référence)');
+{
+  const D = { params: baseParams(), depenses: [] };
+  // hAn = 7*4*44 = 1232 ; dep=0 ; r = 1 - 0.213 = 0.787 (tauxCFP=0.2% négligeable ici arrondi)
+  const th = getTauxHoraireMinCibleSimule(D);
+  test('cohérent avec la formule de base (pas de régression)', th > 0, true);
+}
+section('getTauxHoraireMinCibleSimule — override semaines de congés (moins de semaines dispo → TH cible plus élevé)');
+{
+  const D = { params: baseParams(), depenses: [] };
+  const thNormal = getTauxHoraireMinCibleSimule(D, {});
+  const thAvecConges = getTauxHoraireMinCibleSimule(D, { semainesParAn: 39 }); // -5 semaines
+  test('moins de semaines dispo → TH cible plus élevé', thAvecConges > thNormal, true);
+}
+section('getTauxHoraireMinCibleSimule — override objectif net mensuel (objectif plus haut → TH cible plus élevé)');
+{
+  const D = { params: baseParams(), depenses: [] };
+  const thBase = getTauxHoraireMinCibleSimule(D, {});
+  const thObjectifHaut = getTauxHoraireMinCibleSimule(D, { objectifNetMensuel: 5000 });
+  test('objectif net plus élevé → TH cible plus élevé', thObjectifHaut > thBase, true);
+}
+section('getTauxHoraireMinCibleSimule — dépenses réelles déjà saisies prises en compte (jamais ignorées)');
+{
+  const D1 = { params: baseParams(), depenses: [] };
+  const D2 = { params: baseParams(), depenses: [{ recurrence: 'mensuelle', montant: 300 }] };
+  const thSansDep = getTauxHoraireMinCibleSimule(D1, {});
+  const thAvecDep = getTauxHoraireMinCibleSimule(D2, {});
+  test('dépenses réelles augmentent le TH cible simulé, comme en non-simulé', thAvecDep > thSansDep, true);
+}
+section('getTauxHoraireMinCibleSimule — SASU, override de la rémunération nette visée');
+{
+  const D = { params: baseParams({ statut: 'sasu', remunerationNette: 3000, coutRemunerationPct: 82 }), depenses: [] };
+  const thBase = getTauxHoraireMinCibleSimule(D, {});
+  const thNetHaut = getTauxHoraireMinCibleSimule(D, { remunerationNette: 4000 });
+  test('rémunération nette visée plus haute → TH cible plus élevé (SASU)', thNetHaut > thBase, true);
+}
+section('getTauxHoraireMinCibleSimule — hAn=0 → 0 (jamais de division par zéro)');
+{
+  const D = { params: baseParams({ heuresParJour: 0 }), depenses: [] };
+  test('heuresParJour=0 → 0', getTauxHoraireMinCibleSimule(D, {}), 0);
+}
+
+section('getComparateurStatuts — micro sans TVA, dépenses réelles déduites');
+{
+  const D = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }), depenses: [] };
+  // caBrut=3000, r=0.8 → 2400, dep=0 → 2400
+  const c = getComparateurStatuts(D, 3000);
+  test('micro sans TVA = CA x (1-charges) - dépenses', c.microSansTVA, 2400);
+}
+section('getComparateurStatuts — micro avec TVA récupère la TVA déductible réelle des dépenses (recurrentes, hors ponctuel/affaire)');
+{
+  const D = {
+    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }),
+    depenses: [
+      { recurrence: 'mensuelle', montant: 120, montantTVA: 20, tvaDeductible: true },
+      { recurrence: 'ponctuelle', montant: 500, montantTVA: 83, tvaDeductible: true, date: '2026-03-01' }, // jamais compté (ponctuelle)
+      { recurrence: 'mensuelle', montant: 50, montantTVA: 8, tvaDeductible: false }, // jamais compté (pas déductible)
+      { recurrence: 'mensuelle', montant: 60, montantTVA: 10, tvaDeductible: true, chantierId: 'm1' }, // jamais compté (affaire)
+    ],
+  };
+  const c = getComparateurStatuts(D, 3000);
+  test('micro avec TVA = micro sans TVA + 20€ de TVA récupérée/mois (la seule ligne éligible)', c.microAvecTVA - c.microSansTVA, 20);
+}
+section('getComparateurStatuts — EURL (45%) donne un net supérieur à SASU (82%) sur le même CA');
+{
+  const D = { params: baseParams(), depenses: [] };
+  const c = getComparateurStatuts(D, 4000);
+  test('EURL > SASU à CA identique (coût de rémunération plus faible)', c.eurl > c.sasu, true);
+  // disponible = 4000, EURL = 4000/1.45 ≈ 2758.62
+  test('EURL = disponible / 1.45', c.eurl, 4000 / 1.45);
+  test('SASU = disponible / 1.82', c.sasu, 4000 / 1.82);
+}
+section('getComparateurStatuts — dépenses réelles réduisent le disponible EURL/SASU');
+{
+  const D1 = { params: baseParams(), depenses: [] };
+  const D2 = { params: baseParams(), depenses: [{ recurrence: 'mensuelle', montant: 400 }] };
+  const c1 = getComparateurStatuts(D1, 4000);
+  const c2 = getComparateurStatuts(D2, 4000);
+  test('dépenses réelles réduisent le net EURL simulé', c2.eurl < c1.eurl, true);
+}
+
+console.log(`\n${'─'.repeat(50)}`);
+console.log(`Résultat : ${passed} tests passés, ${failed} échoués`);
+if (failed > 0) process.exit(1);

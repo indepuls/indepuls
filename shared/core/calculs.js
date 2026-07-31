@@ -498,6 +498,67 @@ export function getTauxHoraireMinCible(DATA) {
   return r > 0 ? ((p.objectifNetMensuel || 0) + dep) / r * 12 / hAn : 0;
 }
 
+// ── "ET SI ?" — SIMULATEUR DE SCÉNARIOS (2026-07-30) ─────────────────────
+// Variante de getTauxHoraireMinCible() qui accepte des overrides ponctuels (objectif net,
+// rythme de travail) sans jamais toucher DATA — les dépenses réelles déjà saisies restent la
+// seule source pour `dep`, exactement comme dans la version non simulée (retour Faustine :
+// "je pars sur les dépenses déjà enregistrées", jamais un calcul hors-sol). Scénario "Et si je
+// changeais mon rythme de travail ?".
+export function getTauxHoraireMinCibleSimule(DATA, overrides = {}) {
+  const p = DATA.params;
+  const heuresParJour = overrides.heuresParJour ?? p.heuresParJour ?? 7;
+  const joursParSemaine = overrides.joursParSemaine ?? p.joursParSemaine ?? 4;
+  const semainesParAn = overrides.semainesParAn ?? p.semainesParAn ?? 44;
+  const hAn = heuresParJour * joursParSemaine * semainesParAn;
+  if (hAn <= 0) return 0;
+  const dep = getDepensesMoyenneMensuelle(DATA) + (p.chargesAnnuellesCompl || 0) / 12 + (p.chargesSalariales || 0);
+  if (isSASU(DATA)) {
+    const net = overrides.remunerationNette ?? p.remunerationNette ?? 0;
+    return (getSasuCoutMensuelDepuisNet(DATA, net) + dep) * 12 / hAn;
+  }
+  const objectifNetMensuel = overrides.objectifNetMensuel ?? p.objectifNetMensuel ?? 0;
+  const r = 1 - getTauxChargesPresta(DATA) - getImpotsTaux(DATA);
+  return r > 0 ? (objectifNetMensuel + dep) / r * 12 / hAn : 0;
+}
+
+// Dépenses récurrentes (hors affaire, hors ponctuel) dont la TVA serait récupérable, moyennées
+// au mois — même filtre exact que getDepensesMoyenneMensuelle, restreint aux lignes marquées
+// tvaDeductible. Jamais gated par DATA.params.tva (contrairement à getTVADeductibleMois) : sert
+// justement à simuler "et si la TVA était activée", donc doit rester calculable même quand elle
+// ne l'est pas réellement aujourd'hui.
+function _depensesTvaMoyenneMensuelle(DATA) {
+  const actMois = getActiveMonthsInYear(DATA);
+  if (actMois === 0) return 0;
+  return DATA.depenses
+    .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId && d.tvaDeductible)
+    .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montantTVA || 0) / actMois : (d.montantTVA || 0)), 0);
+}
+
+// Comparateur "Et si je changeais de statut ?" — reprend un CA brut mensuel réel (déjà calculé
+// par l'appelant, jamais recalculé ici, même convention que getTHBrutAnnuel/Mois) et les dépenses
+// réelles déjà saisies, appliqués aux 4 régimes existants dans Indépuls (jamais un statut que
+// l'app ne gère pas). Chaque régime garde SA règle propre :
+// - Micro : charges URSSAF/CFP + impôts, lus directement sur DATA.params (pas via
+//   getTauxChargesPresta, qui renvoie 0 dès que le compte est déjà SASU/EURL — on veut ici
+//   pouvoir simuler "et si j'étais micro" même depuis un compte SASU/EURL réel).
+// - Micro avec TVA : seule la TVA récupérable sur les dépenses déjà engagées change le net (la
+//   TVA collectée est un simple transit, jamais un gain) — jamais un montant de TVA inventé.
+// - EURL/SASU : coût de rémunération forfaitaire 45%/82%, les mêmes valeurs déjà utilisées
+//   ailleurs dans Indépuls par défaut pour ces deux statuts (voir applyProfile/statut change).
+// Estimation indicative à CA et dépenses constants — le message est porté par l'UI, pas ici.
+export function getComparateurStatuts(DATA, caBrutMensuel) {
+  const dep = getDepensesMoyenneMensuelle(DATA) + (DATA.params.chargesAnnuellesCompl || 0) / 12 + (DATA.params.chargesSalariales || 0);
+  const impotsTaux = getImpotsTaux(DATA);
+  const tauxChargesMicro = ((DATA.params.tauxURSSAF || 0) + (DATA.params.tauxCFP || 0)) / 100;
+  const r = 1 - tauxChargesMicro - impotsTaux;
+  const microSansTVA = r > 0 ? caBrutMensuel * r - dep : 0;
+  const microAvecTVA = microSansTVA + _depensesTvaMoyenneMensuelle(DATA);
+  const disponibleEntreprise = Math.max(0, caBrutMensuel - dep);
+  const eurl = disponibleEntreprise / (1 + 45 / 100);
+  const sasu = disponibleEntreprise / (1 + 82 / 100);
+  return { microSansTVA, microAvecTVA, eurl, sasu };
+}
+
 // ── RENTABILITÉ BRUTE (TH/TJM RÉEL) ───────────────────────────
 // Le pilier Rentabilité du Score de Santé (mode 'th'/'tjm') calculait ces chiffres inline dans
 // indepuls.html (wScoreSante()), sans aucune fonction dédiée dans shared/core — donc jamais
