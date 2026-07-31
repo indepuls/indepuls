@@ -116,6 +116,22 @@ section('getComparateurStatuts — compte SANS TVA activée : la case "TVA dédu
   const attendu = (120 + 500 / 12) * (20 / 120);
   test('estimation = dépenses réelles (TTC) x taux/(1+taux)', c.microAvecTVA - c.microSansTVA, attendu);
 }
+section('getComparateurStatuts — prixAugmentes=true (défaut) : TVA collectée = 0, simple transit sans impact net (retour Faustine 2026-07-30)');
+{
+  const D = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }), depenses: [] };
+  const c = getComparateurStatuts(D, 3000, true);
+  test('tvaCollectee = 0 quand les prix augmentent', c.tvaCollectee, 0);
+  test('tvaRecuperee exposée même sans dépenses (0 ici)', c.tvaRecuperee, 0);
+}
+section('getComparateurStatuts — prixAugmentes=false (prix absorbés, clientèle de particuliers) : le CA HT réel diminue');
+{
+  const D = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0, tauxTVA: 20 }), depenses: [] };
+  const cAugmente = getComparateurStatuts(D, 3000, true);
+  const cAbsorbe = getComparateurStatuts(D, 3000, false);
+  // caHT = 3000/1.2 = 2500, tvaCollectee = 500
+  test('tvaCollectee = CA - CA/(1+taux) quand les prix sont absorbés', cAbsorbe.tvaCollectee, 500);
+  test('net inférieur quand la TVA est absorbée plutôt qu\'ajoutée aux prix', cAbsorbe.microAvecTVA < cAugmente.microAvecTVA, true);
+}
 section('getComparateurStatuts — EURL (45%) donne un net supérieur à SASU (82%) sur le même CA');
 {
   const D = { params: baseParams(), depenses: [] };

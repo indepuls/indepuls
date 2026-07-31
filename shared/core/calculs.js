@@ -567,22 +567,42 @@ function _depensesTvaMoyenneMensuelle(DATA) {
 // - Micro : charges URSSAF/CFP + impôts, lus directement sur DATA.params (pas via
 //   getTauxChargesPresta, qui renvoie 0 dès que le compte est déjà SASU/EURL — on veut ici
 //   pouvoir simuler "et si j'étais micro" même depuis un compte SASU/EURL réel).
-// - Micro avec TVA : seule la TVA récupérable sur les dépenses déjà engagées change le net (la
-//   TVA collectée est un simple transit, jamais un gain) — jamais un montant de TVA inventé.
+// - Micro avec TVA : dépend d'une hypothèse sur les prix, jamais devinée — `prixAugmentes`
+//   (paramètre explicite, jamais une valeur par défaut cachée) :
+//     * true  (le client paie HT + TVA en plus) : le CA HT réel reste celui d'aujourd'hui, la
+//       TVA collectée est un simple transit reversé à l'État, sans impact sur le net. Seule la
+//       TVA récupérable sur les dépenses change le résultat.
+//     * false (même prix total facturé qu'aujourd'hui — la TVA est absorbée dans le prix actuel,
+//       cas d'une clientèle de particuliers qui ne peut pas déduire la TVA et refuserait une
+//       hausse, retour Faustine 2026-07-30) : le CA HT diminue puisqu'une partie du montant
+//       encaissé devient de la TVA à reverser (caBrutMensuel ÷ (1+taux)).
+//   Retourne aussi `tvaCollectee`/`tvaRecuperee` (0 si prixAugmentes, la collectée n'ayant alors
+//   aucun impact net) pour que l'UI puisse montrer explicitement le calcul plutôt qu'une boîte
+//   noire (retour Faustine : "tu regardes si c'est en + ou en - ?").
 // - EURL/SASU : coût de rémunération forfaitaire 45%/82%, les mêmes valeurs déjà utilisées
 //   ailleurs dans Indépuls par défaut pour ces deux statuts (voir applyProfile/statut change).
 // Estimation indicative à CA et dépenses constants — le message est porté par l'UI, pas ici.
-export function getComparateurStatuts(DATA, caBrutMensuel) {
+export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true) {
   const dep = getDepensesMoyenneMensuelle(DATA) + (DATA.params.chargesAnnuellesCompl || 0) / 12 + (DATA.params.chargesSalariales || 0);
   const impotsTaux = getImpotsTaux(DATA);
   const tauxChargesMicro = ((DATA.params.tauxURSSAF || 0) + (DATA.params.tauxCFP || 0)) / 100;
   const r = 1 - tauxChargesMicro - impotsTaux;
   const microSansTVA = r > 0 ? caBrutMensuel * r - dep : 0;
-  const microAvecTVA = microSansTVA + _depensesTvaMoyenneMensuelle(DATA);
+  const tvaRecuperee = _depensesTvaMoyenneMensuelle(DATA);
+  const tauxTVA = (DATA.params.tauxTVA || 20) / 100;
+  let microAvecTVA, tvaCollectee;
+  if (prixAugmentes) {
+    tvaCollectee = 0; // transit pur, aucun impact net
+    microAvecTVA = microSansTVA + tvaRecuperee;
+  } else {
+    const caHT = caBrutMensuel / (1 + tauxTVA);
+    tvaCollectee = caBrutMensuel - caHT;
+    microAvecTVA = (r > 0 ? caHT * r - dep : 0) + tvaRecuperee;
+  }
   const disponibleEntreprise = Math.max(0, caBrutMensuel - dep);
   const eurl = disponibleEntreprise / (1 + 45 / 100);
   const sasu = disponibleEntreprise / (1 + 82 / 100);
-  return { microSansTVA, microAvecTVA, eurl, sasu };
+  return { microSansTVA, microAvecTVA, eurl, sasu, tvaCollectee, tvaRecuperee };
 }
 
 // ── RENTABILITÉ BRUTE (TH/TJM RÉEL) ───────────────────────────

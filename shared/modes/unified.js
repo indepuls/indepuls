@@ -86,7 +86,7 @@ export const getUrssafProvisionMensuelle = () => C.getUrssafProvisionMensuelle(D
 
 export const getTauxHoraireMinCible   = () => C.getTauxHoraireMinCible(DATA);
 export const getTauxHoraireMinCibleSimule = (overrides) => C.getTauxHoraireMinCibleSimule(DATA, overrides);
-export const getComparateurStatuts    = (caBrutMensuel) => C.getComparateurStatuts(DATA, caBrutMensuel);
+export const getComparateurStatuts    = (caBrutMensuel, prixAugmentes) => C.getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes);
 export const getTHBrutAnnuel          = (caBrut, hT) => C.getTHBrutAnnuel(DATA, caBrut, hT);
 export const getTJMBrut               = (thBrut) => C.getTJMBrut(DATA, thBrut);
 export const getTHBrutMois            = (mk, caMois, heuresMois) => C.getTHBrutMois(DATA, mk, caMois, heuresMois);

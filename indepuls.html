@@ -12965,13 +12965,64 @@ const ETSI_METH = {
   rythme: `<strong>Données ·</strong> Vos paramètres réels (Objectifs) et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> (Revenu net visé + dépenses moyennes) ÷ (1 − charges − impôts) ÷ heures disponibles sur l'année (jours × semaines, moins les congés).<br>Un seul curseur à la fois change une valeur ; le reste — y compris vos dépenses réelles — ne bouge pas.`,
   prix: `<strong>Données ·</strong> Votre chiffre d'affaires et vos heures des 12 derniers mois glissants (mêmes valeurs que "Ma rentabilité").<br><strong>Calcul ·</strong> Marge en plus = CA × hausse. Temps gagné = heures actuelles − (heures actuelles ÷ (1 + hausse)) : le temps qu'il faudrait en moins pour gagner la même chose au nouveau tarif.`,
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
-  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP − impôts) − dépenses. Micro avec TVA : + la TVA récupérable sur vos dépenses. Si la TVA est déjà activée sur votre compte, les montants réellement suivis dépense par dépense sont utilisés. Sinon (cas le plus courant pour ce scénario), la case "TVA déductible" n'existe pas encore sur vos dépenses — la TVA est alors estimée au taux configuré sur le montant réel de vos dépenses. EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU).<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
+  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP − impôts) − dépenses. Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU).<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
 };
 function openEtSiMeth(key) {
   const labels={rythme:'Rythme de travail',prix:'Augmenter mes prix',client:"Perte d'un client",statut:'Changement de statut'};
   document.getElementById('etsi-meth-title').textContent=labels[key]||'';
   document.getElementById('etsi-meth-body').innerHTML=ETSI_METH[key]||'';
   openModal('modal-etsi-meth');
+}
+// Hypothèse de prix pour "Micro avec TVA" — jamais devinée, jamais persistée (comme le reste
+// de "Et si ?"). Retour Faustine 2026-07-30 : son mari facture des particuliers, qui n'ont
+// aucune raison d'accepter une hausse de prix pour compenser la TVA — l'hypothèse par défaut
+// ("j'augmente mes prix") ne collait pas à sa réalité, d'où ce choix explicite plutôt qu'une
+// seule case cachée dans le calcul.
+let _etsiPrixAugmentes=true;
+function toggleEtsiPrixHypothese(val) {
+  _etsiPrixAugmentes=(val==='augmente');
+  const zone=document.getElementById('etsi-card4-zone');
+  if(zone) zone.outerHTML=etsiCard4Html();
+}
+function etsiCard4Html() {
+  const statutActuel=DATA.params.statut||'micro';
+  const isMicroActuel=statutActuel==='micro';
+  const rentRoulante=getRentabiliteRoulante();
+  const comp=getComparateurStatuts(rentRoulante.caBrut/Math.max(1,rentRoulante.nbMois),_etsiPrixAugmentes);
+  const cellStatut=(isActuel,label,sub,val)=>`<div style="background:var(--bg);border-radius:8px;padding:8px 10px;${isActuel?'border:1.5px solid var(--acc)':''}">
+    <div class="ts" style="font-weight:700;text-transform:uppercase;font-size:10px">${label}${isActuel?' · actuel':''}</div>
+    <div class="ts" style="color:var(--tl);margin-bottom:4px">${sub}</div>
+    <div style="font-size:16px;font-weight:700">${fmtE(Math.round(val),0)}/mois</div>
+  </div>`;
+  const btnHyp=(val,lbl)=>`<button class="btn btn-xs ${_etsiPrixAugmentes===(val==='augmente')?'btn-pri':'btn-out'}" onclick="toggleEtsiPrixHypothese('${val}')">${lbl}</button>`;
+  const subTva=DATA.params.tva
+    ?'TVA réellement suivie sur vos dépenses'
+    :`TVA estimée à ${DATA.params.tauxTVA||20}% sur vos dépenses`;
+  // Détail collecté/récupéré — jamais une boîte noire (retour Faustine : "tu regardes si c'est
+  // en + ou en - ?"). tvaCollectee=0 quand les prix augmentent (transit pur, rien à montrer).
+  const detailTva=comp.tvaCollectee>0
+    ?`<div class="ts mt4" style="color:var(--tl)">TVA collectée sur vos factures : <strong style="color:var(--err)">-${fmtE(Math.round(comp.tvaCollectee))}</strong> · TVA récupérée sur vos achats : <strong style="color:var(--ok)">+${fmtE(Math.round(comp.tvaRecuperee))}</strong> · net ${comp.tvaRecuperee-comp.tvaCollectee>=0?'positif':'négatif'}</div>`
+    :(comp.tvaRecuperee>0?`<div class="ts mt4" style="color:var(--tl)">TVA récupérée sur vos achats : <strong style="color:var(--ok)">+${fmtE(Math.round(comp.tvaRecuperee))}</strong> (la TVA collectée sur vos factures est reversée à l'État, sans impact ici).</div>`:'');
+  return `<div id="etsi-card4-zone">
+    <div class="card">
+      <div class="card-header"><div class="card-title">🏢 Et si je changeais de statut ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('statut')">Comment c'est calculé ?</button></div>
+      <div class="ts" style="color:var(--tl);margin-bottom:10px">Estimation indicative à CA et dépenses constants.</div>
+      <div class="ts mb8" style="font-weight:700;color:var(--tl);text-transform:uppercase;font-size:10px">Si vous passiez à la TVA, vous...</div>
+      <div style="display:flex;gap:4px;margin-bottom:10px">
+        ${btnHyp('augmente','Augmentez vos prix (HT + TVA en plus)')}
+        ${btnHyp('absorbe','Gardez le même prix total facturé')}
+      </div>
+      <div class="g2" style="gap:8px">
+        ${cellStatut(isMicroActuel&&!DATA.params.tva,'Micro · sans TVA','votre situation si micro',comp.microSansTVA)}
+        ${cellStatut(isMicroActuel&&!!DATA.params.tva,'Micro · avec TVA',subTva,comp.microAvecTVA)}
+        ${cellStatut(statutActuel==='eurl','EURL',"à l'IS, 45% de charges",comp.eurl)}
+        ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
+      </div>
+      ${detailTva}
+      <div class="ts mt8" style="color:var(--tl)">EURL/SASU : salaire maximum possible, 0€ laissé en trésorerie dans la société (aucun dividende).</div>
+      <div class="alert al-info mt8" style="font-size:11px">💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste pour une estimation précise adaptée à votre situation.</div>
+    </div>
+  </div>`;
 }
 function renderEtSiPage() {
   const zone=document.getElementById('etsi-content');
@@ -13027,27 +13078,7 @@ function renderEtSiPage() {
       <div id="etsi-tag-out"></div>
     </div>`;
 
-  const statutActuel=DATA.params.statut||'micro';
-  const isMicroActuel=statutActuel==='micro';
-  const comp=getComparateurStatuts(rentRoulante.caBrut/Math.max(1,rentRoulante.nbMois));
-  const cellStatut=(isActuel,label,sub,val)=>`<div style="background:var(--bg);border-radius:8px;padding:8px 10px;${isActuel?'border:1.5px solid var(--acc)':''}">
-    <div class="ts" style="font-weight:700;text-transform:uppercase;font-size:10px">${label}${isActuel?' · actuel':''}</div>
-    <div class="ts" style="color:var(--tl);margin-bottom:4px">${sub}</div>
-    <div style="font-size:16px;font-weight:700">${fmtE(Math.round(val),0)}/mois</div>
-  </div>`;
-  const card4=`
-    <div class="card">
-      <div class="card-header"><div class="card-title">🏢 Et si je changeais de statut ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('statut')">Comment c'est calculé ?</button></div>
-      <div class="ts" style="color:var(--tl);margin-bottom:10px">Estimation indicative à CA et dépenses constants.</div>
-      <div class="g2" style="gap:8px">
-        ${cellStatut(isMicroActuel&&!DATA.params.tva,'Micro · sans TVA','votre situation si micro',comp.microSansTVA)}
-        ${cellStatut(isMicroActuel&&!!DATA.params.tva,'Micro · avec TVA',DATA.params.tva?'TVA réellement suivie sur vos dépenses':`TVA estimée à ${DATA.params.tauxTVA||20}% sur vos dépenses`,comp.microAvecTVA)}
-        ${cellStatut(statutActuel==='eurl','EURL',"à l'IS, 45% de charges",comp.eurl)}
-        ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
-      </div>
-      <div class="ts mt8" style="color:var(--tl)">EURL/SASU : salaire maximum possible, 0€ laissé en trésorerie dans la société (aucun dividende).</div>
-      <div class="alert al-info mt8" style="font-size:11px">💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste pour une estimation précise adaptée à votre situation.</div>
-    </div>`;
+  const card4=etsiCard4Html();
 
   zone.innerHTML=`
     <div style="margin-bottom:16px">
@@ -13427,7 +13458,7 @@ document.addEventListener('keydown', function(e) {
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
   window.getTauxHoraireMinCibleSimule = (overrides) => { sync(); return Mode.getTauxHoraireMinCibleSimule(overrides); };
-  window.getComparateurStatuts  = (caBrutMensuel) => { sync(); return Mode.getComparateurStatuts(caBrutMensuel); };
+  window.getComparateurStatuts  = (caBrutMensuel,prixAugmentes) => { sync(); return Mode.getComparateurStatuts(caBrutMensuel,prixAugmentes); };
   window.getTHBrutAnnuel        = (caBrut,hT) => { sync(); return Mode.getTHBrutAnnuel(caBrut,hT); };
   window.getTJMBrut             = (thBrut)    => { sync(); return Mode.getTJMBrut(thBrut); };
   window.getTHBrutMois          = (mk,caMois,heuresMois) => { sync(); return Mode.getTHBrutMois(mk,caMois,heuresMois); };

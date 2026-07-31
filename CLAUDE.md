@@ -2650,3 +2650,19 @@ Faustine a re-testé avec les données réelles de son mari : toujours aucune di
 **Transparence** : le sous-titre de la case "Micro avec TVA" indique désormais explicitement si le montant est "réellement suivi" ou "estimé à X% sur vos dépenses" — pour ne jamais laisser croire à une donnée réelle quand c'est une estimation. Modale "Comment c'est calculé ?" mise à jour en conséquence.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (15 tests dans `etsi_simulateur.test.js`, dont 2 nouveaux couvrant explicitement le chemin "compte sans TVA", 0 échec).
+
+---
+
+### FEATURE — "Micro avec TVA" : hypothèse de prix explicite (2026-07-30 tredecies)
+
+Faustine a demandé confirmation : est-ce que le calcul ajoute la TVA sur les factures ou seulement sur les achats ? Réponse honnête : le calcul ne touchait qu'aux achats — il supposait implicitement que l'utilisateur augmente ses prix HT+TVA en plus, rendant la TVA collectée un simple transit sans impact. Hypothèse jamais dite explicitement, et fausse pour son mari qui facture des particuliers (pas de raison qu'ils acceptent une hausse de prix).
+
+**Corrigé** : `getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes=true)` prend maintenant un 3ᵉ paramètre explicite :
+- `prixAugmentes=true` (défaut) : CA HT inchangé, TVA collectée = 0 (transit pur) — comportement précédent.
+- `prixAugmentes=false` : même prix total facturé qu'aujourd'hui (TVA absorbée dans le prix actuel) — le CA HT réel diminue (`caBrutMensuel ÷ (1+tauxTVA)`), la différence est la TVA collectée à reverser.
+
+Retourne aussi `tvaCollectee`/`tvaRecuperee` en plus des montants nets, pour que l'UI montre le détail plutôt qu'une boîte noire (retour Faustine : "tu regardes si c'est en + ou en - ?").
+
+**UI** : nouveau sélecteur "Augmentez vos prix" / "Gardez le même prix total" sur la carte statut (`etsiCard4Html()`, ré-render isolé de la carte via `toggleEtsiPrixHypothese()` — les autres cartes ne sont pas affectées). Ligne de détail affichée sous les 4 cases quand pertinent ("TVA collectée : -X · TVA récupérée : +Y · net positif/négatif"). État non persisté, comme le reste de "Et si ?". Modale "Comment c'est calculé ?" mise à jour en conséquence.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (19 tests dans `etsi_simulateur.test.js`, dont 4 nouveaux couvrant les deux hypothèses de prix, 0 échec).
