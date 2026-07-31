@@ -646,7 +646,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('revenus')"><span class="nav-icon">💶</span> Revenus</div>
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
-  <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Simulateur</span></div>
+  <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Combien facturer ?</span></div>
   <div class="nav-item" onclick="navigate('etsi')"><span class="nav-icon">🔮</span> Et si ?</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
   <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours clients</div>
@@ -949,7 +949,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card mt16">
         <div class="card-title mb4">Informations pour mes devis</div>
-        <div class="ts mb12" style="color:var(--tl)">Optionnel — utile uniquement si vous générez des devis depuis Indépuls (Simulateur ou fiche mission).</div>
+        <div class="ts mb12" style="color:var(--tl)">Optionnel — utile uniquement si vous générez des devis depuis Indépuls ("Combien facturer ?" ou fiche mission).</div>
         <div class="frow">
           <div class="fgroup">
             <label class="flabel">N° SIRET <span class="info-tip" title="Sert uniquement à pré-remplir vos devis (mention obligatoire) — jamais utilisé ailleurs dans Indépuls, jamais transmis à un tiers.">?</span></label>
@@ -1282,7 +1282,7 @@ html,body{overflow-x:hidden;}
   <div class="page" id="page-simulateur">
     <div class="g2" style="align-items:start">
       <div class="card">
-        <div class="card-title mb4" id="sim-page-title">🧮 Simulateur de rentabilité</div>
+        <div class="card-title mb4" id="sim-page-title">🧮 Combien facturer ?</div>
 
         <!-- Toggle mode -->
         <div style="display:flex;gap:6px;margin-bottom:16px" id="sim-mode-toggle">
@@ -3029,7 +3029,7 @@ const PROFIL_DESCRIPTIONS = {
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
   { date:'2026-07-30', titre:'"Et si ?" — testez l\'impact d\'un changement de rythme, de tarif, la perte d\'un client ou un changement de statut, en temps réel', icon:'🔮', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
-  { date:'2026-07-30', titre:'Générez un devis PDF personnalisable, depuis une mission ou le Simulateur', icon:'📄', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
+  { date:'2026-07-30', titre:'Générez un devis PDF personnalisable, depuis une mission ou "Combien facturer ?"', icon:'📄', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
   { date:'2026-07-30', titre:'Deux nouveaux thèmes visuels, Lavande et Pêche Douce, dans Paramètres > Personnalisation', icon:'🎨', merci:null },
   { date:'2026-07-28', titre:'Activez un récap hebdomadaire par email sur l\'essentiel de votre activité, dans Paramètres > Personnalisation', icon:'📬', merci:null },
   { date:'2026-07-27', titre:'Le chrono vous propose maintenant de catégoriser le temps passé, avec la catégorie la plus fréquente déjà présélectionnée', icon:'⏱', merci:null },
@@ -4830,15 +4830,12 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Simulateur de rentabilité',etsi:'Et si ?',recettes:'Livre des recettes',retours:'Retours clients'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Combien facturer ?',etsi:'Et si ?',recettes:'Livre des recettes',retours:'Retours clients'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && DATA.params.nom) return 'Tableau de bord de '+DATA.params.nom;
   if(page==='missions') return tVocab('pageTitle');
-  if(page==='simulateur') {
-    const fam = BUSINESS_PROFILE_MAP[DATA.params?.metier];
-    return 'Simulateur de rentabilité';
-  }
+  if(page==='simulateur') return 'Combien facturer ?';
   return PAGE_TITLES[page]||page;
 }
 function updateDashboardTitle() {
@@ -4851,10 +4848,7 @@ function updateNavSimulateur() {
   if (!el) return;
   el.style.display = '';
   const lbl = document.getElementById('nav-simulateur-label');
-  if (lbl) {
-    const family = BUSINESS_PROFILE_MAP[DATA.params?.metier];
-    lbl.textContent = 'Simulateur';
-  }
+  if (lbl) lbl.textContent = 'Combien facturer ?';
 }
 function updateNavRetours() {
   const el = document.getElementById('nav-retours');
@@ -12466,7 +12460,7 @@ function renderSimulateurPage() {
 
   const _titleEl = el('sim-page-title');
   if (_titleEl) {
-    _titleEl.textContent = '🧮 Simulateur de rentabilité';
+    _titleEl.textContent = '🧮 Combien facturer ?';
   }
   const _btnCreate = el('sim-create-btn');
   if (_btnCreate) {
@@ -12991,7 +12985,7 @@ function renderEtSiPage() {
   const card1=_isMarge?`
     <div class="card">
       <div class="card-title mb8">💼 Et si je changeais mon rythme de travail ?</div>
-      <div class="ts" style="color:var(--tl)">Pas encore disponible pour votre profil (achat/revente) : ce scénario repose sur un tarif horaire, qui n'est pas votre principal levier. Le Simulateur permet déjà de tester la rentabilité d'une vente.</div>
+      <div class="ts" style="color:var(--tl)">Pas encore disponible pour votre profil (achat/revente) : ce scénario repose sur un tarif horaire, qui n'est pas votre principal levier. "Combien facturer ?" permet déjà de tester la rentabilité d'une vente.</div>
     </div>`:`
     <div class="card">
       <div class="card-header"><div class="card-title">💼 Et si je changeais mon rythme de travail ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('rythme')">Comment c'est calculé ?</button></div>
@@ -13052,6 +13046,7 @@ function renderEtSiPage() {
         ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
       </div>
       <div class="ts mt8" style="color:var(--tl)">EURL/SASU : salaire maximum possible, 0€ laissé en trésorerie dans la société (aucun dividende).</div>
+      <div class="alert al-info mt8" style="font-size:11px">💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste pour une estimation précise adaptée à votre situation.</div>
     </div>`;
 
   zone.innerHTML=`

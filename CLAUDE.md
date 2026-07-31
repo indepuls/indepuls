@@ -2626,3 +2626,13 @@ Idée d'origine : l'audit externe (Cowork) suggérait un "simulateur et si en te
 **Précision ajoutée — carte "changement de statut"** : Faustine a demandé confirmation que le montant EURL/SASU affiché correspond au salaire maximum possible (100% de la marge disponible versée en salaire, 0€ laissé en trésorerie, aucun dividende) — confirmé, et rendu explicite directement sur la carte ("EURL/SASU : salaire maximum possible, 0€ laissé en trésorerie dans la société") plutôt que seulement dans la modale "Comment c'est calculé ?".
 
 **Vérifié** : `node --check` + suite Node complète re-passée (13 tests dans `etsi_simulateur.test.js`, 0 échec sur l'ensemble).
+
+---
+
+### FIX/RENAME — "Simulateur" → "Combien facturer ?" + disclaimer fiscaliste (2026-07-30 undecies)
+
+Avec l'arrivée de "Et si ?", le nom générique "Simulateur" (page devis/tarif) devenait ambigu — les deux se ressemblent sans se différencier. Faustine a validé "Combien facturer ?" (parmi 3 propositions) : reprend directement les deux modes existants de la page ("Vérifier un prix", "Calculer un tarif"), contraste net avec "Et si ?" rien qu'au menu. Renommage du libellé nav, du titre de page, et des quelques mentions user-facing ("Simulateur ou fiche mission" → `"Combien facturer ?" ou fiche mission`) — aucun id/nom de fonction interne changé (pure churn évité, seul le texte affiché change).
+
+**Disclaimer fiscaliste ajouté à la carte "Et si je changeais de statut ?"** : Faustine a testé avec les données réelles de son mari et remarqué que Micro sans/avec TVA restaient identiques — pas un bug (voir fix TVA ponctuelle ci-dessus, qui ne change rien si aucune dépense n'a réellement `tvaDeductible` coché + un `montantTVA` renseigné ; à vérifier côté saisie, pas côté calcul). À cette occasion, elle a demandé un avertissement explicite pour que personne ne prenne les montants EURL/SASU "pour argent comptant" : ajout d'un bandeau "💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste..." sous la carte, en plus de la précision "estimation indicative" déjà présente.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement de texte + un bandeau, aucune fonction de calcul touchée).
