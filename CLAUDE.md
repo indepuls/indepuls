@@ -2636,3 +2636,17 @@ Avec l'arrivée de "Et si ?", le nom générique "Simulateur" (page devis/tarif)
 **Disclaimer fiscaliste ajouté à la carte "Et si je changeais de statut ?"** : Faustine a testé avec les données réelles de son mari et remarqué que Micro sans/avec TVA restaient identiques — pas un bug (voir fix TVA ponctuelle ci-dessus, qui ne change rien si aucune dépense n'a réellement `tvaDeductible` coché + un `montantTVA` renseigné ; à vérifier côté saisie, pas côté calcul). À cette occasion, elle a demandé un avertissement explicite pour que personne ne prenne les montants EURL/SASU "pour argent comptant" : ajout d'un bandeau "💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste..." sous la carte, en plus de la précision "estimation indicative" déjà présente.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement de texte + un bandeau, aucune fonction de calcul touchée).
+
+---
+
+### FIX — "Micro sans/avec TVA" identiques : la vraie cause (2026-07-30 duodecies)
+
+Faustine a re-testé avec les données réelles de son mari : toujours aucune différence entre les deux colonnes micro, même après le fix "dépenses ponctuelles". Cause réelle, trouvée en creusant le formulaire Dépenses (`indepuls.html`) : quand `DATA.params.tva` est false (son cas), la zone "TVA déductible" du formulaire (`dep-tva-zone`) est **entièrement masquée**, et la sauvegarde force `tvaDeductible=false` quoi qu'il arrive (`const tvaDeductible = tva && ...checked`). Autrement dit : pour tout compte qui n'a pas activé la TVA — le public le plus probable pour justement se demander "et si j'activais la TVA ?" — **aucune dépense n'a jamais, structurellement, de TVA réellement enregistrée**. Le calcul précédent renvoyait donc toujours 0 pour cette population, pas parce que la fonction était fausse, mais parce que la donnée qu'elle lisait n'existe simplement jamais dans ce cas.
+
+**Corrigé** : `_depensesTvaMoyenneMensuelle` a maintenant deux chemins explicites :
+- **Compte déjà en TVA** : comportement inchangé, montants réels ligne par ligne.
+- **Compte pas en TVA** (le cas courant ici) : **estimation** au taux configuré (`tauxTVA`, 20 % par défaut) appliqué au montant réel (TTC) des dépenses éligibles (récurrentes hors affaire + ponctuelles de l'année, y compris liées à une affaire) — extraction correcte de la TVA contenue dans un montant TTC (`taux/(1+taux)`, pas `montant × taux` qui aurait surestimé). Jamais un zéro qui ne refléterait qu'une absence de saisie plutôt que la réalité économique.
+
+**Transparence** : le sous-titre de la case "Micro avec TVA" indique désormais explicitement si le montant est "réellement suivi" ou "estimé à X% sur vos dépenses" — pour ne jamais laisser croire à une donnée réelle quand c'est une estimation. Modale "Comment c'est calculé ?" mise à jour en conséquence.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (15 tests dans `etsi_simulateur.test.js`, dont 2 nouveaux couvrant explicitement le chemin "compte sans TVA", 0 échec).

@@ -521,26 +521,43 @@ export function getTauxHoraireMinCibleSimule(DATA, overrides = {}) {
   return r > 0 ? (objectifNetMensuel + dep) / r * 12 / hAn : 0;
 }
 
-// TVA récupérable moyennée au mois, toutes dépenses tvaDeductible confondues — récurrentes
-// (même filtre exact que getDepensesMoyenneMensuelle, hors affaire) ET ponctuelles de l'année en
-// cours (retour Faustine 2026-07-30 : "mon mari a beaucoup de fournitures pour les chantiers,
-// ponctuelles" — la TVA récupérable réelle d'un indépendant vient souvent d'achats one-shot, y
-// compris liés à une affaire, pas d'abonnements récurrents ; les ponctuelles ne sont donc PAS
-// exclues ici même si elles le sont de getDepensesMoyenneMensuelle, qui répond à une question
-// différente : la charge structurelle mensuelle, pas la TVA récupérable sur l'année). Jamais
-// gated par DATA.params.tva (contrairement à getTVADeductibleMois) : sert justement à simuler
-// "et si la TVA était activée", donc doit rester calculable même quand elle ne l'est pas
-// réellement aujourd'hui.
+// TVA récupérable moyennée au mois — deux chemins bien distincts :
+// 1. Compte déjà en TVA (DATA.params.tva=true) : les montants réels ligne par ligne
+//    (tvaDeductible/montantTVA) sont fiables, on les réutilise tels quels. Récurrentes (même
+//    filtre que getDepensesMoyenneMensuelle, hors affaire) ET ponctuelles de l'année en cours,
+//    y compris liées à une affaire (retour Faustine 2026-07-30 : "mon mari a beaucoup de
+//    fournitures pour les chantiers, ponctuelles").
+// 2. Compte PAS en TVA (le cas le plus probable pour ce scénario — retour Faustine : "il n'a pas
+//    la TVA actuellement, donc la case n'est jamais cochée") : le formulaire Dépenses masque
+//    entièrement la case "TVA déductible" quand la TVA n'est pas activée (voir dep-tva-zone,
+//    indepuls.html) et FORCE tvaDeductible=false à la sauvegarde — aucune dépense n'a donc
+//    jamais de TVA réellement enregistrée dans ce cas, quelle que soit la fourniture achetée.
+//    Un zéro ici refléterait une absence de saisie, pas la réalité. On ESTIME alors la TVA
+//    récupérable au taux configuré (tauxTVA, 20% par défaut) sur le total réel des dépenses
+//    (montant TTC réel, hors affaire pour les récurrentes ; ponctuelles de l'année, y compris
+//    liées à une affaire) — assumé comme une estimation, jamais présenté comme une donnée
+//    réellement suivie (voir ETSI_METH['statut'], indepuls.html).
 function _depensesTvaMoyenneMensuelle(DATA) {
   const actMois = getActiveMonthsInYear(DATA);
   if (actMois === 0) return 0;
+  if (DATA.params.tva) {
+    const recurrentes = DATA.depenses
+      .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId && d.tvaDeductible)
+      .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montantTVA || 0) / actMois : (d.montantTVA || 0)), 0);
+    const ponctuelles = DATA.depenses
+      .filter(d => d.recurrence === 'ponctuelle' && d.tvaDeductible && d.date && d.date.slice(0, 4) === String(DATA.currentYear))
+      .reduce((s, d) => s + (d.montantTVA || 0), 0) / actMois;
+    return recurrentes + ponctuelles;
+  }
+  const taux = (DATA.params.tauxTVA || 20) / 100;
+  const facteurExtraction = taux / (1 + taux); // TVA déjà contenue dans un montant TTC
   const recurrentes = DATA.depenses
-    .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId && d.tvaDeductible)
-    .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montantTVA || 0) / actMois : (d.montantTVA || 0)), 0);
+    .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId)
+    .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montant || 0) / actMois : (d.montant || 0)), 0);
   const ponctuelles = DATA.depenses
-    .filter(d => d.recurrence === 'ponctuelle' && d.tvaDeductible && d.date && d.date.slice(0, 4) === String(DATA.currentYear))
-    .reduce((s, d) => s + (d.montantTVA || 0), 0) / actMois;
-  return recurrentes + ponctuelles;
+    .filter(d => d.recurrence === 'ponctuelle' && d.date && d.date.slice(0, 4) === String(DATA.currentYear))
+    .reduce((s, d) => s + (d.montant || 0), 0) / actMois;
+  return (recurrentes + ponctuelles) * facteurExtraction;
 }
 
 // Comparateur "Et si je changeais de statut ?" — reprend un CA brut mensuel réel (déjà calculé

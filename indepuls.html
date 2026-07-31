@@ -12965,7 +12965,7 @@ const ETSI_METH = {
   rythme: `<strong>Données ·</strong> Vos paramètres réels (Objectifs) et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> (Revenu net visé + dépenses moyennes) ÷ (1 − charges − impôts) ÷ heures disponibles sur l'année (jours × semaines, moins les congés).<br>Un seul curseur à la fois change une valeur ; le reste — y compris vos dépenses réelles — ne bouge pas.`,
   prix: `<strong>Données ·</strong> Votre chiffre d'affaires et vos heures des 12 derniers mois glissants (mêmes valeurs que "Ma rentabilité").<br><strong>Calcul ·</strong> Marge en plus = CA × hausse. Temps gagné = heures actuelles − (heures actuelles ÷ (1 + hausse)) : le temps qu'il faudrait en moins pour gagner la même chose au nouveau tarif.`,
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
-  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP − impôts) − dépenses. Micro avec TVA : + la TVA réellement récupérable sur vos dépenses déductibles. EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU).<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
+  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP − impôts) − dépenses. Micro avec TVA : + la TVA récupérable sur vos dépenses. Si la TVA est déjà activée sur votre compte, les montants réellement suivis dépense par dépense sont utilisés. Sinon (cas le plus courant pour ce scénario), la case "TVA déductible" n'existe pas encore sur vos dépenses — la TVA est alors estimée au taux configuré sur le montant réel de vos dépenses. EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU).<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
 };
 function openEtSiMeth(key) {
   const labels={rythme:'Rythme de travail',prix:'Augmenter mes prix',client:"Perte d'un client",statut:'Changement de statut'};
@@ -13041,7 +13041,7 @@ function renderEtSiPage() {
       <div class="ts" style="color:var(--tl);margin-bottom:10px">Estimation indicative à CA et dépenses constants.</div>
       <div class="g2" style="gap:8px">
         ${cellStatut(isMicroActuel&&!DATA.params.tva,'Micro · sans TVA','votre situation si micro',comp.microSansTVA)}
-        ${cellStatut(isMicroActuel&&!!DATA.params.tva,'Micro · avec TVA','TVA récupérée sur achats',comp.microAvecTVA)}
+        ${cellStatut(isMicroActuel&&!!DATA.params.tva,'Micro · avec TVA',DATA.params.tva?'TVA réellement suivie sur vos dépenses':`TVA estimée à ${DATA.params.tauxTVA||20}% sur vos dépenses`,comp.microAvecTVA)}
         ${cellStatut(statutActuel==='eurl','EURL',"à l'IS, 45% de charges",comp.eurl)}
         ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
       </div>

@@ -69,11 +69,11 @@ section('getComparateurStatuts — micro sans TVA, dépenses réelles déduites'
   const c = getComparateurStatuts(D, 3000);
   test('micro sans TVA = CA x (1-charges) - dépenses', c.microSansTVA, 2400);
 }
-section('getComparateurStatuts — micro avec TVA récupère la TVA déductible réelle des dépenses récurrentes (hors affaire)');
+section('getComparateurStatuts — compte déjà en TVA : récupère la TVA déductible réelle des dépenses récurrentes (hors affaire)');
 {
   const D = {
     currentYear: 2026,
-    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }),
+    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0, tva: true }),
     depenses: [
       { recurrence: 'mensuelle', montant: 120, montantTVA: 20, tvaDeductible: true },
       { recurrence: 'mensuelle', montant: 50, montantTVA: 8, tvaDeductible: false }, // jamais compté (pas déductible)
@@ -83,11 +83,11 @@ section('getComparateurStatuts — micro avec TVA récupère la TVA déductible 
   const c = getComparateurStatuts(D, 3000);
   test('micro avec TVA = micro sans TVA + 20€ de TVA récupérée/mois (la seule ligne récurrente éligible)', c.microAvecTVA - c.microSansTVA, 20);
 }
-section('getComparateurStatuts — micro avec TVA compte aussi les dépenses PONCTUELLES de l\'année en cours, même liées à une affaire (retour Faustine 2026-07-30 : fournitures de chantier)');
+section('getComparateurStatuts — compte déjà en TVA : compte aussi les dépenses PONCTUELLES de l\'année en cours, même liées à une affaire (retour Faustine 2026-07-30 : fournitures de chantier)');
 {
   const D = {
     currentYear: 2026,
-    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }),
+    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0, tva: true }),
     depenses: [
       { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2026-03-01' }, // compté (année en cours)
       { recurrence: 'ponctuelle', montant: 500, montantTVA: 120, tvaDeductible: true, date: '2026-06-01', chantierId: 'chantier1' }, // compté même liée à une affaire
@@ -98,6 +98,23 @@ section('getComparateurStatuts — micro avec TVA compte aussi les dépenses PON
   const c = getComparateurStatuts(D, 3000);
   // 240€ de TVA ponctuelle éligible sur l'année, moyennée sur 12 mois = 20€/mois
   test('TVA ponctuelle de l\'année moyennée sur 12 mois', c.microAvecTVA - c.microSansTVA, 20);
+}
+section('getComparateurStatuts — compte SANS TVA activée : la case "TVA déductible" n\'existe jamais côté saisie (retour Faustine 2026-07-30 : "il n\'a pas la TVA, la case n\'est jamais cochée") — estime au taux configuré plutôt que 0');
+{
+  const D = {
+    currentYear: 2026,
+    params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0, tva: false, tauxTVA: 20 }),
+    depenses: [
+      { recurrence: 'mensuelle', montant: 120, tvaDeductible: false }, // tvaDeductible jamais coché, mais compté quand même (estimation)
+      { recurrence: 'ponctuelle', montant: 500, date: '2026-03-01' }, // fourniture de chantier ponctuelle, comptée aussi
+      { recurrence: 'ponctuelle', montant: 500, date: '2025-11-01' }, // année précédente, jamais comptée
+    ],
+  };
+  const c = getComparateurStatuts(D, 3000);
+  test('estimation > 0 même sans aucune ligne tvaDeductible', c.microAvecTVA - c.microSansTVA > 0, true);
+  // 120€/mois (récurrente) + 500€/12 (ponctuelle de l'année) = 161.67€ TTC ; TVA à 20% extraite d'un TTC = x * 20/120
+  const attendu = (120 + 500 / 12) * (20 / 120);
+  test('estimation = dépenses réelles (TTC) x taux/(1+taux)', c.microAvecTVA - c.microSansTVA, attendu);
 }
 section('getComparateurStatuts — EURL (45%) donne un net supérieur à SASU (82%) sur le même CA');
 {
