@@ -13020,6 +13020,24 @@ function etsiCard4Html() {
         ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
       </div>
       ${detailTva}
+      ${(()=>{
+        // Phrase d'interprétation — jamais juste 4 chiffres côte à côte, dire lequel avantage le
+        // plus par rapport à la situation actuelle (retour Faustine, même principe que les 3
+        // autres cartes). "Salaire maximum" EURL/SASU (0€ trésorerie) comparé sur la même base.
+        const options=[
+          {key:'micro-sans',label:'Micro sans TVA',val:comp.microSansTVA,actuel:isMicroActuel&&!DATA.params.tva},
+          {key:'micro-avec',label:'Micro avec TVA',val:comp.microAvecTVA,actuel:isMicroActuel&&!!DATA.params.tva},
+          {key:'eurl',label:'EURL',val:comp.eurl,actuel:statutActuel==='eurl'},
+          {key:'sasu',label:'SASU',val:comp.sasu,actuel:statutActuel==='sasu'},
+        ];
+        const actuelle=options.find(o=>o.actuel);
+        if(!actuelle) return '';
+        const meilleure=options.filter(o=>!o.actuel).sort((a,b)=>b.val-a.val)[0];
+        if(!meilleure) return '';
+        const delta=meilleure.val-actuelle.val;
+        if(Math.abs(delta)<5) return `<div class="ts mt8" style="line-height:1.5">→ Les options se valent, à quelques euros près, sur votre situation actuelle.</div>`;
+        return `<div class="ts mt8" style="line-height:1.5">→ Parmi ces options, <strong>${meilleure.label}</strong> vous laisserait ${delta>0?'plus':'moins'} dans la poche que votre situation actuelle (${delta>0?'+':''}${fmtE(Math.round(delta))}/mois).</div>`;
+      })()}
       <div class="ts mt8" style="color:var(--tl)">EURL/SASU : salaire maximum possible, 0€ laissé en trésorerie dans la société (aucun dividende).</div>
       <div class="alert al-info mt8" style="font-size:11px">💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste pour une estimation précise adaptée à votre situation.</div>
     </div>
@@ -13049,6 +13067,7 @@ function renderEtSiPage() {
         <div id="etsi-tjm-out" style="font-size:22px;font-weight:700;color:var(--pri)"></div>
         <div class="ts" style="color:var(--tl)" id="etsi-tjm-compare"></div>
       </div>
+      <div id="etsi-tjm-interp" class="ts mt8" style="line-height:1.5"></div>
     </div>`;
 
   const card2=`
@@ -13059,7 +13078,7 @@ function renderEtSiPage() {
         <div><div class="ts">Marge en plus / mois</div><div id="etsi-marge-out" style="font-size:20px;font-weight:700;color:var(--ok)"></div></div>
         <div><div class="ts">ou temps gagné / semaine</div><div id="etsi-temps-out" style="font-size:20px;font-weight:700;color:var(--pri)"></div></div>
       </div>
-      ${rentRoulante.heures<=0?`<div class="ts mt8" style="color:var(--tl)">Pas encore assez d'heures enregistrées pour estimer le temps gagné.</div>`:''}
+      ${rentRoulante.heures<=0?`<div class="ts mt8" style="color:var(--tl)">Pas encore assez d'heures enregistrées pour estimer le temps gagné.</div>`:`<div id="etsi-prix-interp" class="ts mt8" style="line-height:1.5"></div>`}
     </div>`;
 
   const clientOptions=clients.map(m=>`<option value="${m.id}">${esc(m.client)} — ${fmtE(m.montantMensuel)}/mois</option>`).join('');
@@ -13076,15 +13095,16 @@ function renderEtSiPage() {
         <div><div class="ts">Ce mois-ci</div><div id="etsi-ca-mois-out" style="font-size:18px;font-weight:700;color:var(--err)"></div></div>
         <div><div class="ts">D'ici décembre</div><div id="etsi-ca-annee-out" style="font-size:18px;font-weight:700;color:var(--err)"></div></div>
       </div>
-      <div id="etsi-tag-out"></div>
+      <div id="etsi-tag-out" style="margin-bottom:8px"></div>
+      <div id="etsi-client-interp" class="ts" style="line-height:1.5"></div>
     </div>`;
 
   const card4=etsiCard4Html();
 
   zone.innerHTML=`
     <div style="margin-bottom:16px">
-      <div class="card-title" style="font-family:'Playfair Display',Georgia,serif;font-size:20px">Et si ?</div>
-      <div class="ts" style="color:var(--tl)">Testez. Bougez un curseur. Voyez ce que ça change. Aucun scénario n'est enregistré.</div>
+      <div class="card-title" style="font-family:'Playfair Display',Georgia,serif;font-size:20px">Et si les choses changeaient ?</div>
+      <div class="ts" style="color:var(--tl)">Testez une hypothèse sur votre activité. Bougez un curseur, voyez immédiatement ce que ça change. Rien n'est enregistré.</div>
     </div>
     <div class="g2" style="gap:16px">${card1}${card2}${card3}${card4}</div>
   `;
@@ -13112,6 +13132,20 @@ function etsiRecalc() {
       document.getElementById('etsi-tjm-out').textContent=fmtE(Math.round(th),0)+'/h';
       document.getElementById('etsi-tjm-compare').textContent="contre "+fmtE(Math.round(thActuel),0)+"/h aujourd'hui";
     }
+    // Phrase d'interprétation — jamais juste un chiffre, toujours dire ce que ça implique
+    // concrètement (retour Faustine : passer de "simulateur" à "copilote"). thActuel=0 → aucun
+    // objectif configuré, rien à comparer.
+    const interpEl=document.getElementById('etsi-tjm-interp');
+    if(interpEl){
+      if(!(thActuel>0)){
+        interpEl.innerHTML='';
+      } else if(th<=thActuel*1.01){
+        interpEl.innerHTML=`<span style="color:var(--ok)">✓ Votre tarif actuel est cohérent avec ce rythme.</span>`;
+      } else {
+        const deltaHSem=hsem*(th-thActuel)/thActuel;
+        interpEl.innerHTML=`→ À votre tarif actuel, cet objectif nécessiterait environ <strong>${fmt(deltaHSem,1)} h</strong> facturées supplémentaires par semaine.`;
+      }
+    }
   }
 
   const hausseEl=document.getElementById('etsi-hausse');
@@ -13134,6 +13168,15 @@ function etsiRecalc() {
         else { const h=Math.floor(totalMin/60), m=totalMin%60; tempsTxt=h+'h'+(m>0?String(m).padStart(2,'0'):''); }
       }
       document.getElementById('etsi-temps-out').textContent=tempsTxt;
+      const interpEl=document.getElementById('etsi-prix-interp');
+      if(interpEl){
+        if(hausse>0){
+          const heuresAnGagnees=r.heures*(1-1/(1+hausse/100));
+          interpEl.innerHTML=`→ Une hausse de <strong>${hausse}%</strong> vous permettrait d'atteindre le même revenu en travaillant environ <strong>${fmt(heuresAnGagnees,0)} h de moins par an</strong>.`;
+        } else {
+          interpEl.innerHTML='';
+        }
+      }
     } else {
       document.getElementById('etsi-temps-out').textContent='—';
     }
@@ -13154,6 +13197,11 @@ function etsiRecalc() {
       if(poidsPct<10) tag.innerHTML=`<span class="chip" style="background:var(--bg);color:var(--ok)">🟢 Impact limité</span>`;
       else if(poidsPct<25) tag.innerHTML=`<span class="chip" style="background:var(--bg);color:var(--warn)">🟠 À surveiller</span>`;
       else tag.innerHTML=`<span class="chip" style="background:var(--bg);color:var(--err)">🔴 Dépendance importante</span>`;
+      const interpEl=document.getElementById('etsi-client-interp');
+      if(interpEl){
+        const sur10=Math.round(poidsPct/10);
+        interpEl.innerHTML=poidsPct>0?`→ <strong>${sur10} € sur 10</strong> de votre CA dépend actuellement de ${esc(m.client)}.`:'';
+      }
     }
   }
 }

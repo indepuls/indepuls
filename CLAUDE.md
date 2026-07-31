@@ -2680,3 +2680,20 @@ Faustine a demandé confirmation : le CA utilisé pour "Et si je changeais de st
 **Corrigé** : `_depensesTvaMoyenneMensuelle(DATA, mks)` prend maintenant la fenêtre glissante (`mks`, la même que celle du CA — `getRentabiliteRoulante().mks`, déjà calculée) en paramètre, et filtre les dépenses ponctuelles dessus plutôt que sur l'année civile. Rétrocompatible (repli sur les 12 mois de l'année civile si `mks` non fourni) — `getComparateurStatuts` la relaie en 4ᵉ paramètre.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (20 tests dans `etsi_simulateur.test.js`, dont 1 nouveau prouvant que le filtre suit bien la fenêtre glissante fournie et non l'année civile, 0 échec).
+
+---
+
+### FEATURE — Phrases d'interprétation automatique sur les 4 cartes (2026-07-30 quindecies)
+
+Retour clé de Faustine (relayant un second avis externe) : "c'est là que tu peux faire passer 'Et si ?' de simulateur à copilote" — chaque résultat chiffré doit être suivi d'une phrase qui dit ce que ça implique concrètement, jamais juste un nombre brut. Implémenté sur les 4 cartes :
+
+- **Rythme** : si le tarif actuel suffit → "✓ Votre tarif actuel est cohérent avec ce rythme." Sinon → "À votre tarif actuel, cet objectif nécessiterait environ X h facturées supplémentaires par semaine." (déduit algébriquement de `th`/`thActuel`/`hsem` déjà calculés, sans nouvelle fonction : `deltaHSem = hsem × (th − thActuel) / thActuel`.)
+- **Prix** : "Une hausse de X% vous permettrait d'atteindre le même revenu en travaillant environ Y h de moins par an" (annualisé, sur `getRentabiliteRoulante().heures`).
+- **Perte de client** : "X € sur 10 de votre CA dépend actuellement de [client]" — reformulation du % en ratio, plus parlant qu'un pourcentage brut.
+- **Statut** : compare la situation actuelle à la meilleure des 3 autres options, phrase du type "Parmi ces options, SASU vous laisserait plus dans la poche que votre situation actuelle (+X€/mois)" — ou "les options se valent" si l'écart est négligeable (&lt;5€).
+
+**Autres ajustements (même retour)** : titre en double supprimé (le header topbar affichait déjà "Et si ?" via `PAGE_TITLES`) — remplacé par "Et si les choses changeaient ?" + une vraie phrase d'intro, pour ne plus dupliquer le nom déjà visible dans la navigation.
+
+**Non retenu tel quel — à trancher séparément si Faustine confirme** : la suggestion de retirer les emojis des titres de carte (💼📈📉🏢) pour un rendu "plus premium". Pas fait : l'ensemble d'Indépuls (Dashboard, Missions, Archives, Score de Santé...) utilise systématiquement des emojis comme code visuel — les retirer uniquement sur cette page créerait une incohérence avec le reste du produit plutôt qu'un gain, et construire un vrai set d'icônes monochromes serait un chantier de design system à part, pas un ajustement de cette page.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement UI/texte pur, aucune fonction de calcul touchée — les phrases dérivent des valeurs déjà calculées).
