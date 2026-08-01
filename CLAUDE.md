@@ -2697,3 +2697,11 @@ Retour clé de Faustine (relayant un second avis externe) : "c'est là que tu pe
 **Non retenu tel quel — à trancher séparément si Faustine confirme** : la suggestion de retirer les emojis des titres de carte (💼📈📉🏢) pour un rendu "plus premium". Pas fait : l'ensemble d'Indépuls (Dashboard, Missions, Archives, Score de Santé...) utilise systématiquement des emojis comme code visuel — les retirer uniquement sur cette page créerait une incohérence avec le reste du produit plutôt qu'un gain, et construire un vrai set d'icônes monochromes serait un chantier de design system à part, pas un ajustement de cette page.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement UI/texte pur, aucune fonction de calcul touchée — les phrases dérivent des valeurs déjà calculées).
+
+---
+
+### FIX — Exemples "Prestations ou produits ?" trop orientés freelance (2026-07-30 sedecies)
+
+Faustine a remonté une incohérence sur l'écran Paramètres → Mon activité : en sélectionnant "Artisan bâtiment" comme cœur de métier puis "Uniquement des prestations de services", les exemples affichés ("Coaching, conseil, formation, communication, artisanat intellectuel…") ne parlent qu'à un profil freelance/intellectuel — rien qui évoque un artisan facturant uniquement sa main-d'œuvre (ex. un électricien qui ne revend pas de matériaux). Ce champ n'est pas dynamique par profil (texte statique, contrairement à `tVocab()` ailleurs dans l'app) — corrigé en élargissant directement la liste d'exemples plutôt qu'en ajoutant une logique conditionnelle par métier pour un seul champ d'aide : "Coaching, conseil, formation, communication, main-d'œuvre sans revente de matériaux (chantiers, réparations)…".
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement de texte statique pur).
