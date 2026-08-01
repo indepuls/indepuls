@@ -5275,7 +5275,13 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const prevMo=todayD.getMonth()===0?12:todayD.getMonth(), prevY=todayD.getMonth()===0?todayD.getFullYear()-1:todayD.getFullYear();
     const prevMk=`${prevY}-${String(prevMo).padStart(2,'0')}`;
     const prevLabel=new Date(prevY,prevMo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-    const prevBrut=getCaBreakdownMois(prevMk).prestation+(getCaBreakdownMois(prevMk).vente||0)+getPonctuelsCA(prevMk);
+    // Bug corrigé (2026-08-01, remonté par Faustine : "CA brut à 0€ alors que le revenu net est
+    // positif") : getCaBreakdownMois() renvoie {presta,vente} (voir sa doc), pas {prestation,vente}
+    // — .prestation valait donc toujours undefined ici, et undefined+nombre=NaN. fmtE(NaN) affiche
+    // silencieusement "0 €" (son garde-fou `Number(n||0)` traite NaN comme falsy), masquant le
+    // bug au lieu de le révéler — d'où un "0€" plausible en apparence à côté d'un revenu net bien
+    // réel (lui calculé correctement, via la même fonction mais la bonne clé).
+    const prevBrut=getCaBreakdownMois(prevMk).presta+(getCaBreakdownMois(prevMk).vente||0)+getPonctuelsCA(prevMk);
     const _prevObjectif=DATA.params.modules?.objectif||'th';
     // Déduit les remboursements du mois avant de calculer "Gain / vente" — sinon un remboursement
     // laisse le bilan du mois précédent inchangé (retour bêta Pauline, 2026-07).
@@ -5298,7 +5304,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     const _prevBilanVal=_prevObjectif==='tjm'?(prevTH!==null?fmtE(prevTH*_prevHj,0)+'/j':'—'):_prevObjectif==='marge_commande'?(_prevNbM>0?fmtE(Math.round(prevNet/_prevNbM)):'—'):(prevTH!==null?fmtE(prevTH,0)+'/h':'—');
     const prevPrevMo=prevMo===1?12:prevMo-1, prevPrevY=prevMo===1?prevY-1:prevY;
     const prevPrevMk=`${prevPrevY}-${String(prevPrevMo).padStart(2,'0')}`;
-    const ppBrut=getCaBreakdownMois(prevPrevMk).prestation+(getCaBreakdownMois(prevPrevMk).vente||0)+getPonctuelsCA(prevPrevMk);
+    const ppBrut=getCaBreakdownMois(prevPrevMk).presta+(getCaBreakdownMois(prevPrevMk).vente||0)+getPonctuelsCA(prevPrevMk);
     const diffBrut=ppBrut>0?Math.round((prevBrut-ppBrut)/ppBrut*100):null;
     const diffSign=diffBrut===null?'':diffBrut>0?`<span style="color:var(--ok)">+${diffBrut}%</span>`:`<span style="color:var(--err)">${diffBrut}%</span>`;
     const existingBilanNote=((DATA.bilans||{})[prevMk]||{}).text||'';

@@ -2753,3 +2753,15 @@ Faustine a identifié un vrai trou : la génération de devis n'était accessibl
 **Guide & glossaire** : nouvelle carte "🛠️ Vos outils" (au-dessus du glossaire des indicateurs existant), une entrée par outil (Devis, Combien facturer ?, Et si ?) avec une description courte et un lien direct cliquable vers chacun — répond directement à la demande initiale, en plus du nouveau point d'entrée.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (nouveau menu + nouvelle carte statique, aucune fonction de calcul touchée).
+
+---
+
+### FIX — Bug réel : "Bilan mensuel" affichait CA brut = 0€ à tort (2026-08-01)
+
+Faustine a remonté un cas chez son mari : sur le "Bilan" du mois précédent (widget dashboard, 1er du mois), CA brut affichait 0€ alors que Revenu net affichait +6 812,84€ — impossible d'avoir un net positif avec un brut nul. Vrai bug, pas une histoire de trésorerie hors CA.
+
+**Cause** : `getCaBreakdownMois(mk)` (shared/core/calculs.js) renvoie `{presta, vente}` — le code du widget Bilan lisait `.prestation` (avec un "-tion" en trop), une clé qui n'existe pas sur cet objet. `undefined + nombre` vaut `NaN` en JS ; `fmtE(NaN)` l'affiche silencieusement comme "0 €" au lieu de révéler l'erreur, parce que son garde-fou `Number(n||0)` traite `NaN` comme une valeur falsy — un vrai piège déjà documenté en commentaire dans `calculs.js` ("ATTENTION DIVERGENCE NON RÉSOLUE" : `indepuls_artisan.html`, fichier archivé, a sa propre version de cette fonction qui utilise justement la clé `prestation`, source probable de la confusion). Le Revenu net affiché, lui, était correct : `getRevenuNetMois()` appelle la même fonction avec la bonne clé en interne.
+
+**Corrigé** : les 2 occurrences (mois affiché + mois précédent, pour le delta "%vs mois préc.") utilisent maintenant `.presta`. Recherche faite dans tout le fichier pour confirmer qu'aucune autre occurrence de ce typo n'existe ailleurs.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (correction d'un nom de propriété, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine sur le compte de son mari, au 1er du mois prochain (ou en modifiant temporairement `DATA.bilanDismissed` pour réafficher le widget).
