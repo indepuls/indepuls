@@ -6878,6 +6878,18 @@ function wScoreSante(d) {
       alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
+  // Pattern par catégorie (retour Faustine 2026-08-01, doc de vision "Couche 4 — Patterns") :
+  // l'insight lui-même vit dans Statistiques (getPatternCategoriePhrase, source unique, jamais
+  // recalculé différemment ici) — cette ligne ne fait que le signaler dans le Brief pour qu'il
+  // soit vu sans avoir à ouvrir Statistiques, avec un renvoi vers le détail complet. Masquage
+  // 15 jours comme "client dominant"/"objectif mensuel" ci-dessus : un fait qui reste vrai
+  // pendant des mois, pas un instant à célébrer une fois (contrairement aux jalons du dashboard).
+  try {
+    const patternPhrase=getPatternCategoriePhrase();
+    if(patternPhrase&&!_alertDismissed('patternCategorie')){
+      alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${patternPhrase}<br><span class="step-cta" style="margin-top:4px" onclick="irVersPatternCategorie()">Voir le détail (Statistiques)</span></span>${_dismissBtn('patternCategorie')}</div>`);
+    }
+  } catch(e){reportError('patternCategorie',e);}
   const shown5=alertLines.slice(0,5).join('');
   const rest5=alertLines.length>5?alertLines.slice(5).join(''):'';
   const alertsSection=alertLines.length?`<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Alertes</div>${shown5}${rest5?`<div style="font-size:11px;color:var(--acc);cursor:pointer;margin-top:2px;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${alertLines.length-5} autre${alertLines.length-5>1?'s':''} →</div><div style="display:none">${rest5}</div>`:''}` + '</div>' : '';
@@ -9383,6 +9395,86 @@ function rentabClientsBody() {
   const top=cls.slice(0,5),rest=cls.slice(5);
   return sortBtns+top.map(renderRow).join('')+(rest.length?`<div class="ts mt8" style="cursor:pointer;color:var(--acc)" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${rest.length} autre${rest.length>1?'s':''} →</div><div style="display:none">${rest.map(renderRow).join('')}</div>`:'');
 }
+// ── PATTERN PAR CATÉGORIE (2026-08-01) ────────────────────────
+// "Couche 4 — Patterns" du doc de vision produit ("vos missions >3000€ génèrent 87% plus de
+// revenu horaire") : un insight que personne d'autre ne peut afficher, puisqu'il vient de
+// l'historique réel de la personne. V1 limitée à la comparaison par catégorie/offre (le plus
+// proche de rentabCatBody déjà existant, le plus fiable à interpréter) — la comparaison par
+// tranche de montant est une suite envisagée, pas encore faite.
+// Toujours sur "cette année" (jamais "depuis le début") : un insight mis en avant doit rester
+// une lecture de l'activité récente, pas mélanger une vieille période avec l'actuelle.
+// Garde-fous délibérément stricts (retour Faustine : "on ne veut jamais que ça sente le pattern
+// inventé sur du bruit") : au moins MIN_N missions dans CHACUNE des deux catégories comparées,
+// un écart d'au moins MIN_PCT %, jamais de comparaison si l'une des deux catégories a une valeur
+// nulle ou négative (la phrase "X% de plus" perd son sens face à une base à 0 ou négative — une
+// catégorie à perte est un problème différent, pas encore couvert ici). Retourne null si aucun
+// pattern ne passe ces seuils : silence plutôt qu'un pattern faible affiché avec assurance.
+const PATTERN_CAT_MIN_N = 3, PATTERN_CAT_MIN_PCT = 20;
+function getPatternCategorie() {
+  const cmp = getRentabComparateur();
+  const _depMap = typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {};
+  const cy = DATA.currentYear;
+  const byC = {};
+  DATA.missions.filter(m => !m.isManagement).forEach(m => {
+    if (!(m.statut === 'fact' && m.dateFact && m.dateFact.slice(0, 4) === String(cy))) return;
+    const c = m.categorie;
+    if (!c) return; // jamais comparer contre le fourre-tout "Non catégorisé"
+    if (!byC[c]) byC[c] = { h: 0, ca: 0, couts: 0, n: 0 };
+    byC[c].h += getMissionHeures(m);
+    byC[c].ca += m.montantDevis || 0;
+    byC[c].couts += _depMap[m.id] || 0;
+    byC[c].n++;
+  });
+  const candidats = Object.entries(byC)
+    .filter(([, d]) => d.n >= PATTERN_CAT_MIN_N)
+    .map(([cat, d]) => ({ cat, n: d.n, val: cmp.value(d.ca, d.couts, d.h) }))
+    .filter(e => e.val !== null && e.val > 0);
+  if (candidats.length < 2) return null;
+  candidats.sort((a, b) => b.val - a.val);
+  const best = candidats[0], worst = candidats[candidats.length - 1];
+  const pctDiff = Math.round(((best.val - worst.val) / worst.val) * 100);
+  if (pctDiff < PATTERN_CAT_MIN_PCT) return null;
+  return { best, worst, pctDiff, cmp };
+}
+function getPatternCategoriePhrase() {
+  const pat = getPatternCategorie();
+  if (!pat) return null;
+  const { best, worst, pctDiff, cmp } = pat;
+  const objMod = DATA.params.modules?.objectif || 'th';
+  const itemsLbl = tVocab('items').toLowerCase();
+  const nTxt = `sur ${best.n} et ${worst.n} ${itemsLbl} facturé${(best.n > 1 || worst.n > 1) ? 's' : ''} cette année`;
+  if (objMod === 'marge_commande') {
+    const ptsDiff = Math.round(best.val - worst.val);
+    return `📊 Vos offres <strong>"${esc(best.cat)}"</strong> ont une marge supérieure de <strong>${ptsDiff} points</strong> à vos offres <strong>"${esc(worst.cat)}"</strong> (${cmp.fmt(best.val)} contre ${cmp.fmt(worst.val)}), ${nTxt}.`;
+  }
+  const unite = objMod === 'tjm' ? 'par jour travaillé' : 'par heure travaillée';
+  return `📊 Vos <strong>"${esc(best.cat)}"</strong> rapportent <strong>${pctDiff}% de plus</strong> ${unite} que vos <strong>"${esc(worst.cat)}"</strong> (${cmp.fmt(best.val)} contre ${cmp.fmt(worst.val)}), ${nTxt}.`;
+}
+// Panneau "Statistiques" de la page Missions (masqué par défaut) — nommée pour pouvoir être
+// déclenchée depuis ailleurs (irVersPatternCategorie ci-dessous), auparavant une IIFE anonyme
+// posée directement dans l'attribut onclick.
+function toggleMsnStatsPanel(btn) {
+  const p = document.getElementById('msn-stats-panel');
+  const o = p.style.display === 'none';
+  p.style.display = o ? 'block' : 'none';
+  btn.textContent = o ? '▾ Masquer' : '▸ Statistiques';
+  if (o && p.dataset.chartready !== '1' && document.getElementById('chart-temps')) {
+    p.dataset.chartready = '1';
+    requestAnimationFrame(() => renderChartTemps(+p.dataset.hf, +p.dataset.hi, +p.dataset.href));
+  }
+}
+// Lien contextuel Brief → Statistiques (retour Faustine 2026-08-01, même logique que
+// irVersEtSi) : ouvre le panneau Statistiques s'il est fermé, puis scroll sur le pattern.
+function irVersPatternCategorie() {
+  navigate('missions');
+  setTimeout(() => {
+    const panel = document.getElementById('msn-stats-panel');
+    const btn = document.getElementById('msn-stats-toggle-btn');
+    if (panel && panel.style.display === 'none' && btn) toggleMsnStatsPanel(btn);
+    const el = document.getElementById('pattern-categorie') || document.getElementById('msn-top-cats');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
 function rentabCatBody() {
   const periode=DATA.params.rentabPeriode||'annee';
   const sort=DATA.params.rentabCatSort||'ca';
@@ -9409,7 +9501,12 @@ function rentabCatBody() {
   const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxVal=Math.max(...cats.map(([,v])=>valOf(v)||0),1);
   const thSub=moyVal!==null?`<div class="ts mb10">${cmp.moyLabel} toutes offres : <strong>${cmp.fmt(moyVal)}</strong></div>`:'';
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">${cmp.sortLabel}</button></div>`;
-  return sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
+  // Pattern par catégorie : seulement sur "Cette année" (le pattern est lui-même calculé sur
+  // l'année en cours) — l'afficher aussi sous "Depuis le début" mélangerait deux périodes
+  // différentes dans la même carte, contraire à "jamais de résultat sans contexte".
+  const patternPhrase=periode==='annee'?getPatternCategoriePhrase():null;
+  const patternHtml=patternPhrase?`<div class="alert al-info" id="pattern-categorie" style="font-size:12px;margin-bottom:10px;line-height:1.5">${patternPhrase}</div>`:'';
+  return patternHtml+sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
 }
 // ── TEMPS PAR CATÉGORIE DE TÂCHE — tous clients confondus, purement informatif (temps saisi
 // via tempsManuel[].categorie, voir saveAddTime()). N'entre jamais dans un calcul de
@@ -9628,7 +9725,7 @@ function renderMissionsSummary(all) {
         ${sep}${st('🎯','Transfo.',txT+' %','')}
         ${sep}${st('📭','Pertes',fmt(pS,1)+' h',pS>5?'var(--warn)':'')}
       </div>
-      <button class="btn btn-out btn-xs" style="flex-shrink:0" onclick="(function(b){var p=document.getElementById('msn-stats-panel');var o=p.style.display==='none';p.style.display=o?'block':'none';b.textContent=o?'▾ Masquer':'▸ Statistiques';if(o&&p.dataset.chartready!=='1'&&document.getElementById('chart-temps')){p.dataset.chartready='1';requestAnimationFrame(function(){renderChartTemps(+p.dataset.hf,+p.dataset.hi,+p.dataset.href)})}})(this)">▸ Statistiques</button>
+      <button id="msn-stats-toggle-btn" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="toggleMsnStatsPanel(this)">▸ Statistiques</button>
     </div>
     <div id="msn-stats-panel" style="display:none;border-top:1px solid var(--brd);padding:14px 16px" data-hf="${_hF}" data-hi="${_hI}" data-href="${_hRef}">
       <div class="g3" style="gap:10px">
