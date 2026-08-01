@@ -163,6 +163,17 @@ select.s-fact{background:#dcfce7;color:#166534;border-color:#86efac;}
 .field-invalid{border-color:var(--err)!important;animation:fieldShake .3s;}
 .field-invalid:focus{outline-color:var(--err);}
 
+/* === CÉLÉBRATION PLEIN ÉCRAN (jalons ponctuels, 2026-07-31) === */
+@keyframes celebFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes celebPop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes confettiFall{to{transform:translateY(110vh) rotate(360deg);opacity:0;}}
+.celebration-overlay{position:fixed;inset:0;z-index:99999;background:rgba(20,21,56,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:celebFadeIn .25s ease;}
+.celebration-card{background:var(--card,#fff);border-radius:16px;padding:36px 30px;max-width:380px;width:100%;text-align:center;position:relative;z-index:2;animation:celebPop .4s cubic-bezier(.34,1.56,.64,1);}
+.celebration-title{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:var(--pri);margin-bottom:10px;}
+.celebration-sub{font-size:14px;color:var(--tl);line-height:1.6;margin-bottom:22px;}
+.celebration-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;}
+.confetti-piece{position:absolute;top:-20px;width:8px;height:14px;opacity:.9;animation:confettiFall linear forwards;}
+
 /* === MODAL === */
 @keyframes modalIn{from{opacity:0;transform:scale(.97);}to{opacity:1;transform:scale(1);}}
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -3028,6 +3039,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-08-01', titre:'Un petit écran de célébration (confettis !) apparaît pour vos grands moments : record du mois, objectif annuel atteint, plus gros devis signé', icon:'🎉', merci:null },
   { date:'2026-07-30', titre:'"Et si ?" — testez l\'impact d\'un changement de rythme, de tarif, la perte d\'un client ou un changement de statut, en temps réel', icon:'🔮', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
   { date:'2026-07-30', titre:'Générez un devis PDF personnalisable, depuis une mission ou "Combien facturer ?"', icon:'📄', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
   { date:'2026-07-30', titre:'Deux nouveaux thèmes visuels, Lavande et Pêche Douce, dans Paramètres > Personnalisation', icon:'🎨', merci:null },
@@ -5788,7 +5800,90 @@ function getJalonsMotivants(objNet) {
     jalons.push(`🎉 Félicitations ! Vous venez d'atteindre votre objectif annuel ${DATA.currentYear}.`);
   }
 
+  // Plus gros devis signé de l'année (retour Faustine 2026-07-31) — nécessite au moins 2
+  // missions facturées cette année pour avoir un "record" à annoncer (sinon la première mission
+  // facturée serait trivialement "la plus grosse", sans rien à battre — même garde-fou que
+  // "meilleur mois" ci-dessus, qui exige déjà un autre mois réalisé pour comparer).
+  const facturees = DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(DATA.currentYear)&&(m.montantDevis||0)>0);
+  if (facturees.length >= 2) {
+    const top = facturees.reduce((a,b)=>(b.montantDevis||0)>(a.montantDevis||0)?b:a);
+    const nomTop = esc(top.client||top.description||tVocab('item'));
+    jalons.push(`🎉 Félicitations ! "${nomTop}" est votre devis le plus important signé en ${DATA.currentYear} (<strong>${fmtE(top.montantDevis||0,0)}</strong>).`);
+  }
+
   return jalons;
+}
+// Célébration plein écran, ponctuelle (retour Faustine 2026-07-31, "style Duolingo") — jamais
+// répétée pour le même jalon : DATA.jalonsCelebres garde la trace de ce qui a déjà été célébré
+// (booléen pour meilleur mois/objectif annuel, montant record pour le plus gros devis — permet
+// de re-célébrer si un devis encore plus gros arrive plus tard dans l'année). Jamais en mode
+// démo (DATA.isExample), même garde que le snapshot mensuel juste en dessous.
+function verifierJalonsCelebration(objNet) {
+  if (DATA.isExample) return;
+  if (!DATA.jalonsCelebres) DATA.jalonsCelebres = {};
+
+  const curMk = getCurrentMk();
+  const caMoisCourant = getCaFromMissions(curMk) + getPonctuelsCA(curMk);
+  const autresMoisBrut = getMoisRealises().filter(mk=>mk!==curMk).map(mk=>getCaFromMissions(mk)+getPonctuelsCA(mk)).filter(v=>v>0);
+  if (autresMoisBrut.length > 0) {
+    const meilleurAutreMois = Math.max(...autresMoisBrut);
+    const cle = `meilleurMois_${curMk}`;
+    if (caMoisCourant > meilleurAutreMois && !DATA.jalonsCelebres[cle]) {
+      DATA.jalonsCelebres[cle] = true; saveData();
+      afficherCelebrationPleinEcran('Nouveau record du mois !', `Vous venez de dépasser votre meilleur mois de ${DATA.currentYear} (${fmtE(meilleurAutreMois,0)}).`, '🏆');
+      return; // une seule célébration à la fois, jamais deux qui se chevauchent
+    }
+  }
+
+  const traj = getTrajectoireAnnuelleInfo(objNet);
+  const cleObj = `objectifAnnuel_${DATA.currentYear}`;
+  if (traj.annualTarget > 0 && traj.caBrutRealise >= traj.annualTarget && !DATA.jalonsCelebres[cleObj]) {
+    DATA.jalonsCelebres[cleObj] = true; saveData();
+    afficherCelebrationPleinEcran('Objectif annuel atteint !', `Vous avez atteint votre objectif ${DATA.currentYear}. Continuez sur cette lancée !`, '🎯');
+    return;
+  }
+
+  const facturees = DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(DATA.currentYear)&&(m.montantDevis||0)>0);
+  if (facturees.length >= 2) {
+    const top = facturees.reduce((a,b)=>(b.montantDevis||0)>(a.montantDevis||0)?b:a);
+    const montantTop = top.montantDevis||0;
+    const cleDevis = `plusGrosDevis_${DATA.currentYear}`;
+    if (montantTop > (DATA.jalonsCelebres[cleDevis]||0)) {
+      DATA.jalonsCelebres[cleDevis] = montantTop; saveData();
+      const nomTop = esc(top.client||top.description||tVocab('item'));
+      afficherCelebrationPleinEcran('Nouveau record de l\'année !', `"${nomTop}" est votre devis le plus important signé en ${DATA.currentYear} : ${fmtE(montantTop,0)}.`, '💰');
+    }
+  }
+}
+function genererConfettis(container) {
+  const couleurs=['#5B2C4A','#BB9E81','#141538','#8E7CC3','#E8846B','#2d7a4f'];
+  for(let i=0;i<70;i++){
+    const c=document.createElement('div');
+    c.className='confetti-piece';
+    c.style.left=Math.random()*100+'%';
+    c.style.background=couleurs[Math.floor(Math.random()*couleurs.length)];
+    c.style.animationDelay=(Math.random()*0.6)+'s';
+    c.style.animationDuration=(2.2+Math.random()*1.8)+'s';
+    container.appendChild(c);
+  }
+}
+function afficherCelebrationPleinEcran(titre, sousTitre, emoji) {
+  const existant=document.querySelector('.celebration-overlay');
+  if(existant) existant.remove(); // jamais deux superposées
+  const ov=document.createElement('div');
+  ov.className='celebration-overlay';
+  ov.onclick=()=>ov.remove();
+  ov.innerHTML=`
+    <div class="celebration-confetti"></div>
+    <div class="celebration-card" onclick="event.stopPropagation()">
+      <div style="font-size:56px;margin-bottom:14px">${emoji}</div>
+      <div class="celebration-title">${esc(titre)}</div>
+      <div class="celebration-sub">${sousTitre}</div>
+      <button class="btn btn-acc" style="width:100%;justify-content:center" onclick="this.closest('.celebration-overlay').remove()">Continuer</button>
+    </div>`;
+  document.body.appendChild(ov);
+  genererConfettis(ov.querySelector('.celebration-confetti'));
+  setTimeout(()=>{ if(ov.parentNode) ov.remove(); }, 7000);
 }
 function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   const curMk=getCurrentMk();
@@ -6318,6 +6413,9 @@ function wScoreSante(d) {
       saveData();
     }
   }
+  // Célébration plein écran ponctuelle (retour Faustine 2026-07-31) — même garde DATA.isExample
+  // que le snapshot ci-dessus, gère elle-même sa propre déduplication (DATA.jalonsCelebres).
+  verifierJalonsCelebration(objNet);
 
   // ── PILIER 3 : TRÉSORERIE (25 pts) ───────────────────────────
   // Total non encaissé = toutes facturées avec reste > 0, sans délai minimum (pour l'affichage)

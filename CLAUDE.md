@@ -2721,3 +2721,23 @@ Faustine a demandé confirmation : le comparateur de statut tient-il compte de l
 **UI** : sous-titre "Micro · sans TVA" précise désormais "impôt après abattement, URSSAF inclus". Modale "Comment c'est calculé ?" mise à jour.
 
 **Vérifié** : `node --check` + suite Node complète re-passée (26 tests dans `etsi_simulateur.test.js`, dont 8 nouveaux couvrant l'abattement par sous-régime, la simulation micro depuis un compte SASU, et la non-application d'URSSAF à EURL/SASU — tous les tests précédents restent verts sans modification, la formule étant mathématiquement identique quand `impotsTaux=0`).
+
+---
+
+### FEATURE — Célébrations plein écran + nouveau jalon "plus gros devis" (2026-08-01)
+
+Faustine, en référence aux phrases de félicitations ajoutées la veille (meilleur mois, objectif annuel dans `getJalonsMotivants()`) : (1) ajouter un jalon "devis avec le plus gros CA de l'année signé", et (2) transformer ces moments en un vrai écran de célébration plein écran, "style Duolingo", avec confettis.
+
+**Nouveau jalon "plus gros devis de l'année".** Ajouté à `getJalonsMotivants()` (ligne persistante du Brief, comme les deux existants) : nécessite au moins 2 missions facturées cette année pour avoir un "record" à annoncer — sinon la toute première facturation de l'année serait trivialement "la plus grosse", sans rien à battre (même garde-fou que "meilleur mois", qui exige déjà un autre mois réalisé).
+
+**Célébration plein écran** (`afficherCelebrationPleinEcran(titre, sousTitre, emoji)` + `genererConfettis()`) : overlay avec confettis CSS (`@keyframes confettiFall`, 70 pièces de couleurs aléatoires parmi la palette du thème), carte centrée avec titre/sous-titre/emoji, fermeture au clic n'importe où ou auto-dismiss après 7s. Jamais deux superposées (`afficherCelebrationPleinEcran` retire toute célébration déjà affichée avant d'en ouvrir une nouvelle).
+
+**Déclenchement, ponctuel par construction** (`verifierJalonsCelebration(objNet)`, appelée une fois par rendu du dashboard, juste après le snapshot mensuel dans `wScoreSante()`) : les 3 jalons (meilleur mois, objectif annuel, plus gros devis) sont revérifiés à chaque rendu, mais ne célèbrent qu'une fois par jalon grâce à `DATA.jalonsCelebres` (nouveau champ racine, pas de migration nécessaire) :
+- Meilleur mois / objectif annuel : booléen scopé au mois/à l'année (`meilleurMois_2026-08`, `objectifAnnuel_2026`) — jamais réaffiché pour la même période.
+- Plus gros devis : la clé stocke le **montant du record déjà célébré** (pas juste un booléen) — permet de re-célébrer si un devis encore plus gros arrive plus tard dans la même année, plutôt que de figer la célébration au premier record venu.
+
+Jamais en mode démo (`DATA.isExample`, même garde que le snapshot mensuel). Une seule célébration à la fois (le premier jalon détecté `return`, les autres seront vérifiés au rendu suivant) — pas de risque d'empiler plusieurs écrans de félicitations d'un coup.
+
+**Non modélisé délibérément** : pas de célébration "action-triggered" (ex. au moment précis où on clique "Facturer") — tout reste détecté passivement au rendu du dashboard, comme les 2 jalons déjà existants, pour une seule logique de déduplication à maintenir plutôt que deux mécanismes parallèles.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (feature purement UI/DOM, aucune fonction de `shared/core/calculs.js` touchée — pas de nouveau test Node, la logique de déclenchement dépend de manipulations DOM non testables hors navigateur). **Vérification navigateur non faite** dans cette session (limite d'environnement documentée plus haut) — à reconfirmer par Faustine : les 3 déclencheurs (idéalement en modifiant temporairement des données de test), l'absence de répétition au rechargement, et le rendu visuel des confettis.
