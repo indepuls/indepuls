@@ -5808,9 +5808,22 @@ function getTrajectoireAnnuelleInfo(objNet) {
 // "l'élan plutôt que la culpabilité" déjà en place ailleurs dans le produit. Comparaison
 // TOUJOURS contre un AUTRE mois réel, jamais contre le mois en cours lui-même : sinon le tout
 // premier mois d'activité (rien à dépasser) se féliciterait à tort de "battre son meilleur
-// mois" — qui ne serait alors que lui-même (retour Faustine, 2026-07-30). Naturellement
-// éphémère : la clé est scopée au mois/à l'année concernés, plus affichée une fois la période
-// suivante entamée, sans avoir besoin d'un mécanisme de masquage séparé.
+// mois" — qui ne serait alors que lui-même (retour Faustine, 2026-07-30).
+// Masquage définitif par événement (retour Faustine 2026-08-01 : "objectif annuel atteint" au
+// 3e mois resterait affiché 9 mois d'affilée sans rien pour le masquer). Chaque jalon peut être
+// masqué via _jalonMasqueBtn, avec une clé scopée à l'événement précis (mois/année/montant) :
+// masquer ne coupe donc que CET événement-là, un nouveau record ou une nouvelle période pourra
+// re-déclencher la phrase plus tard (DATA.jalonsMasques, nouveau champ racine, pas de migration).
+function _jalonMasque(k) { return !!(DATA.jalonsMasques && DATA.jalonsMasques[k]); }
+function masquerJalonDefinitivement(k) {
+  DATA.jalonsMasques = DATA.jalonsMasques || {};
+  DATA.jalonsMasques[k] = true;
+  saveData();
+  renderDashboard();
+}
+function _jalonMasqueBtn(k) {
+  return `<button type="button" class="btn btn-out btn-xs" onclick="masquerJalonDefinitivement('${k}')" style="flex-shrink:0" title="Vous ne reverrez plus ce message pour cet événement précis. Un nouveau record ou une nouvelle période pourra à nouveau être célébré.">🔕 Masquer</button>`;
+}
 function getJalonsMotivants(objNet) {
   const jalons = [];
   const curMk = getCurrentMk();
@@ -5822,23 +5835,31 @@ function getJalonsMotivants(objNet) {
     .filter(v => v > 0);
   if (autresMoisBrut.length > 0) {
     const meilleurAutreMois = Math.max(...autresMoisBrut);
-    if (caMoisCourant > meilleurAutreMois) {
-      jalons.push(`🎉 Félicitations ! Vous venez de dépasser votre meilleur mois de ${DATA.currentYear} (<strong>${fmtE(meilleurAutreMois,0)}</strong>).`);
+    const cleMeilleurMois = `meilleurMois_${curMk}`;
+    if (caMoisCourant > meilleurAutreMois && !_jalonMasque(cleMeilleurMois)) {
+      jalons.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span>🎉 Félicitations ! Vous venez de dépasser votre meilleur mois de ${DATA.currentYear} (<strong>${fmtE(meilleurAutreMois,0)}</strong>).</span>${_jalonMasqueBtn(cleMeilleurMois)}</div>`);
     }
   }
 
   const traj = getTrajectoireAnnuelleInfo(objNet);
-  if (traj.annualTarget > 0 && traj.caBrutRealise >= traj.annualTarget) {
-    jalons.push(`🎉 Félicitations ! Vous venez d'atteindre votre objectif annuel ${DATA.currentYear}.`);
+  const cleObjectifAnnuel = `objectifAnnuel_${DATA.currentYear}`;
+  if (traj.annualTarget > 0 && traj.caBrutRealise >= traj.annualTarget && !_jalonMasque(cleObjectifAnnuel)) {
+    jalons.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span>🎉 Félicitations ! Vous venez d'atteindre votre objectif annuel ${DATA.currentYear}.</span>${_jalonMasqueBtn(cleObjectifAnnuel)}</div>`);
   }
 
-  // Le jalon "plus gros montant facturé de l'année" (retour Faustine 2026-07-31) N'EST PAS ici :
-  // contrairement à "meilleur mois" (expire au mois suivant) et "objectif annuel" (expire à l'année
-  // suivante), il n'a pas d'expiration naturelle — une fois vrai, il resterait affiché chaque jour
-  // jusqu'à ce qu'une facture encore plus grosse arrive, potentiellement pendant des mois, sans
-  // mécanisme de masquage (retour Faustine 2026-08-01 : "elle reste combien de temps... cette
-  // phrase ne peut pas être masquée"). Gardé UNIQUEMENT comme célébration plein écran ponctuelle
-  // (verifierJalonsCelebration ci-dessous), qui se déclenche une fois puis disparaît d'elle-même.
+  // "Plus gros montant facturé de l'année" : décrit exactement ce qui est vérifié (statut==='fact'),
+  // jamais "signé" (un devis accepté mais pas encore facturé n'est pas compté ici, retour Faustine
+  // 2026-08-01). Clé de masquage incluant le montant : masquer le record actuel n'empêche pas une
+  // facture encore plus grosse plus tard dans l'année de re-déclencher la phrase.
+  const facturees = DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(DATA.currentYear)&&(m.montantDevis||0)>0);
+  if (facturees.length >= 2) {
+    const top = facturees.reduce((a,b)=>(b.montantDevis||0)>(a.montantDevis||0)?b:a);
+    const clePlusGrosFacture = `plusGrosFacture_${DATA.currentYear}_${top.montantDevis||0}`;
+    if (!_jalonMasque(clePlusGrosFacture)) {
+      const nomTop = esc(top.client||top.description||tVocab('item'));
+      jalons.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span>🎉 Félicitations ! "${nomTop}" est votre plus gros montant facturé en ${DATA.currentYear} (<strong>${fmtE(top.montantDevis||0,0)}</strong>).</span>${_jalonMasqueBtn(clePlusGrosFacture)}</div>`);
+    }
+  }
 
   return jalons;
 }
