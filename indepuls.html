@@ -5832,16 +5832,13 @@ function getJalonsMotivants(objNet) {
     jalons.push(`🎉 Félicitations ! Vous venez d'atteindre votre objectif annuel ${DATA.currentYear}.`);
   }
 
-  // Plus gros devis signé de l'année (retour Faustine 2026-07-31) — nécessite au moins 2
-  // missions facturées cette année pour avoir un "record" à annoncer (sinon la première mission
-  // facturée serait trivialement "la plus grosse", sans rien à battre — même garde-fou que
-  // "meilleur mois" ci-dessus, qui exige déjà un autre mois réalisé pour comparer).
-  const facturees = DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring&&m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,4)===String(DATA.currentYear)&&(m.montantDevis||0)>0);
-  if (facturees.length >= 2) {
-    const top = facturees.reduce((a,b)=>(b.montantDevis||0)>(a.montantDevis||0)?b:a);
-    const nomTop = esc(top.client||top.description||tVocab('item'));
-    jalons.push(`🎉 Félicitations ! "${nomTop}" est votre devis le plus important signé en ${DATA.currentYear} (<strong>${fmtE(top.montantDevis||0,0)}</strong>).`);
-  }
+  // Le jalon "plus gros montant facturé de l'année" (retour Faustine 2026-07-31) N'EST PAS ici :
+  // contrairement à "meilleur mois" (expire au mois suivant) et "objectif annuel" (expire à l'année
+  // suivante), il n'a pas d'expiration naturelle — une fois vrai, il resterait affiché chaque jour
+  // jusqu'à ce qu'une facture encore plus grosse arrive, potentiellement pendant des mois, sans
+  // mécanisme de masquage (retour Faustine 2026-08-01 : "elle reste combien de temps... cette
+  // phrase ne peut pas être masquée"). Gardé UNIQUEMENT comme célébration plein écran ponctuelle
+  // (verifierJalonsCelebration ci-dessous), qui se déclenche une fois puis disparaît d'elle-même.
 
   return jalons;
 }
@@ -5883,7 +5880,7 @@ function verifierJalonsCelebration(objNet) {
     if (montantTop > (DATA.jalonsCelebres[cleDevis]||0)) {
       DATA.jalonsCelebres[cleDevis] = montantTop; saveData();
       const nomTop = esc(top.client||top.description||tVocab('item'));
-      afficherCelebrationPleinEcran('Nouveau record de l\'année !', `"${nomTop}" est votre devis le plus important signé en ${DATA.currentYear} : ${fmtE(montantTop,0)}.`, '💰');
+      afficherCelebrationPleinEcran('Nouveau record de l\'année !', `"${nomTop}" est votre plus gros montant facturé en ${DATA.currentYear} : ${fmtE(montantTop,0)}.`, '💰');
     }
   }
 }
