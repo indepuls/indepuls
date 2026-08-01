@@ -12965,7 +12965,7 @@ const ETSI_METH = {
   rythme: `<strong>Données ·</strong> Vos paramètres réels (Objectifs) et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> (Revenu net visé + dépenses moyennes) ÷ (1 − charges − impôts) ÷ heures disponibles sur l'année (jours × semaines, moins les congés).<br>Un seul curseur à la fois change une valeur ; le reste — y compris vos dépenses réelles — ne bouge pas.`,
   prix: `<strong>Données ·</strong> Votre chiffre d'affaires et vos heures des 12 derniers mois glissants (mêmes valeurs que "Ma rentabilité").<br><strong>Calcul ·</strong> Marge en plus = CA × hausse. Temps gagné = heures actuelles − (heures actuelles ÷ (1 + hausse)) : le temps qu'il faudrait en moins pour gagner la même chose au nouveau tarif.`,
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
-  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP − impôts) − dépenses. Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU).<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
+  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut — le même calcul que "Combien facturer ?". Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU) — ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
 };
 function openEtSiMeth(key) {
   const labels={rythme:'Rythme de travail',prix:'Augmenter mes prix',client:"Perte d'un client",statut:'Changement de statut'};
@@ -12985,10 +12985,19 @@ function toggleEtsiPrixHypothese(val) {
   if(zone) zone.outerHTML=etsiCard4Html();
 }
 function etsiCard4Html() {
-  const statutActuel=DATA.params.statut||'micro';
-  const isMicroActuel=statutActuel==='micro';
+  const statutActuel=DATA.params.statut||'micro-bnc';
+  // Un compte micro n'a jamais littéralement statut==='micro' — c'est toujours l'un des 3
+  // sous-régimes (micro-bnc/micro-bic/micro-achat, voir Paramètres > Fiscalité). Comparer à
+  // 'micro' ne matchait donc jamais rien (bug trouvé en vérifiant l'abattement, 2026-07-30).
+  const MICRO_SOUS_TYPES=['micro-bnc','micro-bic','micro-achat'];
+  const isMicroActuel=MICRO_SOUS_TYPES.includes(statutActuel);
+  // Sous-régime à simuler pour les 2 cases micro : le vrai sous-régime si le compte est déjà
+  // micro, sinon celui cohérent avec le métier (même logique que getDefaultMicroStatut, utilisée
+  // à la création du compte) — nécessaire pour un abattement correct même en simulant "et si
+  // j'étais micro" depuis un compte réellement SASU/EURL.
+  const microSousType=isMicroActuel?statutActuel:getDefaultMicroStatut(DATA.params.metier);
   const rentRoulante=getRentabiliteRoulante();
-  const comp=getComparateurStatuts(rentRoulante.caBrut/Math.max(1,rentRoulante.nbMois),_etsiPrixAugmentes,rentRoulante.mks);
+  const comp=getComparateurStatuts(rentRoulante.caBrut/Math.max(1,rentRoulante.nbMois),_etsiPrixAugmentes,rentRoulante.mks,microSousType);
   const cellStatut=(isActuel,label,sub,val)=>`<div style="background:var(--bg);border-radius:8px;padding:8px 10px;${isActuel?'border:1.5px solid var(--acc)':''}">
     <div class="ts" style="font-weight:700;text-transform:uppercase;font-size:10px">${label}${isActuel?' · actuel':''}</div>
     <div class="ts" style="color:var(--tl);margin-bottom:4px">${sub}</div>
@@ -13014,7 +13023,7 @@ function etsiCard4Html() {
         ${btnHyp('absorbe','Gardez le même prix total facturé')}
       </div>
       <div class="g2" style="gap:8px">
-        ${cellStatut(isMicroActuel&&!DATA.params.tva,'Micro · sans TVA','votre situation si micro',comp.microSansTVA)}
+        ${cellStatut(isMicroActuel&&!DATA.params.tva,'Micro · sans TVA','impôt après abattement, URSSAF inclus',comp.microSansTVA)}
         ${cellStatut(isMicroActuel&&!!DATA.params.tva,'Micro · avec TVA',subTva,comp.microAvecTVA)}
         ${cellStatut(statutActuel==='eurl','EURL',"à l'IS, 45% de charges",comp.eurl)}
         ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
@@ -13507,7 +13516,7 @@ document.addEventListener('keydown', function(e) {
   window.getRevenuNetMois       = (mk) => { sync(); return Mode.getRevenuNetMois(mk); };
   window.getTauxHoraireMinCible = ()   => { sync(); return Mode.getTauxHoraireMinCible(); };
   window.getTauxHoraireMinCibleSimule = (overrides) => { sync(); return Mode.getTauxHoraireMinCibleSimule(overrides); };
-  window.getComparateurStatuts  = (caBrutMensuel,prixAugmentes,mks) => { sync(); return Mode.getComparateurStatuts(caBrutMensuel,prixAugmentes,mks); };
+  window.getComparateurStatuts  = (caBrutMensuel,prixAugmentes,mks,microSousType) => { sync(); return Mode.getComparateurStatuts(caBrutMensuel,prixAugmentes,mks,microSousType); };
   window.getTHBrutAnnuel        = (caBrut,hT) => { sync(); return Mode.getTHBrutAnnuel(caBrut,hT); };
   window.getTJMBrut             = (thBrut)    => { sync(); return Mode.getTJMBrut(thBrut); };
   window.getTHBrutMois          = (mk,caMois,heuresMois) => { sync(); return Mode.getTHBrutMois(mk,caMois,heuresMois); };

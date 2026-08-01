@@ -591,14 +591,33 @@ function _depensesTvaMoyenneMensuelle(DATA, mks) {
 //   aucun impact net) pour que l'UI puisse montrer explicitement le calcul plutôt qu'une boîte
 //   noire (retour Faustine : "tu regardes si c'est en + ou en - ?").
 // - EURL/SASU : coût de rémunération forfaitaire 45%/82%, les mêmes valeurs déjà utilisées
-//   ailleurs dans Indépuls par défaut pour ces deux statuts (voir applyProfile/statut change).
+//   ailleurs dans Indépuls par défaut pour ces deux statuts (voir applyProfile/statut change) —
+//   ce forfait couvre déjà toutes les cotisations sociales (URSSAF n'a pas de sens pour ces deux
+//   statuts, jamais appliqué ici, contrairement à la micro).
+// - Impôt micro : calculé APRÈS abattement forfaitaire (34/50/71 % selon le sous-régime — mêmes
+//   fonctions `getAbattementMicro`/`getRevenuImposableMicro` déjà utilisées par "Combien
+//   facturer ?", retour Faustine 2026-07-30 : "le simulateur tient-il compte de l'abattement ?").
+//   `microSousType` ('micro-bnc'/'micro-bic'/'micro-achat') est un paramètre explicite plutôt que
+//   lu sur DATA.params.statut : nécessaire pour simuler "et si j'étais micro" depuis un compte
+//   réellement SASU/EURL, où ABATTEMENTS_MICRO[DATA.params.statut] n'existe pas. DATA.params.statut
+//   est basculé temporairement le temps de l'appel (même pattern que le changement d'année pour
+//   les Archives) puis restauré — synchrone, aucun risque de réentrance.
 // Estimation indicative à CA et dépenses constants — le message est porté par l'UI, pas ici.
-export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true, mks) {
+export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true, mks, microSousType) {
   const dep = getDepensesMoyenneMensuelle(DATA) + (DATA.params.chargesAnnuellesCompl || 0) / 12 + (DATA.params.chargesSalariales || 0);
-  const impotsTaux = getImpotsTaux(DATA);
   const tauxChargesMicro = ((DATA.params.tauxURSSAF || 0) + (DATA.params.tauxCFP || 0)) / 100;
-  const r = 1 - tauxChargesMicro - impotsTaux;
-  const microSansTVA = r > 0 ? caBrutMensuel * r - dep : 0;
+  const sousType = ABATTEMENTS_MICRO[microSousType] ? microSousType : (ABATTEMENTS_MICRO[DATA.params.statut] ? DATA.params.statut : 'micro-bnc');
+  const impotMicroMensuel = (caHTPourImpot) => {
+    if (!(getImpotsTaux(DATA) > 0) || caHTPourImpot <= 0) return 0;
+    const statutOrig = DATA.params.statut;
+    DATA.params.statut = sousType;
+    const caPresta = sousType === 'micro-achat' ? 0 : caHTPourImpot;
+    const caVente = sousType === 'micro-achat' ? caHTPourImpot : 0;
+    const montant = getImpotEstimeMicro(DATA, caPresta, caVente);
+    DATA.params.statut = statutOrig;
+    return montant;
+  };
+  const microSansTVA = tauxChargesMicro < 1 ? caBrutMensuel * (1 - tauxChargesMicro) - impotMicroMensuel(caBrutMensuel) - dep : 0;
   const tvaRecuperee = _depensesTvaMoyenneMensuelle(DATA, mks);
   const tauxTVA = (DATA.params.tauxTVA || 20) / 100;
   let microAvecTVA, tvaCollectee;
@@ -608,7 +627,7 @@ export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true,
   } else {
     const caHT = caBrutMensuel / (1 + tauxTVA);
     tvaCollectee = caBrutMensuel - caHT;
-    microAvecTVA = (r > 0 ? caHT * r - dep : 0) + tvaRecuperee;
+    microAvecTVA = (tauxChargesMicro < 1 ? caHT * (1 - tauxChargesMicro) - impotMicroMensuel(caHT) - dep : 0) + tvaRecuperee;
   }
   const disponibleEntreprise = Math.max(0, caBrutMensuel - dep);
   const eurl = disponibleEntreprise / (1 + 45 / 100);

@@ -131,6 +131,43 @@ section('getComparateurStatuts — compte SANS TVA activée : la case "TVA dédu
   const attendu = (120 + 500 / 12) * (20 / 120);
   test('estimation = dépenses réelles (TTC) x taux/(1+taux)', c.microAvecTVA - c.microSansTVA, attendu);
 }
+section('getComparateurStatuts — impôt micro calculé APRÈS abattement forfaitaire, pas sur le CA brut (retour Faustine 2026-07-30 : "est-ce que le simulateur tient compte de l\'abattement ?")');
+{
+  const D = { params: baseParams({ statut: 'micro-bnc', tauxURSSAF: 22, tauxCFP: 0, impotsTaux: 10 }), depenses: [] };
+  const c = getComparateurStatuts(D, 3000);
+  // abattement micro-bnc = 34% de 3000 = 1020 → revenu imposable 1980 → impôt 198
+  // charges URSSAF = 3000*0.22 = 660 → net = 3000 - 660 - 198 = 2142
+  test('impôt basé sur le revenu après abattement (34% en micro-bnc), pas sur le CA brut', c.microSansTVA, 2142);
+}
+section('getComparateurStatuts — le sous-régime micro change le taux d\'abattement (34% BNC vs 71% achat)');
+{
+  const Dbnc = { params: baseParams({ statut: 'micro-bnc', tauxURSSAF: 0, tauxCFP: 0, impotsTaux: 10 }), depenses: [] };
+  const Dachat = { params: baseParams({ statut: 'micro-achat', tauxURSSAF: 0, tauxCFP: 0, impotsTaux: 10 }), depenses: [] };
+  const cBnc = getComparateurStatuts(Dbnc, 3000);
+  const cAchat = getComparateurStatuts(Dachat, 3000);
+  // Abattement plus généreux (71% > 34%) → revenu imposable plus faible → impôt plus faible → net plus élevé
+  test('micro-achat (71% d\'abattement) laisse un net supérieur à micro-bnc (34%) à impôt/CA identiques', cAchat.microSansTVA > cBnc.microSansTVA, true);
+}
+section('getComparateurStatuts — simuler "et si j\'étais micro" depuis un compte réellement SASU : microSousType explicite évite un abattement nul');
+{
+  const D = { params: baseParams({ statut: 'sasu', remunerationNette: 3000, coutRemunerationPct: 82, tauxURSSAF: 22, tauxCFP: 0, impotsTaux: 10 }), depenses: [] };
+  const sansMicroSousType = getComparateurStatuts(D, 3000, true, undefined, undefined);
+  const avecMicroSousType = getComparateurStatuts(D, 3000, true, undefined, 'micro-bnc');
+  // Sans microSousType explicite, repli sur 'micro-bnc' par défaut (voir sousType) — donc les deux
+  // devraient déjà coïncider ; le test protège surtout contre une régression qui renverrait un
+  // abattement nul faute de repli.
+  test('un net non nul même simulé depuis un compte SASU réel', avecMicroSousType.microSansTVA > 0, true);
+  test('repli implicite cohérent avec un microSousType explicite = micro-bnc', sansMicroSousType.microSansTVA, avecMicroSousType.microSansTVA);
+}
+section('getComparateurStatuts — EURL/SASU n\'appliquent jamais les taux URSSAF de la micro (déjà couverts par le forfait 45%/82%)');
+{
+  const D1 = { params: baseParams({ tauxURSSAF: 10 }), depenses: [] };
+  const D2 = { params: baseParams({ tauxURSSAF: 40 }), depenses: [] };
+  const c1 = getComparateurStatuts(D1, 3000);
+  const c2 = getComparateurStatuts(D2, 3000);
+  test('EURL identique quel que soit le taux URSSAF micro configuré', c1.eurl, c2.eurl);
+  test('SASU identique quel que soit le taux URSSAF micro configuré', c1.sasu, c2.sasu);
+}
 section('getComparateurStatuts — prixAugmentes=true (défaut) : TVA collectée = 0, simple transit sans impact net (retour Faustine 2026-07-30)');
 {
   const D = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }), depenses: [] };

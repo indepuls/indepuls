@@ -2705,3 +2705,19 @@ Retour clé de Faustine (relayant un second avis externe) : "c'est là que tu pe
 Faustine a remonté une incohérence sur l'écran Paramètres → Mon activité : en sélectionnant "Artisan bâtiment" comme cœur de métier puis "Uniquement des prestations de services", les exemples affichés ("Coaching, conseil, formation, communication, artisanat intellectuel…") ne parlent qu'à un profil freelance/intellectuel — rien qui évoque un artisan facturant uniquement sa main-d'œuvre (ex. un électricien qui ne revend pas de matériaux). Ce champ n'est pas dynamique par profil (texte statique, contrairement à `tVocab()` ailleurs dans l'app) — corrigé en élargissant directement la liste d'exemples plutôt qu'en ajoutant une logique conditionnelle par métier pour un seul champ d'aide : "Coaching, conseil, formation, communication, main-d'œuvre sans revente de matériaux (chantiers, réparations)…".
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement de texte statique pur).
+
+---
+
+### FIX — "Et si je changeais de statut ?" : impôt sans abattement micro + bug "isMicroActuel" (2026-07-30 septendecies)
+
+Faustine a demandé confirmation : le comparateur de statut tient-il compte de l'abattement micro (impôt) et des taux URSSAF (micro seulement, absents mais intégrés au forfait EURL/SASU) ? Vérification faite, deux constats :
+
+**URSSAF : correct.** Micro applique `tauxURSSAF`/`tauxCFP` ; EURL/SASU ne les appliquent jamais (le forfait 45 %/82 % couvre déjà toutes les cotisations sociales pour ces deux statuts) — confirmé, rien à corriger, et 2 nouveaux tests le garantissent explicitement contre une régression future.
+
+**Impôt micro : incomplet, corrigé.** Le calcul appliquait `impotsTaux` directement sur le CA brut (même simplification que `getRevenuNetMois`, le moteur principal du dashboard) — sans l'abattement forfaitaire (34/50/71 % selon le sous-régime micro) que "Combien facturer ?" applique déjà, lui, via `getRevenuImposableMicro`. Concrètement, ça **surestimait l'impôt en micro**, ce qui faisait paraître EURL/SASU artificiellement plus avantageux dans la comparaison. Corrigé : `getComparateurStatuts` calcule maintenant l'impôt micro via `getImpotEstimeMicro` (abattement inclus), avec un nouveau paramètre `microSousType` — nécessaire pour simuler "et si j'étais micro" depuis un compte réellement SASU/EURL (où `ABATTEMENTS_MICRO[DATA.params.statut]` n'existe pas) ; `DATA.params.statut` est temporairement basculé sur le bon sous-régime le temps de l'appel (même pattern que le changement d'année pour les Archives), puis restauré.
+
+**Bug trouvé en creusant : `isMicroActuel` ne matchait jamais rien.** `DATA.params.statut` pour un compte micro vaut toujours l'un des 3 sous-régimes (`micro-bnc`/`micro-bic`/`micro-achat`), jamais littéralement `'micro'` — la comparaison `statutActuel==='micro'` était donc toujours fausse, empêchant le badge "· actuel" de s'afficher sur les cases Micro. Corrigé (`MICRO_SOUS_TYPES.includes(statutActuel)`) ; n'affectait que le badge visuel, pas les montants calculés.
+
+**UI** : sous-titre "Micro · sans TVA" précise désormais "impôt après abattement, URSSAF inclus". Modale "Comment c'est calculé ?" mise à jour.
+
+**Vérifié** : `node --check` + suite Node complète re-passée (26 tests dans `etsi_simulateur.test.js`, dont 8 nouveaux couvrant l'abattement par sous-régime, la simulation micro depuis un compte SASU, et la non-application d'URSSAF à EURL/SASU — tous les tests précédents restent verts sans modification, la formule étant mathématiquement identique quand `impotsTaux=0`).
