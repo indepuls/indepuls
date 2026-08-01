@@ -5682,11 +5682,11 @@ function buildAlerts({caBrut,caNetMoy,hF,hI,caP,caV,caNetRoulant,hTRoulant}) {
     const _mpi=getMicroPlafondInfo();
     if(_mpi&&_mpi.pct>=60){
       if(_mpi.pct>=100) alerts.push({pr:0,cl:'al-err',txt:`🚨 Plafond micro dépassé — CA ${fmtE(_mpi.caAnnuel)} sur un plafond de ${fmtE(_mpi.plafond)}${_mpi.hasProrata?' (prorata ouverture)':''}.`});
-      else if(_mpi.pct>=80) alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)})${_mpi.hasProrata?' — prorata année de création':''}.`});
+      else if(_mpi.pct>=80) alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)})${_mpi.hasProrata?' — prorata année de création':''}.<br><span class="step-cta" style="margin-top:4px" onclick="irVersEtSi(4)">Simuler un changement de statut</span>`});
       else alerts.push({pr:3,cl:'al-info',txt:`📊 Plafond régime micro : ${_mpi.pct} % atteint (${fmtE(_mpi.caAnnuel)} / ${fmtE(_mpi.plafond)}). Distinct du seuil TVA.`});
     }
     if(_mpi&&_mpi.pctPresta!==null&&_mpi.pctPresta>=80)
-      alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Sous-plafond prestations micro (activité mixte) : ${_mpi.pctPresta} % atteint (${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)}).`});
+      alerts.push({pr:1,cl:'al-warn',txt:`⚠️ Sous-plafond prestations micro (activité mixte) : ${_mpi.pctPresta} % atteint (${fmtE(_mpi.caPrestaAnnuel)} / ${fmtE(_mpi.sousPlafond)}).<br><span class="step-cta" style="margin-top:4px" onclick="irVersEtSi(4)">Simuler un changement de statut</span>`});
   }catch(e){reportError('buildAlerts.plafondMicro',e);}
   // Alertes contextuelles : pipeline et facturation
   const moisAgeCtx=getMoisDepuisOuverture();
@@ -6757,10 +6757,13 @@ function wScoreSante(d) {
       priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(_rentIsChantier&&tjmMin>0&&gapTjm>0){
-      priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.`;
+      // Second lien, en plus du "→ Onglet Paramètres" du _prioriteBtn ci-dessous (retour Faustine
+      // 2026-08-01) : le diagnostic dit "augmentez vos tarifs", ce lien permet d'en voir l'effet
+      // avant de changer quoi que ce soit dans Paramètres.
+      priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.<br><span class="step-cta" style="cursor:pointer" onclick="irVersEtSi(2)">→ Simuler l'effet d'une hausse (Et si ?)</span>`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hTRoulant>0&&thBrut<thMin){
-      priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.`;
+      priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.<br><span class="step-cta" style="cursor:pointer" onclick="irVersEtSi(2)">→ Simuler l'effet d'une hausse (Et si ?)</span>`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(_rentIsMarge&&_margePct===null){
       priorite=`Ajoutez vos coûts directs sur vos ${tVocab('items').toLowerCase()} pour calculer votre marge et activer les recommandations de rentabilité.`;
@@ -6844,7 +6847,12 @@ function wScoreSante(d) {
     // — masquer l'alerte "dépend fortement" à 63% affichait à la place l'alerte "à surveiller"
     // 40-49%, alors que le CA n'a pas bougé). Le dismiss masque seulement l'alerte, point.
     if(pctTop>=50){
-      if(!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span></span>${_dismissBtn('clientDominant')}</div>`);
+      // Lien vers "Et si je perdais un client ?" (retour Faustine 2026-08-01) : la carte 3 ne
+      // liste que les missions récurrentes actives (getEtSiClientsRecurrents) — topCl peut très
+      // bien être un client "one-shot" au montant élevé, absent de cette liste. Dans ce cas
+      // topMissionRecur est null et irVersEtSi se contente d'amener sur la carte, sans présélection.
+      const topMissionRecur=getEtSiClientsRecurrents().find(m=>m.client===topCl);
+      if(!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span> · <span class="step-cta" onclick="irVersEtSi(3,'${topMissionRecur?topMissionRecur.id:''}')">Simuler la perte de ce client</span></span>${_dismissBtn('clientDominant')}</div>`);
     } else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA — une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
   }
   // Objectif mensuel en cours
@@ -13143,6 +13151,27 @@ const ETSI_METH = {
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
   statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut — le même calcul que "Combien facturer ?". Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU) — ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
 };
+// Lien contextuel depuis le dashboard vers une carte "Et si ?" précise (retour Faustine
+// 2026-08-01 : relier une alerte à la simulation qui répond directement à ce qu'elle soulève,
+// plutôt que de laisser la personne retrouver seule la bonne carte dans le menu). Reprend le
+// pattern déjà en place ailleurs (navigate() + setTimeout pour cibler un endroit précis, voir
+// le lien "Paramètres → Fiscalité" de la branche SASU). missionId (facultatif, card 3
+// uniquement) : un identifiant de mission déjà généré en interne, jamais du texte libre
+// (nom de client) — évite tout risque d'échapper mal des guillemets dans l'attribut onclick.
+function irVersEtSi(card, missionId) {
+  navigate('etsi');
+  setTimeout(() => {
+    const el = document.getElementById(card === 4 ? 'etsi-card4-zone' : 'etsi-card' + card);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (card === 3 && missionId) {
+      const sel = document.getElementById('etsi-client');
+      if (sel && [...sel.options].some(o => o.value === missionId)) {
+        sel.value = missionId;
+        etsiRecalc();
+      }
+    }
+  }, 80);
+}
 function openEtSiMeth(key) {
   const labels={rythme:'Rythme de travail',prix:'Augmenter mes prix',client:"Perte d'un client",statut:'Changement de statut'};
   document.getElementById('etsi-meth-title').textContent=labels[key]||'';
@@ -13238,11 +13267,11 @@ function renderEtSiPage() {
   const clients=getEtSiClientsRecurrents();
 
   const card1=_isMarge?`
-    <div class="card">
+    <div class="card" id="etsi-card1">
       <div class="card-title mb8">💼 Et si je changeais mon rythme de travail ?</div>
       <div class="ts" style="color:var(--tl)">Pas encore disponible pour votre profil (achat/revente) : ce scénario repose sur un tarif horaire, qui n'est pas votre principal levier. "Combien facturer ?" permet déjà de tester la rentabilité d'une vente.</div>
     </div>`:`
-    <div class="card">
+    <div class="card" id="etsi-card1">
       <div class="card-header"><div class="card-title">💼 Et si je changeais mon rythme de travail ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('rythme')">Comment c'est calculé ?</button></div>
       <div class="fgroup"><label class="flabel">Revenu net visé / mois</label><input type="range" min="1500" max="8000" step="100" value="${DATA.params.objectifNetMensuel||DATA.params.remunerationNette||3500}" id="etsi-obj" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-obj-out"></div></div>
       <div class="fgroup"><label class="flabel">Semaines de congés (total sur l'année)</label><input type="range" min="0" max="20" value="${Math.max(0,52-(DATA.params.semainesParAn||44))}" id="etsi-vac" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-vac-out"></div></div>
@@ -13256,7 +13285,7 @@ function renderEtSiPage() {
     </div>`;
 
   const card2=`
-    <div class="card">
+    <div class="card" id="etsi-card2">
       <div class="card-header"><div class="card-title">📈 Et si j'augmentais mes prix ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('prix')">Comment c'est calculé ?</button></div>
       <div class="fgroup"><label class="flabel">Hausse de tarif</label><input type="range" min="0" max="30" step="5" value="10" id="etsi-hausse" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)"><div class="ts" id="etsi-hausse-out"></div></div>
       <div style="display:flex;gap:20px;border-top:1px solid var(--brd);padding-top:10px;margin-top:6px">
@@ -13268,11 +13297,11 @@ function renderEtSiPage() {
 
   const clientOptions=clients.map(m=>`<option value="${m.id}">${esc(m.client)} — ${fmtE(m.montantMensuel)}/mois</option>`).join('');
   const card3=!clients.length?`
-    <div class="card">
+    <div class="card" id="etsi-card3">
       <div class="card-title mb8">📉 Et si je perdais un client ?</div>
       <div class="ts" style="color:var(--tl)">Aucune mission récurrente active pour l'instant — ce scénario s'active dès qu'un client récurrent est enregistré.</div>
     </div>`:`
-    <div class="card">
+    <div class="card" id="etsi-card3">
       <div class="card-header"><div class="card-title">📉 Et si je perdais un client ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('client')">Comment c'est calculé ?</button></div>
       <div class="fgroup"><label class="flabel">Client récurrent</label><select id="etsi-client" onchange="etsiRecalc()" style="width:100%">${clientOptions}</select></div>
       <div class="ts" id="etsi-poids-out" style="margin-bottom:8px"></div>
