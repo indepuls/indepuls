@@ -659,6 +659,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-section">Outils</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Combien facturer ?</span></div>
   <div class="nav-item" onclick="navigate('etsi')"><span class="nav-icon">🔮</span> Et si ?</div>
+  <div class="nav-item" onclick="ouvrirGenerateurDevisVierge()"><span class="nav-icon">📄</span> Devis</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
   <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours clients</div>
   <div class="nav-section">Paramètres</div>
@@ -1578,6 +1579,14 @@ html,body{overflow-x:hidden;}
 
       <!-- Colonne droite : Glossaire (déplié par défaut, repliable) -->
       <div>
+      <div class="card mb16" style="border-top:3px solid var(--acc);">
+        <div class="card-title" style="font-size:13px;">🛠️ Vos outils</div>
+        <div style="margin-top:12px;">
+          <div class="glossary-item"><div class="gterm">📄 Devis</div><div class="gdef">Générez un devis PDF professionnel et personnalisable, avec votre logo et vos couleurs — depuis le menu "Devis", une fiche mission, ou "Combien facturer ?". Jamais de suivi automatique (statut, relance) : une fois généré, le devis vous appartient.<br><span class="step-cta" onclick="ouvrirGenerateurDevisVierge()">→ Générer un devis</span></div></div>
+          <div class="glossary-item"><div class="gterm">🧮 Combien facturer ?</div><div class="gdef">Deux modes : "Vérifier un prix" (ce tarif est-il rentable ?) et "Calculer un tarif" (quel prix minimum demander pour atteindre mon objectif ?). Génère aussi un devis directement depuis le résultat.<br><span class="step-cta" onclick="navigate('simulateur')">→ Combien facturer ?</span></div></div>
+          <div class="glossary-item"><div class="gterm">🔮 Et si ?</div><div class="gdef">Testez l'impact d'un changement sur votre activité — rythme de travail, hausse de tarif, perte d'un client, changement de statut — avec des curseurs, en temps réel. Rien n'est enregistré.<br><span class="step-cta" onclick="navigate('etsi')">→ Et si ?</span></div></div>
+        </div>
+      </div>
       <div class="card" style="border-top:3px solid var(--sec);">
         <div class="card-title" style="font-size:13px;">📖 Glossaire des indicateurs</div>
         <div style="margin-top:12px;">
@@ -3039,6 +3048,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-08-01', titre:'Un nouveau menu "Devis" pour en générer un à tout moment, même sans mission en cours', icon:'📄', merci:null },
   { date:'2026-08-01', titre:'Un petit écran de célébration (confettis !) apparaît pour vos grands moments : record du mois, objectif annuel atteint, plus gros devis signé', icon:'🎉', merci:null },
   { date:'2026-07-30', titre:'"Et si ?" — testez l\'impact d\'un changement de rythme, de tarif, la perte d\'un client ou un changement de statut, en temps réel', icon:'🔮', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
   { date:'2026-07-30', titre:'Générez un devis PDF personnalisable, depuis une mission ou "Combien facturer ?"', icon:'📄', merci:'En cours d\'amélioration : n\'hésitez pas à faire remonter vos remarques 🙏' },
@@ -10550,6 +10560,14 @@ function ouvrirGenerateurDevisSim() {
   _devisMissionId = null;
   const montantHT = _simMode === 'calculer' ? _simCalculerMontant : (parseFloat(document.getElementById('sim-ca-val')?.value) || 0);
   ouvrirGenerateurDevis({ client: '', description: '', montantHT });
+}
+// Troisième point d'entrée, depuis le menu "Outils" (retour Faustine 2026-08-01) : sans mission
+// ni simulation en cours, formulaire entièrement vierge — quelqu'un qui n'a jamais utilisé
+// "Combien facturer ?" ni créé de mission ne découvrait jusqu'ici jamais que la génération de
+// devis existe. Même modale que les deux autres points d'entrée, juste sans préremplissage.
+function ouvrirGenerateurDevisVierge() {
+  _devisMissionId = null;
+  ouvrirGenerateurDevis({});
 }
 // Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
 // la fin de genererDevisPDF(), pour ne jamais perdre une saisie qu'elle soit générée ou non.

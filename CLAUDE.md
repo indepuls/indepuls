@@ -2741,3 +2741,15 @@ Jamais en mode démo (`DATA.isExample`, même garde que le snapshot mensuel). Un
 **Non modélisé délibérément** : pas de célébration "action-triggered" (ex. au moment précis où on clique "Facturer") — tout reste détecté passivement au rendu du dashboard, comme les 2 jalons déjà existants, pour une seule logique de déduplication à maintenir plutôt que deux mécanismes parallèles.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (feature purement UI/DOM, aucune fonction de `shared/core/calculs.js` touchée — pas de nouveau test Node, la logique de déclenchement dépend de manipulations DOM non testables hors navigateur). **Vérification navigateur non faite** dans cette session (limite d'environnement documentée plus haut) — à reconfirmer par Faustine : les 3 déclencheurs (idéalement en modifiant temporairement des données de test), l'absence de répétition au rechargement, et le rendu visuel des confettis.
+
+---
+
+### FIX — Découvrabilité des devis : nouveau menu "Devis" + explications Guide (2026-08-01)
+
+Faustine a identifié un vrai trou : la génération de devis n'était accessible que depuis une fiche mission ou "Combien facturer ?" — quelqu'un qui n'utilise ni l'un ni l'autre ne découvre jamais que la fonctionnalité existe. Elle a demandé d'expliquer "Et si ?"/"Combien facturer ?"/"création de devis" dans le Guide, et a ouvert la porte à une meilleure idée si j'en avais une.
+
+**Proposition retenue, au-delà de la documentation seule** : la documentation résout la compréhension mais pas la découverte (personne ne lit le Guide sans savoir qu'il y a quelque chose à y chercher). Ajout d'un **3ᵉ point d'entrée structurel** : nouvelle entrée de menu "📄 Devis" dans la section "Outils" (à côté de "Combien facturer ?" et "Et si ?", déjà toujours visibles) — ouvre directement le générateur de devis avec un formulaire entièrement vierge (`ouvrirGenerateurDevisVierge()`, réutilise `ouvrirGenerateurDevis({})` sans préremplissage, aucune nouvelle logique de calcul). Ça règle la découvrabilité structurellement plutôt que de compter sur la lecture d'un guide.
+
+**Guide & glossaire** : nouvelle carte "🛠️ Vos outils" (au-dessus du glossaire des indicateurs existant), une entrée par outil (Devis, Combien facturer ?, Et si ?) avec une description courte et un lien direct cliquable vers chacun — répond directement à la demande initiale, en plus du nouveau point d'entrée.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (nouveau menu + nouvelle carte statique, aucune fonction de calcul touchée).
