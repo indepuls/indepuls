@@ -6878,18 +6878,18 @@ function wScoreSante(d) {
       alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
-  // Pattern par catégorie (retour Faustine 2026-08-01, doc de vision "Couche 4 — Patterns") :
-  // l'insight lui-même vit dans Statistiques (getPatternCategoriePhrase, source unique, jamais
-  // recalculé différemment ici) — cette ligne ne fait que le signaler dans le Brief pour qu'il
-  // soit vu sans avoir à ouvrir Statistiques, avec un renvoi vers le détail complet. Masquage
-  // 15 jours comme "client dominant"/"objectif mensuel" ci-dessus : un fait qui reste vrai
-  // pendant des mois, pas un instant à célébrer une fois (contrairement aux jalons du dashboard).
+  // Pattern (catégorie ou tranche de montant, retour Faustine 2026-08-01, doc de vision "Couche
+  // 4 — Patterns") : Statistiques affiche les 2 axes s'ils existent (patternsInsightHtml), mais
+  // le Brief ne remonte que le plus marquant des deux (getMeilleurPatternPhrase) pour ne jamais
+  // empiler 2 lignes d'insight à côté de l'action prioritaire du Brief. Masquage 15 jours comme
+  // "client dominant"/"objectif mensuel" ci-dessus : un fait qui reste vrai pendant des mois, pas
+  // un instant à célébrer une fois (contrairement aux jalons du dashboard).
   try {
-    const patternPhrase=getPatternCategoriePhrase();
-    if(patternPhrase&&!_alertDismissed('patternCategorie')){
-      alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${patternPhrase}<br><span class="step-cta" style="margin-top:4px" onclick="irVersPatternCategorie()">Voir le détail (Statistiques)</span></span>${_dismissBtn('patternCategorie')}</div>`);
+    const patternPhrase=getMeilleurPatternPhrase();
+    if(patternPhrase&&!_alertDismissed('patternInsight')){
+      alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${patternPhrase}<br><span class="step-cta" style="margin-top:4px" onclick="irVersPatterns()">Voir le détail (Statistiques)</span></span>${_dismissBtn('patternInsight')}</div>`);
     }
-  } catch(e){reportError('patternCategorie',e);}
+  } catch(e){reportError('patternInsight',e);}
   const shown5=alertLines.slice(0,5).join('');
   const rest5=alertLines.length>5?alertLines.slice(5).join(''):'';
   const alertsSection=alertLines.length?`<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Alertes</div>${shown5}${rest5?`<div style="font-size:11px;color:var(--acc);cursor:pointer;margin-top:2px;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${alertLines.length-5} autre${alertLines.length-5>1?'s':''} →</div><div style="display:none">${rest5}</div>`:''}` + '</div>' : '';
@@ -9336,11 +9336,17 @@ function getRentabComparateur() {
 function rentabZoneHtml() {
   const periode=DATA.params.rentabPeriode||'annee';
   const btn=(val,lbl)=>`<button class="btn btn-xs ${periode===val?'btn-pri':'btn-out'}" onclick="toggleRentabPeriode('${val}')">${lbl}</button>`;
+  // Insights (catégorie + montant) : uniquement sur "Cette année", jamais mélangés avec "Depuis
+  // le début" — un pattern mis en avant doit rester une lecture de l'activité récente. Zone
+  // partagée au-dessus des 2 colonnes plutôt que rattachée à l'une d'elles : le pattern "montant"
+  // n'appartient ni à "Top clients" ni à "Top offres" en particulier.
+  const insights=periode==='annee'?patternsInsightHtml():'';
   return `<div id="msn-rentab-zone">
     <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div class="card-title" style="font-size:13px">🏆 Top clients & offres</div>
       <div style="display:flex;gap:4px">${btn('annee','Cette année')}${btn('total','Depuis le début')}</div>
     </div>
+    ${insights}
     <div class="g2" style="gap:12px;margin-top:10px">
       <div id="msn-top-clients">${rentabClientsBody()}</div>
       <div id="msn-top-cats">${rentabCatBody()}</div>
@@ -9395,21 +9401,24 @@ function rentabClientsBody() {
   const top=cls.slice(0,5),rest=cls.slice(5);
   return sortBtns+top.map(renderRow).join('')+(rest.length?`<div class="ts mt8" style="cursor:pointer;color:var(--acc)" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${rest.length} autre${rest.length>1?'s':''} →</div><div style="display:none">${rest.map(renderRow).join('')}</div>`:'');
 }
-// ── PATTERN PAR CATÉGORIE (2026-08-01) ────────────────────────
+// ── PATTERNS (2026-08-01) ─────────────────────────────────────
 // "Couche 4 — Patterns" du doc de vision produit ("vos missions >3000€ génèrent 87% plus de
 // revenu horaire") : un insight que personne d'autre ne peut afficher, puisqu'il vient de
-// l'historique réel de la personne. V1 limitée à la comparaison par catégorie/offre (le plus
-// proche de rentabCatBody déjà existant, le plus fiable à interpréter) — la comparaison par
-// tranche de montant est une suite envisagée, pas encore faite.
+// l'historique réel de la personne. 2 axes détectés indépendamment : par catégorie/offre
+// (getPatternCategorie) et par tranche de montant (getPatternMontant, retour Faustine
+// 2026-08-01 bis — l'exemple ">3000€" du doc de vision, mais avec un seuil dynamique : un
+// montant fixe n'a aucun sens comparé entre un freelance et un artisan qui facture des
+// chantiers à 15 000€. Seuil = médiane des montants facturés cette année, propre à chaque
+// compte, qui garantit aussi des groupes de taille comparable de part et d'autre.
 // Toujours sur "cette année" (jamais "depuis le début") : un insight mis en avant doit rester
 // une lecture de l'activité récente, pas mélanger une vieille période avec l'actuelle.
-// Garde-fous délibérément stricts (retour Faustine : "on ne veut jamais que ça sente le pattern
-// inventé sur du bruit") : au moins MIN_N missions dans CHACUNE des deux catégories comparées,
-// un écart d'au moins MIN_PCT %, jamais de comparaison si l'une des deux catégories a une valeur
-// nulle ou négative (la phrase "X% de plus" perd son sens face à une base à 0 ou négative — une
-// catégorie à perte est un problème différent, pas encore couvert ici). Retourne null si aucun
+// Garde-fous délibérément stricts, communs aux 2 axes (retour Faustine : "on ne veut jamais que
+// ça sente le pattern inventé sur du bruit") : au moins MIN_N missions de CHAQUE côté de la
+// comparaison, un écart d'au moins MIN_PCT %, jamais de comparaison si l'un des deux côtés a une
+// valeur nulle ou négative (la phrase "X% de plus" perd son sens face à une base à 0 ou négative
+// — un groupe à perte est un problème différent, pas encore couvert ici). Retourne null si aucun
 // pattern ne passe ces seuils : silence plutôt qu'un pattern faible affiché avec assurance.
-const PATTERN_CAT_MIN_N = 3, PATTERN_CAT_MIN_PCT = 20;
+const PATTERN_MIN_N = 3, PATTERN_MIN_PCT = 20;
 function getPatternCategorie() {
   const cmp = getRentabComparateur();
   const _depMap = typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {};
@@ -9426,33 +9435,102 @@ function getPatternCategorie() {
     byC[c].n++;
   });
   const candidats = Object.entries(byC)
-    .filter(([, d]) => d.n >= PATTERN_CAT_MIN_N)
+    .filter(([, d]) => d.n >= PATTERN_MIN_N)
     .map(([cat, d]) => ({ cat, n: d.n, val: cmp.value(d.ca, d.couts, d.h) }))
     .filter(e => e.val !== null && e.val > 0);
   if (candidats.length < 2) return null;
   candidats.sort((a, b) => b.val - a.val);
   const best = candidats[0], worst = candidats[candidats.length - 1];
   const pctDiff = Math.round(((best.val - worst.val) / worst.val) * 100);
-  if (pctDiff < PATTERN_CAT_MIN_PCT) return null;
-  return { best, worst, pctDiff, cmp };
+  if (pctDiff < PATTERN_MIN_PCT) return null;
+  return { type: 'categorie', best, worst, pctDiff, cmp };
 }
 function getPatternCategoriePhrase() {
-  const pat = getPatternCategorie();
+  return patternPhraseFromResult(getPatternCategorie());
+}
+function getPatternMontant() {
+  const cmp = getRentabComparateur();
+  const _depMap = typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {};
+  const cy = DATA.currentYear;
+  const missions = DATA.missions.filter(m => !m.isManagement && m.statut === 'fact' && m.dateFact && m.dateFact.slice(0, 4) === String(cy) && (m.montantDevis || 0) > 0);
+  if (missions.length < PATTERN_MIN_N * 2) return null;
+  const montants = missions.map(m => m.montantDevis).sort((a, b) => a - b);
+  const mid = Math.floor(montants.length / 2);
+  const median = montants.length % 2 === 0 ? (montants[mid - 1] + montants[mid]) / 2 : montants[mid];
+  const above = { h: 0, ca: 0, couts: 0, n: 0 }, below = { h: 0, ca: 0, couts: 0, n: 0 };
+  missions.forEach(m => {
+    const grp = m.montantDevis >= median ? above : below;
+    grp.h += getMissionHeures(m);
+    grp.ca += m.montantDevis || 0;
+    grp.couts += _depMap[m.id] || 0;
+    grp.n++;
+  });
+  if (above.n < PATTERN_MIN_N || below.n < PATTERN_MIN_N) return null;
+  const valAbove = cmp.value(above.ca, above.couts, above.h);
+  const valBelow = cmp.value(below.ca, below.couts, below.h);
+  if (valAbove === null || valBelow === null || valAbove <= 0 || valBelow <= 0) return null;
+  const aboveWins = valAbove >= valBelow;
+  const best = aboveWins ? { n: above.n, val: valAbove, sens: 'above' } : { n: below.n, val: valBelow, sens: 'below' };
+  const worst = aboveWins ? { n: below.n, val: valBelow, sens: 'below' } : { n: above.n, val: valAbove, sens: 'above' };
+  const pctDiff = Math.round(((best.val - worst.val) / worst.val) * 100);
+  if (pctDiff < PATTERN_MIN_PCT) return null;
+  return { type: 'montant', best, worst, pctDiff, cmp, seuil: median };
+}
+function getPatternMontantPhrase() {
+  return patternPhraseFromResult(getPatternMontant());
+}
+// Formule commune aux 2 axes de pattern — seule la façon de nommer "best"/"worst" diffère
+// (nom de catégorie entre guillemets, ou seuil en euros avec le sens au-dessus/en dessous).
+function patternPhraseFromResult(pat) {
   if (!pat) return null;
-  const { best, worst, pctDiff, cmp } = pat;
+  const { type, best, worst, pctDiff, cmp, seuil } = pat;
   const objMod = DATA.params.modules?.objectif || 'th';
   const itemsLbl = tVocab('items').toLowerCase();
   const nTxt = `sur ${best.n} et ${worst.n} ${itemsLbl} facturé${(best.n > 1 || worst.n > 1) ? 's' : ''} cette année`;
+  let bestLbl, worstLbl;
+  if (type === 'categorie') {
+    bestLbl = `vos offres <strong>"${esc(best.cat)}"</strong>`;
+    worstLbl = `vos offres <strong>"${esc(worst.cat)}"</strong>`;
+  } else {
+    const seuilFmt = fmtE(Math.round(seuil), 0);
+    bestLbl = `vos ${itemsLbl} de ${best.sens === 'above' ? 'plus' : 'moins'} de <strong>${seuilFmt}</strong>`;
+    worstLbl = `vos ${itemsLbl} de ${worst.sens === 'above' ? 'plus' : 'moins'} de <strong>${seuilFmt}</strong>`;
+  }
   if (objMod === 'marge_commande') {
     const ptsDiff = Math.round(best.val - worst.val);
-    return `📊 Vos offres <strong>"${esc(best.cat)}"</strong> ont une marge supérieure de <strong>${ptsDiff} points</strong> à vos offres <strong>"${esc(worst.cat)}"</strong> (${cmp.fmt(best.val)} contre ${cmp.fmt(worst.val)}), ${nTxt}.`;
+    return `📊 ${bestLbl[0].toUpperCase() + bestLbl.slice(1)} ont une marge supérieure de <strong>${ptsDiff} points</strong> à ${worstLbl} (${cmp.fmt(best.val)} contre ${cmp.fmt(worst.val)}), ${nTxt}.`;
   }
   const unite = objMod === 'tjm' ? 'par jour travaillé' : 'par heure travaillée';
-  return `📊 Vos <strong>"${esc(best.cat)}"</strong> rapportent <strong>${pctDiff}% de plus</strong> ${unite} que vos <strong>"${esc(worst.cat)}"</strong> (${cmp.fmt(best.val)} contre ${cmp.fmt(worst.val)}), ${nTxt}.`;
+  return `📊 ${bestLbl[0].toUpperCase() + bestLbl.slice(1)} rapportent <strong>${pctDiff}% de plus</strong> ${unite} que ${worstLbl} (${cmp.fmt(best.val)} contre ${cmp.fmt(worst.val)}), ${nTxt}.`;
+}
+// Zone d'insights partagée (Statistiques) : affiche les 2 patterns s'ils existent tous les deux
+// — c'est l'endroit du détail, pas de raison d'en cacher un. Le Brief, lui, ne remonte que le
+// plus marquant des deux (getMeilleurPatternPhrase ci-dessous) pour ne jamais empiler 2 lignes
+// d'insight à côté de l'action prioritaire du Brief (cf. "une seule décision par session").
+function patternsInsightHtml() {
+  const lignes = [getPatternCategoriePhrase(), getPatternMontantPhrase()].filter(Boolean);
+  if (!lignes.length) return '';
+  return `<div id="patterns-insight" style="margin-top:10px">${lignes.map(l => `<div class="alert al-info" style="font-size:12px;margin-bottom:8px;line-height:1.5">${l}</div>`).join('')}</div>`;
+}
+// Sélection du pattern le plus marquant entre les 2 axes, pour le Brief uniquement. Comparaison
+// sur le même axe que celui affiché dans la phrase (points de marge pour le profil marge, sinon
+// % d'écart) — les 2 patterns d'un même compte partagent toujours le même objMod.
+function getMeilleurPatternDashboard() {
+  const cat = getPatternCategorie(), mnt = getPatternMontant();
+  if (!cat && !mnt) return null;
+  if (cat && !mnt) return cat;
+  if (mnt && !cat) return mnt;
+  const objMod = DATA.params.modules?.objectif || 'th';
+  const scoreCat = objMod === 'marge_commande' ? (cat.best.val - cat.worst.val) : cat.pctDiff;
+  const scoreMnt = objMod === 'marge_commande' ? (mnt.best.val - mnt.worst.val) : mnt.pctDiff;
+  return scoreCat >= scoreMnt ? cat : mnt;
+}
+function getMeilleurPatternPhrase() {
+  return patternPhraseFromResult(getMeilleurPatternDashboard());
 }
 // Panneau "Statistiques" de la page Missions (masqué par défaut) — nommée pour pouvoir être
-// déclenchée depuis ailleurs (irVersPatternCategorie ci-dessous), auparavant une IIFE anonyme
-// posée directement dans l'attribut onclick.
+// déclenchée depuis ailleurs (irVersPatterns ci-dessous), auparavant une IIFE anonyme posée
+// directement dans l'attribut onclick.
 function toggleMsnStatsPanel(btn) {
   const p = document.getElementById('msn-stats-panel');
   const o = p.style.display === 'none';
@@ -9464,14 +9542,14 @@ function toggleMsnStatsPanel(btn) {
   }
 }
 // Lien contextuel Brief → Statistiques (retour Faustine 2026-08-01, même logique que
-// irVersEtSi) : ouvre le panneau Statistiques s'il est fermé, puis scroll sur le pattern.
-function irVersPatternCategorie() {
+// irVersEtSi) : ouvre le panneau Statistiques s'il est fermé, puis scroll sur la zone d'insights.
+function irVersPatterns() {
   navigate('missions');
   setTimeout(() => {
     const panel = document.getElementById('msn-stats-panel');
     const btn = document.getElementById('msn-stats-toggle-btn');
     if (panel && panel.style.display === 'none' && btn) toggleMsnStatsPanel(btn);
-    const el = document.getElementById('pattern-categorie') || document.getElementById('msn-top-cats');
+    const el = document.getElementById('patterns-insight') || document.getElementById('msn-rentab-zone');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 80);
 }
@@ -9501,12 +9579,7 @@ function rentabCatBody() {
   const maxCA=Math.max(...cats.map(([,v])=>v.ca),1),maxVal=Math.max(...cats.map(([,v])=>valOf(v)||0),1);
   const thSub=moyVal!==null?`<div class="ts mb10">${cmp.moyLabel} toutes offres : <strong>${cmp.fmt(moyVal)}</strong></div>`:'';
   const sortBtns=`<div style="display:flex;gap:4px;margin-bottom:10px"><button class="btn btn-xs ${sort==='ca'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('ca')">Par CA</button><button class="btn btn-xs ${sort==='th'?'btn-pri':'btn-out'}" onclick="toggleRentabCatSort('th')">${cmp.sortLabel}</button></div>`;
-  // Pattern par catégorie : seulement sur "Cette année" (le pattern est lui-même calculé sur
-  // l'année en cours) — l'afficher aussi sous "Depuis le début" mélangerait deux périodes
-  // différentes dans la même carte, contraire à "jamais de résultat sans contexte".
-  const patternPhrase=periode==='annee'?getPatternCategoriePhrase():null;
-  const patternHtml=patternPhrase?`<div class="alert al-info" id="pattern-categorie" style="font-size:12px;margin-bottom:10px;line-height:1.5">${patternPhrase}</div>`:'';
-  return patternHtml+sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
+  return sortBtns+thSub+cats.map(([c,d])=>{const v=valOf(d),pct=Math.max(0,Math.min(100,sort==='th'?((v||0)/maxVal)*100:(d.ca/maxCA)*100)),cl=cmp.color(v);return `<div class="rentab-row"><div style="flex:1"><span class="chip">${esc(c)}</span><div class="ts mt4">${fmt(d.h,1)} h</div><div class="prog-bar mt4" style="height:4px"><div class="prog-fill ${cl}" style="width:${pct}%"></div></div></div><div style="text-align:right"><div class="fb">${fmtE(d.ca)}</div><div class="ts ${cl==='ok'?'tok':cl==='wn'?'twn':'terr'}">${cmp.fmt(v)}</div></div></div>`;}).join('');
 }
 // ── TEMPS PAR CATÉGORIE DE TÂCHE — tous clients confondus, purement informatif (temps saisi
 // via tempsManuel[].categorie, voir saveAddTime()). N'entre jamais dans un calcul de
