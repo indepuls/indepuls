@@ -2867,3 +2867,16 @@ Suite validée avec Faustine juste après le pattern par catégorie : construire
 **Non modélisé délibérément** : pas de 3ᵉ axe (client récurrent vs one-shot, saisonnalité) pour cette itération — le doc de vision mentionne aussi la saisonnalité en Phase 2, à revoir séparément si les deux premiers axes s'avèrent utiles en usage réel.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (nouvelles fonctions + refactor de `rentabCatBody()`/`rentabZoneHtml()`, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : le pattern montant apparaît avec un seuil cohérent, les deux patterns s'affichent bien ensemble dans Statistiques quand les deux existent, et le Brief ne montre jamais que le plus marquant des deux.
+
+---
+
+### FIX — Formulation du pattern montant peu naturelle (2026-08-01 octies)
+
+Faustine a remonté un exemple réel peu fluide : *"Vos chantiers de plus de 1 233 € rapportent 24% de plus par jour travaillé que vos chantiers de moins de 1 233 € (1 071 €/j contre 863 €/j), sur 3 et 3 chantiers facturés cette année."* Deux tics repérés :
+
+1. **Le seuil répété deux fois** ("de plus de 1 233 € ... de moins de 1 233 €") — sonnait comme un énoncé de mathématiques, pas une phrase naturelle. Corrigé (`patternPhraseFromResult`) : le seuil n'est cité qu'une fois, le second groupe devient simplement "les autres" — les montants €/j entre parenthèses lèvent toute ambiguïté sur qui est qui.
+2. **"sur 3 et 3 chantiers facturés"** — juxtaposition mécanique. Remplacé par le total suivi de la répartition entre parenthèses : "sur 6 chantiers facturés cette année (3 contre 3)" — un vrai chiffre de contexte (le nombre total de missions sur lesquelles porte l'insight) plutôt qu'un compte à compte.
+
+Le pattern catégorie n'avait pas ce problème (deux noms de catégorie différents, jamais le même mot répété) mais partage la même fonction `nTxt` — bénéficie automatiquement de la même amélioration.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement de formulation uniquement, aucune fonction de `shared/core/calculs.js` touchée).

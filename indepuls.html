@@ -9486,15 +9486,22 @@ function patternPhraseFromResult(pat) {
   const { type, best, worst, pctDiff, cmp, seuil } = pat;
   const objMod = DATA.params.modules?.objectif || 'th';
   const itemsLbl = tVocab('items').toLowerCase();
-  const nTxt = `sur ${best.n} et ${worst.n} ${itemsLbl} facturé${(best.n > 1 || worst.n > 1) ? 's' : ''} cette année`;
+  // "sur 3 et 3 [items] facturés" sonnait mécanique (retour Faustine : "pas hyper fluide à
+  // lire") — le total donne un vrai chiffre de contexte, la répartition entre parenthèses reste
+  // lisible sans jargon statistique.
+  const nTxt = `sur ${best.n + worst.n} ${itemsLbl} facturé${(best.n + worst.n > 1) ? 's' : ''} cette année (${best.n} contre ${worst.n})`;
   let bestLbl, worstLbl;
   if (type === 'categorie') {
     bestLbl = `vos offres <strong>"${esc(best.cat)}"</strong>`;
     worstLbl = `vos offres <strong>"${esc(worst.cat)}"</strong>`;
   } else {
+    // Le seuil n'est cité qu'une fois (retour Faustine : répéter "de plus de X€ / de moins de
+    // X€" avec le même montant des deux côtés faisait ressembler la phrase à un énoncé de maths,
+    // pas à une phrase naturelle) — "les autres" suffit, les montants €/h ou €/j entre
+    // parenthèses lèvent toute ambiguïté sur qui est qui.
     const seuilFmt = fmtE(Math.round(seuil), 0);
     bestLbl = `vos ${itemsLbl} de ${best.sens === 'above' ? 'plus' : 'moins'} de <strong>${seuilFmt}</strong>`;
-    worstLbl = `vos ${itemsLbl} de ${worst.sens === 'above' ? 'plus' : 'moins'} de <strong>${seuilFmt}</strong>`;
+    worstLbl = 'les autres';
   }
   if (objMod === 'marge_commande') {
     const ptsDiff = Math.round(best.val - worst.val);
