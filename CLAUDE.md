@@ -2765,3 +2765,17 @@ Faustine a remonté un cas chez son mari : sur le "Bilan" du mois précédent (w
 **Corrigé** : les 2 occurrences (mois affiché + mois précédent, pour le delta "%vs mois préc.") utilisent maintenant `.presta`. Recherche faite dans tout le fichier pour confirmer qu'aucune autre occurrence de ce typo n'existe ailleurs.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (correction d'un nom de propriété, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine sur le compte de son mari, au 1er du mois prochain (ou en modifiant temporairement `DATA.bilanDismissed` pour réafficher le widget).
+
+---
+
+### FIX/FEATURE — Retouches "Vos outils" + devis (2026-08-01 bis)
+
+Trois retours de Faustine sur les ajouts précédents :
+
+**1. Layout "Vos outils" disgracieux.** Empilée au-dessus du glossaire dans la colonne étroite de droite (`.notice-cols`), la carte laissait un gros vide visuellement déséquilibré face à la longue colonne de gauche (checklist en 6 étapes). Corrigé : "Vos outils" devient une carte **pleine largeur**, au-dessus des deux colonnes, avec ses 3 entrées côte à côte (`.g3`) plutôt qu'empilées verticalement — mieux réparti sur grand écran, cohérence retrouvée avec le reste de la page.
+
+**2. "Devis" prêtait à confusion.** Renommé "Créer un devis" (menu Outils + Guide) : "Devis" tout court pouvait laisser croire à une liste de devis en cours (comme Missions/Chantiers), alors qu'il n'existe aucun suivi de devis dans Indépuls — le nom doit porter l'action, pas suggérer un état qui n'existe pas.
+
+**3. "Sinon il faut tout retaper" — bouton "Créer la mission" depuis le générateur de devis.** Un devis créé depuis le nouveau menu "Créer un devis" (sans mission ni simulation en amont) n'offrait aucun chemin vers une vraie mission : il fallait ressaisir client/objet/montant à la main. Ajout d'un bouton "🎯 Créer la mission" dans le pied de la modale devis (`creerMissionDepuisDevis()`), visible uniquement quand le devis n'est **pas déjà rattaché à une mission** (`_devisMissionId` null — sinon rien à créer de plus) : reprend client, objet et montant total (`_devisTotalHT()`) pour préremplir une nouvelle fiche mission, même mécanisme que `createMissionFromSim()` (ouverture du modal mission + `setTimeout` pour remplir les champs une fois le DOM prêt).
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changements HTML/texte + un nouveau bouton réutilisant `openMissionModal`/`_devisTotalHT` déjà existants, aucune fonction de calcul touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : rendu du nouveau bandeau "Vos outils" sur grand écran, et le bouton "Créer la mission" depuis un devis vierge (visible) vs depuis un devis ouvert sur une mission existante (masqué).

@@ -659,7 +659,7 @@ html,body{overflow-x:hidden;}
   <div class="nav-section">Outils</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Combien facturer ?</span></div>
   <div class="nav-item" onclick="navigate('etsi')"><span class="nav-icon">🔮</span> Et si ?</div>
-  <div class="nav-item" onclick="ouvrirGenerateurDevisVierge()"><span class="nav-icon">📄</span> Devis</div>
+  <div class="nav-item" onclick="ouvrirGenerateurDevisVierge()"><span class="nav-icon">📄</span> Créer un devis</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
   <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours clients</div>
   <div class="nav-section">Paramètres</div>
@@ -1519,6 +1519,29 @@ html,body{overflow-x:hidden;}
         <div style="font-size:12px;font-weight:600;color:var(--text);padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--brd);display:inline-block">⏱ Configuration estimée : moins de 10 minutes</div>
       </div>
 
+      <!-- Vos outils : pleine largeur (retour Faustine 2026-08-01 : empilé dans la colonne
+           droite du glossaire, ça laissait un gros vide disgracieux sur ordinateur) -->
+      <div class="card mb16" style="border-top:3px solid var(--acc);">
+        <div class="card-title mb12" style="font-size:13px;">🛠️ Vos outils</div>
+        <div class="g3" style="gap:16px">
+          <div>
+            <div class="gterm">📄 Créer un devis</div>
+            <div class="gdef">Devis PDF professionnel et personnalisable, avec votre logo et vos couleurs — depuis "Créer un devis", une fiche mission, ou "Combien facturer ?". Jamais de suivi automatique : une fois généré, le devis vous appartient.</div>
+            <span class="step-cta" onclick="ouvrirGenerateurDevisVierge()">→ Créer un devis</span>
+          </div>
+          <div>
+            <div class="gterm">🧮 Combien facturer ?</div>
+            <div class="gdef">"Vérifier un prix" (ce tarif est-il rentable ?) et "Calculer un tarif" (quel prix minimum demander pour atteindre mon objectif ?). Génère aussi un devis directement depuis le résultat.</div>
+            <span class="step-cta" onclick="navigate('simulateur')">→ Combien facturer ?</span>
+          </div>
+          <div>
+            <div class="gterm">🔮 Et si ?</div>
+            <div class="gdef">Testez l'impact d'un changement sur votre activité — rythme de travail, hausse de tarif, perte d'un client, changement de statut — avec des curseurs, en temps réel. Rien n'est enregistré.</div>
+            <span class="step-cta" onclick="navigate('etsi')">→ Et si ?</span>
+          </div>
+        </div>
+      </div>
+
       <div class="notice-cols">
       <!-- Colonne gauche : Checklist -->
       <div>
@@ -1579,14 +1602,6 @@ html,body{overflow-x:hidden;}
 
       <!-- Colonne droite : Glossaire (déplié par défaut, repliable) -->
       <div>
-      <div class="card mb16" style="border-top:3px solid var(--acc);">
-        <div class="card-title" style="font-size:13px;">🛠️ Vos outils</div>
-        <div style="margin-top:12px;">
-          <div class="glossary-item"><div class="gterm">📄 Devis</div><div class="gdef">Générez un devis PDF professionnel et personnalisable, avec votre logo et vos couleurs — depuis le menu "Devis", une fiche mission, ou "Combien facturer ?". Jamais de suivi automatique (statut, relance) : une fois généré, le devis vous appartient.<br><span class="step-cta" onclick="ouvrirGenerateurDevisVierge()">→ Générer un devis</span></div></div>
-          <div class="glossary-item"><div class="gterm">🧮 Combien facturer ?</div><div class="gdef">Deux modes : "Vérifier un prix" (ce tarif est-il rentable ?) et "Calculer un tarif" (quel prix minimum demander pour atteindre mon objectif ?). Génère aussi un devis directement depuis le résultat.<br><span class="step-cta" onclick="navigate('simulateur')">→ Combien facturer ?</span></div></div>
-          <div class="glossary-item"><div class="gterm">🔮 Et si ?</div><div class="gdef">Testez l'impact d'un changement sur votre activité — rythme de travail, hausse de tarif, perte d'un client, changement de statut — avec des curseurs, en temps réel. Rien n'est enregistré.<br><span class="step-cta" onclick="navigate('etsi')">→ Et si ?</span></div></div>
-        </div>
-      </div>
       <div class="card" style="border-top:3px solid var(--sec);">
         <div class="card-title" style="font-size:13px;">📖 Glossaire des indicateurs</div>
         <div style="margin-top:12px;">
@@ -1915,6 +1930,7 @@ html,body{overflow-x:hidden;}
     <div class="fgroup"><label class="flabel">Conditions de paiement</label><textarea id="dv-conditions" rows="2"></textarea></div>
     <div class="fgroup"><label class="flabel">Modalités</label><textarea id="dv-modalites" rows="2"></textarea></div>
     <div class="modal-foot">
+      <button class="btn btn-out" id="dv-btn-mission" style="margin-right:auto;display:none" onclick="creerMissionDepuisDevis()" title="Reprend le client, l'objet et le montant de ce devis pour créer une mission — sans tout retaper">🎯 Créer la mission</button>
       <button class="btn btn-out" onclick="fermerGenerateurDevis()">Annuler</button>
       <button class="btn btn-acc" onclick="genererDevisPDF()">🖨️ Générer le PDF</button>
     </div>
@@ -10548,7 +10564,27 @@ function ouvrirGenerateurDevis(prefill = {}, brouillon = null) {
     document.getElementById('dv-modalites').value = DATA.params?.devisModalitesDefaut || "Le présent devis, une fois signé, fait office de bon pour accord.";
   }
   renderLignesDevis();
+  // Bouton "Créer la mission" masqué si le devis est déjà rattaché à une mission (rien à créer
+  // de plus) — visible depuis les autres points d'entrée (menu "Devis", Simulateur), retour
+  // Faustine 2026-08-01 : "sinon il faut tout retaper" pour transformer un devis en vraie mission.
+  const _btnMission=document.getElementById('dv-btn-mission');
+  if(_btnMission) _btnMission.style.display=_devisMissionId?'none':'';
   openModal('modal-devis');
+}
+// Reprend le client/objet/montant total du devis en cours pour préremplir une nouvelle mission —
+// jamais utilisé si le devis est déjà rattaché à une mission (bouton masqué dans ce cas, voir
+// ouvrirGenerateurDevis). Ferme le générateur sans sauvegarder de brouillon (rien à rattacher).
+function creerMissionDepuisDevis() {
+  const client=(document.getElementById('dv-client-nom')?.value||'').trim();
+  const objet=(document.getElementById('dv-objet')?.value||'').trim();
+  const montant=_devisTotalHT();
+  closeModal('modal-devis');
+  openMissionModal(null);
+  setTimeout(()=>{
+    if(client) document.getElementById('m-client').value=client;
+    if(objet) document.getElementById('m-desc').value=objet;
+    if(montant>0) document.getElementById('m-montant').value=montant;
+  },50);
 }
 function ouvrirGenerateurDevisMission() {
   _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
