@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sécurité — Indépuls</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--pri:#141538;--acc:#5B2C4A;--bg:#F1EFEA;--beige:#BB9E81;--card:#ffffff;--brd:#e4ded4;--tl:#6b6478;}
+  *{box-sizing:border-box;}
+  body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--pri);margin:0;padding:0;line-height:1.65;}
+  .wrap{max-width:720px;margin:0 auto;padding:48px 24px 80px;}
+  a{color:var(--acc);}
+  h1{font-family:'Playfair Display',Georgia,serif;font-size:28px;color:var(--pri);margin-bottom:4px;}
+  .maj{font-size:13px;color:var(--tl);margin-bottom:32px;}
+  h2{font-family:'Playfair Display',Georgia,serif;font-size:18px;color:var(--pri);margin-top:36px;margin-bottom:10px;}
+  p,li{font-size:14.5px;color:var(--pri);}
+  .back{display:inline-block;margin-bottom:24px;font-size:13px;color:var(--tl);text-decoration:none;}
+  .back:hover{color:var(--acc);}
+  .point{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:16px 20px;margin-top:14px;display:flex;gap:14px;align-items:flex-start;}
+  .point .ico{font-size:20px;flex-shrink:0;margin-top:1px;}
+  .point .titre{font-weight:700;font-size:14.5px;margin-bottom:4px;}
+  .point .desc{font-size:13.5px;color:var(--tl);}
+  .footer-links{margin-top:40px;padding-top:20px;border-top:1px solid var(--brd);font-size:13px;color:var(--tl);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Retour à Indépuls</a>
+  <h1>Sécurité</h1>
+  <div class="maj">Dernière mise à jour : août 2026</div>
+
+  <p>Comment vos données sont-elles protégées ? Cette page décrit, simplement et sans jargon, les mécanismes réellement en place — rien de plus que ce qui existe aujourd'hui.</p>
+
+  <h2>Ce qui est en place aujourd'hui</h2>
+
+  <div class="point">
+    <div class="ico">🔒</div>
+    <div>
+      <div class="titre">Chiffrement</div>
+      <div class="desc">Toutes les connexions entre votre navigateur et Indépuls passent par une connexion chiffrée (HTTPS). Les données sont également chiffrées au repos, un standard chez notre hébergeur de base de données.</div>
+    </div>
+  </div>
+
+  <div class="point">
+    <div class="ico">🔑</div>
+    <div>
+      <div class="titre">Authentification</div>
+      <div class="desc">L'accès à votre compte est protégé par un email et un mot de passe, gérés par notre prestataire d'authentification (Supabase).</div>
+    </div>
+  </div>
+
+  <div class="point">
+    <div class="ico">🧱</div>
+    <div>
+      <div class="titre">Isolation entre utilisateurs</div>
+      <div class="desc">Chaque compte est cloisonné techniquement des autres au niveau de la base de données (Row Level Security) : une règle d'accès empêche qu'un compte puisse lire ou modifier les données d'un autre compte, quelle que soit la façon dont la base est interrogée. Ce point est vérifié directement dans la configuration de la base de données.</div>
+    </div>
+  </div>
+
+  <div class="point">
+    <div class="ico">💾</div>
+    <div>
+      <div class="titre">Sauvegardes</div>
+      <div class="desc">Avant chaque mise à jour de vos données, une copie de la version précédente est automatiquement conservée (jusqu'à 20 versions par compte), pour pouvoir revenir en arrière en cas de problème.</div>
+    </div>
+  </div>
+
+  <div class="point">
+    <div class="ico">🩺</div>
+    <div>
+      <div class="titre">Suivi technique des anomalies</div>
+      <div class="desc">Un outil de suivi des erreurs techniques (Sentry) permet de détecter rapidement un dysfonctionnement de l'application. Ce n'est pas un dispositif de détection d'intrusion : il surveille le bon fonctionnement du code, pas des tentatives d'accès malveillantes.</div>
+    </div>
+  </div>
+
+  <h2>Ce qui n'existe pas encore</h2>
+  <p>Un mécanisme de suppression complète de compte en libre-service est en cours de réflexion. En attendant, toute demande de suppression est traitée manuellement en écrivant à l'adresse de contact ci-dessous.</p>
+
+  <div class="footer-links">
+    Voir aussi la <a href="/politique-confidentialite.html">politique de confidentialité</a> · les <a href="/cgu.html">conditions d'utilisation</a><br>
+    Une question sur la sécurité ? <a href="mailto:fpatissier.pro@gmail.com">fpatissier.pro@gmail.com</a>
+  </div>
+</div>
+</body>
+</html>

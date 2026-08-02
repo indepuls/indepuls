@@ -19,6 +19,14 @@
   .card{background:var(--card);border:1px solid var(--brd);border-radius:12px;padding:20px 24px;margin-top:24px;}
   .back{display:inline-block;margin-bottom:24px;font-size:13px;color:var(--tl);text-decoration:none;}
   .back:hover{color:var(--acc);}
+  .resume{background:var(--card);border:1px solid var(--brd);border-left:3px solid var(--acc);border-radius:12px;padding:20px 24px;margin-bottom:28px;}
+  .resume h2{margin-top:0;font-size:15px;}
+  .resume ul{list-style:none;padding:0;margin:0;}
+  .resume li{margin-bottom:8px;font-size:14.5px;}
+  .engagement{font-style:italic;color:var(--acc);border-left:3px solid var(--beige);padding:10px 16px;margin:24px 0;background:#fdf6ec;border-radius:0 8px 8px 0;}
+  table{width:100%;border-collapse:collapse;margin-top:12px;}
+  th,td{text-align:left;padding:8px 10px;font-size:14px;border-bottom:1px solid var(--brd);}
+  th{color:var(--tl);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
 </style>
 </head>
 <body>
@@ -27,7 +35,20 @@
   <h1>Politique de confidentialité</h1>
   <div class="maj">Dernière mise à jour : août 2026</div>
 
+  <div class="resume">
+    <h2>En résumé</h2>
+    <ul>
+      <li>✅ Vos données restent privées, seul votre compte peut y accéder.</li>
+      <li>✅ Elles ne sont jamais revendues.</li>
+      <li>✅ Elles ne sont jamais utilisées pour entraîner des modèles d'intelligence artificielle.</li>
+      <li>✅ Vous pouvez demander leur suppression à tout moment.</li>
+      <li>✅ Indépuls est actuellement gratuit et en bêta.</li>
+    </ul>
+  </div>
+
   <p>Indépuls est actuellement édité à titre personnel par Faustine Patissier, en attendant la création prochaine d'une société dédiée. Cette page explique quelles données sont collectées, pourquoi, et comment les faire valoir vos droits.</p>
+
+  <div class="engagement">Chez Indépuls, nous pensons que vos données sont les vôtres. Notre rôle est de les protéger, pas de les exploiter.</div>
 
   <h2>Quelles données sont collectées</h2>
   <ul>
@@ -40,15 +61,16 @@
   <p>Uniquement pour faire fonctionner Indépuls : calculer vos indicateurs, sauvegarder votre activité, et vous envoyer le récapitulatif hebdomadaire par email si vous l'avez activé.</p>
 
   <h2>Qui a accès à ces données</h2>
-  <p>Personne d'autre que vous ne peut consulter vos données dans l'application — chaque compte est cloisonné techniquement des autres (sécurité au niveau de la base de données, vérifiée régulièrement).</p>
+  <p>Vos données sont protégées par des mécanismes de sécurité au niveau de la base de données, notamment une isolation technique entre les comptes : personne d'autre que vous ne peut consulter les vôtres dans l'application. Le détail de ces mécanismes est expliqué sur la page <a href="/securite.html">Sécurité</a>.</p>
   <p>Certains prestataires techniques traitent ces données pour le compte d'Indépuls, uniquement pour faire tourner le service :</p>
-  <ul>
-    <li><strong>Supabase</strong> — hébergement de la base de données et authentification</li>
-    <li><strong>Vercel</strong> — hébergement de l'application</li>
-    <li><strong>Brevo</strong> — envoi de l'email récapitulatif hebdomadaire, uniquement si vous avez activé cette option</li>
-    <li><strong>Sentry</strong> — détection technique des erreurs de l'application</li>
-  </ul>
-  <p>Aucune donnée n'est vendue ni transmise à des tiers à des fins publicitaires.</p>
+  <table>
+    <tr><th>Prestataire</th><th>Pourquoi</th></tr>
+    <tr><td><strong>Supabase</strong></td><td>Sauvegarder vos données et gérer votre connexion</td></tr>
+    <tr><td><strong>Vercel</strong></td><td>Héberger l'application</td></tr>
+    <tr><td><strong>Brevo</strong></td><td>Envoyer l'email récapitulatif hebdomadaire, si vous l'avez activé</td></tr>
+    <tr><td><strong>Sentry</strong></td><td>Détecter les erreurs techniques de l'application</td></tr>
+  </table>
+  <p style="margin-top:14px">Aucune donnée n'est vendue ni transmise à des tiers à des fins publicitaires.</p>
 
   <h2>Combien de temps ces données sont conservées</h2>
   <p>Tant que votre compte est actif. Un mécanisme de suppression complète en libre-service est en cours de réflexion ; en attendant, vous pouvez demander la suppression de toutes vos données en écrivant à l'adresse ci-dessous.</p>

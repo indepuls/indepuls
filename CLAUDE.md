@@ -2960,3 +2960,21 @@ Les deux signées **Faustine Patissier**, contact `fpatissier.pro@gmail.com`, av
 **Non modélisé délibérément** : mentions légales (voir plus haut), lien depuis l'écran de connexion/inscription (pas demandé, périmètre resté celui de la barre latérale).
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (2 pages HTML statiques sans JS + un lien ajouté dans indepuls.html, aucune fonction de calcul touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : les 2 pages s'affichent correctement une fois déployées sur Vercel (chemins absolus `/politique-confidentialite.html` et `/cgu.html`, à confirmer qu'ils résolvent bien en production), et les liens de la barre latérale sont visibles sans être intrusifs.
+
+---
+
+### FEATURE — Retouches politique/CGU + nouvelle page Sécurité (2026-08-01 ter)
+
+Faustine a transmis un retour de ChatGPT sur les pages publiées juste avant (encart résumé, ton plus incarné, tableau des sous-traitants, page Sécurité dédiée). Passé au filtre avant d'implémenter : retenu presque tout, mais avec deux ajustements déjà signalés par Faustine et confirmés en relisant le code plutôt qu'en recopiant tel quel.
+
+**Retenu tel quel** : encart "En résumé" en tête de `politique-confidentialite.html` (5 puces ✅, avant même le texte légal — personne ne lit les CGU en entier), phrase d'engagement ("vos données sont les vôtres, notre rôle est de les protéger, pas de les exploiter"), tableau prestataire/pourquoi (plus lisible qu'une liste), reformulation de l'objet des CGU ("aide à comprendre la santé de son activité..." plutôt que "outil d'aide au pilotage"), élargissement du vocabulaire ("indépendants (freelances, consultants, artisans, créateurs...)" plutôt que "freelances, artisans").
+
+**Ajusté** : "Vos données vous appartiennent" gardé uniquement dans l'encart résumé (phrase de confiance), jamais dans le corps légal — le RGPD raisonne en droits (accès, rectification, effacement), pas en propriété, glisser cette notion dans le texte juridique aurait été trompeur. "Sécurité au niveau de la base de données, vérifiée régulièrement" reformulé sans "vérifiée régulièrement" (ChatGPT lui-même signalait le risque : sonne comme un engagement d'audit récurrent qui n'existe pas formellement).
+
+**Nouvelle page `securite.html`** : chaque point vérifié dans le code avant d'être écrit, pas recopié depuis la suggestion de ChatGPT telle quelle — en particulier "surveillance" reformulé en "suivi technique des anomalies" avec une précision explicite que Sentry détecte des erreurs applicatives, pas des intrusions (le seul point où la suggestion externe aurait pu laisser croire à quelque chose d'inexistant). Les 4 autres points (chiffrement, authentification, isolation RLS, sauvegardes) correspondent à ce qui a été vérifié dans cette session ou lors de chantiers précédents documentés plus haut. Section "Ce qui n'existe pas encore" (suppression de compte en libre-service) assumée plutôt que passée sous silence.
+
+**Lien "Sécurité" ajouté** dans la barre latérale à côté de "Confidentialité · CGU", et `politique-confidentialite.html` renvoie vers `securite.html` pour le détail technique plutôt que de dupliquer l'explication.
+
+**Non modélisé délibérément** : page publique "Comment sont calculés les indicateurs ?" (suggestion de ChatGPT également) — bonne idée mais vrai chantier de contenu à part (porter proprement ce que "Pourquoi ce score ?" explique déjà dans l'app), pas mélangé à cette itération de retouches.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (3 pages HTML statiques sans JS + un lien ajouté dans indepuls.html, aucune fonction de calcul touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine une fois déployé.
