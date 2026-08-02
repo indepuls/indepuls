@@ -5275,10 +5275,15 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
   let fixed = '';
   fixed += '<div class="w-mb">'+wScoreSante(d)+'</div>';
 
-  // ── Trajectoire annuelle + Répartition/Provisions (2 colonnes) ──
-  // Colonne droite : Rémunération recommandée (SASU/EURL seulement) en tête, puis
-  // Répartition CA + Provisions — même gabarit de carte pour les trois.
-  const rightCol=(isSASU()?renderSasuCard(d):'')+wRepartitionCA(d)+wProvisionsSide(d);
+  // ── Trajectoire annuelle + Provisions/Répartition (2 colonnes) ──
+  // Colonne droite : Rémunération recommandée (SASU/EURL seulement) en tête, puis Provisions
+  // avant Répartition CA — même gabarit de carte pour les trois. Ordre inversé le 2026-08-01
+  // (retour audit Cowork) : "Argent à mettre de côté" est jugé le widget le plus utile du
+  // dashboard (angoisse n°1 d'un micro-entrepreneur, URSSAF/TVA) mais vivait tout en bas de la
+  // page — remonté avant "Où part mon CA" (désormais replié par défaut juste en dessous, voir
+  // wRepartitionCA/_widgetReplie) plutôt que d'ajouter une nouvelle zone : la densité du
+  // dashboard reste la même, seule la priorité visuelle change.
+  const rightCol=(isSASU()?renderSasuCard(d):'')+wProvisionsSide(d)+wRepartitionCA(d);
   const bottomRow=`<div class="w-mb"><div class="g2-traj">
     ${wTrajectoireAnnuelle(d)}
     <div style="display:flex;flex-direction:column;gap:16px">${rightCol}</div>
@@ -5565,9 +5570,9 @@ function wRepartitionCA(d) {
     <div class="card-header">
       <div><div class="card-title">💰 Où part mon chiffre d'affaires ?</div>
       <div class="card-sub">${vue==='annee'?`Année ${DATA.currentYear}`:moisLbl} · CA encaissé : ${fmtE(cur.ca)}</div></div>
-      ${_widgetToggleBtn('repartitionCA')}
+      ${_widgetToggleBtn('repartitionCA', true)}
     </div>
-    <div style="display:${_widgetReplie('repartitionCA')?'none':''}">
+    <div style="display:${_widgetReplie('repartitionCA', true)?'none':''}">
     <div style="display:flex;gap:6px;margin-bottom:14px">${btn('annee','Année')}${btn('mois','Mois')}</div>
     <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center;margin-bottom:14px">
       <div style="position:relative;width:160px;height:160px;flex-shrink:0">
@@ -10624,17 +10629,25 @@ function wNotesRapides() {
 // diagnostic) toujours visibles. État persistant (DATA.widgetsReplies, synchronisé comme le
 // reste), pas juste une préférence locale — cohérent avec le principe "vos réglages vous suivent
 // partout" déjà en place pour le thème.
-function _widgetReplie(key) { return !!(DATA.widgetsReplies||{})[key]; }
+// defautReplie (2026-08-01, retour audit Cowork "Argent à mettre de côté" sous-exposé vs
+// tableau de bord déjà dense) : permet un défaut par clé plutôt qu'un unique "toujours déplié"
+// global — DATA.widgetsReplies[key] reste undefined tant que la personne n'a jamais touché au
+// bouton, auquel cas ce défaut s'applique ; un clic explicite (true ou false) prend toujours le
+// dessus sur le défaut, quel qu'il soit, synchronisé sur tous ses appareils.
+function _widgetReplie(key, defautReplie = false) {
+  const v = (DATA.widgetsReplies || {})[key];
+  return v === undefined ? defautReplie : v;
+}
 function toggleWidgetReplie(key) {
   DATA.widgetsReplies = DATA.widgetsReplies || {};
   DATA.widgetsReplies[key] = !DATA.widgetsReplies[key];
   saveData();
   renderDashboard();
 }
-function _widgetToggleBtn(key) {
+function _widgetToggleBtn(key, defautReplie = false) {
   // Texte à côté du chevron (retour Faustine, 2026-07-30) : la flèche seule était trop discrète,
   // à peine visible.
-  const replie = _widgetReplie(key);
+  const replie = _widgetReplie(key, defautReplie);
   return `<button type="button" onclick="toggleWidgetReplie('${key}')" style="display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;padding:3px 6px;flex-shrink:0" title="${replie?'Déplier':'Replier'}">${replie?'Voir le détail ▸':'Masquer ▾'}</button>`;
 }
 function toggleSalaries(val) {

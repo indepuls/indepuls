@@ -2899,3 +2899,22 @@ Retour d'un audit externe (Claude Cowork) : "fiabiliser le brief hebdomadaire lo
 **Non modélisé délibérément** : la vraie détection d'activité multi-pages (option B discutée), qui reste la correction de fond à faire un jour — cette itération réduit le risque de mentir à l'utilisatrice sans toucher au mécanisme de décision ni au pipeline serveur (`api/brief-hebdo.js`, `getDecisionBriefHebdo`), zéro risque de régression en bêta.
 
 **Vérifié** : `briefHebdoEmail.test.js` (assertion CTA mise à jour vers le nouveau libellé, reste de la suite inchangée) + suite Node complète re-passée, 0 échec.
+
+---
+
+### FEATURE — "Argent à mettre de côté" remonté dans le dashboard (2026-08-01 decies)
+
+Retour d'un audit externe (Claude Cowork) : le widget Provisions est jugé l'un des meilleurs du dashboard ("angoisse n°1 d'un micro-entrepreneur"), mais le même audit trouve le dashboard trop chargé par ailleurs (9 zones visuelles avant tout scroll, 3 endroits qui répètent "vous êtes en retard sur l'objectif"). Réflexion menée avec Faustine avant de coder (skill indépuls-copilote) : les deux constats ne sont pas contradictoires, ils appellent le même geste — **déplacer la valeur plutôt qu'en ajouter**.
+
+**Diagnostic confirmé en relisant le code** : `wProvisionsSide()` vivait tout en bas de la colonne droite du dashboard (`bottomRow`, après le SASU card et "Où part mon CA"), la toute dernière chose visible sur la page — position inverse à son utilité perçue.
+
+**3 options présentées** : (A) remonter Provisions seul — aggrave la densité, écarté ; (B) remonter Provisions ET replier "Où part mon CA" par défaut, ce dernier déjà qualifié de redondant avec le Bilan du mois par l'audit lui-même — retenu ; (C) fusionner "Ma trajectoire annuelle" dans le Brief (déjà suggéré 2 fois par l'audit) pour libérer une carte entière — écarté par Faustine, qui tient à garder ce graphique CA/objectif intact : repère "basique" mais familier pour un freelance, rassurant en complément d'un outil plus sophistiqué comme le Score de Santé (raisonnement distinct de la redondance de message pointée par l'audit, validé).
+
+**Implémenté (option B)** :
+- **Ordre inversé dans la colonne droite** (`renderDashboard()`) : Provisions passe avant "Où part mon CA" (`(isSASU()?renderSasuCard(d):'')+wProvisionsSide(d)+wRepartitionCA(d)`, au lieu de l'ordre inverse).
+- **"Où part mon CA" replié par défaut** : `_widgetReplie(key, defautReplie=false)`/`_widgetToggleBtn(key, defautReplie=false)` acceptent désormais un défaut par clé (`shared` uniquement dans `indepuls.html`, pas de fonction core touchée) — `DATA.widgetsReplies[key]` reste `undefined` tant que la personne n'a jamais cliqué sur le bouton, auquel cas ce défaut s'applique ; un clic explicite (`true` ou `false`) prend toujours le dessus, quel que soit le défaut, synchronisé comme le reste. Seul `repartitionCA` reçoit `true` en défaut aux 2 endroits qui l'utilisent — "trajectoire" et "provisions" gardent leur défaut déplié inchangé. Zéro migration nécessaire : le mécanisme fonctionne pour les comptes existants comme pour les nouveaux, uniquement en fonction de si la clé a déjà été touchée.
+- Titre + sous-titre ("Année 2026 · CA encaissé : X") de "Où part mon CA" restent visibles même repliée (déjà hors de la zone conditionnelle dans le HTML existant, aucun changement nécessaire ici) — cohérent avec le principe déjà en place pour "Ma trajectoire" ("titre et diagnostic toujours visibles").
+
+**Non modélisé délibérément** : fusion de "Ma trajectoire" dans le Brief (option C) — refusée par Faustine pour cette itération, à ne pas reprendre sans nouvelle discussion.
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (changement d'ordre HTML + défaut de repli, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : Provisions apparaît bien avant "Où part mon CA" dans la colonne droite, "Où part mon CA" est replié par défaut sur un compte n'ayant jamais touché ce bouton, et un compte qui l'avait déjà déplié manuellement avant ce changement le reste (préférence explicite jamais écrasée par le nouveau défaut).
