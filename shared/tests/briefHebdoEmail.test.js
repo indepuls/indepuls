@@ -130,7 +130,7 @@ section('En-tête — logo réel si fourni, repli texte sinon');
 section('CTA adapté au contenu affiché (retour Faustine 2026-07-28)');
 {
   const { html: htmlInactif } = renderBriefHebdoEmailHtml({ inactif: true, score: null, delta: null, pilierFaible: null }, baseOpts);
-  ok('inactif → CTA "Compléter ma semaine"', htmlInactif.includes('>Compléter ma semaine<'));
+  ok('inactif → CTA "Voir mon Score de Santé"', htmlInactif.includes('>Voir mon Score de Santé<'));
 
   const { html: htmlTreso } = renderBriefHebdoEmailHtml({ inactif: false, score: 45, delta: -18, pilierFaible: 'trésorerie' }, baseOpts);
   ok('pilier trésorerie (négatif) → CTA "Relancer mes encaissements"', htmlTreso.includes('>Relancer mes encaissements<'));

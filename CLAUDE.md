@@ -2880,3 +2880,22 @@ Faustine a remonté un exemple réel peu fluide : *"Vos chantiers de plus de 1 2
 Le pattern catégorie n'avait pas ce problème (deux noms de catégorie différents, jamais le même mot répété) mais partage la même fonction `nTxt` — bénéficie automatiquement de la même amélioration.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (changement de formulation uniquement, aucune fonction de `shared/core/calculs.js` touchée).
+
+---
+
+### FIX — Brief hebdomadaire par email : message "inactif" mensonger (2026-08-01 nonies)
+
+Retour d'un audit externe (Claude Cowork) : "fiabiliser le brief hebdomadaire lorsqu'un utilisateur ne s'est pas connecté" — reprise d'une limite déjà identifiée le 28 juillet mais laissée telle quelle à l'époque (voir plus haut, "PREMIER ENVOI RÉEL CONFIRMÉ") : l'email disait *"On ne vous a pas revue cette semaine"* à Faustine alors qu'elle avait été très active dans l'app cette semaine-là.
+
+**Cause exacte, confirmée en relisant le code** : `DATA.snapshotsHebdo` (la seule source de `decision.inactif`) n'est écrit qu'à un seul endroit, dans `wScoreSante()` — le rendu du Tableau de bord. Une semaine passée entièrement sur Missions/Paramètres/"Et si ?"/devis sans jamais ouvrir le Tableau de bord ne laisse aucune trace, donc `inactif:true` à tort.
+
+**Décision prise avec Faustine, entre 3 options présentées** : corriger le texte plutôt que le mécanisme. Vraiment fiabiliser la source de vérité demanderait un nouveau champ `DATA.derniereActivite` écrit sur toute navigation (`navigate()`), un 3ᵉ cas de décision ("active mais pas de score") dans `getDecisionBriefHebdo()`, et un nouveau texte d'email associé — un vrai chantier, pas un correctif, jugé trop risqué à lancer maintenant en pleine bêta pour ce gain précis. **Retenu pour l'instant** : ne plus affirmer ce qu'on ne peut pas vérifier. `decision.inactif` ne veut dire, en réalité, que "pas de nouvelle photo du score cette semaine" — jamais "vous n'avez pas utilisé Indépuls".
+
+**Changements** (`shared/core/briefHebdoEmail.js`, texte uniquement, aucune logique de décision touchée) :
+- Sujet : "On ne vous a pas revue cette semaine 👋" → **"Pas de nouveau point cette semaine 👋"**.
+- Corps : "Ça fait une semaine qu'on ne vous a pas revue..." → **"Vous n'avez pas ouvert votre tableau de bord cette semaine, donc pas de nouveau Score de Santé à vous montrer. Deux minutes suffisent pour y jeter un œil."** — dit précisément et honnêtement ce qui s'est passé (pas de score calculé), jamais une affirmation sur l'activité globale de la personne.
+- CTA : "Compléter ma semaine" (sous-entendait une absence à rattraper) → **"Voir mon Score de Santé"** — action précise qui referme la boucle : ouvrir le tableau de bord recrée une photo pour la semaine suivante.
+
+**Non modélisé délibérément** : la vraie détection d'activité multi-pages (option B discutée), qui reste la correction de fond à faire un jour — cette itération réduit le risque de mentir à l'utilisatrice sans toucher au mécanisme de décision ni au pipeline serveur (`api/brief-hebdo.js`, `getDecisionBriefHebdo`), zéro risque de régression en bêta.
+
+**Vérifié** : `briefHebdoEmail.test.js` (assertion CTA mise à jour vers le nouveau libellé, reste de la suite inchangée) + suite Node complète re-passée, 0 échec.

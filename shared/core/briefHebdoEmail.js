@@ -33,7 +33,10 @@ const CTA_PAR_PILIER = {
   'horizon': 'Voir ma trajectoire',
 };
 const CTA_DEFAUT = 'Ouvrir Indépuls';
-const CTA_INACTIF = 'Compléter ma semaine';
+// "Compléter ma semaine" supposait une absence qu'on ne peut pas vérifier (voir contenu()
+// ci-dessous) — remplacé par une action précise qui referme la boucle : ouvrir le tableau de
+// bord recrée une photo du score pour la semaine suivante (retour Faustine 2026-08-01).
+const CTA_INACTIF = 'Voir mon Score de Santé';
 
 // Petit visuel du score (retour Faustine 2026-07-27, inspiration Duolingo "sans pression") : une
 // simple barre colorée, jamais un compteur de série/streak — pas de notion de jours consécutifs
@@ -59,8 +62,13 @@ function barreScore(score) {
 // clients email), cta le libellé du bouton d'action, adapté au contenu affiché.
 function contenu(decision) {
   if (decision.inactif) {
+    // "inactif" ne veut dire, en réalité, que "pas de nouvelle photo du score cette semaine"
+    // (DATA.snapshotsHebdo n'est écrit qu'à l'ouverture du Tableau de bord, jamais depuis les
+    // autres pages) — jamais "vous n'avez pas utilisé Indépuls", affirmation qu'on ne peut pas
+    // vérifier et qui s'est déjà révélée fausse en usage réel (retour Faustine 2026-08-01, cf.
+    // CLAUDE.md 2026-07-28 : "on ne vous a pas revue" envoyé à un compte pourtant très actif).
     return {
-      corps: '<p style="margin:0;">Ça fait une semaine qu\'on ne vous a pas revue. Deux minutes suffisent pour garder une vue à jour sur votre activité.</p>',
+      corps: '<p style="margin:0;">Vous n\'avez pas ouvert votre tableau de bord cette semaine, donc pas de nouveau Score de Santé à vous montrer. Deux minutes suffisent pour y jeter un œil.</p>',
       cta: CTA_INACTIF,
     };
   }
@@ -89,7 +97,7 @@ function contenu(decision) {
 }
 
 function sujet(decision) {
-  if (decision.inactif) return 'On ne vous a pas revue cette semaine 👋';
+  if (decision.inactif) return 'Pas de nouveau point cette semaine 👋';
   return `Votre Score de Santé : ${decision.score}/100 cette semaine`;
 }
 
