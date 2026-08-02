@@ -2988,3 +2988,11 @@ Faustine a demandé un endroit pour inviter à remonter une incohérence ou une 
 La page avait déjà un encart générique en bas de page ("Vous n'avez pas trouvé la réponse à votre question ?"), mais rien de spécifique au glossaire lui-même. Ajout d'une ligne discrète directement sous la liste des définitions ("Une définition qui vous semble incohérente ou peu claire ? N'hésitez pas à me le signaler...") — ciblée sur le contenu du glossaire précisément, distincte de l'encart générique de fin de page qui reste inchangé.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (une ligne de texte ajoutée, aucune fonction de calcul touchée).
+
+---
+
+### FEATURE — Entrée Nouveautés pour le chantier confidentialité/CGU/sécurité (2026-08-01 quinquies)
+
+Faustine a demandé d'annoncer dans le menu "Nouveautés" les 3 pages publiées (politique de confidentialité, CGU bêta, sécurité) — d'autres bêta-testeuses ont probablement la même question que celle qui a lancé ce chantier. Entrée ajoutée en tête de `NOUVEAUTES` (2026-08-01), avec un remerciement générique à "la bêta-testeuse qui a posé la question" (nom non communiqué à Claude, à personnaliser par Faustine si elle le souhaite).
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (une entrée ajoutée dans un tableau de données statique, aucune fonction de calcul touchée).
