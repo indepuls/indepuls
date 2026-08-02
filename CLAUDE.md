@@ -2942,3 +2942,21 @@ Une bêta-testeuse a interrogé Faustine sur la confidentialité/sécurité des 
 **Point à soulever explicitement auprès de l'expert-comptable/avocat au moment de la création** (identifié par Claude, pas une réponse toute faite) : des bêta-testeuses utilisent déjà Indépuls avec de vraies données personnelles alors qu'aucune structure juridique n'existe encore derrière — à faire valider si une régularisation ou une mention particulière est nécessaire pour cette période antérieure à l'immatriculation.
 
 **Non vérifiable par Claude, à faire par Faustine si besoin de clore le sujet complètement** : région d'hébergement du projet Supabase (UE ou non — conditionne si un transfert hors UE doit être documenté), et confirmation du `with_check` exact sur la policy `insert_own` de `user_data` (non affiché par la requête `pg_policies` lancée, qui ne sélectionnait que `qual`).
+
+---
+
+### FEATURE — Politique de confidentialité + CGU bêta publiées (2026-08-01 bis)
+
+Suite de l'audit ci-dessus. Faustine a choisi de publier tout de suite ce qui peut légitimement l'être plutôt que d'attendre la SASU : la politique de confidentialité (le RGPD n'exige pas de SIRET, une personne physique est aussi "responsable de traitement") et des CGU cadrées "version bêta". **Volontairement écarté** : une page "Mentions légales", qui a une exigence légale d'identification (LCEN art. 6-III) qu'une simple adresse email ne satisfait pas forcément — reportée à la création de la société plutôt que publiée dans un état juridiquement incertain.
+
+**2 pages statiques créées** à la racine du dépôt (zéro build, cohérentes avec le reste du projet) :
+- `politique-confidentialite.html` — données collectées, finalité, sous-traitants (Supabase, Vercel, Brevo, Sentry), durée de conservation, droits RGPD, contact.
+- `cgu.html` — objet, clause de responsabilité "estimation, jamais un calcul garanti ni un conseil fiscal opposable" (le point demandé à l'origine par Faustine), disponibilité du service, renvoi vers la politique de confidentialité.
+
+Les deux signées **Faustine Patissier**, contact `fpatissier.pro@gmail.com`, avec un encadré explicite sur `cgu.html` rappelant le stade bêta et l'absence de structure juridique à ce jour — honnêteté sur le statut plutôt que de simuler une formalité inexistante.
+
+**Liens ajoutés dans la barre latérale** (`.sb-bottom`, juste sous l'encart contact déjà existant) : "Confidentialité · CGU", discrets (10px, opacité réduite) mais présents sur toutes les pages de l'app, ouverture dans un nouvel onglet.
+
+**Non modélisé délibérément** : mentions légales (voir plus haut), lien depuis l'écran de connexion/inscription (pas demandé, périmètre resté celui de la barre latérale).
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (2 pages HTML statiques sans JS + un lien ajouté dans indepuls.html, aucune fonction de calcul touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : les 2 pages s'affichent correctement une fois déployées sur Vercel (chemins absolus `/politique-confidentialite.html` et `/cgu.html`, à confirmer qu'ils résolvent bien en production), et les liens de la barre latérale sont visibles sans être intrusifs.
