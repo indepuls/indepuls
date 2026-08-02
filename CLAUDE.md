@@ -2996,3 +2996,13 @@ La page avait déjà un encart générique en bas de page ("Vous n'avez pas trou
 Faustine a demandé d'annoncer dans le menu "Nouveautés" les 3 pages publiées (politique de confidentialité, CGU bêta, sécurité) — d'autres bêta-testeuses ont probablement la même question que celle qui a lancé ce chantier. Entrée ajoutée en tête de `NOUVEAUTES` (2026-08-01), avec un remerciement générique à "la bêta-testeuse qui a posé la question" (nom non communiqué à Claude, à personnaliser par Faustine si elle le souhaite).
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (une entrée ajoutée dans un tableau de données statique, aucune fonction de calcul touchée).
+
+---
+
+### FIX — Logo de la barre latérale trop grand, forçait un scroll sur ordinateur (2026-08-01 sexies)
+
+Faustine a remonté (capture à l'appui) qu'il fallait faire défiler la colonne de gauche sur ordinateur pour accéder à tous les éléments du menu. Cause : le logo `<img>` en haut de la barre latérale (`.sb-logo`) était fixé à `width:100px`, avec un padding généreux (`22px 20px 18px`) autour.
+
+**Corrigé** : logo réduit à `72px` de large, padding de `.sb-logo` resserré à `16px 20px 14px` — assez pour libérer la hauteur manquante sans casser la lisibilité du logo ni l'équilibre visuel de la barre latérale (nom du profil, "✨ Nouveautés" juste en dessous, non touchés).
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (2 valeurs CSS modifiées, aucune fonction de calcul touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine que la barre latérale tient bien sur une page sans scroll sur son écran d'ordinateur.
