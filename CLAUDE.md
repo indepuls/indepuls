@@ -2918,3 +2918,27 @@ Retour d'un audit externe (Claude Cowork) : le widget Provisions est jugé l'un 
 **Non modélisé délibérément** : fusion de "Ma trajectoire" dans le Brief (option C) — refusée par Faustine pour cette itération, à ne pas reprendre sans nouvelle discussion.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (changement d'ordre HTML + défaut de repli, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : Provisions apparaît bien avant "Où part mon CA" dans la colonne droite, "Où part mon CA" est replié par défaut sur un compte n'ayant jamais touché ce bouton, et un compte qui l'avait déjà déplié manuellement avant ce changement le reste (préférence explicite jamais écrasée par le nouveau défaut).
+
+---
+
+### AUDIT — Confidentialité et sécurité des données, suite à la question d'une bêta-testeuse (2026-08-01)
+
+Une bêta-testeuse a interrogé Faustine sur la confidentialité/sécurité des données. Audit mené par lecture de code (pas d'exécution SQL par Claude — Faustine exécute elle-même toute requête, y compris en lecture seule, cf. discipline habituelle).
+
+**RLS Supabase — vérifié, OK.** La clé Supabase codée en dur dans `indepuls.html` est la clé `anon`, publique par nature : le RLS (Row Level Security) est le seul rempart réel contre un accès aux données d'un autre compte. Deux requêtes de vérification exécutées par Faustine dans le SQL Editor :
+- `pg_policies` : `user_data` a bien 3 policies (`select_own`/`update_own`/`delete_own`) scopées `auth.uid() = user_id` ; `profiles` scopée `auth.uid() = id` ; `usage_events` a une policy d'insertion (qual `NULL`, normal pour une policy `WITH CHECK` plutôt que `USING`).
+- `pg_class.relrowsecurity` : `true` sur les 3 tables (`user_data`, `profiles`, `usage_events`) — le RLS est bien activé, pas seulement des policies écrites sans effet.
+
+**Conclusion : accès aux données correctement cloisonné par compte.** Ce point peut être considéré clos et communiqué tel quel à la bêta-testeuse.
+
+**Gaps identifiés en creusant "Réinitialiser l'application" (Zone de danger, Paramètres)** — Faustine a explicitement demandé de ne PAS modifier ce bouton, gardé tel quel :
+- `confirmReset()`/`_deleteCloudData()` supprime uniquement la ligne `user_data` de l'utilisateur — ne supprime PAS le compte d'authentification (`auth.users`, email + mot de passe restent), PAS les 20 dernières versions dans `user_data_backups` (filet de sécurité anti-corruption du 26 juillet), PAS la ligne `profiles` (qui contient l'**email en clair**, `_upsertProfile({email: user.email, ...})` à des fins d'analytics), PAS l'éventuelle inscription Brevo (si `emailHebdoActif` était activé).
+- **Décision Faustine** : le bouton "Réinitialiser" reste tel quel (c'est un reset applicatif, pas un droit à l'effacement, et ce n'est pas son rôle). Une vraie suppression de compte complète est **différée à l'ouverture des abonnements payants** — à concevoir à ce moment-là en s'inspirant de la pratique des concurrents (Qonto/Pennylane/Indy : souvent une demande traitée manuellement plutôt qu'un self-service instantané, au moins au démarrage).
+
+**Gaps structurels identifiés** (aucune mention légale, politique de confidentialité, case CGU à l'inscription, registre des sous-traitants nulle part — ni dans l'app, ni sur le site vitrine, qui ne prévoit qu'une ligne de maquette "footer avec mentions légales" jamais rédigée). Sous-traitants identifiés par lecture de code : Supabase (DB + auth), Vercel (hébergement + cron), Brevo (email hebdo, si activé), Sentry (suivi d'erreurs).
+
+**Brouillon rédigé (mentions légales + CGU minimal, avec clause de responsabilité "estimation vs calcul garanti" + politique de confidentialité RGPD)** — transmis à Faustine dans la conversation, à faire valider par un professionnel avant toute publication (Claude n'est pas juriste, l'a explicitement rappelé). **Bloqué** : Faustine n'a pas encore créé de structure juridique pour Indépuls (SASU envisagée, pour anticiper des frais de développeur ou autre) — aucune des informations nécessaires (statut, SIRET, adresse, email de contact) n'existe encore. **À reprendre une fois la SASU immatriculée.**
+
+**Point à soulever explicitement auprès de l'expert-comptable/avocat au moment de la création** (identifié par Claude, pas une réponse toute faite) : des bêta-testeuses utilisent déjà Indépuls avec de vraies données personnelles alors qu'aucune structure juridique n'existe encore derrière — à faire valider si une régularisation ou une mention particulière est nécessaire pour cette période antérieure à l'immatriculation.
+
+**Non vérifiable par Claude, à faire par Faustine si besoin de clore le sujet complètement** : région d'hébergement du projet Supabase (UE ou non — conditionne si un transfert hors UE doit être documenté), et confirmation du `with_check` exact sur la policy `insert_own` de `user_data` (non affiché par la requête `pg_policies` lancée, qui ne sélectionnait que `qual`).
