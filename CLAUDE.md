@@ -2978,3 +2978,13 @@ Faustine a transmis un retour de ChatGPT sur les pages publiées juste avant (en
 **Non modélisé délibérément** : page publique "Comment sont calculés les indicateurs ?" (suggestion de ChatGPT également) — bonne idée mais vrai chantier de contenu à part (porter proprement ce que "Pourquoi ce score ?" explique déjà dans l'app), pas mélangé à cette itération de retouches.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline, suite Node complète re-passée, 0 échec (3 pages HTML statiques sans JS + un lien ajouté dans indepuls.html, aucune fonction de calcul touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine une fois déployé.
+
+---
+
+### FIX/FEATURE — Invitation à signaler une incohérence sur le Glossaire des indicateurs (2026-08-01 quater)
+
+Faustine a demandé un endroit pour inviter à remonter une incohérence ou une formulation peu claire sur "la page des indicateurs" — il s'agissait du Glossaire des indicateurs déjà existant dans Guide & glossaire (`page-notice`), pas de la page publique "Comment sont calculés les indicateurs ?" laissée de côté juste avant.
+
+La page avait déjà un encart générique en bas de page ("Vous n'avez pas trouvé la réponse à votre question ?"), mais rien de spécifique au glossaire lui-même. Ajout d'une ligne discrète directement sous la liste des définitions ("Une définition qui vous semble incohérente ou peu claire ? N'hésitez pas à me le signaler...") — ciblée sur le contenu du glossaire précisément, distincte de l'encart générique de fin de page qui reste inchangé.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (une ligne de texte ajoutée, aucune fonction de calcul touchée).
