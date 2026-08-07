@@ -3044,3 +3044,15 @@ Faustine : en mode collectif + "Calculer un tarif", le simulateur demandait le p
 **Fix** : id `sim-fg-prixpart` ajouté au champ prix, et deux entrées dans la carte de visibilité de `renderSimulateurPage()` — `'sim-fg-prixpart': isCollectif && !isCalculer` et `'sim-ca-collectif': isCollectif && !isCalculer`. Le champ "Participants prévus" reste visible (il sert à répartir le prix calculé par personne). Aucune logique de calcul touchée.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (2 valeurs de visibilité + 1 id ajoutés, aucune fonction de calcul modifiée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : en collectif + "Calculer un tarif", le champ prix disparaît et le résultat affiche bien le prix minimum + le prix par participant ; en collectif + "Vérifier un prix", le champ prix réapparaît normalement.
+
+---
+
+### FIX — Graphique "Historique des années" rabougri sur mobile (2026-08-01)
+
+Faustine (mobile uniquement) : le graphique de l'onglet Historique ne prenait qu'une demi-largeur d'écran, illisible.
+
+**Cause** : le canvas `chart-archives` n'avait pas de `width:100%` (contrairement à `chart-temps` du dashboard, qui l'a en inline). `drawBarChart()` fait `canvas.width = canvas.offsetWidth` : sans CSS forçant la largeur à 100 %, `offsetWidth` retombe sur la largeur intrinsèque par défaut du canvas (~300 px) au lieu de la largeur du conteneur — d'où l'effet "demi-page" sur un écran mobile étroit (le `.arch-cg` passe pourtant bien en 1 colonne en mobile, mais le canvas ne s'étirait pas dedans).
+
+**Fix** : `style="width:100%;display:block"` ajouté au canvas `chart-archives` **et** à `chart-th-reel` (le graphique "TH réel" juste en dessous, même défaut latent, même page). Le cap `canvas{max-height:200px!important}` en mobile (déjà en place) garde une hauteur raisonnable.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (2 styles inline ajoutés, aucune fonction touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine sur mobile : les deux graphiques de l'Historique prennent bien toute la largeur de l'écran et restent lisibles.
