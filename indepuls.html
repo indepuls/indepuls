@@ -14022,7 +14022,11 @@ document.addEventListener('keydown', function(e) {
 
 <!-- BOUTON CHANGER DE SESSION -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- crossorigin="anonymous" (2026-08-01) : sans lui, toute erreur levée par ce script du CDN
+     Supabase remonte à Sentry sous la forme opaque "Script error." (règle de sécurité navigateur
+     sur les scripts cross-origin), impossible à diagnostiquer. Avec, Sentry reçoit la vraie stack.
+     jsDelivr renvoie les en-têtes CORS, donc le chargement n'est pas affecté. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 
 <style>
 #auth-overlay{position:fixed;inset:0;z-index:99999;background:#F1EFEA;display:flex;align-items:center;justify-content:center;}

@@ -3056,3 +3056,17 @@ Faustine (mobile uniquement) : le graphique de l'onglet Historique ne prenait qu
 **Fix** : `style="width:100%;display:block"` ajouté au canvas `chart-archives` **et** à `chart-th-reel` (le graphique "TH réel" juste en dessous, même défaut latent, même page). Le cap `canvas{max-height:200px!important}` en mobile (déjà en place) garde une hauteur raisonnable.
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (2 styles inline ajoutés, aucune fonction touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine sur mobile : les deux graphiques de l'Historique prennent bien toute la largeur de l'écran et restent lisibles.
+
+---
+
+### OBSERVABILITÉ — 2 erreurs Sentry analysées, `crossorigin` ajouté au script Supabase (2026-08-01)
+
+Faustine a transmis 2 erreurs Sentry.
+
+**Erreur A — `ReferenceError: TVA_SEUILS is not defined` dans `applyStatutParams` (indepuls-demo.html, `file://`)** : PAS un bug de prod. L'URL est `file:///C:/.../indepuls-demo.html` — le fichier démo ouvert directement depuis le disque (Edge/Windows, 0 utilisateur). En `file://`, les navigateurs bloquent le chargement des modules ES (`shared/core/*.js`), donc le pont `window.TVA_SEUILS` (depuis `core/taux.js` via `unified.js`) ne s'exécute jamais. En prod (indepuls.vercel.app, https), les modules se chargent, `TVA_SEUILS` est défini, aucun souci. `indepuls-demo.html` est géré par Faustine dans une autre conversation — cause signalée, fichier non touché ici.
+
+**Erreur B — `"Script error."` (`<unknown>`, Mobile Safari, indepuls.vercel.app)** : l'erreur opaque classique d'un script cross-origin. Quand un script d'un autre domaine lève une erreur, le navigateur en masque les détails par sécurité et Sentry ne reçoit que "Script error." sans stack. Le script Sentry avait déjà `crossorigin="anonymous"`, mais **pas le script Supabase** (`cdn.jsdelivr.net/npm/@supabase/supabase-js`) — or c'est très probablement lui (sollicité lors d'une reconnexion, ce qui colle avec l'hypothèse de Faustine d'une bêta-testeuse reconnectée la veille).
+
+**Action** : `crossorigin="anonymous"` ajouté au tag script Supabase. Ne corrige pas la cause (inconnue tant qu'on n'a pas la vraie stack) mais rend la **prochaine** occurrence diagnosable au lieu d'opaque. jsDelivr renvoie les en-têtes CORS, donc le chargement n'est pas affecté (risque nul).
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (un attribut HTML ajouté, aucune fonction touchée). **À surveiller** : si "Script error." réapparaît côté Sentry, il devrait maintenant porter une vraie stack — à ré-analyser à ce moment-là.
