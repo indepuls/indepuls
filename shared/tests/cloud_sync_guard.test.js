@@ -28,7 +28,10 @@ function extractFunctionBlock(source, signature, windowSize) {
 // ── Règle 1 (13 juillet) : loadFromCloud() doit TOUJOURS charger les données cloud ──
 // existantes dès qu'elles existent pour l'utilisateur authentifié, sans condition sur
 // l'état local (DATA.isExample ou autre).
-const loadBlock = extractFunctionBlock(html, 'async function loadFromCloud', 2200);
+// Fenêtre élargie le 2026-08 : la garde anti-contamination inter-comptes (estampille _ownerUid)
+// ajoute ~1400 caractères en tête de loadFromCloud, repoussant la condition du 13 juillet plus
+// bas dans la fonction. La règle est inchangée, seule la fenêtre de scan grandit pour la contenir.
+const loadBlock = extractFunctionBlock(html, 'async function loadFromCloud', 3600);
 if (!loadBlock) {
   failures.push('loadFromCloud() introuvable dans indepuls.html — fonction renommée ou déplacée ? Ce garde-fou doit être mis à jour.');
 } else {

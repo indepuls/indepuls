@@ -14099,6 +14099,28 @@ document.addEventListener('keydown', function(e) {
 
   async function loadFromCloud(user) {
     _analyticsUserId = user.id;
+    // Garde anti-contamination inter-comptes (2026-08, retour Faustine : connexion sur son compte
+    // qui a chargé les données d'un autre compte ouvert avant sur le même téléphone). Le cache
+    // local (localStorage 'indepuls') est partagé par tous les comptes d'un même appareil et
+    // estampillé au nom de son propriétaire (_ownerUid, posé plus bas dès qu'on connaît le compte).
+    // Si le cache appartient à un AUTRE compte que celui qui se connecte, on le jette AVANT tout
+    // rendu ou toute synchro — sinon un saveData() ultérieur pouvait pousser les données du compte
+    // précédent dans la ligne cloud du nouveau compte (le RLS l'autorise : c'est la même session
+    // authentifiée qui écrit sa propre ligne, il ne peut pas savoir que le contenu appartient
+    // sémantiquement à quelqu'un d'autre). On ne jette JAMAIS un cache non estampillé (compte
+    // existant d'avant ce correctif, ou saisie en cours d'un nouveau compte pas encore
+    // synchronisée) — uniquement un cache explicitement marqué à un autre nom. Le pare-feu existant
+    // (isExample, _cloudLoaded, "le cloud gagne toujours") n'est pas touché.
+    try {
+      var _cachedRaw = localStorage.getItem(STORAGE_KEY);
+      if (_cachedRaw) {
+        var _cachedOwner = JSON.parse(_cachedRaw)._ownerUid;
+        if (_cachedOwner && _cachedOwner !== user.id) {
+          try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+          if (typeof getDefaultData === 'function') { DATA = getDefaultData(); DATA._needsProfilePick = true; }
+        }
+      }
+    } catch(e) {}
     try {
       var res = await sb.from('user_data').select('data').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
       // BUG CRITIQUE CORRIGÉ (2026-07) : "!DATA.isExample" bloquait le chargement des vraies
@@ -14117,6 +14139,11 @@ document.addEventListener('keydown', function(e) {
           parsed = applyDefaults(parsed);
           DATA = parsed;
         }
+        // Estampille le cache au nom de ce compte (voir garde anti-contamination en tête de
+        // loadFromCloud) — persistée tout de suite pour qu'un rechargement ou un changement de
+        // compte ultérieur la voie, sans attendre le prochain saveData().
+        DATA._ownerUid = user.id;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) {}
         // Données cloud chargées — fermer le picker de profil s'il était ouvert
         DATA._needsProfilePick = false;
         var pickerEl = document.getElementById('screen-profile-picker');
@@ -14128,6 +14155,9 @@ document.addEventListener('keydown', function(e) {
         };
         _doRender();
       } else if (!res.data) {
+        // Estampille au nom de ce compte même sans données cloud (nouveau compte) — pour que sa
+        // première sauvegarde et les connexions suivantes soient déjà protégées par la garde.
+        DATA._ownerUid = user.id;
         // Nouveau compte — aucune donnée cloud : afficher le picker si aucun métier choisi.
         // Lecture directe du localStorage (synchrone, fiable) en complément de DATA.params.metier
         // en mémoire : cette réponse cloud arrive de façon asynchrone et peut, sur certaines
