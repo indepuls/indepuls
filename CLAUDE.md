@@ -3032,3 +3032,15 @@ Faustine (alarmée, à juste titre) : sur son téléphone, connexion sur son com
 **Garde-fou `cloud_sync_guard.test.js` mis à jour** : la fenêtre de scan de `loadFromCloud` passée de 2200 à 3600 caractères — la garde anti-contamination ajoute ~1400 caractères en tête de la fonction, repoussant la condition du 13 juillet plus bas ; la règle testée est inchangée, seule la fenêtre grandit pour continuer à la contenir. Les 4 vérifications anti-perte-de-données repassent au vert.
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline + suite Node complète (y compris `cloud_sync_guard.test.js`), 0 échec. **Vérification navigateur impossible dans cette session** (limite d'environnement) — ce fix touche la zone la plus sensible de l'app (auth/synchro cloud, déjà corrigée 3 fois) : **à tester impérativement par Faustine en conditions réelles** — connexion successive de 2 comptes sur le même appareil, vérifier que le 2ᵉ compte n'affiche jamais les données du 1er et que la ligne cloud de chacun reste intacte.
+
+---
+
+### FIX — "Combien facturer ?" : champ "Prix / participant" affiché en mode Calculer (collectif) (2026-08-01)
+
+Faustine : en mode collectif + "Calculer un tarif", le simulateur demandait le prix par participant alors qu'il est censé le calculer lui-même à partir du temps et du nombre de participants.
+
+**Diagnostic** : le CALCUL était déjà correct — `prepareSimInputs()` recalcule `ca = thCible × heures + coûts` dans la branche `_simMode === 'calculer'` (le prix saisi est ignoré), et `renderSimOutputs()` affiche déjà "Par participant : X min · Y avec marge". Bug purement d'INTERFACE : le champ "Prix / participant" (`sim-fg-prixpart`) et la ligne "CA total" (`sim-ca-collectif`) restaient visibles en mode Calculer, car `sim-row-collectif-detail` était affiché sur le seul critère `isCollectif`, sans tenir compte du mode.
+
+**Fix** : id `sim-fg-prixpart` ajouté au champ prix, et deux entrées dans la carte de visibilité de `renderSimulateurPage()` — `'sim-fg-prixpart': isCollectif && !isCalculer` et `'sim-ca-collectif': isCollectif && !isCalculer`. Le champ "Participants prévus" reste visible (il sert à répartir le prix calculé par personne). Aucune logique de calcul touchée.
+
+**Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (2 valeurs de visibilité + 1 id ajoutés, aucune fonction de calcul modifiée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : en collectif + "Calculer un tarif", le champ prix disparaît et le résultat affiche bien le prix minimum + le prix par participant ; en collectif + "Vérifier un prix", le champ prix réapparaît normalement.

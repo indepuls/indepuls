@@ -1328,7 +1328,7 @@ html,body{overflow-x:hidden;}
         <div id="sim-row-collectif-detail" style="display:none">
           <div class="frow">
             <div class="fgroup"><label class="flabel">Participants prévus</label><input type="number" id="sim-participants-val" min="1" step="1" placeholder="Ex : 8" oninput="calcRentabilite()"></div>
-            <div class="fgroup"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
+            <div class="fgroup" id="sim-fg-prixpart"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
           </div>
           <div class="ts mb10" id="sim-ca-collectif" style="font-weight:700;color:var(--pri)"></div>
           <div class="frow">
@@ -12800,6 +12800,12 @@ function renderSimulateurPage() {
     'sim-row-ca':             !isCollectif && (!isCalculer || isAchatMax),
     'sim-row-collectif':      fields.collectif,
     'sim-row-collectif-detail': isCollectif,
+    // En mode "Calculer un tarif", le prix par participant est le RÉSULTAT à produire, pas une
+    // saisie — on masque donc le champ "Prix / participant" et la ligne "CA total" qui l'affiche
+    // (retour Faustine : "il me demande lui-même le prix, or il devrait le calculer seul"). Le
+    // nombre de participants reste saisi : il sert à répartir le prix calculé par personne.
+    'sim-fg-prixpart':        isCollectif && !isCalculer,
+    'sim-ca-collectif':       isCollectif && !isCalculer,
     'sim-row-temps':          fields.temps && !isCollectif && !isTempsSem && !isTempsJours,
     'sim-row-temps-mode':     isService && !isCollectif && fields.temps,
     'sim-row-temps-sem':      isTempsSem,
