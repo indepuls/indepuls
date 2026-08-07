@@ -3090,3 +3090,23 @@ Le pare-feu du 13 juillet (`isExample`, `_cloudLoaded`, `_snapshot` figé, "le c
 **LIMITE IMPORTANTE — le code ne répare pas rétroactivement une ligne cloud DÉJÀ corrompue** : la ligne de Faustine contient actuellement les données du mari (mises là par une session pré-correctif). `loadFromCloud` ne peut pas le deviner (ces données sont légitimement dans sa propre ligne). Nettoyage manuel unique nécessaire (procédure donnée à Faustine dans la conversation) : fermer l'app sur TOUS ses appareils, supprimer sa ligne `user_data` en SQL, puis rouvrir (nouveau code) partout — la garde anti-ré-adoption empêche alors toute session de re-salir la ligne. Tant qu'un onglet pré-correctif reste ouvert quelque part, il peut re-corrompre : le rechargement de tous les appareils est indispensable.
 
 **Vérifié** : `node --check` + suite Node complète (dont `cloud_sync_guard.test.js`), 0 échec. **Vérification navigateur impossible dans cette session** — zone la plus sensible de l'app, désormais 5 correctifs successifs : **à tester impérativement par Faustine** après le nettoyage, sur ses vrais appareils.
+
+---
+
+### FEATURE — Rechargement auto au retour sur l'onglet ("refetch on focus", option 1) (2026-08-01)
+
+Faustine : elle n'a pas le réflexe de recharger une page en y revenant, or le modèle de synchro est "dernier qui écrit gagne, sans fusion" — un onglet resté ouvert (état périmé) qui sauvegarde peut écraser les modifs faites entre-temps sur un autre appareil. Elle a demandé le comportement standard des apps modernes (la page se rafraîchit d'elle-même au retour) après recherche des pratiques courantes.
+
+**Panorama fait avec elle** (avant de coder) : refetch-on-focus (React Query/SWR par défaut) / temps réel WebSocket (trop lourd) / détection de conflit à l'écriture (2ᵉ étape possible) / polling (gourmand). Retenu : **refetch-on-focus**, d'autant que l'app réagissait déjà au retour d'onglet (le `visibilitychange` qui affiche "nouvelle version disponible" — mécanisme de version du CODE, distinct, laissé tel quel).
+
+**Implémenté** (dans l'IIFE Supabase, closure = accès aux fonctions de synchro) :
+- `_lastCloudUpdatedAt` : horodatage de la ligne cloud tel que cet appareil le connaît. Posé dans `loadFromCloud` (branche cloud : `res.data.updated_at` ; branche ligne absente : `null`) et après chaque écriture réussie dans `syncToCloud` (pour ne jamais recharger sa propre écriture). Le `select` de `loadFromCloud` passe de `'data'` à `'data, updated_at'`.
+- `_lastLocalEdit` : posé dans le wrapper `window.saveData` — garde-fou pour ne pas recharger par-dessus une saisie faite dans les 3 dernières secondes.
+- `_verifierFraicheurCloud()` : au retour sur l'onglet, lit UNIQUEMENT `updated_at` (léger) ; s'il diffère de `_lastCloudUpdatedAt`, recharge via `loadFromCloud` (donc avec toutes les protections anti-contamination) + toast "🔄 Données mises à jour depuis un autre appareil". Ne fait rien en démo, si non authentifié, si `!_cloudLoaded`, ou si saisie locale < 3 s. Verrou `_fraicheurEnCours` contre les déclenchements rapprochés.
+- Branché sur `visibilitychange` (onglet redevenu visible) + `window.focus`, listeners posés dans l'IIFE.
+
+**Choix — comparaison par inégalité, pas par ">"** : `cloudUpd !== _lastCloudUpdatedAt` plutôt que `>`. Le cloud est toujours autoritaire ("le cloud gagne quand une ligne existe") — recharger dès que la valeur diffère est correct et évite tout souci de décalage d'horloge entre appareils (deux appareils personnels synchronisés NTP, écart négligeable de toute façon). Au pire, un rechargement redondant inoffensif ; jamais une modif perdue.
+
+**Non fait délibérément** : détection de conflit à l'écriture (refuser un upsert si la ligne a changé depuis le chargement) — 2ᵉ étape possible si besoin, mais elle touche le chemin d'écriture (plus sensible) ; l'option 1 couvre déjà le cas courant de Faustine (revenir sur un onglet périmé). Pas de temps réel (surdimensionné pour un usage occasionnel mono-utilisateur).
+
+**Vérifié** : `node --check` + suite Node complète (dont `cloud_sync_guard.test.js`, toujours vert — les gardes du 13 juillet intactes), 0 échec. **Vérification navigateur impossible dans cette session** — **à tester par Faustine** : modifier sur un appareil, revenir sur un autre onglet/appareil resté ouvert → il doit recharger tout seul avec le toast, sans écraser. Vérifier aussi qu'une saisie en cours n'est pas interrompue par un rechargement intempestif.

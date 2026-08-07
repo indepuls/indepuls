@@ -14057,6 +14057,11 @@ document.addEventListener('keydown', function(e) {
   }
 
   var _cloudLoaded = false;
+  // Rechargement auto au retour sur l'onglet (option 1, 2026-08) : _lastCloudUpdatedAt = l'horodatage
+  // de la ligne cloud tel que CET appareil le connaît (posé au chargement et après chaque écriture) ;
+  // _lastLocalEdit = dernier saveData local (pour ne pas recharger par-dessus une saisie en cours).
+  var _lastCloudUpdatedAt = null;
+  var _lastLocalEdit = 0;
 
   // ── ANALYTICS ───────────────────────────────────────────────
   var _analyticsUserId = null;
@@ -14132,7 +14137,7 @@ document.addEventListener('keydown', function(e) {
       }
     } catch(e) {}
     try {
-      var res = await sb.from('user_data').select('data').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
+      var res = await sb.from('user_data').select('data, updated_at').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
       // BUG CRITIQUE CORRIGÉ (2026-07) : "!DATA.isExample" bloquait le chargement des vraies
       // données cloud dès que le navigateur avait localement du résidu de mode démo (ex. un
       // utilisateur qui explore la démo avant de se connecter à son vrai compte, sur le même
@@ -14142,6 +14147,7 @@ document.addEventListener('keydown', function(e) {
       // données cloud existantes doit TOUJOURS l'emporter sur l'état local, sans exception.
       if (res.data && res.data.data) {
         var payload = res.data.data;
+        _lastCloudUpdatedAt = res.data.updated_at || null; // horodatage connu par cet appareil (rechargement auto au retour)
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch(e) {}
         if (typeof migrate === 'function' && typeof applyDefaults === 'function') {
           var parsed = JSON.parse(JSON.stringify(payload));
@@ -14165,6 +14171,7 @@ document.addEventListener('keydown', function(e) {
         };
         _doRender();
       } else if (!res.data) {
+        _lastCloudUpdatedAt = null; // aucune ligne cloud pour ce compte
         // Garde anti-ré-adoption (2026-08, retour Faustine : après réinitialisation, les données
         // du mari revenaient via une session restée ouverte qui les re-synchronisait). Ligne cloud
         // absente (nouveau compte OU compte réinitialisé) : si le cache local contient de VRAIES
@@ -14253,12 +14260,14 @@ document.addEventListener('keydown', function(e) {
       // système) ne sont pas bloquées ici — c'est la garde anti-ré-adoption de loadFromCloud qui
       // les intercepte en amont.
       if (_snapshot._ownerUid && _snapshot._ownerUid !== res.data.session.user.id) return;
+      var _nowIso = new Date().toISOString();
       await sb.from('user_data').upsert({
         user_id: res.data.session.user.id,
         app_type: APP_TYPE,
         data: _snapshot,
-        updated_at: new Date().toISOString()
+        updated_at: _nowIso
       }, { onConflict: 'user_id,app_type' });
+      _lastCloudUpdatedAt = _nowIso; // cet appareil connaît désormais cette version — ne rechargera pas sa propre écriture
     } catch(e) {
       console.warn('syncToCloud failed:', e);
       if (typeof showToast === 'function') {
@@ -14269,9 +14278,39 @@ document.addEventListener('keydown', function(e) {
 
   var _origSaveData = window.saveData;
   window.saveData = function() {
+    _lastLocalEdit = Date.now(); // horodate la dernière saisie locale (garde-fou du rechargement auto)
     if (_origSaveData) _origSaveData();
     syncToCloud();
   };
+
+  // ── RECHARGEMENT AUTO AU RETOUR SUR L'ONGLET (option 1, validée avec Faustine 2026-08) ──────────
+  // Standard des apps de sync (refetch-on-focus, comme React Query/SWR par défaut). Au retour sur un
+  // onglet resté ouvert, on lit UNIQUEMENT l'horodatage de la ligne cloud (léger) ; s'il diffère de
+  // celui que cet appareil connaît, c'est qu'une modif a été faite ailleurs → on recharge la dernière
+  // version via loadFromCloud (avec toutes ses protections anti-contamination). Empêche un onglet
+  // périmé d'écraser en aveugle les modifs d'un autre appareil. Jamais en démo, jamais si une saisie
+  // locale a eu lieu dans les 3 dernières secondes (on ne recharge pas par-dessus une saisie en cours).
+  var _fraicheurEnCours = false;
+  async function _verifierFraicheurCloud() {
+    if (_fraicheurEnCours || !_cloudLoaded || DATA.isExample) return;
+    if (Date.now() - _lastLocalEdit < 3000) return;
+    _fraicheurEnCours = true;
+    try {
+      var s = await sb.auth.getSession();
+      if (s.data && s.data.session) {
+        var u = s.data.session.user;
+        var res = await sb.from('user_data').select('updated_at').eq('user_id', u.id).eq('app_type', APP_TYPE).maybeSingle();
+        var cloudUpd = res.data && res.data.updated_at;
+        if (cloudUpd && cloudUpd !== _lastCloudUpdatedAt) {
+          await loadFromCloud(u); // recharge + re-render + met à jour _lastCloudUpdatedAt
+          if (typeof showToast === 'function') showToast('🔄 Données mises à jour depuis un autre appareil.');
+        }
+      }
+    } catch(e) { /* réseau indisponible — réessayé au prochain retour sur l'onglet */ }
+    _fraicheurEnCours = false;
+  }
+  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') _verifierFraicheurCloud(); });
+  window.addEventListener('focus', _verifierFraicheurCloud);
 
   window._deleteCloudData = async function() {
     try {
