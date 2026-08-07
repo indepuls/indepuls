@@ -14165,6 +14165,26 @@ document.addEventListener('keydown', function(e) {
         };
         _doRender();
       } else if (!res.data) {
+        // Garde anti-ré-adoption (2026-08, retour Faustine : après réinitialisation, les données
+        // du mari revenaient via une session restée ouverte qui les re-synchronisait). Ligne cloud
+        // absente (nouveau compte OU compte réinitialisé) : si le cache local contient de VRAIES
+        // données (isExample=false) non estampillées à ce compte, c'est une contamination héritée
+        // d'un autre compte d'AVANT l'estampillage — on ne l'adopte pas, donc on ne la
+        // re-synchronise jamais dans la ligne cloud de ce compte. Sûr : l'overlay d'auth bloque
+        // toute saisie tant que loadFromCloud n'a pas fini, donc il n'existe jamais ici de saisie
+        // fraîche légitime non synchronisée ; un compte existant avec des données passe par la
+        // branche cloud ci-dessus (sa ligne existe) ; le mode démo (isExample=true) est préservé.
+        try {
+          var _cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          var _hasReal = _cur && !_cur.isExample && (
+            (Array.isArray(_cur.missions) && _cur.missions.length) ||
+            (Array.isArray(_cur.depenses) && _cur.depenses.length) ||
+            (_cur.revenus && Object.keys(_cur.revenus).length));
+          if (_hasReal && (!_cur._ownerUid || _cur._ownerUid !== user.id)) {
+            try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+            if (typeof getDefaultData === 'function') { DATA = getDefaultData(); DATA._needsProfilePick = true; }
+          }
+        } catch(e) {}
         // Estampille au nom de ce compte même sans données cloud (nouveau compte) — pour que sa
         // première sauvegarde et les connexions suivantes soient déjà protégées par la garde.
         DATA._ownerUid = user.id;
@@ -14225,6 +14245,14 @@ document.addEventListener('keydown', function(e) {
       var res = await sb.auth.getSession();
       if (!res.data || !res.data.session) return;
       if (_snapshot.isExample) return; // re-vérification après l'attente, sur la référence figée
+      // GARDE-FOU PROPRIÉTAIRE (2026-08, retour Faustine) : ne jamais téléverser des données
+      // estampillées à un AUTRE compte que la session en cours. Défense en profondeur qui complète
+      // l'estampillage de loadFromCloud : même si un chemin non anticipé laissait DATA détenir les
+      // données d'un autre compte, cette session refuserait de les écrire dans sa propre ligne
+      // cloud (source de la re-contamination observée). Les données non estampillées (d'avant ce
+      // système) ne sont pas bloquées ici — c'est la garde anti-ré-adoption de loadFromCloud qui
+      // les intercepte en amont.
+      if (_snapshot._ownerUid && _snapshot._ownerUid !== res.data.session.user.id) return;
       await sb.from('user_data').upsert({
         user_id: res.data.session.user.id,
         app_type: APP_TYPE,

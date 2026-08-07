@@ -3070,3 +3070,23 @@ Faustine a transmis 2 erreurs Sentry.
 **Action** : `crossorigin="anonymous"` ajouté au tag script Supabase. Ne corrige pas la cause (inconnue tant qu'on n'a pas la vraie stack) mais rend la **prochaine** occurrence diagnosable au lieu d'opaque. jsDelivr renvoie les en-têtes CORS, donc le chargement n'est pas affecté (risque nul).
 
 **Vérifié** : `node --check` + suite Node complète re-passée, 0 échec (un attribut HTML ajouté, aucune fonction touchée). **À surveiller** : si "Script error." réapparaît côté Sentry, il devrait maintenant porter une vraie stack — à ré-analyser à ce moment-là.
+
+---
+
+### FIX CRITIQUE (suite) — Re-contamination de la ligne cloud par une session restée ouverte (2026-08-01)
+
+Nouvelle alerte Faustine, PC cette fois : Chrome connecté au compte du mari, Edge à son compte à elle. Elle réinitialise sur Edge (pour effacer les données du mari qui avaient corrompu sa ligne cloud depuis l'incident téléphone), change de page, revient quelques minutes plus tard → les données du mari sont de nouveau chargées.
+
+**Diagnostic** : le correctif précédent (`_ownerUid`, section ci-dessus) bloque la contamination du **cache local dans un même navigateur**, mais pas ce vecteur-ci. Chrome et Edge ont des caches séparés — le pont est le **cloud**. Une autre session (très probablement le téléphone, avec un onglet resté ouvert tournant encore l'ANCIEN code) détient encore les vraies données du mari sous le compte de Faustine (héritage de l'incident initial, **non estampillées** car d'avant `_ownerUid`). Cette session les re-synchronise en arrière-plan (rafraîchissement du jeton, focus…) dans la ligne cloud de Faustine, la re-corrompant juste après sa réinitialisation PC. Au retour sur Edge, `loadFromCloud` charge fidèlement cette ligne re-corrompue.
+
+**Le trou précis** : mon garde `_ownerUid` de loadFromCloud ne jette QUE les caches estampillés à un autre compte, jamais les caches non estampillés (pour ne pas risquer une saisie légitime). Or les données du mari sur le téléphone sont non estampillées → adoptées dans la branche "nouveau compte / ligne absente" → re-stampées au nom de Faustine → re-synchronisées. C'est ce chaînon qui re-salit la ligne cloud.
+
+**Deux gardes ajoutées** :
+1. **Anti-ré-adoption (loadFromCloud, branche `!res.data`)** : si la ligne cloud est absente MAIS que le cache local contient de VRAIES données (`isExample=false`, avec missions/dépenses/revenus non vides) non estampillées à ce compte, on ne les adopte pas — cache jeté, `getDefaultData()`, picker. **Sûr** : l'overlay d'auth bloque toute saisie tant que `loadFromCloud` n'a pas fini, donc il n'existe jamais ici de saisie fraîche légitime à protéger ; un compte existant avec des données passe par la branche cloud (sa ligne existe) ; le mode démo (`isExample=true`) est explicitement préservé.
+2. **Garde propriétaire (syncToCloud)** : `if (_snapshot._ownerUid && _snapshot._ownerUid !== session.user.id) return;` — défense en profondeur, une session refuse d'écrire dans sa ligne cloud des données estampillées à un autre compte.
+
+Le pare-feu du 13 juillet (`isExample`, `_cloudLoaded`, `_snapshot` figé, "le cloud gagne toujours") reste intact ; `cloud_sync_guard.test.js` toujours vert.
+
+**LIMITE IMPORTANTE — le code ne répare pas rétroactivement une ligne cloud DÉJÀ corrompue** : la ligne de Faustine contient actuellement les données du mari (mises là par une session pré-correctif). `loadFromCloud` ne peut pas le deviner (ces données sont légitimement dans sa propre ligne). Nettoyage manuel unique nécessaire (procédure donnée à Faustine dans la conversation) : fermer l'app sur TOUS ses appareils, supprimer sa ligne `user_data` en SQL, puis rouvrir (nouveau code) partout — la garde anti-ré-adoption empêche alors toute session de re-salir la ligne. Tant qu'un onglet pré-correctif reste ouvert quelque part, il peut re-corrompre : le rechargement de tous les appareils est indispensable.
+
+**Vérifié** : `node --check` + suite Node complète (dont `cloud_sync_guard.test.js`), 0 échec. **Vérification navigateur impossible dans cette session** — zone la plus sensible de l'app, désormais 5 correctifs successifs : **à tester impérativement par Faustine** après le nettoyage, sur ses vrais appareils.
