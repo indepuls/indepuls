@@ -3110,3 +3110,19 @@ Faustine : elle n'a pas le réflexe de recharger une page en y revenant, or le m
 **Non fait délibérément** : détection de conflit à l'écriture (refuser un upsert si la ligne a changé depuis le chargement) — 2ᵉ étape possible si besoin, mais elle touche le chemin d'écriture (plus sensible) ; l'option 1 couvre déjà le cas courant de Faustine (revenir sur un onglet périmé). Pas de temps réel (surdimensionné pour un usage occasionnel mono-utilisateur).
 
 **Vérifié** : `node --check` + suite Node complète (dont `cloud_sync_guard.test.js`, toujours vert — les gardes du 13 juillet intactes), 0 échec. **Vérification navigateur impossible dans cette session** — **à tester par Faustine** : modifier sur un appareil, revenir sur un autre onglet/appareil resté ouvert → il doit recharger tout seul avec le toast, sans écraser. Vérifier aussi qu'une saisie en cours n'est pas interrompue par un rechargement intempestif.
+
+---
+
+### FEATURE — Remise en % par ligne de devis (2026-08-02)
+
+Retour d'un bêta-testeur (Justin) : pouvoir ajouter une réduction sur chaque ligne du générateur de devis. Choix de conception : **remise en pourcentage** par ligne (sens le plus courant de "réduction" sur un devis, le plus simple ; le € pourra être ajouté plus tard si demandé).
+
+**Modèle** : chaque ligne gagne un champ `remisePct` (`{designation, detail, montantHT, remisePct}`). `montantHT` reste le montant brut saisi ; `_ligneNetHT(l)` = brut × (1 − remise/100), remise bornée 0-100. Aucune migration : un ancien brouillon sans `remisePct` → remise 0 (net = brut), géré par `|| 0` / `|| ''`.
+
+**UI** (`renderLignesDevis`) : champ "Remise (%)" à côté de "Montant HT (€)" (dans un `.frow`), plus un rappel "Net après remise : X" affiché sous la ligne dès qu'une remise > 0 est saisie. `_devisTotalHT()` somme désormais les nets.
+
+**PDF** (`genererDevisPDF`) : la colonne Montant HT affiche le **net** de chaque ligne, avec une annotation discrète "remise X % sur [brut]" quand il y a une remise. Dans les totaux, si au moins une ligne a une remise, deux lignes s'ajoutent au-dessus du sous-total : "Sous-total HT avant remise" et "Remise −[total]". La TVA s'applique bien sur le net (après remise). `creerMissionDepuisDevis()` reprend le total net, cohérent.
+
+**Nouveauté** ajoutée en tête de `NOUVEAUTES` (2026-08-02, "Merci à Justin pour l'idée 🙏").
+
+**Vérifié** : `node --check` sur l'intégralité des scripts inline + suite Node complète, 0 échec (fonctionnalité UI/PDF du générateur de devis, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : saisie d'une remise → net mis à jour dans l'aperçu du total et dans le PDF ; PDF sans remise inchangé ; ancien brouillon rouvert sans souci.
