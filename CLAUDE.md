@@ -3148,3 +3148,19 @@ Faustine (spec détaillée travaillée avec ChatGPT) : faire évoluer la remise 
 **Tests** : les cas numériques de la spec (1 à 7, sécurités, arrondis, compat v1, cohérence) vérifiés via un script Node isolé répliquant la logique (`scratchpad/devis_remise_test.js`, 20/20 verts) — la logique vit dans `indepuls.html`, non importable par la suite `shared/tests`. Les cas UI/PDF (rouvrir un brouillon, générer le PDF, modifier/supprimer une remise) restent **à confirmer par Faustine en navigateur** (impossible dans cette session).
 
 **Vérifié** : script de calcul 20/20 + `node --check` + suite Node complète, 0 échec. Nouveauté (2026-08-02) mise à jour ("en pourcentage ou en euros", merci Justin).
+
+---
+
+### CHANTIER — Devis multi-documents + avenants (Option A, en cours par étapes) (2026-08-02)
+
+Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse faite avant de coder : la spec ChatGPT supposait des tables Supabase relationnelles + Supabase Storage pour des PDF archivés, ce qui ne correspond PAS à l'architecture d'Indépuls (tout dans un blob JSON `user_data.data`, zéro table par entité, PDF régénéré à la volée). Recommandation retenue avec Faustine : **Option A**, tout dans le JSON, zéro table, zéro Storage, zéro SQL. PDF figé = données figées + PDF régénéré à l'identique (déterministe). Pas de numérotation auto (champ manuel conservé). Décision produit assumée : rester sur le noyau utile au pilotage, ne pas basculer vers un module de gestion documentaire/CRM (ligne que la doctrine produit exclut, rappelée par l'audit Cowork de cette session).
+
+**Décisions tranchées avec Faustine** :
+- Remise sur lignes d'avenant : autorisée uniquement sur les lignes POSITIVES (ajouts), réutilisant la logique de remise des devis (positive, déjà testée). Sur une ligne négative (retrait), pas de remise (les sécurités net>=0 / plafond deviennent fausses sur du négatif, et sémantiquement une remise sur un retrait n'a pas de sens).
+- Montant contractuel : à l'acceptation d'un document, écrit dans le `montantDevis` prévisionnel existant (jamais le CA réalisé = encaissements, décision actée), MAIS le champ reste modifiable à la main.
+
+**Étape 1 livrée (socle, DORMANT, aucun changement visible)** : modèle `mission.documents` (tableau de `{id, type:'quote'|'amendment', parentId, statut:'draft'|'issued'|'accepted'|'refused', numero, dateDevis, validiteJours, dateEmission, dateAcceptation, clientNom/Email/Adresse/Tel, objet, conditions, modalites, lignes[]}`). Fonctions ajoutées mais **appelées nulle part encore** (le générateur les branchera à l'étape 2) : `migrateDevisBrouillon(mission)` (convertit l'ancien `mission.devisBrouillon` en un document quote/draft, idempotent, ne supprime jamais l'ancien champ), `_docLigneNet`/`_docMontantHT`/`_docRemiseTotale`/`_docHasRemise` (totaux d'un document, gestion des lignes d'avenant signées), `_missionMontantContractuel(mission)` (devis accepté + avenants acceptés, null si aucun devis accepté). Ids via `uuid()` existant.
+
+**Vérifié** : `scratchpad/documents_socle_test.js` 14/14 (totaux devis/avenant +/-, remise ignorée sur retrait, montant contractuel filtré sur "accepted", migration idempotente, mission sans devis) + `node --check` + suite Node complète, 0 échec. **Aucune vérification navigateur nécessaire à cette étape** (code dormant, aucun changement de comportement).
+
+**Étapes suivantes** (validées, à faire une par une avec vérification) : 2 = brancher le générateur sur `mission.documents` + section "Documents commerciaux" dans la fiche mission (plusieurs devis) ; 3 = figeage à l'émission (issued, non modifiable, dupliquer) ; 4 = avenants (type amendment, lignes signées, template PDF "AVENANT relatif au devis X", remise sur lignes positives) ; 5 = montant contractuel branché sur `montantDevis` (analyse anti double comptage) ; 6 = tests + doc.

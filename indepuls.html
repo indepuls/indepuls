@@ -10764,6 +10764,74 @@ function _devisTotalRemise() {
 function _devisHasRemise() {
   return _devisLignes.some(l => _ligneRemiseInfo(l).montant > 0);
 }
+
+// ── DOCUMENTS COMMERCIAUX (étape 1, socle, 2026-08-02) ────────────────────────
+// Une mission peut porter plusieurs documents (devis + avenants), stockés dans mission.documents
+// (tableau), tout dans le blob JSON, aucune table Supabase. Modèle de document :
+//   { id, type:'quote'|'amendment', parentId, statut:'draft'|'issued'|'accepted'|'refused',
+//     numero, dateDevis, validiteJours, dateEmission, dateAcceptation,
+//     clientNom, clientEmail, clientAdresse, clientTel, objet, conditions, modalites,
+//     lignes:[ { designation, detail, montantHT, discountType, discountValue } ] }
+// Ces fonctions sont DORMANTES à l'étape 1 (le générateur les branchera à l'étape 2) : aucun
+// changement de comportement, elles ne sont appelées nulle part dans le flux actuel. Testées via
+// un script Node isolé (scratchpad/documents_socle_test.js).
+
+// Convertit l'ancien brouillon unique (mission.devisBrouillon) en un document quote/draft.
+// Idempotent : ne fait rien si la mission a déjà mission.documents. Ne supprime jamais l'ancien
+// champ (compatibilité, "ne supprime rien"). Aucune migration base, pur JS.
+function migrateDevisBrouillon(mission) {
+  if (!mission || Array.isArray(mission.documents)) return;
+  mission.documents = [];
+  const b = mission.devisBrouillon;
+  if (b) {
+    mission.documents.push({
+      id: uuid(), type: 'quote', parentId: null, statut: 'draft',
+      numero: b.numero || '', dateDevis: b.date || '', validiteJours: b.validite || 30,
+      dateEmission: null, dateAcceptation: null,
+      clientNom: b.client?.nom || '', clientEmail: b.client?.email || '',
+      clientAdresse: b.client?.adresse || '', clientTel: b.client?.tel || '',
+      objet: b.objet || '', conditions: b.conditions || '', modalites: b.modalites || '',
+      lignes: (b.lignes || []).map(l => ({ ...l })),
+    });
+  }
+}
+
+// Net d'une ligne au sein d'un document. Devis, ou ligne d'avenant POSITIVE (un ajout) : logique
+// de remise standard (positive, déjà testée). Ligne d'avenant NÉGATIVE (un retrait) : montant
+// signé tel quel, jamais de remise (décision produit : la remise ne s'applique qu'au positif,
+// sinon les sécurités net>=0 / plafond deviennent fausses sur du négatif).
+function _docLigneNet(doc, l) {
+  const brut = parseFloat(l.montantHT) || 0;
+  if (doc && doc.type === 'amendment' && brut < 0) return Math.round(brut * 100) / 100;
+  return _ligneNetHT(l);
+}
+function _docMontantHT(doc) {
+  return Math.round(((doc && doc.lignes) || []).reduce((s, l) => s + _docLigneNet(doc, l), 0) * 100) / 100;
+}
+function _docRemiseTotale(doc) {
+  return Math.round(((doc && doc.lignes) || []).reduce((s, l) => {
+    if (doc.type === 'amendment' && (parseFloat(l.montantHT) || 0) < 0) return s; // pas de remise sur un retrait
+    return s + _ligneRemiseInfo(l).montant;
+  }, 0) * 100) / 100;
+}
+function _docHasRemise(doc) {
+  return _docRemiseTotale(doc) > 0;
+}
+
+// Montant contractuel actualisé d'une mission : devis ACCEPTÉ + somme des avenants ACCEPTÉS
+// rattachés à ce devis. Seuls les documents acceptés comptent (un brouillon ou un simple émis ne
+// change rien). Retourne null s'il n'y a aucun devis accepté (l'étape 5 saura alors ne pas
+// écraser le montantDevis manuel). Alimente uniquement le prévisionnel (montantDevis), jamais le
+// CA réalisé (= encaissements, décision actée).
+function _missionMontantContractuel(mission) {
+  const docs = (mission && mission.documents) || [];
+  const devis = docs.find(d => d.type === 'quote' && d.statut === 'accepted');
+  if (!devis) return null;
+  let total = _docMontantHT(devis);
+  docs.forEach(d => { if (d.type === 'amendment' && d.parentId === devis.id && d.statut === 'accepted') total += _docMontantHT(d); });
+  return Math.round(total * 100) / 100;
+}
+
 function majLigneDevis(i, champ, valeur) {
   if (!_devisLignes[i]) return;
   _devisLignes[i][champ] = valeur;
