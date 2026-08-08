@@ -1897,9 +1897,9 @@ html,body{overflow-x:hidden;}
         <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
       </div>
       <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
+      <div id="m-documents-zone" style="margin-top:6px"></div>
     </div>
     <div class="modal-foot">
-      <button class="btn btn-out" style="margin-right:auto" onclick="ouvrirGenerateurDevisMission()">📄 Devis</button>
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
     </div>
@@ -8222,6 +8222,7 @@ function openMissionModal(id, prefillDate) {
   const hasTempsGestion = m && (m.chargeEstimee > 0 || (m.sessions||[]).length > 0
     || m.tempsCreation > 0 || m.tempsAnimation > 0 || m.tempsSupport > 0);
   toggleTempsGestion(!!hasTempsGestion);
+  renderMissionDocuments(m ? m.id : ''); // section "Documents commerciaux" (étape 2b)
   openModal('modal-mission');
 }
 
@@ -10894,6 +10895,26 @@ function _docToBrouillon(doc) {
     conditions: doc.conditions || '', modalites: doc.modalites || '',
   };
 }
+// Lit le formulaire du générateur vers un objet document. Reprend id/type/statut/parentId du
+// document en cours d'édition s'il existe (pour ne pas régénérer un id ni perdre le type/avenant),
+// sinon un document quote/brouillon transitoire (Simulateur, menu Outils, pas de mission rattachée).
+function _devisFormToDoc() {
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const base = (_devisMissionId && _devisDocId)
+    ? ((DATA.missions.find(m => m.id === _devisMissionId)?.documents) || []).find(d => d.id === _devisDocId)
+    : null;
+  return {
+    id: base?.id || uuid(), type: base?.type || 'quote', parentId: base?.parentId ?? null,
+    statut: base?.statut || 'draft',
+    numero: val('dv-numero'), dateDevis: val('dv-date'),
+    validiteJours: parseInt(document.getElementById('dv-validite')?.value, 10) || 30,
+    dateEmission: base?.dateEmission ?? null, dateAcceptation: base?.dateAcceptation ?? null,
+    clientNom: val('dv-client-nom'), clientEmail: val('dv-client-email'),
+    clientAdresse: val('dv-client-adresse'), clientTel: val('dv-client-tel'),
+    objet: val('dv-objet'), conditions: val('dv-conditions'), modalites: val('dv-modalites'),
+    lignes: _devisLignes.map(l => ({ ...l })),
+  };
+}
 function ouvrirGenerateurDevis(prefill = {}, brouillon = null) {
   const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
   const exemples = DEVIS_EXEMPLES_PAR_FAMILLE[family] || DEVIS_EXEMPLES_PAR_FAMILLE.service;
@@ -10993,6 +11014,85 @@ function ouvrirGenerateurDevisVierge() {
   _devisMissionId = null; _devisDocId = null;
   ouvrirGenerateurDevis({});
 }
+
+// ── SECTION "DOCUMENTS COMMERCIAUX" DE LA FICHE MISSION (étape 2b) ─────────────
+// Rendue dans #m-documents-zone à l'ouverture de la fiche mission, et rafraîchie après chaque
+// création/suppression/édition d'un document. Étape 2b : uniquement des devis en brouillon
+// (Modifier / PDF / Supprimer). Émission, duplication, avenants, acceptation arrivent aux
+// étapes 3-4 (les statuts issued/accepted/refused sont déjà gérés à l'affichage, dormants).
+function _docStatutBadge(s) {
+  const map = { draft: ['Brouillon', 'var(--tl)'], issued: ['Émis', 'var(--acc)'], accepted: ['Accepté', 'var(--ok)'], refused: ['Refusé', 'var(--err)'] };
+  const [lbl, col] = map[s] || map.draft;
+  return `<span style="font-size:10px;font-weight:700;color:${col};border:1px solid ${col};border-radius:10px;padding:1px 7px;white-space:nowrap">${lbl}</span>`;
+}
+function renderMissionDocuments(missionId) {
+  const zone = document.getElementById('m-documents-zone');
+  if (!zone) return;
+  if (!missionId) {
+    zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux</label><div class="ts" style="color:var(--tl)">Enregistrez d'abord la mission pour y créer un devis.</div></div>`;
+    return;
+  }
+  const mission = DATA.missions.find(m => m.id === missionId);
+  if (!mission) { zone.innerHTML = ''; return; }
+  migrateDevisBrouillon(mission);
+  const docs = mission.documents || [];
+  const rows = docs.map(d => {
+    const titre = d.numero ? esc(d.numero) : (d.type === 'amendment' ? 'Avenant' : 'Devis');
+    const actions = [
+      `<span class="step-cta" onclick="ouvrirDocumentDevis('${d.id}')">Modifier</span>`,
+      `<span class="step-cta" onclick="voirPdfDocument('${d.id}')">PDF</span>`,
+      `<span class="step-cta" style="color:var(--err)" onclick="supprimerDocument('${d.id}')">Supprimer</span>`,
+    ].join(' · ');
+    return `<div style="border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div><strong>${titre}</strong> ${_docStatutBadge(d.statut)}${d.objet ? `<div class="ts" style="color:var(--tl);margin-top:2px">${esc(d.objet)}</div>` : ''}</div>
+        <div class="fb" style="white-space:nowrap">${fmtE(_docMontantHT(d))}</div>
+      </div>
+      <div class="ts" style="margin-top:6px">${actions}</div>
+    </div>`;
+  }).join('');
+  zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux</label>
+    ${rows || `<div class="ts" style="color:var(--tl);margin-bottom:6px">Aucun devis pour l'instant.</div>`}
+    <button type="button" class="btn btn-out btn-sm" onclick="creerNouveauDevisMission()">+ Créer un devis</button>
+  </div>`;
+}
+function creerNouveauDevisMission() {
+  _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
+  if (!mission) return;
+  migrateDevisBrouillon(mission);
+  const doc = _nouveauDocDevis();
+  doc.clientNom = document.getElementById('m-client')?.value || '';
+  doc.objet = document.getElementById('m-desc')?.value || '';
+  const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
+  if (montantHT > 0) doc.lignes = [{ designation: doc.objet || '', detail: '', montantHT }];
+  mission.documents.push(doc);
+  _devisDocId = doc.id;
+  ouvrirGenerateurDevis({}, _docToBrouillon(doc));
+}
+function ouvrirDocumentDevis(docId) {
+  _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
+  const doc = mission && (mission.documents || []).find(d => d.id === docId);
+  if (!doc) return;
+  _devisDocId = doc.id;
+  ouvrirGenerateurDevis({}, _docToBrouillon(doc));
+}
+function voirPdfDocument(docId) {
+  const missionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
+  const doc = mission && (mission.documents || []).find(d => d.id === docId);
+  if (doc) _renderDevisPDF(doc);
+}
+function supprimerDocument(docId) {
+  const missionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
+  if (!mission || !(mission.documents || []).some(d => d.id === docId)) return;
+  if (!confirm('Supprimer ce document ?')) return;
+  mission.documents = mission.documents.filter(d => d.id !== docId);
+  saveData();
+  renderMissionDocuments(missionId);
+}
 // Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
 // la fin de genererDevisPDF(), pour ne jamais perdre une saisie qu'elle soit générée ou non.
 function fermerGenerateurDevis() {
@@ -11013,8 +11113,13 @@ function fermerGenerateurDevis() {
       saveData();
     }
   }
+  const _missionOuverte = _devisMissionId;
   _devisMissionId = null; _devisDocId = null;
   closeModal('modal-devis');
+  // Rafraîchir la liste des documents si la fiche mission est encore ouverte derrière.
+  if (_missionOuverte && document.getElementById('m-documents-zone') && !document.getElementById('modal-mission')?.classList.contains('hidden')) {
+    renderMissionDocuments(_missionOuverte);
+  }
 }
 function _devisTvaInfo(montantHT) {
   const p = DATA.params;
@@ -11047,29 +11152,38 @@ function rafraichirApercuDevisTotal() {
 // comptable, indepuls.html) puis déclenche l'impression native du navigateur ("Enregistrer en
 // PDF") — aucune librairie PDF ajoutée, cohérent avec le zéro-dépendance déjà en place partout
 // ailleurs dans Indépuls.
+// Bouton "Générer le PDF" du générateur : lit le formulaire vers un document, mémorise les
+// conditions/modalités par défaut, rend le PDF, puis ferme (ce qui persiste le document si
+// rattaché à une mission).
 function genererDevisPDF() {
-  const p = DATA.params;
   const val = id => (document.getElementById(id)?.value || '').trim();
-  // Conditions/modalités mémorisées pour la prochaine fois (voir ouvrirGenerateurDevis).
   saveParam('devisConditionsDefaut', val('dv-conditions'));
   saveParam('devisModalitesDefaut', val('dv-modalites'));
-  const montantHT = _devisTotalHT();
-  const totalBrutHT = Math.round(_devisLignes.reduce((s, l) => s + (parseFloat(l.montantHT) || 0), 0) * 100) / 100;
-  const remiseTotale = _devisTotalRemise(); // somme des remises par ligne
-  const hasRemise = _devisHasRemise(); // pilote l'affichage dynamique du tableau et du récap
+  _renderDevisPDF(_devisFormToDoc());
+  fermerGenerateurDevis();
+}
+// Rend le PDF (nouvel onglet + impression navigateur) à partir d'un OBJET document, jamais du DOM.
+// Permet de régénérer à l'identique un document figé (étape 3) ou de voir le PDF d'un document non
+// ouvert dans le formulaire (liste des documents de la mission). Déterministe : mêmes données, même
+// rendu. Étape 2b : type 'quote' uniquement (l'en-tête AVENANT sera ajouté à l'étape 4).
+function _renderDevisPDF(doc) {
+  const p = DATA.params;
+  const lignes = doc.lignes || [];
+  const montantHT = _docMontantHT(doc);
+  const totalBrutHT = Math.round(lignes.reduce((s, l) => s + (parseFloat(l.montantHT) || 0), 0) * 100) / 100;
+  const remiseTotale = _docRemiseTotale(doc);
+  const hasRemise = _docHasRemise(doc);
   const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
   const dateStr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-  const dateDevis = val('dv-date');
-  const validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
+  const dateDevis = doc.dateDevis || '';
+  const validiteJours = doc.validiteJours || 30;
   const dateValidite = dateDevis ? new Date(new Date(dateDevis + 'T12:00:00').getTime() + validiteJours * 86400000) : null;
-  // Couleurs du thème choisi par l'utilisatrice·teur, pas celles de Faustine en dur (retour
-  // Faustine, 2026-07-30 : "les couleurs sont les miennes, pas forcément celles de l'utilisateur
-  // — ici mon mari") — même thème que le reste d'Indépuls, y compris pour un futur compte
-  // séparé sur un autre thème (Lavande, Pêche Douce, etc.).
-  const cPri = themeColor('--pri'), cAcc = themeColor('--acc'), cSec = themeColor('--sec'), cText = themeColor('--text'), cTl = themeColor('--tl');
+  // Couleurs du thème choisi par l'utilisateur (retour Faustine 2026-07-30 : le PDF suit le thème
+  // du compte, pas des couleurs en dur), cohérent avec le reste d'Indépuls.
+  const cPri = themeColor('--pri'), cAcc = themeColor('--acc'), cSec = themeColor('--sec'), cText = themeColor('--text');
 
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Devis${val('dv-numero') ? ' ' + val('dv-numero') : ''}</title><style>
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Devis${doc.numero ? ' ' + doc.numero : ''}</title><style>
     body{font-family:Arial,sans-serif;font-size:12.5px;color:${cText};margin:32px;line-height:1.5}
     .entete{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
     .titre{font-size:30px;font-weight:900;color:${cPri};letter-spacing:1px}
@@ -11093,7 +11207,7 @@ function genererDevisPDF() {
   <div class="entete">
     <div>
       ${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:100px;max-width:280px;display:block;margin-bottom:8px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}
-      <div class="meta" style="text-align:left">${val('dv-numero') ? `Devis n°${esc(val('dv-numero'))}` : 'Devis'}${dateDevis ? ` · ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
+      <div class="meta" style="text-align:left">${doc.numero ? `Devis n°${esc(doc.numero)}` : 'Devis'}${dateDevis ? ` · ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
     </div>
     <div class="titre">DEVIS</div>
   </div>
@@ -11105,22 +11219,22 @@ function genererDevisPDF() {
     </div>
     <div>
       <div class="label">Adressé à</div>
-      ${val('dv-client-nom') ? esc(val('dv-client-nom')) + '<br>' : ''}
-      ${val('dv-client-email') ? esc(val('dv-client-email')) + '<br>' : ''}
-      ${val('dv-client-adresse') ? esc(val('dv-client-adresse')) + '<br>' : ''}
-      ${val('dv-client-tel') ? esc(val('dv-client-tel')) : ''}
+      ${doc.clientNom ? esc(doc.clientNom) + '<br>' : ''}
+      ${doc.clientEmail ? esc(doc.clientEmail) + '<br>' : ''}
+      ${doc.clientAdresse ? esc(doc.clientAdresse) + '<br>' : ''}
+      ${doc.clientTel ? esc(doc.clientTel) : ''}
     </div>
   </div>
-  ${val('dv-objet') ? `<div class="objet">${esc(val('dv-objet'))}</div>` : ''}
+  ${doc.objet ? `<div class="objet">${esc(doc.objet)}</div>` : ''}
   <table>
     <thead><tr><th>Désignation</th><th>Détail</th><th>Montant HT</th>${hasRemise ? '<th>Remise</th><th>Total HT</th>' : ''}</tr></thead>
-    <tbody>${_devisLignes.map(l => {
+    <tbody>${lignes.map(l => {
       const brut = parseFloat(l.montantHT) || 0;
       if (!hasRemise) {
-        // Aucune remise sur tout le devis : affichage strictement identique à avant (3 colonnes).
         return `<tr><td><strong>${esc(l.designation)}</strong></td><td>${esc(l.detail).replace(/\n/g, '<br>')}</td><td>${fmtE(brut)}</td></tr>`;
       }
-      const info = _ligneRemiseInfo(l);
+      const remiseSkip = doc.type === 'amendment' && brut < 0; // pas de remise sur un retrait
+      const info = remiseSkip ? { montant: 0 } : _ligneRemiseInfo(l);
       const remiseStr = info.montant > 0
         ? (info.type === 'percent' ? `${fmt(Math.min(100, info.value), info.value % 1 === 0 ? 0 : 1)} %` : fmtE(info.montant))
         : '—';
@@ -11129,7 +11243,7 @@ function genererDevisPDF() {
       <td>${esc(l.detail).replace(/\n/g, '<br>')}</td>
       <td>${fmtE(brut)}</td>
       <td>${remiseStr}</td>
-      <td>${fmtE(_ligneNetHT(l))}</td>
+      <td>${fmtE(_docLigneNet(doc, l))}</td>
     </tr>`;
     }).join('')}</tbody>
   </table>
@@ -11140,17 +11254,16 @@ function genererDevisPDF() {
     <div class="total-ttc">Total TTC<span>${fmtE(totalTTC)}</span></div>
   </div>
   <div class="bas">
-    <div><div class="label">Conditions de paiement</div>${esc(val('dv-conditions')).replace(/\n/g,'<br>')}</div>
-    <div><div class="label">Modalités</div>${esc(val('dv-modalites')).replace(/\n/g,'<br>')}</div>
+    <div><div class="label">Conditions de paiement</div>${esc(doc.conditions || '').replace(/\n/g,'<br>')}</div>
+    <div><div class="label">Modalités</div>${esc(doc.modalites || '').replace(/\n/g,'<br>')}</div>
   </div>
   <div class="signatures">
-    <div><div class="label">Bon pour accord — client</div>Nom, date et signature</div>
-    <div><div class="label">Signature — prestataire</div>${esc(p.nom || '')}</div>
+    <div><div class="label">Bon pour accord, client</div>Nom, date et signature</div>
+    <div><div class="label">Signature, prestataire</div>${esc(p.nom || '')}</div>
   </div>
   <script>window.onload=function(){window.print()}<\/script>
   </body></html>`);
   w.document.close();
-  fermerGenerateurDevis();
 }
 function renderParams() {
   const p=DATA.params;
