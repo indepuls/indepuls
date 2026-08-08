@@ -8072,6 +8072,7 @@ function updateCollectifCA() {
 }
 function openMissionModal(id, prefillDate) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
+  if(m) migrateDevisBrouillon(m); // étape 2a : convertit l'ancien brouillon en documents[] (idempotent)
   document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
   document.getElementById('mission-edit-id').value=m?m.id:'';
   document.getElementById('m-client').value=m?m.client:'';
@@ -10873,6 +10874,26 @@ function renderLignesDevis() {
 // générateur est ouvert depuis le Simulateur (pas de mission à rattacher, brouillon perdu à la
 // fermeture — acceptable, le Simulateur est un usage plus ponctuel).
 let _devisMissionId = null;
+// Étape 2a (2026-08-02) : le générateur cible désormais un document précis de mission.documents
+// (au lieu de l'unique mission.devisBrouillon). _devisDocId = l'id du document en cours d'édition,
+// null quand le générateur est ouvert sans mission (Simulateur, menu Outils).
+let _devisDocId = null;
+function _nouveauDocDevis() {
+  return { id: uuid(), type: 'quote', parentId: null, statut: 'draft',
+    numero: '', dateDevis: '', validiteJours: 30, dateEmission: null, dateAcceptation: null,
+    clientNom: '', clientEmail: '', clientAdresse: '', clientTel: '',
+    objet: '', conditions: '', modalites: '', lignes: [] };
+}
+// Convertit un document (champs client à plat) vers la forme "brouillon" attendue par
+// ouvrirGenerateurDevis (client imbriqué), pour ne pas avoir à réécrire le chargement du formulaire.
+function _docToBrouillon(doc) {
+  return {
+    client: { nom: doc.clientNom || '', email: doc.clientEmail || '', adresse: doc.clientAdresse || '', tel: doc.clientTel || '' },
+    numero: doc.numero || '', date: doc.dateDevis || '', validite: doc.validiteJours || 30,
+    objet: doc.objet || '', lignes: (doc.lignes || []).map(l => ({ ...l })),
+    conditions: doc.conditions || '', modalites: doc.modalites || '',
+  };
+}
 function ouvrirGenerateurDevis(prefill = {}, brouillon = null) {
   const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
   const exemples = DEVIS_EXEMPLES_PAR_FAMILLE[family] || DEVIS_EXEMPLES_PAR_FAMILLE.service;
@@ -10932,7 +10953,25 @@ function creerMissionDepuisDevis() {
 function ouvrirGenerateurDevisMission() {
   _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
   const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
-  if (mission?.devisBrouillon) { ouvrirGenerateurDevis({}, mission.devisBrouillon); return; }
+  if (mission) {
+    migrateDevisBrouillon(mission); // idempotent : convertit l'ancien brouillon si besoin
+    // Étape 2a : on édite le devis en brouillon existant, ou on en crée un. (L'étape 2b ajoutera
+    // le choix parmi plusieurs documents ; ici on reste à un devis brouillon par mission.)
+    let doc = (mission.documents || []).find(d => d.type === 'quote' && d.statut === 'draft');
+    if (!doc) { doc = _nouveauDocDevis(); mission.documents.push(doc); }
+    _devisDocId = doc.id;
+    // Préremplir le client/objet/montant depuis la mission si le document est encore vide.
+    const estVide = !doc.clientNom && !doc.objet && !(doc.lignes || []).length;
+    if (estVide) {
+      doc.clientNom = document.getElementById('m-client')?.value || '';
+      doc.objet = document.getElementById('m-desc')?.value || '';
+      const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
+      if (montantHT > 0) doc.lignes = [{ designation: doc.objet || '', detail: '', montantHT }];
+    }
+    ouvrirGenerateurDevis({}, _docToBrouillon(doc));
+    return;
+  }
+  _devisMissionId = null; _devisDocId = null;
   const client = document.getElementById('m-client')?.value || '';
   const description = document.getElementById('m-desc')?.value || '';
   const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
@@ -10942,7 +10981,7 @@ function ouvrirGenerateurDevisMission() {
 // l'utilisatrice). Le mode "Calculer un tarif" a son propre bouton, voir plus bas (le prix n'est
 // alors pas un input mais le résultat calculé, sans champ #sim-ca-val à relire).
 function ouvrirGenerateurDevisSim() {
-  _devisMissionId = null;
+  _devisMissionId = null; _devisDocId = null;
   const montantHT = _simMode === 'calculer' ? _simCalculerMontant : (parseFloat(document.getElementById('sim-ca-val')?.value) || 0);
   ouvrirGenerateurDevis({ client: '', description: '', montantHT });
 }
@@ -10951,27 +10990,30 @@ function ouvrirGenerateurDevisSim() {
 // "Combien facturer ?" ni créé de mission ne découvrait jusqu'ici jamais que la génération de
 // devis existe. Même modale que les deux autres points d'entrée, juste sans préremplissage.
 function ouvrirGenerateurDevisVierge() {
-  _devisMissionId = null;
+  _devisMissionId = null; _devisDocId = null;
   ouvrirGenerateurDevis({});
 }
 // Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
 // la fin de genererDevisPDF(), pour ne jamais perdre une saisie qu'elle soit générée ou non.
 function fermerGenerateurDevis() {
-  if (_devisMissionId) {
+  if (_devisMissionId && _devisDocId) {
     const mission = DATA.missions.find(m => m.id === _devisMissionId);
-    if (mission) {
+    const doc = mission && (mission.documents || []).find(d => d.id === _devisDocId);
+    // On ne réécrit que les brouillons : un document figé (issued/accepted) ne doit jamais être
+    // modifié en fermant le générateur (garde-fou anticipé pour l'étape 3).
+    if (doc && doc.statut === 'draft') {
       const val = id => (document.getElementById(id)?.value || '').trim();
-      mission.devisBrouillon = {
-        client: { nom: val('dv-client-nom'), email: val('dv-client-email'), adresse: val('dv-client-adresse'), tel: val('dv-client-tel') },
-        numero: val('dv-numero'), date: val('dv-date'),
-        validite: parseInt(document.getElementById('dv-validite')?.value, 10) || 30,
-        objet: val('dv-objet'), lignes: _devisLignes.map(l => ({ ...l })),
-        conditions: val('dv-conditions'), modalites: val('dv-modalites'),
-      };
+      doc.numero = val('dv-numero'); doc.dateDevis = val('dv-date');
+      doc.validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
+      doc.objet = val('dv-objet');
+      doc.clientNom = val('dv-client-nom'); doc.clientEmail = val('dv-client-email');
+      doc.clientAdresse = val('dv-client-adresse'); doc.clientTel = val('dv-client-tel');
+      doc.lignes = _devisLignes.map(l => ({ ...l }));
+      doc.conditions = val('dv-conditions'); doc.modalites = val('dv-modalites');
       saveData();
     }
   }
-  _devisMissionId = null;
+  _devisMissionId = null; _devisDocId = null;
   closeModal('modal-devis');
 }
 function _devisTvaInfo(montantHT) {
