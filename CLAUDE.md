@@ -3126,3 +3126,25 @@ Retour d'un bêta-testeur (Justin) : pouvoir ajouter une réduction sur chaque l
 **Nouveauté** ajoutée en tête de `NOUVEAUTES` (2026-08-02, "Merci à Justin pour l'idée 🙏").
 
 **Vérifié** : `node --check` sur l'intégralité des scripts inline + suite Node complète, 0 échec (fonctionnalité UI/PDF du générateur de devis, aucune fonction de `shared/core/calculs.js` touchée). **Vérification navigateur non faite** dans cette session — à reconfirmer par Faustine : saisie d'une remise → net mis à jour dans l'aperçu du total et dans le PDF ; PDF sans remise inchangé ; ancien brouillon rouvert sans souci.
+
+---
+
+### FEATURE — Remise par ligne v2 : pourcentage OU montant fixe (2026-08-02)
+
+Faustine (spec détaillée travaillée avec ChatGPT) : faire évoluer la remise par ligne (v1 en % uniquement, la veille) pour permettre par ligne : aucune remise / remise en % / remise en €. Consigne : ne pas refondre le module, partir de l'existant, garder le design, et surtout que les anciens devis sans remise s'affichent exactement comme avant.
+
+**Analyse préalable (demandée par la spec)** : le générateur de devis vit entièrement dans `indepuls.html`. Les lignes de devis vivent dans `DATA` (blob JSON de `user_data`, brouillon sur `m.devisBrouillon`). AUCUNE table Supabase de devis, donc zéro SQL, zéro migration base. La compatibilité est purement au niveau des objets JS de ligne.
+
+**Modèle par ligne** : `discountType` (null / 'percent' / 'fixed') + `discountValue`. On ne stocke que la source ; le montant de remise et le net sont recalculés à la volée (pas de donnée calculée figée), ce qui rend la remise réutilisable pour la future transformation en facture (elle vit sur la donnée de ligne, pas seulement dans le PDF). Noms de champs `discountType`/`discountValue` (proches de la spec, prêts pour la facture).
+
+**Compatibilité** : ligne sans champ de remise = aucune remise. Les brouillons de la v1 (champ `remisePct`, %) sont encore lus via un repli dans `_ldtRaw`/`_ligneRemiseInfo`. Dès qu'on touche à la remise via le nouveau modèle (`majLigneDevis` sur `discountType`/`discountValue`), `remisePct` est supprimé de la ligne, pour éviter qu'un reliquat réactive une remise après un passage sur "Aucune".
+
+**Fonctions** (`indepuls.html`) : `_ligneRemiseInfo(l)` retourne `{type, value, montant}` avec toutes les sécurités (% borné 0..100, € borné au montant HT de la ligne, montant jamais négatif, arrondi 2 décimales) ; `_ligneNetHT` = brut − montant remise (jamais négatif) ; `_devisTotalRemise` = somme des remises ; `_devisHasRemise` = au moins une ligne remisée.
+
+**Interface** : par ligne, un sélecteur `Aucune / % / €` + un champ valeur (compact, à côté du Montant HT). Le champ valeur est toujours actif ; quand le type est "Aucune", la valeur est ignorée au calcul. Rappel "Net après remise : X (remise Y)" par ligne, rafraîchi à chaque frappe via `rafraichirApercuDevisTotal` (mise à jour ciblée d'un `#dv-net-i`, sans re-render, donc pas de perte de focus).
+
+**PDF dynamique** (exigence forte de la spec) : si aucune remise sur tout le devis, affichage strictement identique à avant (3 colonnes Désignation/Détail/Montant HT + récap actuel). Si au moins une remise : 5 colonnes (Désignation | Détail | Montant HT [brut] | Remise [`X %`, `Y €` ou `—`] | Total HT [net]), et récap "Sous-total HT avant remise / Remises −X / Total HT / TVA / Total TTC". La TVA porte bien sur le net.
+
+**Tests** : les cas numériques de la spec (1 à 7, sécurités, arrondis, compat v1, cohérence) vérifiés via un script Node isolé répliquant la logique (`scratchpad/devis_remise_test.js`, 20/20 verts) — la logique vit dans `indepuls.html`, non importable par la suite `shared/tests`. Les cas UI/PDF (rouvrir un brouillon, générer le PDF, modifier/supprimer une remise) restent **à confirmer par Faustine en navigateur** (impossible dans cette session).
+
+**Vérifié** : script de calcul 20/20 + `node --check` + suite Node complète, 0 échec. Nouveauté (2026-08-02) mise à jour ("en pourcentage ou en euros", merci Justin).
