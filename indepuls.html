@@ -12884,14 +12884,14 @@ function wSourceAcq(actives, noun) {
   // rentabilité, tous DÉRIVÉS des données déjà saisies (aucune saisie en plus). Chaque métrique
   // n'apparaît que si elle a du sens (facturé pour panier/rentabilité, devis tranchés pour la
   // transformation), avec le compte à l'appui pour juger de la fiabilité sur petits volumes.
-  const detailRows=entries.map(([src,v])=>{
+  const detailArr=entries.map(([src,v])=>{
     const _c=SRC_COLORS[src]||'#9E9E9E', _l=SRC_LABELS[src]||src;
     const bits=[];
-    if(v.nFact>0) bits.push(`Panier moyen <strong>${fmtE(v.ca/v.nFact)}</strong>`);
+    if(v.nFact>0) bits.push(`Panier <strong>${fmtE(v.ca/v.nFact,0)}</strong>`);
     const tranches=v.nGagnes+v.nPerdus;
-    if(tranches>0) bits.push(`Transfo <strong>${Math.round(v.nGagnes/tranches*100)} %</strong> (${v.nGagnes}/${tranches})`);
+    if(tranches>0) bits.push(`<span title="${v.nGagnes} accepté${v.nGagnes>1?'s':''} sur ${tranches} tranché${tranches>1?'s':''}">Transfo <strong>${Math.round(v.nGagnes/tranches*100)} %</strong></span>`);
     const rent=_rentabiliteCanal(v.ca,v.heures);
-    if(rent) bits.push(`${rent.label} <strong>${rent.val}</strong>`);
+    if(rent) bits.push(`<strong>${rent.val}</strong>`);
     if(!bits.length) return '';
     let motifLine='';
     const motifsEntries=Object.entries(v.motifs).sort((a,b)=>b[1]-a[1]);
@@ -12901,9 +12901,28 @@ function wSourceAcq(actives, noun) {
       <div style="font-size:11px;color:var(--tl);margin-top:2px;line-height:1.5">${bits.join(' · ')}</div>
       ${motifLine}
     </div>`;
-  }).filter(Boolean).join('');
-  const detailBloc=detailRows?`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Détail par canal</div>${detailRows}</div>`:'';
+  }).filter(Boolean);
+  const nData=detailArr.length, rowsHtml=detailArr.join('');
+  const detailTitre=`<div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Détail par canal</div>`;
+  let detailBloc='';
+  if(nData){
+    detailBloc=nData<=2
+      ? `<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--brd)">${detailTitre}${rowsHtml}</div>`
+      : `<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--brd)"><div onclick="var p=this.nextElementSibling;var o=p.style.display==='none';p.style.display=o?'block':'none';this.querySelector('.dpc-caret').textContent=o?'▴':'▾'" style="font-size:11px;color:var(--acc);font-weight:700;cursor:pointer;user-select:none">Voir le détail par canal (${nData}) <span class="dpc-caret">▾</span></div><div style="display:none;margin-top:8px">${rowsHtml}</div></div>`;
+  }
   let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de mes ${_masc?'nouveaux':'nouvelles'} ${noun}s.`:`Ma principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
+  // Réponse avant donnée (>= 2 canaux, sinon la comparaison n'apporte rien) : d'où viennent les
+  // clients les plus rentables et le plus gros panier. Formulé avec deux-points pour éviter tout
+  // souci d'article (masculin/féminin des libellés de source).
+  if(entries.length>=2){
+    const _obj=DATA.params?.modules?.objectif;
+    const bestRent=entries.filter(([,v])=>v.heures>0&&v.ca>0&&_obj!=='marge_commande').map(([src,v])=>({src,th:v.ca/v.heures,v})).sort((a,b)=>b.th-a.th)[0];
+    const bestPanier=entries.filter(([,v])=>v.nFact>0).map(([src,v])=>({src,p:v.ca/v.nFact})).sort((a,b)=>b.p-a.p)[0];
+    const clauses=[];
+    if(bestRent){ const r=_rentabiliteCanal(bestRent.v.ca,bestRent.v.heures); clauses.push(`Clients les plus rentables : <strong>${(SRC_LABELS[bestRent.src]||bestRent.src).toLowerCase()}</strong> (${r.val}).`); }
+    if(bestPanier&&(!bestRent||bestPanier.src!==bestRent.src)){ clauses.push(`Plus gros panier : <strong>${(SRC_LABELS[bestPanier.src]||bestPanier.src).toLowerCase()}</strong> (${fmtE(bestPanier.p,0)}).`); }
+    if(clauses.length) phrase+='<br>'+clauses.join(' ');
+  }
   return `<div>
     <div class="card-title" style="font-size:13px;margin-bottom:12px">📡 Sources d'acquisition</div>
     <div style="display:flex;gap:10px;align-items:flex-start">${svg}<div style="flex:1;min-width:0;padding-top:4px">${legend}</div></div>
