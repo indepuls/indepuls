@@ -3073,6 +3073,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-08-09', titre:'Le widget "Sources d\'acquisition" détaille maintenant chaque canal : panier moyen, taux de transformation et rentabilité, sans aucune saisie en plus.', icon:'📡', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Vos devis sont maintenant suivis dans la mission : brouillon, émis, accepté. Une fois un devis accepté, vous pouvez y ajouter des avenants (ajouts ou retraits), et le montant de la mission se met à jour automatiquement.', icon:'📄', merci:null },
   { date:'2026-08-02', titre:'Ajoutez une remise sur chaque ligne de vos devis, en pourcentage ou en euros. Le net et la remise totale apparaissent automatiquement sur le devis.', icon:'🏷️', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-01', titre:'Notre politique de confidentialité, nos conditions d\'utilisation et une page Sécurité sont maintenant consultables depuis le menu', icon:'🔒', merci:'Merci à Charlène pour la question 🙏' },
@@ -12823,13 +12824,31 @@ function getSourceAcqStats(missions) {
   missions.filter(m=>!m.isManagement).forEach(m=>{
     const s=m.sourceAcquisition;
     if(!s) return;
-    if(!byS[s]) byS[s]={n:0,ca:0};
-    byS[s].n++;
-    if(m.statut==='fact') byS[s].ca+=(m.montantDevis||0);
+    // nFact/ca/heures : base du panier moyen et de la rentabilité (missions facturées).
+    // nGagnes/nPerdus : base du taux de transformation (devis tranchés, "en attente" exclus).
+    // motifs : motif de refus dominant par canal.
+    if(!byS[s]) byS[s]={n:0,ca:0,nFact:0,heures:0,nGagnes:0,nPerdus:0,motifs:{}};
+    const v=byS[s];
+    v.n++;
+    if(m.statut==='fact'){ v.ca+=(m.montantDevis||0); v.nFact++; v.heures+=getMissionHeures(m); }
+    if(m.statut==='cours'||m.statut==='fact') v.nGagnes++;
+    else if(m.statut==='ref'){ v.nPerdus++; if(m.motifRefus) v.motifs[m.motifRefus]=(v.motifs[m.motifRefus]||0)+1; }
   });
   const entries=Object.entries(byS).sort((a,b)=>b[1].n-a[1].n);
   const total=entries.reduce((s,[,v])=>s+v.n,0);
   return {entries,total};
+}
+// Rentabilité d'un canal exprimée dans l'unité du profil (retour Justin, 2026-08-09) : €/h si
+// l'objectif est le taux horaire, €/jour s'il est journalier. Pour un profil "marge par commande"
+// (achat/revente), le panier moyen tient déjà ce rôle : on renvoie null pour ne pas afficher un
+// €/h hors-sujet. null aussi si aucune heure n'est renseignée sur les missions facturées du canal.
+function _rentabiliteCanal(ca, heures) {
+  const obj=DATA.params?.modules?.objectif;
+  if(obj==='marge_commande') return null;
+  if(!(heures>0)||!(ca>0)) return null;
+  const th=ca/heures;
+  if(obj==='tjm'){ const hj=DATA.params?.heuresParJour||7; return {label:'TJM réel',val:`${fmtE(th*hj,0)}/j`}; }
+  return {label:'TH réel',val:`${fmtE(th,0)}/h`};
 }
 function wSourceAcq(actives, noun) {
   const {entries,total}=getSourceAcqStats(actives);
@@ -12861,11 +12880,35 @@ function wSourceAcq(actives, noun) {
   }).join('');
   const top=entries[0], topLbl=(SRC_LABELS[top[0]]||top[0]).toLowerCase(), topPct=Math.round(top[1].n/total*100);
   const _masc=tVocabMasculin();
+  // Détail par canal (retour Justin, 2026-08-09) : panier moyen, taux de transformation et
+  // rentabilité, tous DÉRIVÉS des données déjà saisies (aucune saisie en plus). Chaque métrique
+  // n'apparaît que si elle a du sens (facturé pour panier/rentabilité, devis tranchés pour la
+  // transformation), avec le compte à l'appui pour juger de la fiabilité sur petits volumes.
+  const detailRows=entries.map(([src,v])=>{
+    const _c=SRC_COLORS[src]||'#9E9E9E', _l=SRC_LABELS[src]||src;
+    const bits=[];
+    if(v.nFact>0) bits.push(`Panier moyen <strong>${fmtE(v.ca/v.nFact)}</strong>`);
+    const tranches=v.nGagnes+v.nPerdus;
+    if(tranches>0) bits.push(`Transfo <strong>${Math.round(v.nGagnes/tranches*100)} %</strong> (${v.nGagnes}/${tranches})`);
+    const rent=_rentabiliteCanal(v.ca,v.heures);
+    if(rent) bits.push(`${rent.label} <strong>${rent.val}</strong>`);
+    if(!bits.length) return '';
+    let motifLine='';
+    const motifsEntries=Object.entries(v.motifs).sort((a,b)=>b[1]-a[1]);
+    if(motifsEntries.length){ const [mk,mn]=motifsEntries[0]; motifLine=`<div style="font-size:11px;color:var(--tl);margin-top:2px">Refus surtout : ${(REF_MOTIF_LABELS[mk]||mk).toLowerCase()}${mn>1?` (${mn})`:''}</div>`; }
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text)"><span style="width:9px;height:9px;border-radius:50%;background:${_c};flex-shrink:0"></span>${_l}</div>
+      <div style="font-size:11px;color:var(--tl);margin-top:2px;line-height:1.5">${bits.join(' · ')}</div>
+      ${motifLine}
+    </div>`;
+  }).filter(Boolean).join('');
+  const detailBloc=detailRows?`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Détail par canal</div>${detailRows}</div>`:'';
   let phrase=topPct>=60?`La <strong>${topLbl}</strong> représente ${topPct} % de mes ${_masc?'nouveaux':'nouvelles'} ${noun}s.`:`Ma principale source de clients est la <strong>${topLbl}</strong> (${top[1].n} ${noun}${top[1].n>1?'s':''}). `;
   return `<div>
     <div class="card-title" style="font-size:13px;margin-bottom:12px">📡 Sources d'acquisition</div>
     <div style="display:flex;gap:10px;align-items:flex-start">${svg}<div style="flex:1;min-width:0;padding-top:4px">${legend}</div></div>
     <div style="margin-top:10px;font-size:12px;color:var(--tl);line-height:1.6;background:var(--bg);padding:10px 12px;border-radius:8px">${phrase}</div>
+    ${detailBloc}
   </div>`;
 }
 

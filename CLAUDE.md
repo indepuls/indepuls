@@ -3226,6 +3226,17 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — Sources d'acquisition : détail par canal (panier moyen, transformation, rentabilité)
+
+Enrichissement du widget existant "📡 Sources d'acquisition" (`wSourceAcq`, onglet Missions), suite à un retour de Justin. **Aucune nouvelle saisie** : tout est dérivé des données déjà présentes. La partie "coût d'acquisition / heures passées par canal" proposée par Justin a été volontairement écartée (saisie récurrente peu fiable, dérive marketing analytics, ratio incertain).
+
+- `getSourceAcqStats` accumule désormais par canal, en plus de `n`/`ca` : `nFact`, `heures` (des facturées), `nGagnes` (en cours + facturées), `nPerdus` (refusées) et `motifs` (comptes de `motifRefus`).
+- Nouveau bloc "Détail par canal" sous le camembert, une ligne par source avec, quand ça a du sens : **panier moyen** (`ca / nFact`), **taux de transformation** (`nGagnes / (nGagnes + nPerdus)`, les devis "en attente" étant **exclus** pour ne pas fausser à la baisse, affiché avec le compte `x/y`), **rentabilité** via `_rentabiliteCanal`, et le **motif de refus dominant** (via `REF_MOTIF_LABELS`).
+- `_rentabiliteCanal(ca, heures)` exprime la rentabilité dans l'unité du profil : €/h si `modules.objectif==='th'`, €/jour si `'tjm'` (× `heuresParJour`), et **null** si `'marge_commande'` (le panier moyen y tient déjà ce rôle) ou si aucune heure n'est renseignée. Évite d'afficher un €/h hors-sujet à un profil chantier/journalier.
+- Garde-fou anti-bruit : chaque métrique n'apparaît que si sa base existe (facturé pour panier/rentabilité, devis tranché pour la transformation), avec le compte affiché pour que l'utilisateur juge de la fiabilité sur petits volumes.
+
+**Vérifié** : `node --check` (6 chunks) + `source_acq_test.js` 14/14 (panier, transfo att-exclu, TH/TJM, marge_commande null, sans-heures null, management exclu) + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : sur l'onglet Missions, le bloc "Détail par canal" apparaît sous le camembert avec panier moyen + taux de transformation (+ rentabilité si le temps est saisi), et un "Refus surtout : ..." sur un canal ayant des devis refusés motivés.
+
 ### 2026-08-09 — Relance des devis en attente (Brief) : décompte sur date d'émission + masquage 15 j
 
 Refonte de l'alerte de relance des devis en attente. **État antérieur vérifié** : une relance existait dans `buildAlerts` (seuil 7 j, décompte sur la date de création de la mission via le timestamp base36 de l'id), mais elle était filtrée à `pr<=1` par `wAlertesCritiques`, donc invisible avant 14 j ; le compteur global "N en attente" (pr:3) ne s'affichait jamais ; et aucun masquage. Le mécanisme de masquage 15 j existe déjà par ailleurs (`DATA.alertsDismissed` + `_alertDismissed`/`_dismissBtn`, utilisé pour client dominant, objectif mensuel, pattern). Les impayés ont bien leurs rappels (carte "Alertes critiques", escalade ⏳/⚠️/🔴 à 30/60 j, sans masquage).

@@ -130,43 +130,32 @@
   }
 
   /* ---------- Section 4 — La révélation ---------- */
-  #s4{height:260vh; background:var(--cream);}
-  #s4 .stage{
-    position:sticky; top:0; height:100vh; overflow:hidden;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-  }
-  #s4 svg{width:min(56vw,300px); height:min(56vw,300px);}
+  #s4{background:var(--cream); padding:110px 24px 120px; text-align:center;}
+  #s4 .score-block{max-width:600px; margin:0 auto;}
+  #s4 .ring-wrap{position:relative; display:inline-block; cursor:pointer; border-radius:50%; outline-offset:8px;}
+  #s4 svg{width:min(52vw,280px); height:min(52vw,280px); display:block;}
   #s4 .ring-num{
-    font-family:'Playfair Display',serif; font-weight:800; color:var(--navy);
-    position:absolute; font-size:clamp(46px,8vw,80px);
-  }
-  #s4 .ring-sub{
-    margin-top:18px; color:var(--navy); opacity:0; font-size:15px; letter-spacing:.2px;
-  }
-  #s4 .drift-echo{position:absolute; font-family:'Playfair Display',serif; font-style:italic; color:var(--prune); opacity:0; font-size:17px; will-change:transform,opacity;}
-
-  /* ---------- Section 5 — La preuve ---------- */
-  #s5{background:var(--cream); padding:70px 24px 110px; text-align:center;}
-  #s5 .lead{font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(19px,2.6vw,26px); max-width:600px; margin:0 auto 30px;}
-  #s5 .ring-wrap{position:relative; display:inline-block; cursor:pointer;}
-  #s5 svg{width:min(50vw,260px); height:min(50vw,260px); display:block;}
-  #s5 .ring-num{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-family:'Playfair Display',serif; font-weight:800; color:var(--navy); font-size:clamp(40px,7vw,64px);
+    font-family:'Playfair Display',serif; font-weight:800; color:var(--navy); font-size:clamp(44px,7.5vw,72px);
   }
-  #s5 .tap-hint{margin-top:14px; font-size:12.5px; color:var(--prune); letter-spacing:.3px;}
-  #s5 .panel{
+  #s4 .ring-sub{margin-top:16px; color:var(--navy); font-size:15px; letter-spacing:.2px; opacity:1; transition:opacity .8s var(--ease);}
+  #s4 .proof-lead{font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(19px,2.6vw,26px); max-width:600px; margin:40px auto 0; opacity:1; transition:opacity .8s var(--ease) .15s;}
+  #s4 .tap-hint{margin-top:14px; font-size:12.5px; color:var(--prune); letter-spacing:.3px; opacity:1; transition:opacity .8s var(--ease) .3s;}
+  #s4.counting .ring-sub, #s4.counting .proof-lead, #s4.counting .tap-hint{opacity:0;}
+
+  /* ---------- Section 4 — Le panneau de preuve (calcul dépliable) ---------- */
+  #s4 .panel{
     max-width:520px; margin:26px auto 0; background:#fff; border-radius:14px;
     padding:0 26px; text-align:left; overflow:hidden; max-height:0; opacity:0;
     transition:max-height .55s var(--ease), opacity .4s var(--ease), padding .55s var(--ease);
     border:1px solid #e4ddd0;
   }
-  #s5 .panel.open{max-height:500px; opacity:1; padding:22px 26px;}
-  #s5 .panel dl{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; margin:0;}
-  #s5 .panel dt{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--beige); font-weight:700; align-self:center;}
-  #s5 .panel dd{margin:0; color:var(--navy); font-weight:700; font-size:15px;}
-  #s5 .panel .formula{margin-top:14px; padding-top:14px; border-top:1px dashed #e4ddd0; font-size:13.5px; color:#6b6b6b; font-family:monospace;}
-  #s5 .panel .panel-note{margin:10px 0 0; font-size:12.5px; color:#6b6b6b; line-height:1.5;}
+  #s4 .panel.open{max-height:500px; opacity:1; padding:22px 26px;}
+  #s4 .panel dl{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; margin:0;}
+  #s4 .panel dt{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--beige); font-weight:700; align-self:center;}
+  #s4 .panel dd{margin:0; color:var(--navy); font-weight:700; font-size:15px;}
+  #s4 .panel .formula{margin-top:14px; padding-top:14px; border-top:1px dashed #e4ddd0; font-size:13.5px; color:#6b6b6b; font-family:monospace;}
+  #s4 .panel .panel-note{margin:10px 0 0; font-size:12.5px; color:#6b6b6b; line-height:1.5;}
 
   /* ---------- Section 6 — Le "et si" ---------- */
   #s6{background:var(--cream); padding:90px 24px 120px; text-align:center;}
@@ -209,6 +198,19 @@
     margin-top:36px; opacity:0; line-height:1.5;
   }
 
+  /* ---------- Témoignages ---------- */
+  #stm{background:var(--cream); padding:120px 24px 130px; text-align:center;}
+  .tmsection .tmscript{font-family:'Dancing Script',cursive; font-size:clamp(20px,2.4vw,26px); color:var(--prune); margin:0 0 6px;}
+  .tmsection .tmtitle{font-family:'Playfair Display',serif; color:var(--navy); font-weight:600; font-size:clamp(24px,3vw,34px); margin:0 0 14px;}
+  .tmsection .tmsub{font-size:15px; line-height:1.6; color:#6b6577; max-width:540px; margin:0 auto 48px;}
+  .tmgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px; max-width:1040px; margin:0 auto;}
+  .tmcard{background:#fff; border:1px solid #e7e0d3; border-radius:18px; padding:28px 26px; text-align:left; box-shadow:0 12px 34px rgba(20,21,56,.07); display:flex; flex-direction:column;}
+  .tmcard .quote{font-size:16px; line-height:1.62; color:var(--navy); margin:0 0 22px; flex:1;}
+  .tmcard .quote::before{content:'\201C'; font-family:'Playfair Display',serif; color:var(--beige); font-size:46px; line-height:0; vertical-align:-18px; margin-right:2px;}
+  .tmcard .name{font-family:'Dancing Script',cursive; font-size:22px; color:var(--prune); display:block; line-height:1.15;}
+  .tmcard .role{font-size:13px; color:#8a7d6a;}
+  @media(max-width:820px){ .tmgrid{grid-template-columns:1fr; max-width:460px;} #stm{padding:80px 20px 90px;} }
+
   /* ---------- Section 8 — La démo libre ---------- */
   #s8{background:var(--navy); padding:130px 24px; text-align:center; min-height:80vh; display:flex; align-items:center; justify-content:center;}
   #s8 .inner{max-width:520px;}
@@ -239,7 +241,7 @@
   footer a:hover{color:var(--cream);}
 
   @media(max-width:640px){
-    #s1{height:210vh;} #s2{height:280vh;} #s3{height:380vh;} #s4{height:220vh;}
+    #s1{height:210vh;} #s2{height:280vh;} #s3{height:380vh;}
   }
 
   /* ---------- Reduced motion fallback ---------- */
@@ -254,9 +256,7 @@
     #s2 .logo,#s2 .promise{color:var(--navy);}
     #s3{height:auto;} #s3 .stage{position:static; height:auto; flex-direction:column; gap:26px; padding:90px 24px;}
     #s3 .line{position:static; opacity:1 !important; transform:none !important;}
-    #s4{height:auto;} #s4 .stage{position:static; height:auto; padding:90px 24px;}
-    #s4 .ring-sub{opacity:1 !important;}
-    #s4 .drift-echo{display:none;}
+    #s4 .ring-sub, #s4 .proof-lead, #s4 .tap-hint{opacity:1 !important;}
     #s6 .reinforce{opacity:1;}
     #s7 .neg{opacity:1 !important;} #s7 .neg::after{width:100% !important;}
     #s7 .final{opacity:1 !important;}
@@ -376,47 +376,35 @@
   </div>
 </section>
 
-<!-- SECTION 4 — LA RÉVÉLATION -->
+<!-- SECTION 4 — LA RÉVÉLATION + LA PREUVE (score unique, cliquable) -->
 <section id="s4" aria-label="Le score">
-  <div class="stage">
-    <span class="drift-echo" data-x="14" data-y="26">Ça va aller.</span>
-    <span class="drift-echo" data-x="68" data-y="64">Et si ce client s'en va&nbsp;?</span>
-    <span class="drift-echo" data-x="24" data-y="70">Le doute, lui, ne bouge pas.</span>
-    <svg viewBox="0 0 200 200">
-      <circle cx="100" cy="100" r="86" fill="none" stroke="#e4ddd0" stroke-width="14"/>
-      <circle id="ringProgress" cx="100" cy="100" r="86" fill="none" stroke="#b91c1c" stroke-width="14"
-        stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="540.35"
-        transform="rotate(-90 100 100)" style="transition:stroke .3s var(--ease)"/>
-    </svg>
-    <div class="ring-num" id="ringNum" style="transition:color .3s var(--ease)">0</div>
+  <div class="score-block">
+    <div class="ring-wrap" id="ringTap" role="button" tabindex="0" aria-expanded="false" aria-controls="proofPanel">
+      <svg viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="86" fill="none" stroke="#e4ddd0" stroke-width="14"/>
+        <circle id="ringProgress" cx="100" cy="100" r="86" fill="none" stroke="#2d7a4f" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="16.2"
+          transform="rotate(-90 100 100)" style="transition:stroke .3s var(--ease)"/>
+      </svg>
+      <div class="ring-num" id="ringNum" style="transition:color .3s var(--ease); color:#2d7a4f">97</div>
+    </div>
     <p class="ring-sub" id="ringSub">Votre activité tourne très bien aujourd'hui.</p>
+    <p class="proof-lead">Zéro boîte noire. Vous voyez toujours le calcul.</p>
+    <p class="tap-hint">Touchez le score pour voir le calcul</p>
+    <div class="panel" id="proofPanel">
+      <dl>
+        <dt>TJM réel</dt><dd>245&nbsp;€/j</dd>
+        <dt>Seuil minimum</dt><dd>210&nbsp;€/j</dd>
+        <dt>Écart</dt><dd>+35&nbsp;€/j (+17&nbsp;%)</dd>
+        <dt>Méthode</dt><dd style="font-weight:400; font-size:14px;">CA encaissé ÷ jours facturés</dd>
+      </dl>
+      <div class="formula">3 675&nbsp;€ ÷ 15&nbsp;j = 245&nbsp;€/j</div>
+      <p class="panel-note">La rentabilité est l'un des 4 piliers qui composent votre score, avec le remplissage, la trésorerie et l'horizon.</p>
+    </div>
   </div>
 </section>
 
-<!-- SECTION 5 — LA PREUVE -->
-<section id="s5" aria-label="Zéro boîte noire">
-  <p class="lead">Zéro boîte noire. Vous voyez toujours le calcul.</p>
-  <div class="ring-wrap" id="ringTap" role="button" tabindex="0" aria-expanded="false" aria-controls="proofPanel">
-    <svg viewBox="0 0 200 200">
-      <circle cx="100" cy="100" r="86" fill="none" stroke="#e4ddd0" stroke-width="14"/>
-      <circle cx="100" cy="100" r="86" fill="none" stroke="#2d7a4f" stroke-width="14"
-        stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="16.2"
-        transform="rotate(-90 100 100)"/>
-    </svg>
-    <div class="ring-num" style="color:#2d7a4f">97</div>
-  </div>
-  <p class="tap-hint">Touchez le score pour voir le calcul</p>
-  <div class="panel" id="proofPanel">
-    <dl>
-      <dt>TJM réel</dt><dd>245&nbsp;€/j</dd>
-      <dt>Seuil minimum</dt><dd>210&nbsp;€/j</dd>
-      <dt>Écart</dt><dd>+35&nbsp;€/j (+17&nbsp;%)</dd>
-      <dt>Méthode</dt><dd style="font-weight:400; font-size:14px;">CA encaissé ÷ jours facturés</dd>
-    </dl>
-    <div class="formula">3 675&nbsp;€ ÷ 15&nbsp;j = 245&nbsp;€/j</div>
-    <p class="panel-note">La rentabilité est l'un des 4 piliers qui composent votre score, avec le remplissage, la trésorerie et l'horizon.</p>
-  </div>
-</section>
+<!-- SECTION 5 (La preuve) fusionnée dans la section 4 -->
 
 <!-- SECTION 6 — LE "ET SI" -->
 <section id="s6" aria-label="Simulateur">
@@ -436,6 +424,27 @@
     <p class="neg" data-i="1">Indépuls n'est pas un CRM.</p><br>
     <p class="neg" data-i="2">Indépuls n'est pas un logiciel de comptabilité.</p>
     <p class="final">Indépuls est le seul endroit où vous savez, en une minute, si vous allez bien.</p>
+  </div>
+</section>
+
+<!-- SECTION 7bis — LA PREUVE PAR LES PAIRS -->
+<section id="stm" class="tmsection" aria-label="Ils utilisent Indépuls">
+  <p class="tmscript">Ils l'ont testé avant tout le monde</p>
+  <h2 class="tmtitle">Les premières à avoir mis les mains dedans</h2>
+  <p class="tmsub">Indépuls débute, et ce sont les toutes premières indépendantes à l'avoir essayé qui en parlent le mieux.</p>
+  <div class="tmgrid">
+    <figure class="tmcard">
+      <blockquote class="quote">Tu as conçu un super outil ! Je vais l'utiliser régulièrement sur le temps passé pour mes clients : je manque de visibilité sur mon temps passé, et même sur mon temps improductif.</blockquote>
+      <figcaption><span class="name">Prescillia</span><span class="role">Online Business Manager</span></figcaption>
+    </figure>
+    <figure class="tmcard">
+      <blockquote class="quote">Ton outil est juste incroyable, je suis archi-fan ! Il est beau, il est clair, et tellement utile. L'essayer, c'est l'adopter.</blockquote>
+      <figcaption><span class="name">Charlène</span><span class="role">Online Business Manager</span></figcaption>
+    </figure>
+    <figure class="tmcard">
+      <blockquote class="quote">Franchement, c'est un bel outil ! Facile à prendre en main, joli, et qui donne envie.</blockquote>
+      <figcaption><span class="name">Maryne</span><span class="role">Consulting et conseil aux entreprises</span></figcaption>
+    </figure>
   </div>
 </section>
 
@@ -523,11 +532,6 @@
   var ringProgress = document.getElementById('ringProgress');
   var ringNum = document.getElementById('ringNum');
   var ringSub = document.getElementById('ringSub');
-  var driftEchoes = s4 ? Array.prototype.slice.call(s4.querySelectorAll('.drift-echo')) : [];
-  driftEchoes.forEach(function(el){
-    el.style.left = el.dataset.x + '%';
-    el.style.top = el.dataset.y + '%';
-  });
   var CIRC = 540.35;
 
   var s7 = document.getElementById('s7');
@@ -540,8 +544,8 @@
   function render(){
     // Nav enriches into a full menu once section 4 is reached, reverts if scrolled back above it
     if (s4) {
-      var s4p = progress(s4);
-      if (s4p > 0.15) nav.classList.add('enriched');
+      var r4nav = s4.getBoundingClientRect();
+      if (r4nav.top < window.innerHeight * 0.6) nav.classList.add('enriched');
       else nav.classList.remove('enriched');
     }
 
@@ -616,34 +620,7 @@
       });
     }
 
-    // Section 4
-    if (s4 && ringProgress) {
-      var p4 = progress(s4);
-      var ringP = clamp01((p4 - 0.25) / 0.55);
-      var val = Math.round(97 * ringP);
-      ringProgress.setAttribute('stroke-dashoffset', CIRC - CIRC * (val/100));
-      ringNum.textContent = val;
-      var col = scoreColor(val);
-      ringProgress.setAttribute('stroke', col);
-      ringNum.style.color = col;
-      ringSub.style.opacity = clamp01((ringP - 0.85) / 0.15);
-      var stageRect = s4.querySelector('.stage').getBoundingClientRect();
-      driftEchoes.forEach(function(el, i){
-        var start = 0.03 + i * 0.06;
-        var fadeIn = clamp01((p4 - start) / 0.12);
-        var fadeOut = 1 - clamp01((p4 - (start + 0.28)) / 0.14);
-        var op = Math.max(0, Math.min(fadeIn, fadeOut)) * 0.8;
-        var travel = clamp01((p4 - start) / 0.42);
-        var x0 = parseFloat(el.dataset.x) / 100 * stageRect.width;
-        var y0 = parseFloat(el.dataset.y) / 100 * stageRect.height;
-        var cx = stageRect.width / 2, cy = stageRect.height / 2;
-        var dx = (cx - x0) * travel;
-        var dy = (cy - y0) * travel;
-        var scale = 1 - 0.55 * travel;
-        el.style.opacity = op;
-        el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + scale + ')';
-      });
-    }
+    // Section 4 — le score est animé par un compteur déclenché à l'arrivée (voir plus bas)
 
     // Section 7
     if (s7 && negs.length) {
@@ -679,7 +656,7 @@
     nav.classList.add('enriched');
   }
 
-  // Section 5 — accordion
+  // Section 4 — le score se déplie au clic (calcul)
   var ringTap = document.getElementById('ringTap');
   var panel = document.getElementById('proofPanel');
   if (ringTap && panel) {
@@ -691,6 +668,41 @@
     ringTap.addEventListener('keydown', function(e){
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
     });
+  }
+
+  // Section 4 — compteur déclenché à l'arrivée (0 -> 97), puis le score se pose
+  if (s4 && ringProgress && ringNum && !reduced) {
+    var paint4 = function(v){
+      ringProgress.setAttribute('stroke-dashoffset', CIRC - CIRC * (v / 100));
+      ringNum.textContent = v;
+      var c = scoreColor(v);
+      ringProgress.setAttribute('stroke', c);
+      ringNum.style.color = c;
+    };
+    paint4(0);
+    s4.classList.add('counting');
+    var started4 = false;
+    var runCount4 = function(){
+      if (started4) return; started4 = true;
+      var t0 = null, dur = 1500;
+      var stepCount = function(ts){
+        if (t0 === null) t0 = ts;
+        var t = clamp01((ts - t0) / dur);
+        var eased = 1 - Math.pow(1 - t, 3);
+        paint4(Math.round(97 * eased));
+        if (t < 1) requestAnimationFrame(stepCount);
+        else { paint4(97); s4.classList.remove('counting'); }
+      };
+      requestAnimationFrame(stepCount);
+    };
+    if ('IntersectionObserver' in window) {
+      var io4 = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ if (e.isIntersecting) { runCount4(); io4.disconnect(); } });
+      }, {threshold:0.45});
+      io4.observe(s4);
+    } else {
+      runCount4();
+    }
   }
 
   // Section 6 — slider
