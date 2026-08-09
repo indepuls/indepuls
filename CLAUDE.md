@@ -3208,3 +3208,20 @@ Un devis **accepté** peut recevoir des **avenants** (type `amendment`) qui l'aj
 **Non fait ici** : le branchement du montant contractuel sur `montantDevis` de la mission (étape 5, analyse anti double-comptage) ; numérotation auto (toujours manuelle, décision de Faustine).
 
 **Vérifié** : `node --check` (6 chunks) + `documents_socle_test.js` 14/14 (couvre avenants +/-, remise ignorée sur retrait, montant contractuel) + `devis_remise_test.js` 20/20 + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : sur une mission avec un devis accepté, "Créer un avenant" → saisir une ligne positive (+ éventuelle remise) et une ligne négative, vérifier le total signé dans l'aperçu, générer le PDF (titre AVENANT + "Relatif au devis"), émettre puis marquer accepté, et confirmer que le montant contractuel de la mission = devis + avenants acceptés.
+
+### 2026-08-09 — Devis multi-documents, étape 5 : montant contractuel branché sur `montantDevis`
+
+Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants acceptés) alimente désormais le `montantDevis` prévisionnel de la mission (celui qui nourrit pipeline, remplissage, jalons…).
+
+**Anti double-comptage** : l'affectation est un **remplacement** (`montantDevis = contractuel`), jamais une addition. Analyse faite avant de coder : `_missionMontantContractuel` n'était consommé nulle part, aucun KPI ne somme `mission.documents`, et le CA reste basé sur les encaissements. Il n'existe donc aucun chemin où le devis et le montant seraient comptés deux fois.
+
+**Report automatique, mais champ toujours modifiable** (`_syncMontantContractuel(mission)`) :
+- Auto-report seulement sur une mission **simple** : ni récurrente (montant dérivé du mensuel × durée), ni collective (dérivé participants × prix), ni compte en **activité mixte** (split prestation/vente qu'un devis ne porte pas). Sur ces cas, `montantDevis = montantPrestation = contractuel`, `montantVente = 0` (invariant `montantDevis = presta + vente` préservé, cohérent avec la normalisation `normalizeMissions`).
+- Déclenché à l'acceptation/refus d'un document (`marquerDocument`) et à la suppression d'un document (`supprimerDocument`, ex. retirer un avenant accepté), puis le champ visible `#m-montant` de la fiche mission ouverte est mis à jour et `saveData()` persiste.
+- **Rien n'est forcé** : le champ reste éditable, et à l'enregistrement de la mission c'est la valeur saisie qui gagne.
+
+**Rappel + report manuel** (`renderMontantContractuelHint` / `reporterMontantContractuel`, conteneur `#m-montant-devis-hint`) : sous le champ montant, "Devis accepté (+ N avenant(s)) : X", avec un lien "Reporter sur le montant" quand la valeur du champ diffère du contractuel (édition manuelle, ou cas mixte/récurrent où l'auto-report ne s'applique pas ; en mixte, "Reporter" remplit la part prestation, la vente restant à ajuster). À l'ouverture de la fiche (`openMissionModal`), si un devis accepté existe et que le champ est vide (ex. devis accepté avant cette évolution), il est prérempli.
+
+**Vérifié** : `node --check` (6 chunks) + `documents_socle_test.js` 19/19 (ajout des garde-fous du report : simple → contractuel, mixte/récurrente/collective/sans-devis → null) + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : accepter un devis sur une mission simple → le montant de la mission se met à jour tout seul ; le modifier à la main puis enregistrer → la valeur saisie est conservée ; ajouter puis accepter un avenant → le montant grimpe ; supprimer l'avenant → il redescend ; vérifier qu'une mission récurrente/collective ou un compte mixte n'écrase pas le montant automatiquement (mais propose "Reporter").
+
+**Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).

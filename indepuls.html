@@ -1798,6 +1798,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="ts" id="m-mixte-total" style="font-weight:700;color:var(--pri)"></div>
     </div>
+    <div class="ts" id="m-montant-devis-hint" style="display:none;color:var(--tl);margin-top:-4px;margin-bottom:8px"></div>
     <div id="m-rec-zone" style="display:none">
       <div class="frow" id="m-rec-amounts-row">
         <div class="fgroup"><label class="flabel">Montant mensuel (€ HT)</label><input type="number" id="m-montant-mens" step="50" min="0" placeholder="Ex : 1 500"></div>
@@ -8223,6 +8224,16 @@ function openMissionModal(id, prefillDate) {
     || m.tempsCreation > 0 || m.tempsAnimation > 0 || m.tempsSupport > 0);
   toggleTempsGestion(!!hasTempsGestion);
   renderMissionDocuments(m ? m.id : ''); // section "Documents commerciaux" (étape 2b)
+  // Étape 5 : si un devis accepté existe mais que le champ montant est encore vide (ex. devis accepté
+  // avant cette évolution), préremplir depuis le montant contractuel. Puis afficher le rappel.
+  if (m) {
+    const c = _missionMontantContractuel(m);
+    if (c != null && document.getElementById('m-montant-zone').style.display !== 'none') {
+      const inp = document.getElementById('m-montant');
+      if (inp && !(parseFloat(inp.value) > 0)) inp.value = c;
+    }
+  }
+  renderMontantContractuelHint(m || null); // masqué si pas de devis accepté (nouvelle mission incluse)
   openModal('modal-mission');
 }
 
@@ -10847,6 +10858,50 @@ function _docParentDevisNumero(parentId) {
   const p = _docParentDevis(parentId);
   return p ? (p.numero || p.objet || 'sans numéro') : '';
 }
+// ── ÉTAPE 5 : le montant contractuel alimente montantDevis ────────────────────
+// Le montant contractuel (_missionMontantContractuel = devis accepté + avenants acceptés) REMPLACE
+// montantDevis (affectation, jamais addition : aucun double comptage, les documents ne sont sommés
+// dans aucun KPI, le CA reste basé sur les encaissements). Auto-report seulement sur une mission
+// simple (ni récurrente, ni mixte, ni collective, où montantDevis est dérivé autrement) ; pour les
+// autres, le rappel + le lien "Reporter" laissent la main à l'utilisatrice. Le champ reste toujours
+// modifiable : à l'enregistrement, c'est la valeur saisie qui gagne.
+function _syncMontantContractuel(mission) {
+  if (!mission || mission.isRecurring || mission.typeMission === 'collectif' || isActiviteMixte()) return null;
+  const c = _missionMontantContractuel(mission);
+  if (c == null) return null;
+  mission.montantDevis = c;
+  mission.montantPrestation = c;
+  mission.montantVente = 0;
+  return c;
+}
+function renderMontantContractuelHint(mission) {
+  const el = document.getElementById('m-montant-devis-hint');
+  if (!el) return;
+  const c = mission ? _missionMontantContractuel(mission) : null;
+  if (c == null || mission.isRecurring) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  const nbAv = (mission.documents || []).filter(d => d.type === 'amendment' && d.statut === 'accepted').length;
+  const detailAv = nbAv > 0 ? ` (+ ${nbAv} avenant${nbAv > 1 ? 's' : ''})` : '';
+  const champVisible = document.getElementById('m-montant-zone')?.style.display !== 'none' ? 'm-montant'
+    : (document.getElementById('m-montant-mixte-zone')?.style.display !== 'none' ? 'm-presta' : null);
+  const cur = champVisible ? (parseFloat(document.getElementById(champVisible)?.value) || 0) : null;
+  const diff = champVisible && Math.abs(cur - c) > 0.005;
+  el.style.display = '';
+  el.innerHTML = `Devis accepté${detailAv} : <strong>${fmtE(c)}</strong>`
+    + (diff ? ` · <span class="step-cta" onclick="reporterMontantContractuel()">Reporter sur le montant</span>` : '');
+}
+function reporterMontantContractuel() {
+  const missionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
+  const c = mission ? _missionMontantContractuel(mission) : null;
+  if (c == null) return;
+  if (document.getElementById('m-montant-zone')?.style.display !== 'none') {
+    document.getElementById('m-montant').value = c;
+  } else if (document.getElementById('m-montant-mixte-zone')?.style.display !== 'none') {
+    document.getElementById('m-presta').value = c; // le devis représente la part prestation, la vente reste à ajuster
+    updateMontantMixteTotal();
+  }
+  renderMontantContractuelHint(mission);
+}
 
 function majLigneDevis(i, champ, valeur) {
   if (!_devisLignes[i]) return;
@@ -11149,8 +11204,12 @@ function supprimerDocument(docId) {
   if (!mission || !(mission.documents || []).some(d => d.id === docId)) return;
   if (!confirm('Supprimer ce document ?')) return;
   mission.documents = mission.documents.filter(d => d.id !== docId);
+  // Supprimer un avenant accepté change le montant contractuel : on re-synchronise si applicable.
+  const nv = _syncMontantContractuel(mission);
+  if (nv != null) { const inp = document.getElementById('m-montant'); if (inp) inp.value = nv; }
   saveData();
   renderMissionDocuments(missionId);
+  renderMontantContractuelHint(mission);
 }
 // ── ÉTAPE 3 : figeage à l'émission ─────────────────────────────────────────────
 // Émettre fige le document (statut 'issued') : il n'est plus modifiable (ni via "Modifier", retiré
@@ -11217,8 +11276,13 @@ function marquerDocument(docId, statut) {
   }
   doc.statut = statut;
   doc.dateAcceptation = statut === 'accepted' ? today() : null;
+  // Étape 5 : reporter le montant contractuel sur montantDevis (mission simple), et refléter dans
+  // le champ visible de la fiche mission ouverte derrière.
+  const nv = _syncMontantContractuel(mission);
+  if (nv != null) { const inp = document.getElementById('m-montant'); if (inp) inp.value = nv; }
   saveData();
   renderMissionDocuments(missionId);
+  renderMontantContractuelHint(mission);
 }
 // Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
 // la fin de genererDevisPDF(), pour ne jamais perdre une saisie qu'elle soit générée ou non.
