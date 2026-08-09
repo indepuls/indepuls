@@ -5605,6 +5605,26 @@ function wRepartitionCA(d) {
   </div>`;
 }
 
+// Jours écoulés depuis l'émission du devis d'une mission en attente (retour Faustine 2026-08-09) :
+// priorité à la date d'émission RÉELLE du devis le plus récent rattaché à la mission, repli sur la
+// date de création de la mission (timestamp encodé en base36 dans l'id) quand aucun devis n'y est
+// rattaché. Renvoie null si indéterminable (ex. missions de démonstration à id non horodaté).
+function _joursDepuisEmissionDevis(m) {
+  let refTs = null;
+  (m.documents || []).forEach(d => {
+    if (d.type === 'quote' && d.dateEmission) {
+      const t = new Date(d.dateEmission + 'T12:00:00').getTime();
+      if (!isNaN(t) && (refTs === null || t > refTs)) refTs = t;
+    }
+  });
+  if (refTs === null) {
+    const idTs = /^[0-9a-z]{8}/.test(m.id) ? parseInt(m.id.slice(0, 8), 36) : null;
+    if (idTs && !isNaN(idTs)) refTs = idTs;
+  }
+  if (refTs === null) return null;
+  return Math.floor((Date.now() - refTs) / 86400000);
+}
+
 // ── CALCUL CENTRALISÉ DES ALERTES ────────────────────────────
 function buildAlerts({caBrut,caNetMoy,hF,hI,caP,caV,caNetRoulant,hTRoulant}) {
   // thR (ci-dessous) : fenêtre glissante plutôt que hT vie entière — mêmes retours Faustine
@@ -5680,19 +5700,10 @@ function buildAlerts({caBrut,caNetMoy,hF,hI,caP,caV,caNetRoulant,hTRoulant}) {
     const th=h>0&&m.montantDevis>0?((m.montantDevis||0)-(_buildAlertsCoutMap[m.id]||0))/h:null;
     if(th!==null&&th<30&&h>2) alerts.push({pr:2,cl:'al-warn',txt:`📉 "${esc(m.description||m.client)}" — TH réel ${fmtE(th,0)}/h.`});
   });
-  // Alerte relance individuelle pour devis en attente > 7 jours
-  DATA.missions.filter(m=>m.statut==='att').forEach(m=>{
-    const ts=/^[0-9a-z]{8}/.test(m.id)?parseInt(m.id.slice(0,8),36):null;
-    if(!ts||isNaN(ts)) return;
-    const daysWait=Math.floor((Date.now()-ts)/86400000);
-    if(daysWait>=7){
-      const d7cl=daysWait>=14?'al-warn':'al-info';
-      const d7pr=daysWait>=14?1:2;
-      alerts.push({pr:d7pr,cl:d7cl,txt:`📬 ${tVocab('item')} <strong>${esc(m.client||m.description||'sans nom')}</strong> sans réponse depuis <strong>${daysWait} j</strong>${m.montantDevis>0?` — ${fmtE(m.montantDevis)}`:''}. Relancer ?`});
-    }
-  });
-  const att=DATA.missions.filter(m=>m.statut==='att').length;
-  if(att>0) alerts.push({pr:3,cl:'al-info',txt:`📩 ${att} ${att>1?tVocab('items').toLowerCase():tVocab('item').toLowerCase()} en attente de réponse.`});
+  // La relance individuelle des devis en attente a été déplacée dans le Brief ("Alertes"), avec un
+  // masquage 15 jours et un décompte basé sur la date d'émission du devis (voir _joursDepuisEmissionDevis
+  // et le bloc relanceDevisAttente). L'ancienne version ici (seuil 7 j, basée sur la date de création,
+  // filtrée pr<=1 donc visible seulement à partir de 14 j, sans masquage) est retirée pour éviter le doublon.
   if(p.tva){const tvaRev=Math.max(0,getTVACollecteeAnnuelle()-getTVADeductibleAnnuelle());if(tvaRev>0) alerts.push({pr:3,cl:'al-info',txt:`🧾 TVA à reverser : ${fmtE(tvaRev)} — pensez à provisionner.`});}
   // Alerte plafond régime micro (distinct du seuil TVA)
   try{
@@ -6907,6 +6918,22 @@ function wScoreSante(d) {
       alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${patternPhrase}<br><span class="step-cta" style="margin-top:4px" onclick="irVersPatterns()">Voir le détail (Statistiques)</span></span>${_dismissBtn('patternInsight')}</div>`);
     }
   } catch(e){reportError('patternInsight',e);}
+  // Relance des devis en attente (retour Faustine 2026-08-09) : une ligne par mission "en attente",
+  // dès 10 jours depuis l'émission du devis (repli sur la date de création de la mission). Masquage
+  // 15 j comme les autres alertes du Brief (DATA.alertsDismissed via _dismissBtn), clé par mission.
+  // Remplace l'ancienne relance de buildAlerts (voir commentaire là-bas).
+  try {
+    DATA.missions.filter(m=>!m.isManagement && m.statut==='att').forEach(m=>{
+      const j=_joursDepuisEmissionDevis(m);
+      if(j===null || j<10) return;
+      const k=`relanceDevis_${m.id}`;
+      if(_alertDismissed(k)) return;
+      const cl=j>=21?'al-warn':'al-info';
+      const ico=j>=21?'⏰':'📬';
+      const montant=(m.montantDevis>0)?` · ${fmtE(m.montantDevis)}`:'';
+      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} ${tVocab('item')} <strong>${esc(m.client||m.description||'sans nom')}</strong> sans réponse depuis <strong>${j} j</strong>${montant}. Relancer ?<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions');setTimeout(()=>openMissionModal('${m.id}'),100)">Ouvrir ${tVocab('item').toLowerCase()}</span></span>${_dismissBtn(k)}</div>`);
+    });
+  } catch(e){reportError('relanceDevisAttente',e);}
   const shown5=alertLines.slice(0,5).join('');
   const rest5=alertLines.length>5?alertLines.slice(5).join(''):'';
   const alertsSection=alertLines.length?`<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Alertes</div>${shown5}${rest5?`<div style="font-size:11px;color:var(--acc);cursor:pointer;margin-top:2px;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${alertLines.length-5} autre${alertLines.length-5>1?'s':''} →</div><div style="display:none">${rest5}</div>`:''}` + '</div>' : '';

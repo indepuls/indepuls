@@ -3226,6 +3226,17 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — Relance des devis en attente (Brief) : décompte sur date d'émission + masquage 15 j
+
+Refonte de l'alerte de relance des devis en attente. **État antérieur vérifié** : une relance existait dans `buildAlerts` (seuil 7 j, décompte sur la date de création de la mission via le timestamp base36 de l'id), mais elle était filtrée à `pr<=1` par `wAlertesCritiques`, donc invisible avant 14 j ; le compteur global "N en attente" (pr:3) ne s'affichait jamais ; et aucun masquage. Le mécanisme de masquage 15 j existe déjà par ailleurs (`DATA.alertsDismissed` + `_alertDismissed`/`_dismissBtn`, utilisé pour client dominant, objectif mensuel, pattern). Les impayés ont bien leurs rappels (carte "Alertes critiques", escalade ⏳/⚠️/🔴 à 30/60 j, sans masquage).
+
+**Changements** :
+- Nouveau `_joursDepuisEmissionDevis(m)` : **priorité à la date d'émission réelle** du devis le plus récent rattaché (`documents[].dateEmission`, type quote), **repli sur la date de création** de la mission (id horodaté) si aucun devis rattaché ; null si indéterminable (missions de démo à id non horodaté → pas d'alerte).
+- L'alerte de relance est **déplacée dans le Brief** (bloc `alertLines`, section "Alertes"), une ligne par mission `statut==='att'`, **dès 10 j**, escalade en `al-warn` à 21 j, avec lien "Ouvrir [mission]" et **bouton "🔕 Masquer 15 j"** (clé `relanceDevis_<id>` dans `DATA.alertsDismissed`).
+- L'ancienne relance + le compteur global sont **retirés de `buildAlerts`** (doublon / code mort filtré).
+
+**Vérifié** : `node --check` (6 chunks) + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : sur une mission en attente avec un devis émis il y a plus de 10 j, l'alerte "sans réponse depuis N j" apparaît dans le Brief ; "Masquer 15 j" la fait disparaître ~15 j ; "Ouvrir" ouvre la fiche. (La date d'émission prime : ré-émettre un devis remet le compteur à zéro.)
+
 ### 2026-08-09 — Devis, étape 6 : clôture + retours PDF
 
 - **En-tête PDF d'avenant** : "Relatif au devis \<réf\>" affiche désormais le **numéro ET l'objet** du devis parent (`_docParentDevisLabel` : `n°<numero> · <objet>`, avec repli sur l'un ou l'autre). `_docParentDevisNumero` (plus court) reste utilisé pour le titre de la modale et la liste des documents.
