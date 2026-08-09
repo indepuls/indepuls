@@ -11028,8 +11028,9 @@ function _docStatutBadge(s) {
 function renderMissionDocuments(missionId) {
   const zone = document.getElementById('m-documents-zone');
   if (!zone) return;
+  const infoTip = `<span class="info-tip" title="Une mission peut contenir plusieurs devis (par exemple deux options, ou une version révisée). Émettre un devis le fige : il n'est plus modifiable, mais reste consultable et imprimable en PDF ; pour le changer, dupliquez-le. Marquez « accepté » le devis retenu : il devient le devis de référence de la mission. Si vous acceptez un autre devis, il remplace le précédent (l'ancien repasse en « émis »). Les avenants se rattacheront ensuite au devis accepté pour l'ajuster (ajout ou retrait).">?</span>`;
   if (!missionId) {
-    zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux</label><div class="ts" style="color:var(--tl)">Enregistrez d'abord la mission pour y créer un devis.</div></div>`;
+    zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux ${infoTip}</label><div class="ts" style="color:var(--tl)">Enregistrez d'abord la mission pour y créer un devis.</div></div>`;
     return;
   }
   const mission = DATA.missions.find(m => m.id === missionId);
@@ -11063,7 +11064,7 @@ function renderMissionDocuments(missionId) {
       <div class="ts" style="margin-top:6px">${act.join(' · ')}</div>
     </div>`;
   }).join('');
-  zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux</label>
+  zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux ${infoTip}</label>
     ${rows || `<div class="ts" style="color:var(--tl);margin-bottom:6px">Aucun devis pour l'instant.</div>`}
     <button type="button" class="btn btn-out btn-sm" onclick="creerNouveauDevisMission()">+ Créer un devis</button>
   </div>`;
