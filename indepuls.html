@@ -11036,19 +11036,31 @@ function renderMissionDocuments(missionId) {
   if (!mission) { zone.innerHTML = ''; return; }
   migrateDevisBrouillon(mission);
   const docs = mission.documents || [];
+  const dStr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   const rows = docs.map(d => {
     const titre = d.numero ? esc(d.numero) : (d.type === 'amendment' ? 'Avenant' : 'Devis');
-    const actions = [
-      `<span class="step-cta" onclick="ouvrirDocumentDevis('${d.id}')">Modifier</span>`,
-      `<span class="step-cta" onclick="voirPdfDocument('${d.id}')">PDF</span>`,
-      `<span class="step-cta" style="color:var(--err)" onclick="supprimerDocument('${d.id}')">Supprimer</span>`,
-    ].join(' · ');
+    // Actions selon le statut. Un document figé (issued/accepted/refused) n'est jamais modifiable
+    // ni ré-émis : on le duplique pour repartir dessus.
+    const act = [];
+    if (d.statut === 'draft') {
+      act.push(`<span class="step-cta" onclick="ouvrirDocumentDevis('${d.id}')">Modifier</span>`);
+      act.push(`<span class="step-cta" onclick="emettreDocument('${d.id}')">Émettre</span>`);
+    }
+    act.push(`<span class="step-cta" onclick="voirPdfDocument('${d.id}')">PDF</span>`);
+    if (d.statut !== 'draft') act.push(`<span class="step-cta" onclick="dupliquerDocument('${d.id}')">Dupliquer</span>`);
+    if (d.statut === 'issued') {
+      act.push(`<span class="step-cta" onclick="marquerDocument('${d.id}','accepted')">Marquer accepté</span>`);
+      act.push(`<span class="step-cta" onclick="marquerDocument('${d.id}','refused')">Marquer refusé</span>`);
+    }
+    act.push(`<span class="step-cta" style="color:var(--err)" onclick="supprimerDocument('${d.id}')">Supprimer</span>`);
+    const dateInfo = d.statut === 'accepted' && d.dateAcceptation ? `Accepté le ${dStr(d.dateAcceptation)}`
+      : (d.statut === 'issued' || d.statut === 'refused') && d.dateEmission ? `Émis le ${dStr(d.dateEmission)}` : '';
     return `<div style="border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
-        <div><strong>${titre}</strong> ${_docStatutBadge(d.statut)}${d.objet ? `<div class="ts" style="color:var(--tl);margin-top:2px">${esc(d.objet)}</div>` : ''}</div>
+        <div><strong>${titre}</strong> ${_docStatutBadge(d.statut)}${d.objet ? `<div class="ts" style="color:var(--tl);margin-top:2px">${esc(d.objet)}</div>` : ''}${dateInfo ? `<div class="ts" style="color:var(--tl);margin-top:2px">${dateInfo}</div>` : ''}</div>
         <div class="fb" style="white-space:nowrap">${fmtE(_docMontantHT(d))}</div>
       </div>
-      <div class="ts" style="margin-top:6px">${actions}</div>
+      <div class="ts" style="margin-top:6px">${act.join(' · ')}</div>
     </div>`;
   }).join('');
   zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux</label>
@@ -11090,6 +11102,54 @@ function supprimerDocument(docId) {
   if (!mission || !(mission.documents || []).some(d => d.id === docId)) return;
   if (!confirm('Supprimer ce document ?')) return;
   mission.documents = mission.documents.filter(d => d.id !== docId);
+  saveData();
+  renderMissionDocuments(missionId);
+}
+// ── ÉTAPE 3 : figeage à l'émission ─────────────────────────────────────────────
+// Émettre fige le document (statut 'issued') : il n'est plus modifiable (ni via "Modifier", retiré
+// de la liste, ni via le générateur, garde-fou dans fermerGenerateurDevis) ni ré-émis. Ses données
+// (lignes, client, totaux) restent le snapshot du moment ; une modification ultérieure de la mission
+// ne le change pas (le document est indépendant dans mission.documents). Le PDF se régénère à
+// l'identique depuis ces données figées. Pour repartir d'un document figé : "Dupliquer" crée un
+// nouveau brouillon. "Marquer accepté/refusé" fait évoluer un document émis.
+function emettreDocument(docId) {
+  const missionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
+  const doc = mission && (mission.documents || []).find(d => d.id === docId);
+  if (!doc || doc.statut !== 'draft') return;
+  if (_docMontantHT(doc) <= 0 && !confirm('Ce document a un montant nul. L\'émettre quand même ?')) return;
+  if (!confirm('Émettre ce document ? Il ne sera plus modifiable ensuite (vous pourrez le dupliquer pour repartir dessus).')) return;
+  doc.statut = 'issued';
+  doc.dateEmission = today();
+  saveData();
+  renderMissionDocuments(missionId);
+}
+function dupliquerDocument(docId) {
+  const missionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
+  const src = mission && (mission.documents || []).find(d => d.id === docId);
+  if (!src) return;
+  // Copie profonde des lignes, nouveau brouillon (numéro et dates d'émission/acceptation remis à
+  // zéro). Le type et le parentId sont conservés : un devis dupliqué reste un devis, un avenant
+  // dupliqué reste un avenant du même devis parent.
+  const copie = Object.assign(JSON.parse(JSON.stringify(src)), { id: uuid(), statut: 'draft', numero: '', dateEmission: null, dateAcceptation: null });
+  mission.documents.push(copie);
+  _devisMissionId = missionId; _devisDocId = copie.id;
+  ouvrirGenerateurDevis({}, _docToBrouillon(copie));
+}
+function marquerDocument(docId, statut) {
+  const missionId = document.getElementById('mission-edit-id')?.value || null;
+  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
+  const doc = mission && (mission.documents || []).find(d => d.id === docId);
+  if (!doc) return;
+  if (statut === 'accepted' && doc.type === 'quote') {
+    // Un seul devis accepté par mission (le contractuel) : tout autre devis déjà accepté repasse en
+    // "émis", pour ne jamais avoir deux devis contractuels concurrents (le montant contractuel de
+    // l'étape 5 se base sur LE devis accepté).
+    (mission.documents || []).forEach(d => { if (d.type === 'quote' && d.id !== docId && d.statut === 'accepted') d.statut = 'issued'; });
+  }
+  doc.statut = statut;
+  doc.dateAcceptation = statut === 'accepted' ? today() : null;
   saveData();
   renderMissionDocuments(missionId);
 }

@@ -3181,3 +3181,13 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 - Étape 2b : uniquement des devis en brouillon (Modifier/PDF/Supprimer). Les statuts issued/accepted/refused sont déjà gérés à l'affichage (badge) mais dormants ; l'émission, la duplication, les avenants et l'acceptation arrivent aux étapes 3-4.
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur nécessaire (Faustine)** : ouvrir une mission avec un devis existant (il apparaît dans la liste, Modifier le recharge, PDF le génère), créer un 2e devis (les deux coexistent), supprimer un devis, une mission sans devis affiche "Aucun devis" + bouton créer, et une mission non encore enregistrée affiche le message d'invitation. Vérifier aussi mobile (la liste doit rester lisible).
+
+**Étape 3 livrée (figeage à l'émission)** : cycle de vie du document activé.
+- **Actions selon le statut** (`renderMissionDocuments`) : brouillon = Modifier / Émettre / PDF / Supprimer ; émis = PDF / Dupliquer / Marquer accepté / Marquer refusé / Supprimer ; accepté ou refusé = PDF / Dupliquer / Supprimer. Date affichée ("Émis le..." / "Accepté le...").
+- `emettreDocument` : `statut='draft' → 'issued'`, `dateEmission=today()`, avec confirmation (et alerte si montant nul). Un document émis n'est plus modifiable : "Modifier" disparaît de la liste, et `fermerGenerateurDevis` refuse déjà de réécrire un document non-draft (garde-fou posé en 2a). Les données restent le snapshot du moment ; le PDF se régénère à l'identique via `_renderDevisPDF(doc)`.
+- `dupliquerDocument` : copie profonde en nouveau brouillon (numéro + dates d'émission/acceptation remis à zéro, type et parentId conservés) puis ouvre le générateur dessus. Seul moyen de repartir d'un document figé.
+- `marquerDocument(id, 'accepted'|'refused')` : fait évoluer un document émis. À l'acceptation d'un DEVIS, tout autre devis déjà accepté de la mission repasse en "émis" (un seul devis contractuel à la fois). Le branchement du montant contractuel sur `montantDevis` reste l'étape 5 (ici, accepter ne change pas encore le montant de la mission).
+
+**Non fait ici** : numérotation auto (champ manuel, décision de Faustine) ; le montant contractuel qui alimente `montantDevis` (étape 5) ; les avenants (étape 4).
+
+**Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
