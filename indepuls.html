@@ -5169,6 +5169,48 @@ function getRentabiliteRoulante() {
   const heures=mks.reduce((s,mk)=>s+getHeuresMoisCoherentes(mk)+((DATA.tempsInterne&&DATA.tempsInterne[mk])||0)/3600000,0);
   return {mks,caBrut,caNet,heures,nbMois:mks.length,estPartielle:mks.length<12};
 }
+
+// ── ET SI JE DÉLÉGUAIS ? — calculs (retour Justin, 2026-08-09) ────────────────
+// Combien on peut se permettre de payer pour déléguer des tâches, en revendant le temps libéré.
+// Budget = heures/mois passées sur les catégories cochées × TH NET par heure. NET, pas brut :
+// c'est une dépense réelle (la facture du prestataire), à comparer à ce qu'on garde vraiment, pas
+// à ce qu'on facture (échange Faustine 2026-08-09). Garde-fou remplissage traité comme une ALERTE,
+// jamais un blocage : l'agenda peut être plein sans qu'Indépuls le sache (calendrier non renseigné).
+// Aucune saisie neuve : réutilise mission.tempsManuel + la rentabilité/remplissage déjà calculés.
+// DORMANT à cette étape (l'UI "Et si ?" les branchera à l'étape 2).
+function getHeuresMoisParCategories(categories, nbMois = 3) {
+  const set = new Set(categories || []);
+  if (!set.size || nbMois < 1) return 0;
+  const now = new Date();
+  const fenetre = new Set();
+  for (let i = 0; i < nbMois; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); fenetre.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
+  let ms = 0;
+  (DATA.missions || []).forEach(m => (m.tempsManuel || []).forEach(t => {
+    if (t.categorie && set.has(t.categorie) && fenetre.has((t.date || '').slice(0, 7))) ms += (t.ms || 0);
+  }));
+  return Math.round((ms / 3600000) / nbMois * 10) / 10; // heures/mois moyennées, arrondi 0,1 h
+}
+// TH net par heure = ce qu'on garde vraiment d'une heure facturable (revenu net roulant ÷ heures
+// roulantes). Même définition que le "TH réel net" affiché ailleurs (thR = caNet/heures).
+function getTHNetParHeure() {
+  const r = getRentabiliteRoulante();
+  return r.heures > 0 ? r.caNet / r.heures : 0;
+}
+// Simulation complète : tout ce dont l'UI a besoin, garde-fou remplissage inclus.
+function simulerDelegation(categories, nbMois = 3) {
+  const heuresMois = getHeuresMoisParCategories(categories, nbMois);
+  const thNet = getTHNetParHeure();
+  const budget = Math.round(heuresMois * thNet);
+  const remp = getTauxRemplissageAnnee();
+  const remplissageConnu = remp.ouvrables > 0;
+  const SEUIL = 80;
+  // 'ok' : remplissage ≥ 80% -> revendre le temps libéré est crédible.
+  // 'bas' : < 80% -> alerte (pas blocage) : déléguer ne créera pas de CA tant que le temps facturable n'est pas rempli.
+  // 'inconnu' : calendrier non renseigné (ouvrables=0) -> on montre le budget mais on prévient qu'on ne peut pas vérifier la saturation.
+  const gate = !remplissageConnu ? 'inconnu' : (remp.taux >= SEUIL ? 'ok' : 'bas');
+  return { heuresMois, thNet: Math.round(thNet), budget, tauxRemplissage: remp.taux, remplissageConnu, gate, seuil: SEUIL };
+}
+
 function renderDashboard() {
 const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisActifsAnnee().length,1);
   let caBrut=0, caVentes=0, caPonctuels=0, caTreso=0;
