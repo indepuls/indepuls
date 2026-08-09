@@ -3073,6 +3073,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-08-09', titre:'Vos devis sont maintenant suivis dans la mission : brouillon, émis, accepté. Une fois un devis accepté, vous pouvez y ajouter des avenants (ajouts ou retraits), et le montant de la mission se met à jour automatiquement.', icon:'📄', merci:null },
   { date:'2026-08-02', titre:'Ajoutez une remise sur chaque ligne de vos devis, en pourcentage ou en euros. Le net et la remise totale apparaissent automatiquement sur le devis.', icon:'🏷️', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-01', titre:'Notre politique de confidentialité, nos conditions d\'utilisation et une page Sécurité sont maintenant consultables depuis le menu', icon:'🔒', merci:'Merci à Charlène pour la question 🙏' },
   { date:'2026-08-01', titre:'Un nouveau menu "Devis" pour en générer un à tout moment, même sans mission en cours', icon:'📄', merci:null },
@@ -10858,6 +10859,15 @@ function _docParentDevisNumero(parentId) {
   const p = _docParentDevis(parentId);
   return p ? (p.numero || p.objet || 'sans numéro') : '';
 }
+// Libellé complet du devis parent pour l'en-tête PDF de l'avenant : numéro (si saisi) ET objet.
+function _docParentDevisLabel(parentId) {
+  const p = _docParentDevis(parentId);
+  if (!p) return '';
+  const num = p.numero ? `n°${p.numero}` : '';
+  const obj = p.objet || '';
+  if (num && obj) return `${num} · ${obj}`;
+  return num || obj || 'sans numéro';
+}
 // ── ÉTAPE 5 : le montant contractuel alimente montantDevis ────────────────────
 // Le montant contractuel (_missionMontantContractuel = devis accepté + avenants acceptés) REMPLACE
 // montantDevis (affectation, jamais addition : aucun double comptage, les documents ne sont sommés
@@ -11361,7 +11371,7 @@ function genererDevisPDF() {
 function _renderDevisPDF(doc) {
   const p = DATA.params;
   const estAvenant = doc.type === 'amendment';
-  const refParent = estAvenant ? _docParentDevisNumero(doc.parentId) : '';
+  const refParent = estAvenant ? _docParentDevisLabel(doc.parentId) : '';
   const motDoc = estAvenant ? 'Avenant' : 'Devis';
   const lignes = doc.lignes || [];
   const montantHT = _docMontantHT(doc);
@@ -11454,7 +11464,6 @@ function _renderDevisPDF(doc) {
   </div>
   <div class="signatures">
     <div><div class="label">Bon pour accord, client</div>Nom, date et signature</div>
-    <div><div class="label">Signature, prestataire</div>${esc(p.nom || '')}</div>
   </div>
   <script>window.onload=function(){window.print()}<\/script>
   </body></html>`);

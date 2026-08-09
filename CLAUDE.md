@@ -3225,3 +3225,10 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 **Vérifié** : `node --check` (6 chunks) + `documents_socle_test.js` 19/19 (ajout des garde-fous du report : simple → contractuel, mixte/récurrente/collective/sans-devis → null) + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : accepter un devis sur une mission simple → le montant de la mission se met à jour tout seul ; le modifier à la main puis enregistrer → la valeur saisie est conservée ; ajouter puis accepter un avenant → le montant grimpe ; supprimer l'avenant → il redescend ; vérifier qu'une mission récurrente/collective ou un compte mixte n'écrase pas le montant automatiquement (mais propose "Reporter").
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
+
+### 2026-08-09 — Devis, étape 6 : clôture + retours PDF
+
+- **En-tête PDF d'avenant** : "Relatif au devis \<réf\>" affiche désormais le **numéro ET l'objet** du devis parent (`_docParentDevisLabel` : `n°<numero> · <objet>`, avec repli sur l'un ou l'autre). `_docParentDevisNumero` (plus court) reste utilisé pour le titre de la modale et la liste des documents.
+- **Signature prestataire retirée du PDF** : légalement, seul le "Bon pour accord" daté et signé du client est requis sur un devis ; la signature du prestataire n'est pas obligatoire (retour Faustine). Le bloc "Signature, prestataire" est supprimé, il ne reste que le bloc client.
+- **Nouveautés** : entrée du 2026-08-09 sur le suivi des devis (brouillon/émis/accepté), les avenants et le report automatique du montant. Sans crédit (réflexion produit).
+- **Non fait, décision produit** : numérotation automatique des devis/avenants (Faustine préfère le numéro manuel).
