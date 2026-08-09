@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fonctionnalités · Indépuls</title>
+<meta name="description" content="Le Score de Santé, le simulateur Et si, le calcul toujours visible. Ce qu'Indépuls fait vraiment, expliqué simplement.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.6;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:26px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:70px 24px 40px; text-align:center;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(30px,4.5vw,46px); margin:0 0 16px;}
+  header.hero p{max-width:560px; margin:0 auto; font-size:17px; color:#4a4a63;}
+
+  section.feature{padding:60px 24px; border-top:1px solid #e4ddd0;}
+  section.feature .wrap{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;}
+  section.feature .wrap > *{min-width:0;}
+  .pillar{min-width:0;}
+  section.feature.reverse .wrap{direction:rtl;}
+  section.feature.reverse .wrap > *{direction:ltr;}
+  @media(max-width:800px){ section.feature .wrap{grid-template-columns:1fr; gap:32px;} section.feature.reverse .wrap{direction:ltr;} }
+
+  .feature-text .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:6px;}
+  .feature-text h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(22px,3vw,30px); margin:0 0 14px;}
+  .feature-text p{color:#4a4a63; font-size:15.5px; margin:0 0 12px;}
+  .feature-text ul{margin:14px 0 0; padding-left:20px; font-size:14.5px; color:#4a4a63;}
+  .feature-text li{margin-bottom:7px;}
+
+  /* Score de santé mockup */
+  .santemock{background:#fff; border-radius:16px; padding:22px; border:1px solid #e4ddd0; box-shadow:0 8px 30px rgba(20,21,56,.06);}
+  .pillars{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .pillar{border:1px solid #e4ddd0; border-radius:10px; padding:14px; border-left:4px solid var(--ok);}
+  .pillar .ptitle{font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#7a7a8a; font-weight:700; display:flex; justify-content:space-between;}
+  .pillar .ptitle b{color:var(--ok); font-size:13px;}
+  .pillar .pbar{height:5px; border-radius:99px; background:#e4ddd0; margin:8px 0 10px; overflow:hidden;}
+  .pillar .pbar i{display:block; height:100%; background:var(--ok); border-radius:99px;}
+  .pillar p{font-size:11.5px; color:#5a5a72; margin:0; line-height:1.4;}
+
+  /* Et si slider mockup */
+  .etsimock{background:#fff; border-radius:16px; padding:26px; border:1px solid #e4ddd0; box-shadow:0 8px 30px rgba(20,21,56,.06); text-align:center;}
+  .etsimock .phrase{font-family:'Playfair Display',serif; font-size:16.5px; color:var(--navy); margin:0 0 20px; line-height:1.5;}
+  .etsimock .phrase b{color:var(--prune);}
+  .etsimock input[type=range]{width:100%; accent-color:var(--prune);}
+
+  /* Combien facturer mockup */
+  .devismock{background:#fff; border-radius:16px; padding:22px; border:1px solid #e4ddd0; box-shadow:0 8px 30px rgba(20,21,56,.06);}
+  .devismock-tabs{display:flex; gap:8px; margin-bottom:16px;}
+  .devismock-tabs .tab{font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:999px; background:var(--cream); color:#7a7a8a;}
+  .devismock-tabs .tab.active{background:var(--navy); color:#fff;}
+  .devismock-row{display:flex; justify-content:space-between; font-size:13.5px; padding:8px 0; border-bottom:1px dashed #e4ddd0; color:#5a5a72;}
+  .devismock-row b{color:var(--navy);}
+  .devismock-result{margin-top:14px; background:#eaf3ee; color:var(--ok); border-radius:8px; padding:10px 14px; font-size:13.5px; font-weight:700;}
+
+  /* Calcul mockup */
+  .calcmock{background:#fff; border-radius:16px; padding:24px; border:1px solid #e4ddd0; box-shadow:0 8px 30px rgba(20,21,56,.06);}
+  .calcmock dl{display:grid; grid-template-columns:auto 1fr; gap:9px 18px; margin:0 0 14px;}
+  .calcmock dt{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--beige); font-weight:700; align-self:center;}
+  .calcmock dd{margin:0; font-weight:700; color:var(--navy);}
+  .calcmock .formula{font-family:monospace; font-size:13px; color:#6b6b6b; padding-top:12px; border-top:1px dashed #e4ddd0;}
+
+  /* Profils mockup */
+  .profilsmock{display:flex; flex-wrap:wrap; gap:10px;}
+  .profilchip{background:#fff; border:1px solid #e4ddd0; border-radius:999px; padding:8px 16px; font-size:13.5px; color:var(--navy);}
+  .profilchip.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+  section.more{padding:60px 24px; border-top:1px solid #e4ddd0;}
+  section.more h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(22px,3vw,28px); text-align:center; margin:0 0 8px;}
+  section.more .sub{text-align:center; color:#6b6b6b; font-size:14.5px; margin:0 0 40px;}
+  .morecards{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px;}
+  .morecard{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:20px 22px; min-width:0;}
+  .morecard .ico{font-size:22px; display:block; margin-bottom:10px;}
+  .morecard h3{font-family:'Playfair Display',serif; font-size:16px; margin:0 0 6px; color:var(--navy);}
+  .morecard p{font-size:13.5px; color:#5a5a72; margin:0; line-height:1.5;}
+
+  section.refuse{padding:70px 24px; text-align:center; background:var(--navy); color:#e7e2f2;}
+  section.refuse h2{font-family:'Playfair Display',serif; color:#fff; font-size:clamp(22px,3vw,28px); margin:0 0 22px;}
+  section.refuse ul{list-style:none; padding:0; margin:0 0 26px; display:flex; flex-wrap:wrap; justify-content:center; gap:12px;}
+  section.refuse li{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.15); border-radius:999px; padding:9px 18px; font-size:14px;}
+  section.refuse p.closing{font-family:'Playfair Display',serif; font-style:italic; color:var(--beige); font-size:17px; margin:0;}
+
+  section.cta{padding:80px 24px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(24px,3.4vw,32px); margin:0 0 26px;}
+  .btnrow{display:flex; gap:16px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:15px 32px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:var(--navy); border:1px solid var(--navy);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+
+  [data-reveal]{opacity:0; transform:translateY(16px); transition:opacity .6s var(--ease), transform .6s var(--ease);}
+  [data-reveal].in{opacity:1; transform:translateY(0);}
+  @media (prefers-reduced-motion: reduce){ [data-reveal]{opacity:1; transform:none; transition:none;} }
+</style>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Fonctionnalités · Indépuls">
+<meta property="og:description" content="Le Score de Santé, le simulateur Et si, le calcul toujours visible. Ce qu'Indépuls fait vraiment, expliqué simplement.">
+<meta property="og:url" content="https://indepuls.fr/fonctionnalites/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../index.html">Indépuls</a>
+    <div class="links">
+      <a href="index.html" class="active">Fonctionnalités</a>
+      <a href="../tarifs/index.html">Tarifs</a>
+      <a href="../demo/index.html">Démo</a>
+      <a href="../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Ce qu'Indépuls fait vraiment</h1>
+  <p>Pas une liste de fonctionnalités. Quatre choses qui répondent, chacune à leur façon, à la même question : est-ce que ça va ?</p>
+</header>
+
+<section class="feature" data-reveal>
+  <div class="wrap">
+    <div class="feature-text">
+      <span class="eyebrow">La question centrale, répondue en un coup d'œil</span>
+      <h2>Le Score de Santé</h2>
+      <p>Un seul chiffre, calculé à partir de quatre piliers de votre activité. Pas un indicateur isolé qui raconte la moitié de l'histoire.</p>
+      <ul>
+        <li><strong>Rentabilité</strong> : votre taux horaire ou journalier réel, comparé à votre seuil minimum.</li>
+        <li><strong>Remplissage</strong> : votre temps planifié, pas juste ce qui est déjà facturé.</li>
+        <li><strong>Trésorerie</strong> : ce qu'il faut mettre de côté, et ce qui reste vraiment disponible.</li>
+        <li><strong>Horizon</strong> : la visibilité que vous avez sur les semaines à venir.</li>
+      </ul>
+    </div>
+    <div class="santemock">
+      <div class="pillars">
+        <div class="pillar"><div class="ptitle">Rentabilité <b>22/25</b></div><div class="pbar"><i style="width:88%"></i></div><p>TJM réel supérieur à votre seuil minimum.</p></div>
+        <div class="pillar"><div class="ptitle">Remplissage <b>25/25</b></div><div class="pbar"><i style="width:100%"></i></div><p>Votre temps facturable est optimisé.</p></div>
+        <div class="pillar"><div class="ptitle">Trésorerie <b>25/25</b></div><div class="pbar"><i style="width:100%"></i></div><p>Aucun risque identifié pour le moment.</p></div>
+        <div class="pillar"><div class="ptitle">Horizon <b>25/25</b></div><div class="pbar"><i style="width:100%"></i></div><p>Visibilité commerciale confortable.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="feature reverse" data-reveal>
+  <div class="wrap">
+    <div class="feature-text">
+      <span class="eyebrow">Avant d'envoyer un devis</span>
+      <h2>Combien facturer ?</h2>
+      <p>Vérifiez si un prix reste rentable avant de l'envoyer, ou calculez le tarif minimum à partir de votre temps et de vos coûts. Le même moteur que votre Score de Santé, appliqué à une seule mission.</p>
+    </div>
+    <div class="devismock">
+      <div class="devismock-tabs"><span class="tab active">Vérifier un prix</span><span class="tab">Calculer un tarif</span></div>
+      <div class="devismock-row"><span>Montant du devis</span><b>1&nbsp;200&nbsp;€</b></div>
+      <div class="devismock-row"><span>Temps chantier estimé</span><b>8&nbsp;h</b></div>
+      <div class="devismock-row"><span>Déplacement estimé</span><b>1,5&nbsp;h</b></div>
+      <div class="devismock-row"><span>Fournitures &amp; matériaux</span><b>200&nbsp;€</b></div>
+      <div class="devismock-result">✓ Rentable : TJM 245&nbsp;€/j, seuil 210&nbsp;€/j</div>
+    </div>
+  </div>
+</section>
+
+<section class="feature" data-reveal>
+  <div class="wrap">
+    <div class="feature-text">
+      <span class="eyebrow">Avant de décider, on aimerait savoir</span>
+      <h2>Le simulateur "Et si ?"</h2>
+      <p>Une décision, qu'il s'agisse d'augmenter ses prix, de changer de rythme ou de perdre un client, traduite immédiatement en conséquence concrète. Pas de calcul à faire soi-même, pas de tableur.</p>
+      <p>Quatre scénarios pensés pour les questions qu'on se pose vraiment, pas vingt options qu'on imagine sans jamais les utiliser.</p>
+    </div>
+    <div class="etsimock">
+      <p class="phrase">Si vous augmentiez vos prix de <b>12&nbsp;%</b>, vous gagneriez le même revenu en travaillant <b>3h de moins</b> chaque semaine.</p>
+      <input type="range" min="0" max="30" value="12" aria-label="Exemple de curseur">
+    </div>
+  </div>
+</section>
+
+<section class="feature reverse" data-reveal>
+  <div class="wrap">
+    <div class="feature-text">
+      <span class="eyebrow">Aucune formule cachée</span>
+      <h2>Zéro boîte noire</h2>
+      <p>Chaque chiffre affiché peut s'expliquer en une phrase. Si un calcul ne peut pas se justifier simplement, il ne s'affiche pas. C'est une règle, pas une option.</p>
+    </div>
+    <div class="calcmock">
+      <dl>
+        <dt>TJM réel</dt><dd>245&nbsp;€/j</dd>
+        <dt>Seuil minimum</dt><dd>210&nbsp;€/j</dd>
+        <dt>Écart</dt><dd>+35&nbsp;€/j (+17&nbsp;%)</dd>
+      </dl>
+      <div class="formula">3&nbsp;675&nbsp;€ ÷ 15&nbsp;j = 245&nbsp;€/j</div>
+    </div>
+  </div>
+</section>
+
+<section class="feature" data-reveal>
+  <div class="wrap">
+    <div class="feature-text">
+      <span class="eyebrow">Un seul moteur, jamais deux logiciels différents</span>
+      <h2>Adapté à votre métier, dès le premier jour</h2>
+      <p>Prestataire de services, artisan du bâtiment, fabricant, revendeur : le vocabulaire et les indicateurs mis en avant changent. Le calcul, lui, reste rigoureusement le même pour tout le monde.</p>
+    </div>
+    <div class="profilsmock">
+      <span class="profilchip active">Artisan bâtiment</span>
+      <span class="profilchip">Prestataire de services</span>
+      <span class="profilchip">Créatif / Communication</span>
+      <span class="profilchip">Événementiel</span>
+      <span class="profilchip">Fabricant série</span>
+      <span class="profilchip">Artisan sur commande</span>
+      <span class="profilchip">Achat / Revente</span>
+    </div>
+  </div>
+</section>
+
+<section class="more" data-reveal>
+  <div class="wrap">
+    <h2>Et concrètement, au quotidien</h2>
+    <p class="sub">Le reste de la boîte à outils, moins spectaculaire mais tout aussi utile.</p>
+    <div class="morecards">
+      <div class="morecard">
+        <span class="ico">🏆</span>
+        <h3>Top clients &amp; offres</h3>
+        <p>Le chiffre d'affaires ne dit pas tout. Vos clients et vos offres sont comparés par taux horaire ou journalier réel, pas seulement par montant facturé, avec un classement parfois surprenant.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">📄</span>
+        <h3>Générer un devis</h3>
+        <p>Un PDF personnalisé avec votre logo, généré depuis le simulateur ou une mission. Une fois créé, il vous appartient, sans suivi automatique imposé.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">📊</span>
+        <h3>Export comptable</h3>
+        <p>Recettes et dépenses, tous statuts confondus, exportées en PDF ou CSV pour votre expert-comptable, sans tout ressaisir.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">⏱</span>
+        <h3>Temps prévu vs temps réel</h3>
+        <p>Le temps que vous aviez estimé, comparé à celui vraiment passé. De quoi affiner vos prochaines estimations, mission après mission.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">📎</span>
+        <h3>Dépenses rattachées à un devis</h3>
+        <p>Rattachez les coûts directs d'une mission (matériaux, sous-traitance) pour connaître son TH ou son TJM exact, pas une moyenne globale.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">🧾</span>
+        <h3>Seuil de TVA surveillé</h3>
+        <p>Pas assujetti·e ? Indépuls suit votre seuil (37&nbsp;500&nbsp;€ en prestations, 85&nbsp;000&nbsp;€ en vente) et vous alerte avant la zone de tolérance.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">📬</span>
+        <h3>Le brief du lundi</h3>
+        <p>Un email chaque semaine avec ce qui compte vraiment pour votre activité, rien à ouvrir si tout va bien.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">🔔</span>
+        <h3>Des alertes qui servent à agir</h3>
+        <p>Concentration client, échéance URSSAF, chantier qui traîne, jamais une alerte sans une action à côté.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">🐖</span>
+        <h3>Argent à mettre de côté</h3>
+        <p>Combien provisionner, et jusqu'à quand, recalculé automatiquement à chaque encaissement.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">📈</span>
+        <h3>Trajectoire annuelle et mensuelle</h3>
+        <p>Où vous en êtes par rapport à votre objectif, comparé à votre meilleur mois.</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">🥧</span>
+        <h3>Où part votre chiffre d'affaires</h3>
+        <p>La décomposition complète, poste par poste : "pour 100&nbsp;€ encaissés..."</p>
+      </div>
+      <div class="morecard">
+        <span class="ico">📒</span>
+        <h3>Livre des recettes</h3>
+        <p>L'obligation légale micro-entrepreneur, tenue automatiquement au fil de vos encaissements.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="refuse" data-reveal>
+  <h2>Et pour rester simple, Indépuls ne fait pas tout</h2>
+  <ul>
+    <li>Pas de facturation complète</li>
+    <li>Pas de CRM</li>
+    <li>Pas de comptabilité</li>
+    <li>Pas de gestion RH ou de stock</li>
+  </ul>
+  <p class="closing">Une chose faite bien, plutôt que dix à moitié.</p>
+</section>
+
+<section class="cta">
+  <h2>Voir comment ça se traduit pour votre activité</h2>
+  <div class="btnrow">
+    <a class="btn btn-primary" href="../demo/index.html">Explorer la démo</a>
+    <a class="btn btn-secondary" href="../tarifs/index.html">Voir les tarifs</a>
+  </div>
+</section>
+
+<footer>
+  <a href="../a-propos/index.html">À propos</a>
+  <a href="../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../cgu.html">CGU</a>
+  <a href="../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+<script>
+(function(){
+  var items = document.querySelectorAll('[data-reveal]');
+  if (!('IntersectionObserver' in window)) { items.forEach(function(el){ el.classList.add('in'); }); return; }
+
+  function revealIfVisible(el){
+    var r = el.getBoundingClientRect();
+    if (r.top < window.innerHeight && r.bottom > 0) el.classList.add('in');
+  }
+  items.forEach(revealIfVisible);
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting) { entry.target.classList.add('in'); io.unobserve(entry.target); }
+    });
+  }, {threshold:0.15});
+  items.forEach(function(el){ if (!el.classList.contains('in')) io.observe(el); });
+
+  window.addEventListener('scroll', function(){ items.forEach(revealIfVisible); }, {passive:true});
+})();
+</script>
+
+</body>
+</html>

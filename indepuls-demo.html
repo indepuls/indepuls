@@ -880,7 +880,7 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div class="arch-cg">
-        <canvas id="chart-archives" height="260" style="width:100%;display:block"></canvas>
+        <canvas id="chart-archives" height="260"></canvas>
         <div id="archives-compare-zone"></div>
       </div>
     </div>
@@ -891,7 +891,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title" id="chart-th-reel-title">Évolution taux horaire réel</div></div>
-        <canvas id="chart-th-reel" height="200" style="width:100%;display:block"></canvas>
+        <canvas id="chart-th-reel" height="200"></canvas>
       </div>
       <div id="archives-progress-zone"></div>
     </div>
@@ -1328,7 +1328,7 @@ html,body{overflow-x:hidden;}
         <div id="sim-row-collectif-detail" style="display:none">
           <div class="frow">
             <div class="fgroup"><label class="flabel">Participants prévus</label><input type="number" id="sim-participants-val" min="1" step="1" placeholder="Ex : 8" oninput="calcRentabilite()"></div>
-            <div class="fgroup" id="sim-fg-prixpart"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
+            <div class="fgroup"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
           </div>
           <div class="ts mb10" id="sim-ca-collectif" style="font-weight:700;color:var(--pri)"></div>
           <div class="frow">
@@ -1897,9 +1897,9 @@ html,body{overflow-x:hidden;}
         <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
       </div>
       <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
-      <div id="m-documents-zone" style="margin-top:6px"></div>
     </div>
     <div class="modal-foot">
+      <button class="btn btn-out" style="margin-right:auto" onclick="ouvrirGenerateurDevisMission()">📄 Devis</button>
       <button class="btn btn-out" onclick="closeModal('modal-mission')">Annuler</button>
       <button class="btn btn-acc" onclick="saveMission()">Enregistrer</button>
     </div>
@@ -1913,8 +1913,8 @@ html,body{overflow-x:hidden;}
      qu'un point de départ, jamais un template figé (retour Faustine, 2026-07-30). Voir CLAUDE.md. -->
 <div class="modal-ov hidden" id="modal-devis">
   <div class="modal" style="max-width:640px">
-    <div class="modal-title" id="dv-modal-title">📄 Générer un devis</div>
-    <div class="ts mb16" style="color:var(--tl)" id="dv-modal-sub">Document non suivi par Indépuls, une fois généré, à vous de l'envoyer et d'en assurer le suivi.</div>
+    <div class="modal-title">📄 Générer un devis</div>
+    <div class="ts mb16" style="color:var(--tl)">Document non suivi par Indépuls — une fois généré, à vous de l'envoyer et d'en assurer le suivi.</div>
     <div class="card-title mb8" style="font-size:13px">Client</div>
     <div class="frow">
       <div class="fgroup"><label class="flabel">Nom / Entreprise</label><input type="text" id="dv-client-nom"></div>
@@ -2831,6 +2831,29 @@ const DEP_CAT_COLORS  = ['#5B2C4A','#be185d','#1e40af','#0891b2','#65a30d','#2d7
 const SRC_LABELS={'recommandation':'Recommandation / bouche-à-oreille','client_existant':'Client existant','reseau':'Réseau professionnel','social':'Instagram / réseaux sociaux','web':'Site internet / Google','publicite':'Publicité payante','prospection':'Prospection directe','plateforme':'Plateforme / annuaire','autre':'Autre'};
 const SRC_COLORS={'recommandation':'#4CAF50','client_existant':'#2196F3','reseau':'#9C27B0','social':'#E91E63','web':'#FF9800','publicite':'#F44336','prospection':'#00BCD4','plateforme':'#8BC34A','autre':'#9E9E9E'};
 const STORAGE_KEY = 'indepuls';
+// Ce fichier (indepuls-demo.html) est une copie isolée d'indepuls.html, dédiée uniquement à la
+// démo anonyme du site vitrine — jamais utilisée par un vrai compte. isAnonymousDemoSession est
+// donc toujours vrai ici dès l'entrée en démo, et rien n'est jamais écrit dans le vrai
+// localStorage : la démo vit strictement en mémoire, réinitialisée à chaque rechargement.
+let isAnonymousDemoSession = false;
+let _anonymousMemoryStore = null;
+(function() {
+  var _origSetItem = localStorage.setItem.bind(localStorage);
+  var _origGetItem = localStorage.getItem.bind(localStorage);
+  var _origRemoveItem = localStorage.removeItem.bind(localStorage);
+  localStorage.setItem = function(key, value) {
+    if (key === STORAGE_KEY && isAnonymousDemoSession) { _anonymousMemoryStore = value; return; }
+    return _origSetItem(key, value);
+  };
+  localStorage.getItem = function(key) {
+    if (key === STORAGE_KEY && isAnonymousDemoSession && _anonymousMemoryStore !== null) return _anonymousMemoryStore;
+    return _origGetItem(key);
+  };
+  localStorage.removeItem = function(key) {
+    if (key === STORAGE_KEY && isAnonymousDemoSession) { _anonymousMemoryStore = null; return; }
+    return _origRemoveItem(key);
+  };
+})();
 
 // ── VOCABULAIRE MÉTIER ───────────────────────────────────────
 // Couche d'affichage uniquement — ne jamais modifier les calculs ou DATA
@@ -3072,7 +3095,6 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
-  { date:'2026-08-02', titre:'Ajoutez une remise sur chaque ligne de vos devis, en pourcentage ou en euros. Le net et la remise totale apparaissent automatiquement sur le devis.', icon:'🏷️', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-01', titre:'Notre politique de confidentialité, nos conditions d\'utilisation et une page Sécurité sont maintenant consultables depuis le menu', icon:'🔒', merci:'Merci à Charlène pour la question 🙏' },
   { date:'2026-08-01', titre:'Un nouveau menu "Devis" pour en générer un à tout moment, même sans mission en cours', icon:'📄', merci:null },
   { date:'2026-08-01', titre:'Un petit écran de célébration (confettis !) apparaît pour vos grands moments : record du mois, objectif annuel atteint, plus gros devis signé', icon:'🎉', merci:null },
@@ -3971,6 +3993,7 @@ function loadDemoWithCurrentParams(skipWelcome) {
   // donc réassigner DATA.params réassigne aussi demoData.params — le lire après coup renverrait
   // la valeur déjà fusionnée (donc déjà écrasée), pas l'originale générée par la démo.
   const demoDateOuverture = demoData.params.dateOuverture;
+  const demoMetier = demoData.params.metier;
   // Fusionner : structure démo + params réels de l'utilisateur
   DATA = demoData;
   if (savedAlertsDismissed) DATA.alertsDismissed = savedAlertsDismissed;
@@ -3980,6 +4003,7 @@ function loadDemoWithCurrentParams(skipWelcome) {
   // systématiquement, dès la toute première création, son scénario "activité récente" et tous
   // les calculs proratisés (objectif annuel, trajectoire) retombent en année pleine à tort.
   if (!savedParams.dateOuverture) DATA.params.dateOuverture = demoDateOuverture;
+  if (!savedParams.metier) DATA.params.metier = demoMetier;
   // En mode démo, toujours activer le livre des recettes (les params vierges ne doivent pas écraser la démo)
   DATA.params.livreRecettesActif = true;
   DATA.theme = theme;
@@ -3987,12 +4011,24 @@ function loadDemoWithCurrentParams(skipWelcome) {
   saveData();
   document.getElementById('screen-profile-picker').classList.add('hidden');
   document.body.setAttribute('data-theme', theme);
-  renderAll();
-  applyVocabUI();
-  if (!skipWelcome) openModal('modal-welcome');
+  var _doRenderDemo = function() {
+    if (typeof getCurrentYearMonths !== 'function') { setTimeout(_doRenderDemo, 80); return; }
+    renderAll();
+    applyVocabUI();
+    if (!skipWelcome) openModal('modal-welcome');
+  };
+  _doRenderDemo();
 }
 
 function openClearExampleModal() {
+  // Une session démo anonyme n'a pas de compte auquel rattacher de vraies données : on
+  // redirige vers la création de compte plutôt que de laisser "Continuer" écrire des données
+  // réelles orphelines dans le localStorage (voir isAnonymousDemoSession plus haut).
+  if (isAnonymousDemoSession) {
+    if (typeof showLoginForm === 'function') showLoginForm();
+    if (typeof authShowSignup === 'function') authShowSignup();
+    return;
+  }
   openModal('modal-clear-example');
 }
 
@@ -4024,17 +4060,24 @@ function clearExampleData() {
 }
 
 function renderDemoBanner() {
+  const paramsLine = isAnonymousDemoSession
+    ? `Rien n'est enregistré dans ce mode : tout se réinitialise si vous rechargez la page.`
+    : `Vos paramètres sont déjà les vôtres.`;
+  const ctaLabel = isAnonymousDemoSession ? 'Créer mon compte' : 'Commencer avec mes données';
+  const ctaCaption = isAnonymousDemoSession
+    ? `Vos réglages ne sont gardés qu'une fois votre compte créé.`
+    : `Vos paramètres sont conservés, les données fictives disparaissent.`;
   return `<div class="demo-slim-bar">
     <div style="font-size:18px;flex-shrink:0">🟡</div>
     <div class="demo-slim-msg">
-      <strong>Mode démonstration</strong> — Vos paramètres sont déjà les vôtres.<br>
+      <strong>Mode démonstration</strong> — ${paramsLine}<br>
       Les affaires, dépenses et encaissements affichés sont <strong>uniquement fictifs</strong> et seront supprimés quand vous quitterez ce mode.
     </div>
     <div class="demo-slim-actions">
       <span class="step-cta" onclick="navigate('params')" style="font-size:11px">Affiner mes paramètres</span>
       <div style="text-align:right">
-        <button class="btn btn-acc" style="font-size:11px;padding:6px 12px" onclick="openClearExampleModal()">Commencer avec mes données</button>
-        <div style="font-size:10px;color:var(--tl);margin-top:4px">Vos paramètres sont conservés, les données fictives disparaissent.</div>
+        <button class="btn btn-acc" style="font-size:11px;padding:6px 12px" onclick="openClearExampleModal()">${ctaLabel}</button>
+        <div style="font-size:10px;color:var(--tl);margin-top:4px">${ctaCaption}</div>
       </div>
     </div>
   </div>`;
@@ -4075,16 +4118,21 @@ function updateDemoUI() {
 
 function renderDemoContextBar(page) {
   const isParams = page === 'params';
-  const bg    = isParams ? 'rgba(34,197,94,.08)' : 'rgba(240,180,41,.08)';
-  const border = isParams ? 'rgba(34,197,94,.3)'  : 'rgba(240,180,41,.3)';
-  const icon  = isParams ? '✅' : '🟡';
-  const msg   = isParams
-    ? '<strong>Ces paramètres sont les vôtres</strong> — ils seront conservés lors de la création de votre espace de travail.'
-    : `<strong>Mode démonstration</strong> — Ces données sont fictives. Vous pouvez les modifier, les supprimer ou les tester librement. <strong>Elles seront supprimées</strong> lorsque vous créerez votre espace de travail.`;
+  const bg    = isParams && !isAnonymousDemoSession ? 'rgba(34,197,94,.08)' : 'rgba(240,180,41,.08)';
+  const border = isParams && !isAnonymousDemoSession ? 'rgba(34,197,94,.3)'  : 'rgba(240,180,41,.3)';
+  const icon  = isParams && !isAnonymousDemoSession ? '✅' : '🟡';
+  const msg   = isAnonymousDemoSession
+    ? (isParams
+        ? `<strong>Rien n'est enregistré</strong> — créez un compte pour garder ces réglages, tout se réinitialise si vous rechargez la page.`
+        : `<strong>Mode démonstration</strong> — Ces données sont fictives et rien n'est enregistré. Créez un compte pour garder vos réglages.`)
+    : (isParams
+        ? '<strong>Ces paramètres sont les vôtres</strong> — ils seront conservés lors de la création de votre espace de travail.'
+        : `<strong>Mode démonstration</strong> — Ces données sont fictives. Vous pouvez les modifier, les supprimer ou les tester librement. <strong>Elles seront supprimées</strong> lorsque vous créerez votre espace de travail.`);
+  const ctaLabel = isAnonymousDemoSession ? 'Créer mon compte' : 'Commencer avec mes données';
   return `<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:10px 16px;margin:10px 0 2px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text);line-height:1.5">
     <span style="font-size:16px;flex-shrink:0">${icon}</span>
     <span style="flex:1;min-width:180px">${msg}</span>
-    ${!isParams ? `<button class="btn btn-acc" style="font-size:11px;padding:5px 12px;flex-shrink:0" onclick="openClearExampleModal()">Commencer avec mes données</button>` : ''}
+    ${(!isParams || isAnonymousDemoSession) ? `<button class="btn btn-acc" style="font-size:11px;padding:5px 12px;flex-shrink:0" onclick="openClearExampleModal()">${ctaLabel}</button>` : ''}
   </div>`;
 }
 
@@ -4445,9 +4493,13 @@ function confirmMigration(source) {
 let _saveToastTimer=null;
 function saveData() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    if (!isAnonymousDemoSession) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    }
     if (DATA.isExample) {
-      if (currentPage === 'params') {
+      if (isAnonymousDemoSession) {
+        showToast('⚠️ Rien n\'est enregistré en mode démo sans compte — créez un compte pour garder vos réglages.', 'var(--acc)');
+      } else if (currentPage === 'params') {
         showToast('✅ Ces modifications seront conservées.', 'var(--ok)');
       } else {
         showToast('⚠️ Vous modifiez des données d\'exemple — elles ne seront pas conservées lorsque vous créerez votre espace de travail.', 'var(--acc)');
@@ -8072,7 +8124,6 @@ function updateCollectifCA() {
 }
 function openMissionModal(id, prefillDate) {
   const m=id?DATA.missions.find(x=>x.id===id):null;
-  if(m) migrateDevisBrouillon(m); // étape 2a : convertit l'ancien brouillon en documents[] (idempotent)
   document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
   document.getElementById('mission-edit-id').value=m?m.id:'';
   document.getElementById('m-client').value=m?m.client:'';
@@ -8222,7 +8273,6 @@ function openMissionModal(id, prefillDate) {
   const hasTempsGestion = m && (m.chargeEstimee > 0 || (m.sessions||[]).length > 0
     || m.tempsCreation > 0 || m.tempsAnimation > 0 || m.tempsSupport > 0);
   toggleTempsGestion(!!hasTempsGestion);
-  renderMissionDocuments(m ? m.id : ''); // section "Documents commerciaux" (étape 2b)
   openModal('modal-mission');
 }
 
@@ -10726,134 +10776,16 @@ const DEVIS_EXEMPLES_PAR_FAMILLE = {
 // dans DATA, cohérent avec le reste du générateur), reconstruit à chaque ouverture de la modale.
 let _devisLignes = [];
 function ajouterLigneDevis(designation = '', detail = '', montantHT = '') {
-  _devisLignes.push({ designation, detail, montantHT, discountType: null, discountValue: '' });
+  _devisLignes.push({ designation, detail, montantHT });
   renderLignesDevis();
 }
 function supprimerLigneDevis(i) {
   _devisLignes.splice(i, 1);
-  if (!_devisLignes.length) _devisLignes.push({ designation: '', detail: '', montantHT: '', discountType: null, discountValue: '' });
+  if (!_devisLignes.length) _devisLignes.push({ designation: '', detail: '', montantHT: '' });
   renderLignesDevis();
 }
-// ── REMISE PAR LIGNE (retour bêta Justin, 2026-08) ────────────────────────────
-// Modèle : discountType (null / 'percent' / 'fixed') + discountValue. On ne stocke que la source ;
-// le montant de remise et le net sont recalculés à la volée (pas de donnée calculée figée, et la
-// remise vit sur la donnée de ligne, donc réutilisable pour une future facture). Compatibilité :
-// une ligne sans champ de remise = aucune remise ; les brouillons de la 1re version (champ
-// remisePct, %) sont encore lus via le repli ci-dessous. Sécurités : % borné 0..100, € borné au
-// montant HT de la ligne, net jamais négatif, arrondis à 2 décimales.
-function _ldtRaw(l) { // type de remise stocké, avec repli sur l'ancien champ remisePct
-  return l.discountType || ((parseFloat(l.remisePct) || 0) > 0 ? 'percent' : null);
-}
-function _ligneRemiseInfo(l) {
-  const brut = parseFloat(l.montantHT) || 0;
-  let type = _ldtRaw(l);
-  let value = parseFloat(l.discountValue);
-  if (isNaN(value)) value = parseFloat(l.remisePct); // repli 1re version
-  if (!type || !(value > 0) || brut <= 0) return { type: null, value: 0, montant: 0 };
-  let montant;
-  if (type === 'percent') montant = brut * Math.min(100, value) / 100;
-  else montant = Math.min(brut, value); // fixe : jamais plus que le montant HT de la ligne
-  montant = Math.round(Math.max(0, montant) * 100) / 100;
-  return { type, value, montant };
-}
-function _ligneNetHT(l) {
-  const brut = parseFloat(l.montantHT) || 0;
-  return Math.max(0, Math.round((brut - _ligneRemiseInfo(l).montant) * 100) / 100);
-}
-function _devisTotalRemise() {
-  return _docRemiseTotale(_devisDocCourant());
-}
-function _devisHasRemise() {
-  return _docHasRemise(_devisDocCourant());
-}
-
-// ── DOCUMENTS COMMERCIAUX (étape 1, socle, 2026-08-02) ────────────────────────
-// Une mission peut porter plusieurs documents (devis + avenants), stockés dans mission.documents
-// (tableau), tout dans le blob JSON, aucune table Supabase. Modèle de document :
-//   { id, type:'quote'|'amendment', parentId, statut:'draft'|'issued'|'accepted'|'refused',
-//     numero, dateDevis, validiteJours, dateEmission, dateAcceptation,
-//     clientNom, clientEmail, clientAdresse, clientTel, objet, conditions, modalites,
-//     lignes:[ { designation, detail, montantHT, discountType, discountValue } ] }
-// Ces fonctions sont DORMANTES à l'étape 1 (le générateur les branchera à l'étape 2) : aucun
-// changement de comportement, elles ne sont appelées nulle part dans le flux actuel. Testées via
-// un script Node isolé (scratchpad/documents_socle_test.js).
-
-// Convertit l'ancien brouillon unique (mission.devisBrouillon) en un document quote/draft.
-// Idempotent : ne fait rien si la mission a déjà mission.documents. Ne supprime jamais l'ancien
-// champ (compatibilité, "ne supprime rien"). Aucune migration base, pur JS.
-function migrateDevisBrouillon(mission) {
-  if (!mission || Array.isArray(mission.documents)) return;
-  mission.documents = [];
-  const b = mission.devisBrouillon;
-  if (b) {
-    mission.documents.push({
-      id: uuid(), type: 'quote', parentId: null, statut: 'draft',
-      numero: b.numero || '', dateDevis: b.date || '', validiteJours: b.validite || 30,
-      dateEmission: null, dateAcceptation: null,
-      clientNom: b.client?.nom || '', clientEmail: b.client?.email || '',
-      clientAdresse: b.client?.adresse || '', clientTel: b.client?.tel || '',
-      objet: b.objet || '', conditions: b.conditions || '', modalites: b.modalites || '',
-      lignes: (b.lignes || []).map(l => ({ ...l })),
-    });
-  }
-}
-
-// Net d'une ligne au sein d'un document. Devis, ou ligne d'avenant POSITIVE (un ajout) : logique
-// de remise standard (positive, déjà testée). Ligne d'avenant NÉGATIVE (un retrait) : montant
-// signé tel quel, jamais de remise (décision produit : la remise ne s'applique qu'au positif,
-// sinon les sécurités net>=0 / plafond deviennent fausses sur du négatif).
-function _docLigneNet(doc, l) {
-  const brut = parseFloat(l.montantHT) || 0;
-  if (doc && doc.type === 'amendment' && brut < 0) return Math.round(brut * 100) / 100;
-  return _ligneNetHT(l);
-}
-function _docMontantHT(doc) {
-  return Math.round(((doc && doc.lignes) || []).reduce((s, l) => s + _docLigneNet(doc, l), 0) * 100) / 100;
-}
-function _docRemiseTotale(doc) {
-  return Math.round(((doc && doc.lignes) || []).reduce((s, l) => {
-    if (doc.type === 'amendment' && (parseFloat(l.montantHT) || 0) < 0) return s; // pas de remise sur un retrait
-    return s + _ligneRemiseInfo(l).montant;
-  }, 0) * 100) / 100;
-}
-function _docHasRemise(doc) {
-  return _docRemiseTotale(doc) > 0;
-}
-
-// Montant contractuel actualisé d'une mission : devis ACCEPTÉ + somme des avenants ACCEPTÉS
-// rattachés à ce devis. Seuls les documents acceptés comptent (un brouillon ou un simple émis ne
-// change rien). Retourne null s'il n'y a aucun devis accepté (l'étape 5 saura alors ne pas
-// écraser le montantDevis manuel). Alimente uniquement le prévisionnel (montantDevis), jamais le
-// CA réalisé (= encaissements, décision actée).
-function _missionMontantContractuel(mission) {
-  const docs = (mission && mission.documents) || [];
-  const devis = docs.find(d => d.type === 'quote' && d.statut === 'accepted');
-  if (!devis) return null;
-  let total = _docMontantHT(devis);
-  docs.forEach(d => { if (d.type === 'amendment' && d.parentId === devis.id && d.statut === 'accepted') total += _docMontantHT(d); });
-  return Math.round(total * 100) / 100;
-}
-// Étape 4 : retrouve le devis parent d'un avenant, en balayant toutes les missions (l'id d'un
-// document est unique dans le blob). Sert au titre de la modale et à l'en-tête du PDF d'avenant.
-function _docParentDevis(parentId) {
-  if (!parentId) return null;
-  for (const m of (DATA.missions || [])) {
-    const found = (m.documents || []).find(d => d.id === parentId);
-    if (found) return found;
-  }
-  return null;
-}
-function _docParentDevisNumero(parentId) {
-  const p = _docParentDevis(parentId);
-  return p ? (p.numero || p.objet || 'sans numéro') : '';
-}
-
 function majLigneDevis(i, champ, valeur) {
-  if (!_devisLignes[i]) return;
-  _devisLignes[i][champ] = valeur;
-  // Dès qu'on touche à la remise via le nouveau modèle, on abandonne l'ancien champ remisePct
-  // (sinon un reliquat pourrait réactiver une remise après un passage sur "Aucune").
-  if (champ === 'discountType' || champ === 'discountValue') delete _devisLignes[i].remisePct;
+  if (_devisLignes[i]) _devisLignes[i][champ] = valeur;
   if (champ === 'montantHT') rafraichirApercuDevisTotal();
 }
 function renderLignesDevis() {
@@ -10864,20 +10796,7 @@ function renderLignesDevis() {
       ${_devisLignes.length > 1 ? `<button type="button" onclick="supprimerLigneDevis(${i})" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--tl);cursor:pointer;font-size:12px" title="Supprimer cette ligne">✕</button>` : ''}
       <div class="fgroup"><label class="flabel">Désignation</label><input type="text" placeholder="${exemples.designation}" value="${esc(l.designation)}" oninput="majLigneDevis(${i},'designation',this.value)"></div>
       <div class="fgroup"><label class="flabel">Détail de la prestation</label><textarea rows="2" placeholder="Une ligne par élément — apparaît tel quel sur le devis" oninput="majLigneDevis(${i},'detail',this.value)">${esc(l.detail)}</textarea></div>
-      <div class="frow">
-        <div class="fgroup"><label class="flabel">Montant HT (€)${_devisModeAvenant ? ' <span class="ts" style="color:var(--tl)">(négatif = retrait)</span>' : ''}</label><input type="number" step="10"${_devisModeAvenant ? '' : ' min="0"'} value="${l.montantHT}" oninput="majLigneDevis(${i},'montantHT',this.value);rafraichirApercuDevisTotal()"></div>
-        <div class="fgroup"><label class="flabel">Remise</label>
-          <div style="display:flex;gap:6px">
-            <select onchange="majLigneDevis(${i},'discountType',this.value||null);rafraichirApercuDevisTotal()" style="width:auto;flex:0 0 auto">
-              <option value=""${!_ldtRaw(l) ? ' selected' : ''}>Aucune</option>
-              <option value="percent"${_ldtRaw(l) === 'percent' ? ' selected' : ''}>%</option>
-              <option value="fixed"${_ldtRaw(l) === 'fixed' ? ' selected' : ''}>€</option>
-            </select>
-            <input type="number" min="0" step="1" placeholder="0" value="${(l.discountValue !== undefined && l.discountValue !== null && l.discountValue !== '') ? l.discountValue : (l.remisePct || '')}" oninput="majLigneDevis(${i},'discountValue',this.value);rafraichirApercuDevisTotal()" style="flex:1">
-          </div>
-        </div>
-      </div>
-      <div class="ts" id="dv-net-${i}" style="color:var(--tl);margin-top:-2px;margin-bottom:6px"></div>
+      <div class="fgroup"><label class="flabel">Montant HT (€)</label><input type="number" step="10" min="0" value="${l.montantHT}" oninput="majLigneDevis(${i},'montantHT',this.value);rafraichirApercuDevisTotal()"></div>
     </div>`).join('');
   rafraichirApercuDevisTotal();
 }
@@ -10889,75 +10808,10 @@ function renderLignesDevis() {
 // générateur est ouvert depuis le Simulateur (pas de mission à rattacher, brouillon perdu à la
 // fermeture — acceptable, le Simulateur est un usage plus ponctuel).
 let _devisMissionId = null;
-// Étape 2a (2026-08-02) : le générateur cible désormais un document précis de mission.documents
-// (au lieu de l'unique mission.devisBrouillon). _devisDocId = l'id du document en cours d'édition,
-// null quand le générateur est ouvert sans mission (Simulateur, menu Outils).
-let _devisDocId = null;
-// Étape 4 : mode avenant. Quand le générateur édite un document de type 'amendment', les montants
-// de ligne peuvent être négatifs (retraits) et l'aperçu utilise le calcul signé (_docMontantHT).
-let _devisModeAvenant = false;
-let _devisParentDevisId = null; // id du devis parent de l'avenant en cours d'édition
-function _devisDocCourant() { return { type: _devisModeAvenant ? 'amendment' : 'quote', lignes: _devisLignes }; }
-function _nouveauDocDevis() {
-  return { id: uuid(), type: 'quote', parentId: null, statut: 'draft',
-    numero: '', dateDevis: '', validiteJours: 30, dateEmission: null, dateAcceptation: null,
-    clientNom: '', clientEmail: '', clientAdresse: '', clientTel: '',
-    objet: '', conditions: '', modalites: '', lignes: [] };
-}
-// Convertit un document (champs client à plat) vers la forme "brouillon" attendue par
-// ouvrirGenerateurDevis (client imbriqué), pour ne pas avoir à réécrire le chargement du formulaire.
-function _docToBrouillon(doc) {
-  return {
-    client: { nom: doc.clientNom || '', email: doc.clientEmail || '', adresse: doc.clientAdresse || '', tel: doc.clientTel || '' },
-    numero: doc.numero || '', date: doc.dateDevis || '', validite: doc.validiteJours || 30,
-    objet: doc.objet || '', lignes: (doc.lignes || []).map(l => ({ ...l })),
-    conditions: doc.conditions || '', modalites: doc.modalites || '',
-  };
-}
-// Lit le formulaire du générateur vers un objet document. Reprend id/type/statut/parentId du
-// document en cours d'édition s'il existe (pour ne pas régénérer un id ni perdre le type/avenant),
-// sinon un document quote/brouillon transitoire (Simulateur, menu Outils, pas de mission rattachée).
-function _devisFormToDoc() {
-  const val = id => (document.getElementById(id)?.value || '').trim();
-  const base = (_devisMissionId && _devisDocId)
-    ? ((DATA.missions.find(m => m.id === _devisMissionId)?.documents) || []).find(d => d.id === _devisDocId)
-    : null;
-  return {
-    id: base?.id || uuid(), type: base?.type || 'quote', parentId: base?.parentId ?? null,
-    statut: base?.statut || 'draft',
-    numero: val('dv-numero'), dateDevis: val('dv-date'),
-    validiteJours: parseInt(document.getElementById('dv-validite')?.value, 10) || 30,
-    dateEmission: base?.dateEmission ?? null, dateAcceptation: base?.dateAcceptation ?? null,
-    clientNom: val('dv-client-nom'), clientEmail: val('dv-client-email'),
-    clientAdresse: val('dv-client-adresse'), clientTel: val('dv-client-tel'),
-    objet: val('dv-objet'), conditions: val('dv-conditions'), modalites: val('dv-modalites'),
-    lignes: _devisLignes.map(l => ({ ...l })),
-  };
-}
-function ouvrirGenerateurDevis(prefill = {}, brouillon = null, opts = {}) {
-  // Mode avenant (étape 4) : chaque point d'entrée le fixe via opts, donc il est TOUJOURS remis à
-  // plat ici (pas d'état résiduel d'une ouverture précédente). Doit être défini avant renderLignesDevis.
-  _devisModeAvenant = !!opts.avenant;
-  _devisParentDevisId = opts.parentId || null;
+function ouvrirGenerateurDevis(prefill = {}, brouillon = null) {
   const family = BUSINESS_PROFILE_MAP[DATA.params?.metier] || 'service';
   const exemples = DEVIS_EXEMPLES_PAR_FAMILLE[family] || DEVIS_EXEMPLES_PAR_FAMILLE.service;
   document.getElementById('dv-objet').placeholder = exemples.objet;
-  // Titre de la modale selon le type de document (devis ou avenant).
-  const _titre = document.getElementById('dv-modal-title');
-  const _refDevis = _devisModeAvenant ? _docParentDevisNumero(_devisParentDevisId) : '';
-  if (_titre) {
-    _titre.textContent = _devisModeAvenant
-      ? (_refDevis ? `📄 Avenant au devis ${_refDevis}` : '📄 Avenant au devis')
-      : '📄 Générer un devis';
-  }
-  const _sub = document.getElementById('dv-modal-sub');
-  if (_sub) {
-    _sub.textContent = _devisModeAvenant
-      ? `Modifie le devis accepté (lignes positives = ajouts, négatives = retraits). Une fois émis, il sera figé et s'ajoutera au montant contractuel de la mission une fois accepté.`
-      : (_devisMissionId
-          ? `Enregistré sur la mission avec son statut. À vous de l'envoyer au client, Indépuls garde la trace du document.`
-          : `Document non suivi par Indépuls, une fois généré, à vous de l'envoyer et d'en assurer le suivi.`);
-  }
   if (brouillon) {
     document.getElementById('dv-client-nom').value = brouillon.client?.nom || '';
     document.getElementById('dv-client-email').value = brouillon.client?.email || '';
@@ -11013,25 +10867,7 @@ function creerMissionDepuisDevis() {
 function ouvrirGenerateurDevisMission() {
   _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
   const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
-  if (mission) {
-    migrateDevisBrouillon(mission); // idempotent : convertit l'ancien brouillon si besoin
-    // Étape 2a : on édite le devis en brouillon existant, ou on en crée un. (L'étape 2b ajoutera
-    // le choix parmi plusieurs documents ; ici on reste à un devis brouillon par mission.)
-    let doc = (mission.documents || []).find(d => d.type === 'quote' && d.statut === 'draft');
-    if (!doc) { doc = _nouveauDocDevis(); mission.documents.push(doc); }
-    _devisDocId = doc.id;
-    // Préremplir le client/objet/montant depuis la mission si le document est encore vide.
-    const estVide = !doc.clientNom && !doc.objet && !(doc.lignes || []).length;
-    if (estVide) {
-      doc.clientNom = document.getElementById('m-client')?.value || '';
-      doc.objet = document.getElementById('m-desc')?.value || '';
-      const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
-      if (montantHT > 0) doc.lignes = [{ designation: doc.objet || '', detail: '', montantHT }];
-    }
-    ouvrirGenerateurDevis({}, _docToBrouillon(doc));
-    return;
-  }
-  _devisMissionId = null; _devisDocId = null;
+  if (mission?.devisBrouillon) { ouvrirGenerateurDevis({}, mission.devisBrouillon); return; }
   const client = document.getElementById('m-client')?.value || '';
   const description = document.getElementById('m-desc')?.value || '';
   const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
@@ -11041,7 +10877,7 @@ function ouvrirGenerateurDevisMission() {
 // l'utilisatrice). Le mode "Calculer un tarif" a son propre bouton, voir plus bas (le prix n'est
 // alors pas un input mais le résultat calculé, sans champ #sim-ca-val à relire).
 function ouvrirGenerateurDevisSim() {
-  _devisMissionId = null; _devisDocId = null;
+  _devisMissionId = null;
   const montantHT = _simMode === 'calculer' ? _simCalculerMontant : (parseFloat(document.getElementById('sim-ca-val')?.value) || 0);
   ouvrirGenerateurDevis({ client: '', description: '', montantHT });
 }
@@ -11050,204 +10886,28 @@ function ouvrirGenerateurDevisSim() {
 // "Combien facturer ?" ni créé de mission ne découvrait jusqu'ici jamais que la génération de
 // devis existe. Même modale que les deux autres points d'entrée, juste sans préremplissage.
 function ouvrirGenerateurDevisVierge() {
-  _devisMissionId = null; _devisDocId = null;
+  _devisMissionId = null;
   ouvrirGenerateurDevis({});
-}
-
-// ── SECTION "DOCUMENTS COMMERCIAUX" DE LA FICHE MISSION (étape 2b) ─────────────
-// Rendue dans #m-documents-zone à l'ouverture de la fiche mission, et rafraîchie après chaque
-// création/suppression/édition d'un document. Étape 2b : uniquement des devis en brouillon
-// (Modifier / PDF / Supprimer). Émission, duplication, avenants, acceptation arrivent aux
-// étapes 3-4 (les statuts issued/accepted/refused sont déjà gérés à l'affichage, dormants).
-function _docStatutBadge(s) {
-  const map = { draft: ['Brouillon', 'var(--tl)'], issued: ['Émis', 'var(--acc)'], accepted: ['Accepté', 'var(--ok)'], refused: ['Refusé', 'var(--err)'] };
-  const [lbl, col] = map[s] || map.draft;
-  return `<span style="font-size:10px;font-weight:700;color:${col};border:1px solid ${col};border-radius:10px;padding:1px 7px;white-space:nowrap">${lbl}</span>`;
-}
-function renderMissionDocuments(missionId) {
-  const zone = document.getElementById('m-documents-zone');
-  if (!zone) return;
-  const infoTip = `<span class="info-tip" title="Une mission peut contenir plusieurs devis (par exemple deux options, ou une version révisée). Émettre un devis le fige : il n'est plus modifiable, mais reste consultable et imprimable en PDF ; pour le changer, dupliquez-le. Marquez « accepté » le devis retenu : il devient le devis de référence de la mission. Si vous acceptez un autre devis, il remplace le précédent (l'ancien repasse en « émis »). Les avenants se rattacheront ensuite au devis accepté pour l'ajuster (ajout ou retrait).">?</span>`;
-  if (!missionId) {
-    zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux ${infoTip}</label><div class="ts" style="color:var(--tl)">Enregistrez d'abord la mission pour y créer un devis.</div></div>`;
-    return;
-  }
-  const mission = DATA.missions.find(m => m.id === missionId);
-  if (!mission) { zone.innerHTML = ''; return; }
-  migrateDevisBrouillon(mission);
-  const docs = mission.documents || [];
-  const dStr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-  const rows = docs.map(d => {
-    const titre = d.numero ? esc(d.numero) : (d.type === 'amendment' ? 'Avenant' : 'Devis');
-    // Actions selon le statut. Un document figé (issued/accepted/refused) n'est jamais modifiable
-    // ni ré-émis : on le duplique pour repartir dessus.
-    const act = [];
-    if (d.statut === 'draft') {
-      act.push(`<span class="step-cta" onclick="ouvrirDocumentDevis('${d.id}')">Modifier</span>`);
-      act.push(`<span class="step-cta" onclick="emettreDocument('${d.id}')">Émettre</span>`);
-    }
-    act.push(`<span class="step-cta" onclick="voirPdfDocument('${d.id}')">PDF</span>`);
-    if (d.statut !== 'draft') act.push(`<span class="step-cta" onclick="dupliquerDocument('${d.id}')">Dupliquer</span>`);
-    if (d.statut === 'issued') {
-      act.push(`<span class="step-cta" onclick="marquerDocument('${d.id}','accepted')">Marquer accepté</span>`);
-      act.push(`<span class="step-cta" onclick="marquerDocument('${d.id}','refused')">Marquer refusé</span>`);
-    }
-    // Un devis accepté peut recevoir des avenants (étape 4).
-    if (d.type === 'quote' && d.statut === 'accepted') {
-      act.push(`<span class="step-cta" onclick="creerAvenant('${d.id}')">Créer un avenant</span>`);
-    }
-    act.push(`<span class="step-cta" style="color:var(--err)" onclick="supprimerDocument('${d.id}')">Supprimer</span>`);
-    const dateInfo = d.statut === 'accepted' && d.dateAcceptation ? `Accepté le ${dStr(d.dateAcceptation)}`
-      : (d.statut === 'issued' || d.statut === 'refused') && d.dateEmission ? `Émis le ${dStr(d.dateEmission)}` : '';
-    // Pour un avenant, on rappelle le devis parent.
-    const refParent = d.type === 'amendment' ? _docParentDevisNumero(d.parentId) : '';
-    const refInfo = refParent ? `<div class="ts" style="color:var(--tl);margin-top:2px">Avenant au devis ${esc(refParent)}</div>` : '';
-    return `<div style="border:1px solid var(--brd);border-radius:8px;padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
-        <div><strong>${titre}</strong> ${_docStatutBadge(d.statut)}${refInfo}${d.objet ? `<div class="ts" style="color:var(--tl);margin-top:2px">${esc(d.objet)}</div>` : ''}${dateInfo ? `<div class="ts" style="color:var(--tl);margin-top:2px">${dateInfo}</div>` : ''}</div>
-        <div class="fb" style="white-space:nowrap">${fmtE(_docMontantHT(d))}</div>
-      </div>
-      <div class="ts" style="margin-top:6px">${act.join(' · ')}</div>
-    </div>`;
-  }).join('');
-  zone.innerHTML = `<div class="fgroup"><label class="flabel">Documents commerciaux ${infoTip}</label>
-    ${rows || `<div class="ts" style="color:var(--tl);margin-bottom:6px">Aucun devis pour l'instant.</div>`}
-    <button type="button" class="btn btn-out btn-sm" onclick="creerNouveauDevisMission()">+ Créer un devis</button>
-  </div>`;
-}
-function creerNouveauDevisMission() {
-  _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
-  if (!mission) return;
-  migrateDevisBrouillon(mission);
-  const doc = _nouveauDocDevis();
-  doc.clientNom = document.getElementById('m-client')?.value || '';
-  doc.objet = document.getElementById('m-desc')?.value || '';
-  const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
-  if (montantHT > 0) doc.lignes = [{ designation: doc.objet || '', detail: '', montantHT }];
-  mission.documents.push(doc);
-  _devisDocId = doc.id;
-  ouvrirGenerateurDevis({}, _docToBrouillon(doc));
-}
-function ouvrirDocumentDevis(docId) {
-  _devisMissionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = _devisMissionId ? DATA.missions.find(m => m.id === _devisMissionId) : null;
-  const doc = mission && (mission.documents || []).find(d => d.id === docId);
-  if (!doc) return;
-  _devisDocId = doc.id;
-  ouvrirGenerateurDevis({}, _docToBrouillon(doc), { avenant: doc.type === 'amendment', parentId: doc.parentId });
-}
-function voirPdfDocument(docId) {
-  const missionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
-  const doc = mission && (mission.documents || []).find(d => d.id === docId);
-  if (doc) _renderDevisPDF(doc);
-}
-function supprimerDocument(docId) {
-  const missionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
-  if (!mission || !(mission.documents || []).some(d => d.id === docId)) return;
-  if (!confirm('Supprimer ce document ?')) return;
-  mission.documents = mission.documents.filter(d => d.id !== docId);
-  saveData();
-  renderMissionDocuments(missionId);
-}
-// ── ÉTAPE 3 : figeage à l'émission ─────────────────────────────────────────────
-// Émettre fige le document (statut 'issued') : il n'est plus modifiable (ni via "Modifier", retiré
-// de la liste, ni via le générateur, garde-fou dans fermerGenerateurDevis) ni ré-émis. Ses données
-// (lignes, client, totaux) restent le snapshot du moment ; une modification ultérieure de la mission
-// ne le change pas (le document est indépendant dans mission.documents). Le PDF se régénère à
-// l'identique depuis ces données figées. Pour repartir d'un document figé : "Dupliquer" crée un
-// nouveau brouillon. "Marquer accepté/refusé" fait évoluer un document émis.
-function emettreDocument(docId) {
-  const missionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
-  const doc = mission && (mission.documents || []).find(d => d.id === docId);
-  if (!doc || doc.statut !== 'draft') return;
-  // Un avenant peut être négatif (retrait) : on ne bloque que le montant strictement nul.
-  if (_docMontantHT(doc) === 0 && !confirm('Ce document a un montant nul. L\'émettre quand même ?')) return;
-  if (!confirm('Émettre ce document ? Il ne sera plus modifiable ensuite (vous pourrez le dupliquer pour repartir dessus).')) return;
-  doc.statut = 'issued';
-  doc.dateEmission = today();
-  saveData();
-  renderMissionDocuments(missionId);
-}
-function dupliquerDocument(docId) {
-  const missionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
-  const src = mission && (mission.documents || []).find(d => d.id === docId);
-  if (!src) return;
-  // Copie profonde des lignes, nouveau brouillon (numéro et dates d'émission/acceptation remis à
-  // zéro). Le type et le parentId sont conservés : un devis dupliqué reste un devis, un avenant
-  // dupliqué reste un avenant du même devis parent.
-  const copie = Object.assign(JSON.parse(JSON.stringify(src)), { id: uuid(), statut: 'draft', numero: '', dateEmission: null, dateAcceptation: null });
-  mission.documents.push(copie);
-  _devisMissionId = missionId; _devisDocId = copie.id;
-  ouvrirGenerateurDevis({}, _docToBrouillon(copie), { avenant: copie.type === 'amendment', parentId: copie.parentId });
-}
-// Étape 4 : crée un avenant rattaché à un devis accepté. Un avenant modifie le devis de référence
-// (lignes positives = ajouts, négatives = retraits) et, une fois accepté, s'ajoute au montant
-// contractuel de la mission (voir _missionMontantContractuel). On préremplit une ligne vide.
-function creerAvenant(devisId) {
-  const missionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
-  const devis = mission && (mission.documents || []).find(d => d.id === devisId);
-  if (!devis || devis.type !== 'quote' || devis.statut !== 'accepted') return;
-  const doc = _nouveauDocDevis();
-  doc.type = 'amendment';
-  doc.parentId = devis.id;
-  doc.clientNom = devis.clientNom || ''; doc.clientEmail = devis.clientEmail || '';
-  doc.clientAdresse = devis.clientAdresse || ''; doc.clientTel = devis.clientTel || '';
-  doc.objet = devis.objet || '';
-  doc.lignes = [{ designation: '', detail: '', montantHT: '' }];
-  mission.documents.push(doc);
-  _devisMissionId = missionId; _devisDocId = doc.id;
-  ouvrirGenerateurDevis({}, _docToBrouillon(doc), { avenant: true, parentId: devis.id });
-}
-function marquerDocument(docId, statut) {
-  const missionId = document.getElementById('mission-edit-id')?.value || null;
-  const mission = missionId ? DATA.missions.find(m => m.id === missionId) : null;
-  const doc = mission && (mission.documents || []).find(d => d.id === docId);
-  if (!doc) return;
-  if (statut === 'accepted' && doc.type === 'quote') {
-    // Un seul devis accepté par mission (le contractuel) : tout autre devis déjà accepté repasse en
-    // "émis", pour ne jamais avoir deux devis contractuels concurrents (le montant contractuel de
-    // l'étape 5 se base sur LE devis accepté).
-    (mission.documents || []).forEach(d => { if (d.type === 'quote' && d.id !== docId && d.statut === 'accepted') d.statut = 'issued'; });
-  }
-  doc.statut = statut;
-  doc.dateAcceptation = statut === 'accepted' ? today() : null;
-  saveData();
-  renderMissionDocuments(missionId);
 }
 // Sauvegarde le brouillon (si rattaché à une mission) puis ferme — appelée par "Annuler" ET à
 // la fin de genererDevisPDF(), pour ne jamais perdre une saisie qu'elle soit générée ou non.
 function fermerGenerateurDevis() {
-  if (_devisMissionId && _devisDocId) {
+  if (_devisMissionId) {
     const mission = DATA.missions.find(m => m.id === _devisMissionId);
-    const doc = mission && (mission.documents || []).find(d => d.id === _devisDocId);
-    // On ne réécrit que les brouillons : un document figé (issued/accepted) ne doit jamais être
-    // modifié en fermant le générateur (garde-fou anticipé pour l'étape 3).
-    if (doc && doc.statut === 'draft') {
+    if (mission) {
       const val = id => (document.getElementById(id)?.value || '').trim();
-      doc.numero = val('dv-numero'); doc.dateDevis = val('dv-date');
-      doc.validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
-      doc.objet = val('dv-objet');
-      doc.clientNom = val('dv-client-nom'); doc.clientEmail = val('dv-client-email');
-      doc.clientAdresse = val('dv-client-adresse'); doc.clientTel = val('dv-client-tel');
-      doc.lignes = _devisLignes.map(l => ({ ...l }));
-      doc.conditions = val('dv-conditions'); doc.modalites = val('dv-modalites');
+      mission.devisBrouillon = {
+        client: { nom: val('dv-client-nom'), email: val('dv-client-email'), adresse: val('dv-client-adresse'), tel: val('dv-client-tel') },
+        numero: val('dv-numero'), date: val('dv-date'),
+        validite: parseInt(document.getElementById('dv-validite')?.value, 10) || 30,
+        objet: val('dv-objet'), lignes: _devisLignes.map(l => ({ ...l })),
+        conditions: val('dv-conditions'), modalites: val('dv-modalites'),
+      };
       saveData();
     }
   }
-  const _missionOuverte = _devisMissionId;
-  _devisMissionId = null; _devisDocId = null;
-  _devisModeAvenant = false; _devisParentDevisId = null;
+  _devisMissionId = null;
   closeModal('modal-devis');
-  // Rafraîchir la liste des documents si la fiche mission est encore ouverte derrière.
-  if (_missionOuverte && document.getElementById('m-documents-zone') && !document.getElementById('modal-mission')?.classList.contains('hidden')) {
-    renderMissionDocuments(_missionOuverte);
-  }
 }
 function _devisTvaInfo(montantHT) {
   const p = DATA.params;
@@ -11257,64 +10917,40 @@ function _devisTvaInfo(montantHT) {
   return { montantTVA, totalTTC: Math.round((montantHT + montantTVA) * 100) / 100, mention: `TVA ${taux} %` };
 }
 function _devisTotalHT() {
-  return _docMontantHT(_devisDocCourant());
+  return _devisLignes.reduce((s, l) => s + (parseFloat(l.montantHT) || 0), 0);
 }
 function rafraichirApercuDevisTotal() {
   const montantHT = _devisTotalHT();
-  const remiseTot = _devisTotalRemise();
   const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
   const el = document.getElementById('dv-tva-apercu');
-  const prefixRemise = remiseTot > 0 ? `Remises : -${fmtE(remiseTot)} · ` : '';
   if (el) el.textContent = DATA.params.tva
-    ? `${prefixRemise}Sous-total HT : ${fmtE(montantHT)} · ${mention} : ${fmtE(montantTVA)} · Total TTC : ${fmtE(totalTTC)}`
-    : `${prefixRemise}${mention} · Total : ${fmtE(montantHT)}`;
-  // Rappel du net par ligne, rafraîchi à chaque frappe sans re-render (pas de perte de focus).
-  _devisLignes.forEach((l, i) => {
-    const n = document.getElementById('dv-net-' + i);
-    if (!n) return;
-    const info = _ligneRemiseInfo(l);
-    n.innerHTML = info.montant > 0 ? `Net après remise : <strong>${fmtE(_docLigneNet(_devisDocCourant(), l))}</strong> (remise ${fmtE(info.montant)})` : '';
-  });
+    ? `Sous-total HT : ${fmtE(montantHT)} · ${mention} : ${fmtE(montantTVA)} · Total TTC : ${fmtE(totalTTC)}`
+    : `${mention} · Total : ${fmtE(montantHT)}`;
 }
 // Génère le devis dans un nouvel onglet (même convention que le Livre des recettes/l'Export
 // comptable, indepuls.html) puis déclenche l'impression native du navigateur ("Enregistrer en
 // PDF") — aucune librairie PDF ajoutée, cohérent avec le zéro-dépendance déjà en place partout
 // ailleurs dans Indépuls.
-// Bouton "Générer le PDF" du générateur : lit le formulaire vers un document, mémorise les
-// conditions/modalités par défaut, rend le PDF, puis ferme (ce qui persiste le document si
-// rattaché à une mission).
 function genererDevisPDF() {
+  const p = DATA.params;
   const val = id => (document.getElementById(id)?.value || '').trim();
+  // Conditions/modalités mémorisées pour la prochaine fois (voir ouvrirGenerateurDevis).
   saveParam('devisConditionsDefaut', val('dv-conditions'));
   saveParam('devisModalitesDefaut', val('dv-modalites'));
-  _renderDevisPDF(_devisFormToDoc());
-  fermerGenerateurDevis();
-}
-// Rend le PDF (nouvel onglet + impression navigateur) à partir d'un OBJET document, jamais du DOM.
-// Permet de régénérer à l'identique un document figé (étape 3) ou de voir le PDF d'un document non
-// ouvert dans le formulaire (liste des documents de la mission). Déterministe : mêmes données, même
-// rendu. Étape 2b : type 'quote' uniquement (l'en-tête AVENANT sera ajouté à l'étape 4).
-function _renderDevisPDF(doc) {
-  const p = DATA.params;
-  const estAvenant = doc.type === 'amendment';
-  const refParent = estAvenant ? _docParentDevisNumero(doc.parentId) : '';
-  const motDoc = estAvenant ? 'Avenant' : 'Devis';
-  const lignes = doc.lignes || [];
-  const montantHT = _docMontantHT(doc);
-  const totalBrutHT = Math.round(lignes.reduce((s, l) => s + (parseFloat(l.montantHT) || 0), 0) * 100) / 100;
-  const remiseTotale = _docRemiseTotale(doc);
-  const hasRemise = _docHasRemise(doc);
+  const montantHT = _devisTotalHT();
   const { montantTVA, totalTTC, mention } = _devisTvaInfo(montantHT);
   const dateStr = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-  const dateDevis = doc.dateDevis || '';
-  const validiteJours = doc.validiteJours || 30;
+  const dateDevis = val('dv-date');
+  const validiteJours = parseInt(document.getElementById('dv-validite')?.value, 10) || 30;
   const dateValidite = dateDevis ? new Date(new Date(dateDevis + 'T12:00:00').getTime() + validiteJours * 86400000) : null;
-  // Couleurs du thème choisi par l'utilisateur (retour Faustine 2026-07-30 : le PDF suit le thème
-  // du compte, pas des couleurs en dur), cohérent avec le reste d'Indépuls.
-  const cPri = themeColor('--pri'), cAcc = themeColor('--acc'), cSec = themeColor('--sec'), cText = themeColor('--text');
+  // Couleurs du thème choisi par l'utilisatrice·teur, pas celles de Faustine en dur (retour
+  // Faustine, 2026-07-30 : "les couleurs sont les miennes, pas forcément celles de l'utilisateur
+  // — ici mon mari") — même thème que le reste d'Indépuls, y compris pour un futur compte
+  // séparé sur un autre thème (Lavande, Pêche Douce, etc.).
+  const cPri = themeColor('--pri'), cAcc = themeColor('--acc'), cSec = themeColor('--sec'), cText = themeColor('--text'), cTl = themeColor('--tl');
 
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${motDoc}${doc.numero ? ' ' + doc.numero : ''}</title><style>
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Devis${val('dv-numero') ? ' ' + val('dv-numero') : ''}</title><style>
     body{font-family:Arial,sans-serif;font-size:12.5px;color:${cText};margin:32px;line-height:1.5}
     .entete{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
     .titre{font-size:30px;font-weight:900;color:${cPri};letter-spacing:1px}
@@ -11338,9 +10974,9 @@ function _renderDevisPDF(doc) {
   <div class="entete">
     <div>
       ${p.logoDataUrl ? `<img src="${p.logoDataUrl}" style="max-height:100px;max-width:280px;display:block;margin-bottom:8px">` : `<strong style="font-size:16px">${esc(p.nom || '')}</strong>`}
-      <div class="meta" style="text-align:left">${doc.numero ? `${motDoc} n°${esc(doc.numero)}` : motDoc}${dateDevis ? ` · ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}${estAvenant && refParent ? `<br>Relatif au devis ${esc(refParent)}` : ''}</div>
+      <div class="meta" style="text-align:left">${val('dv-numero') ? `Devis n°${esc(val('dv-numero'))}` : 'Devis'}${dateDevis ? ` · ${dateStr(dateDevis)}` : ''}${dateValidite ? ` · Valable jusqu'au ${dateStr(dateValidite.toISOString().slice(0,10))}` : ''}</div>
     </div>
-    <div class="titre">${estAvenant ? 'AVENANT' : 'DEVIS'}</div>
+    <div class="titre">DEVIS</div>
   </div>
   <div class="parties">
     <div>
@@ -11350,51 +10986,38 @@ function _renderDevisPDF(doc) {
     </div>
     <div>
       <div class="label">Adressé à</div>
-      ${doc.clientNom ? esc(doc.clientNom) + '<br>' : ''}
-      ${doc.clientEmail ? esc(doc.clientEmail) + '<br>' : ''}
-      ${doc.clientAdresse ? esc(doc.clientAdresse) + '<br>' : ''}
-      ${doc.clientTel ? esc(doc.clientTel) : ''}
+      ${val('dv-client-nom') ? esc(val('dv-client-nom')) + '<br>' : ''}
+      ${val('dv-client-email') ? esc(val('dv-client-email')) + '<br>' : ''}
+      ${val('dv-client-adresse') ? esc(val('dv-client-adresse')) + '<br>' : ''}
+      ${val('dv-client-tel') ? esc(val('dv-client-tel')) : ''}
     </div>
   </div>
-  ${doc.objet ? `<div class="objet">${esc(doc.objet)}</div>` : ''}
+  ${val('dv-objet') ? `<div class="objet">${esc(val('dv-objet'))}</div>` : ''}
   <table>
-    <thead><tr><th>Désignation</th><th>Détail</th><th>Montant HT</th>${hasRemise ? '<th>Remise</th><th>Total HT</th>' : ''}</tr></thead>
-    <tbody>${lignes.map(l => {
-      const brut = parseFloat(l.montantHT) || 0;
-      if (!hasRemise) {
-        return `<tr><td><strong>${esc(l.designation)}</strong></td><td>${esc(l.detail).replace(/\n/g, '<br>')}</td><td>${fmtE(brut)}</td></tr>`;
-      }
-      const remiseSkip = doc.type === 'amendment' && brut < 0; // pas de remise sur un retrait
-      const info = remiseSkip ? { montant: 0 } : _ligneRemiseInfo(l);
-      const remiseStr = info.montant > 0
-        ? (info.type === 'percent' ? `${fmt(Math.min(100, info.value), info.value % 1 === 0 ? 0 : 1)} %` : fmtE(info.montant))
-        : '';
-      return `<tr>
+    <thead><tr><th>Désignation</th><th>Détail</th><th>Montant HT</th></tr></thead>
+    <tbody>${_devisLignes.map(l => `<tr>
       <td><strong>${esc(l.designation)}</strong></td>
       <td>${esc(l.detail).replace(/\n/g, '<br>')}</td>
-      <td>${fmtE(brut)}</td>
-      <td>${remiseStr}</td>
-      <td>${fmtE(_docLigneNet(doc, l))}</td>
-    </tr>`;
-    }).join('')}</tbody>
+      <td>${fmtE(parseFloat(l.montantHT) || 0)}</td>
+    </tr>`).join('')}</tbody>
   </table>
   <div class="totaux">
-    ${hasRemise ? `<div>Sous-total HT avant remise<span>${fmtE(totalBrutHT)}</span></div><div>Remises<span>-${fmtE(remiseTotale)}</span></div>` : ''}
-    <div>${hasRemise ? 'Total HT' : 'Sous-total HT'}<span>${fmtE(montantHT)}</span></div>
+    <div>Sous-total HT<span>${fmtE(montantHT)}</span></div>
     ${p.tva ? `<div>${mention}<span>${fmtE(montantTVA)}</span></div>` : ''}
     <div class="total-ttc">Total TTC<span>${fmtE(totalTTC)}</span></div>
   </div>
   <div class="bas">
-    <div><div class="label">Conditions de paiement</div>${esc(doc.conditions || '').replace(/\n/g,'<br>')}</div>
-    <div><div class="label">Modalités</div>${esc(doc.modalites || '').replace(/\n/g,'<br>')}</div>
+    <div><div class="label">Conditions de paiement</div>${esc(val('dv-conditions')).replace(/\n/g,'<br>')}</div>
+    <div><div class="label">Modalités</div>${esc(val('dv-modalites')).replace(/\n/g,'<br>')}</div>
   </div>
   <div class="signatures">
-    <div><div class="label">Bon pour accord, client</div>Nom, date et signature</div>
-    <div><div class="label">Signature, prestataire</div>${esc(p.nom || '')}</div>
+    <div><div class="label">Bon pour accord — client</div>Nom, date et signature</div>
+    <div><div class="label">Signature — prestataire</div>${esc(p.nom || '')}</div>
   </div>
   <script>window.onload=function(){window.print()}<\/script>
   </body></html>`);
   w.document.close();
+  fermerGenerateurDevis();
 }
 function renderParams() {
   const p=DATA.params;
@@ -13230,12 +12853,6 @@ function renderSimulateurPage() {
     'sim-row-ca':             !isCollectif && (!isCalculer || isAchatMax),
     'sim-row-collectif':      fields.collectif,
     'sim-row-collectif-detail': isCollectif,
-    // En mode "Calculer un tarif", le prix par participant est le RÉSULTAT à produire, pas une
-    // saisie — on masque donc le champ "Prix / participant" et la ligne "CA total" qui l'affiche
-    // (retour Faustine : "il me demande lui-même le prix, or il devrait le calculer seul"). Le
-    // nombre de participants reste saisi : il sert à répartir le prix calculé par personne.
-    'sim-fg-prixpart':        isCollectif && !isCalculer,
-    'sim-ca-collectif':       isCollectif && !isCalculer,
     'sim-row-temps':          fields.temps && !isCollectif && !isTempsSem && !isTempsJours,
     'sim-row-temps-mode':     isService && !isCollectif && fields.temps,
     'sim-row-temps-sem':      isTempsSem,
@@ -14452,11 +14069,7 @@ document.addEventListener('keydown', function(e) {
 
 <!-- BOUTON CHANGER DE SESSION -->
 
-<!-- crossorigin="anonymous" (2026-08-01) : sans lui, toute erreur levée par ce script du CDN
-     Supabase remonte à Sentry sous la forme opaque "Script error." (règle de sécurité navigateur
-     sur les scripts cross-origin), impossible à diagnostiquer. Avec, Sentry reçoit la vraie stack.
-     jsDelivr renvoie les en-têtes CORS, donc le chargement n'est pas affecté. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 #auth-overlay{position:fixed;inset:0;z-index:99999;background:#F1EFEA;display:flex;align-items:center;justify-content:center;}
@@ -14487,11 +14100,6 @@ document.addEventListener('keydown', function(e) {
   }
 
   var _cloudLoaded = false;
-  // Rechargement auto au retour sur l'onglet (option 1, 2026-08) : _lastCloudUpdatedAt = l'horodatage
-  // de la ligne cloud tel que CET appareil le connaît (posé au chargement et après chaque écriture) ;
-  // _lastLocalEdit = dernier saveData local (pour ne pas recharger par-dessus une saisie en cours).
-  var _lastCloudUpdatedAt = null;
-  var _lastLocalEdit = 0;
 
   // ── ANALYTICS ───────────────────────────────────────────────
   var _analyticsUserId = null;
@@ -14544,30 +14152,8 @@ document.addEventListener('keydown', function(e) {
 
   async function loadFromCloud(user) {
     _analyticsUserId = user.id;
-    // Garde anti-contamination inter-comptes (2026-08, retour Faustine : connexion sur son compte
-    // qui a chargé les données d'un autre compte ouvert avant sur le même téléphone). Le cache
-    // local (localStorage 'indepuls') est partagé par tous les comptes d'un même appareil et
-    // estampillé au nom de son propriétaire (_ownerUid, posé plus bas dès qu'on connaît le compte).
-    // Si le cache appartient à un AUTRE compte que celui qui se connecte, on le jette AVANT tout
-    // rendu ou toute synchro — sinon un saveData() ultérieur pouvait pousser les données du compte
-    // précédent dans la ligne cloud du nouveau compte (le RLS l'autorise : c'est la même session
-    // authentifiée qui écrit sa propre ligne, il ne peut pas savoir que le contenu appartient
-    // sémantiquement à quelqu'un d'autre). On ne jette JAMAIS un cache non estampillé (compte
-    // existant d'avant ce correctif, ou saisie en cours d'un nouveau compte pas encore
-    // synchronisée) — uniquement un cache explicitement marqué à un autre nom. Le pare-feu existant
-    // (isExample, _cloudLoaded, "le cloud gagne toujours") n'est pas touché.
     try {
-      var _cachedRaw = localStorage.getItem(STORAGE_KEY);
-      if (_cachedRaw) {
-        var _cachedOwner = JSON.parse(_cachedRaw)._ownerUid;
-        if (_cachedOwner && _cachedOwner !== user.id) {
-          try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-          if (typeof getDefaultData === 'function') { DATA = getDefaultData(); DATA._needsProfilePick = true; }
-        }
-      }
-    } catch(e) {}
-    try {
-      var res = await sb.from('user_data').select('data, updated_at').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
+      var res = await sb.from('user_data').select('data').eq('user_id', user.id).eq('app_type', APP_TYPE).maybeSingle();
       // BUG CRITIQUE CORRIGÉ (2026-07) : "!DATA.isExample" bloquait le chargement des vraies
       // données cloud dès que le navigateur avait localement du résidu de mode démo (ex. un
       // utilisateur qui explore la démo avant de se connecter à son vrai compte, sur le même
@@ -14577,7 +14163,6 @@ document.addEventListener('keydown', function(e) {
       // données cloud existantes doit TOUJOURS l'emporter sur l'état local, sans exception.
       if (res.data && res.data.data) {
         var payload = res.data.data;
-        _lastCloudUpdatedAt = res.data.updated_at || null; // horodatage connu par cet appareil (rechargement auto au retour)
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch(e) {}
         if (typeof migrate === 'function' && typeof applyDefaults === 'function') {
           var parsed = JSON.parse(JSON.stringify(payload));
@@ -14585,11 +14170,6 @@ document.addEventListener('keydown', function(e) {
           parsed = applyDefaults(parsed);
           DATA = parsed;
         }
-        // Estampille le cache au nom de ce compte (voir garde anti-contamination en tête de
-        // loadFromCloud) — persistée tout de suite pour qu'un rechargement ou un changement de
-        // compte ultérieur la voie, sans attendre le prochain saveData().
-        DATA._ownerUid = user.id;
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch(e) {}
         // Données cloud chargées — fermer le picker de profil s'il était ouvert
         DATA._needsProfilePick = false;
         var pickerEl = document.getElementById('screen-profile-picker');
@@ -14601,30 +14181,6 @@ document.addEventListener('keydown', function(e) {
         };
         _doRender();
       } else if (!res.data) {
-        _lastCloudUpdatedAt = null; // aucune ligne cloud pour ce compte
-        // Garde anti-ré-adoption (2026-08, retour Faustine : après réinitialisation, les données
-        // du mari revenaient via une session restée ouverte qui les re-synchronisait). Ligne cloud
-        // absente (nouveau compte OU compte réinitialisé) : si le cache local contient de VRAIES
-        // données (isExample=false) non estampillées à ce compte, c'est une contamination héritée
-        // d'un autre compte d'AVANT l'estampillage — on ne l'adopte pas, donc on ne la
-        // re-synchronise jamais dans la ligne cloud de ce compte. Sûr : l'overlay d'auth bloque
-        // toute saisie tant que loadFromCloud n'a pas fini, donc il n'existe jamais ici de saisie
-        // fraîche légitime non synchronisée ; un compte existant avec des données passe par la
-        // branche cloud ci-dessus (sa ligne existe) ; le mode démo (isExample=true) est préservé.
-        try {
-          var _cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-          var _hasReal = _cur && !_cur.isExample && (
-            (Array.isArray(_cur.missions) && _cur.missions.length) ||
-            (Array.isArray(_cur.depenses) && _cur.depenses.length) ||
-            (_cur.revenus && Object.keys(_cur.revenus).length));
-          if (_hasReal && (!_cur._ownerUid || _cur._ownerUid !== user.id)) {
-            try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-            if (typeof getDefaultData === 'function') { DATA = getDefaultData(); DATA._needsProfilePick = true; }
-          }
-        } catch(e) {}
-        // Estampille au nom de ce compte même sans données cloud (nouveau compte) — pour que sa
-        // première sauvegarde et les connexions suivantes soient déjà protégées par la garde.
-        DATA._ownerUid = user.id;
         // Nouveau compte — aucune donnée cloud : afficher le picker si aucun métier choisi.
         // Lecture directe du localStorage (synchrone, fiable) en complément de DATA.params.metier
         // en mémoire : cette réponse cloud arrive de façon asynchrone et peut, sur certaines
@@ -14682,22 +14238,12 @@ document.addEventListener('keydown', function(e) {
       var res = await sb.auth.getSession();
       if (!res.data || !res.data.session) return;
       if (_snapshot.isExample) return; // re-vérification après l'attente, sur la référence figée
-      // GARDE-FOU PROPRIÉTAIRE (2026-08, retour Faustine) : ne jamais téléverser des données
-      // estampillées à un AUTRE compte que la session en cours. Défense en profondeur qui complète
-      // l'estampillage de loadFromCloud : même si un chemin non anticipé laissait DATA détenir les
-      // données d'un autre compte, cette session refuserait de les écrire dans sa propre ligne
-      // cloud (source de la re-contamination observée). Les données non estampillées (d'avant ce
-      // système) ne sont pas bloquées ici — c'est la garde anti-ré-adoption de loadFromCloud qui
-      // les intercepte en amont.
-      if (_snapshot._ownerUid && _snapshot._ownerUid !== res.data.session.user.id) return;
-      var _nowIso = new Date().toISOString();
       await sb.from('user_data').upsert({
         user_id: res.data.session.user.id,
         app_type: APP_TYPE,
         data: _snapshot,
-        updated_at: _nowIso
+        updated_at: new Date().toISOString()
       }, { onConflict: 'user_id,app_type' });
-      _lastCloudUpdatedAt = _nowIso; // cet appareil connaît désormais cette version — ne rechargera pas sa propre écriture
     } catch(e) {
       console.warn('syncToCloud failed:', e);
       if (typeof showToast === 'function') {
@@ -14708,39 +14254,9 @@ document.addEventListener('keydown', function(e) {
 
   var _origSaveData = window.saveData;
   window.saveData = function() {
-    _lastLocalEdit = Date.now(); // horodate la dernière saisie locale (garde-fou du rechargement auto)
     if (_origSaveData) _origSaveData();
     syncToCloud();
   };
-
-  // ── RECHARGEMENT AUTO AU RETOUR SUR L'ONGLET (option 1, validée avec Faustine 2026-08) ──────────
-  // Standard des apps de sync (refetch-on-focus, comme React Query/SWR par défaut). Au retour sur un
-  // onglet resté ouvert, on lit UNIQUEMENT l'horodatage de la ligne cloud (léger) ; s'il diffère de
-  // celui que cet appareil connaît, c'est qu'une modif a été faite ailleurs → on recharge la dernière
-  // version via loadFromCloud (avec toutes ses protections anti-contamination). Empêche un onglet
-  // périmé d'écraser en aveugle les modifs d'un autre appareil. Jamais en démo, jamais si une saisie
-  // locale a eu lieu dans les 3 dernières secondes (on ne recharge pas par-dessus une saisie en cours).
-  var _fraicheurEnCours = false;
-  async function _verifierFraicheurCloud() {
-    if (_fraicheurEnCours || !_cloudLoaded || DATA.isExample) return;
-    if (Date.now() - _lastLocalEdit < 3000) return;
-    _fraicheurEnCours = true;
-    try {
-      var s = await sb.auth.getSession();
-      if (s.data && s.data.session) {
-        var u = s.data.session.user;
-        var res = await sb.from('user_data').select('updated_at').eq('user_id', u.id).eq('app_type', APP_TYPE).maybeSingle();
-        var cloudUpd = res.data && res.data.updated_at;
-        if (cloudUpd && cloudUpd !== _lastCloudUpdatedAt) {
-          await loadFromCloud(u); // recharge + re-render + met à jour _lastCloudUpdatedAt
-          if (typeof showToast === 'function') showToast('🔄 Données mises à jour depuis un autre appareil.');
-        }
-      }
-    } catch(e) { /* réseau indisponible — réessayé au prochain retour sur l'onglet */ }
-    _fraicheurEnCours = false;
-  }
-  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'visible') _verifierFraicheurCloud(); });
-  window.addEventListener('focus', _verifierFraicheurCloud);
 
   window._deleteCloudData = async function() {
     try {
@@ -14837,6 +14353,9 @@ document.addEventListener('keydown', function(e) {
     }
   };
 
+  // Exposée sur window : openClearExampleModal() (définie bien plus haut, portée globale) doit
+  // pouvoir rouvrir l'écran de connexion pour une session démo anonyme qui l'avait déjà fermé.
+  window.showLoginForm = showLoginForm;
   function showLoginForm() {
     var overlay = document.getElementById('auth-overlay');
     if (!overlay) return;
@@ -14870,13 +14389,11 @@ document.addEventListener('keydown', function(e) {
               Créer son compte →
             </button>
           </div>
-          ${(location.hostname==='localhost'||location.hostname==='127.0.0.1')?`
           <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e0ddd8">
-            <div style="font-size:11px;color:#b0aaa0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Développement local</div>
             <button onclick="authLoadDemo()" style="width:100%;background:#F1EFEA;color:#141538;padding:11px 24px;border-radius:9px;border:1.5px solid #e0ddd8;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit">
-              Continuer en mode démo
+              Essayer sans créer de compte
             </button>
-          </div>`:''}
+          </div>
         </div>
         <div id="auth-signup-panel" style="display:none">
           <div style="font-size:13px;color:#9a9aaa;margin-bottom:24px">Créez votre compte Indépuls</div>
@@ -14945,13 +14462,30 @@ document.addEventListener('keydown', function(e) {
       }
     };
     window.authLoadDemo = function() {
+      isAnonymousDemoSession = true;
       hideOverlay();
       if (typeof loadDemoWithCurrentParams === 'function') {
+        // Reproduit la préparation faite par pickerStep1Next() (métier + statut par défaut)
+        // avant de charger la démo — sans ça, DATA.params reste vierge et le dashboard
+        // affiche l'écran "Bienvenue, choisissez votre profil" au lieu de la démo peuplée.
+        // DATA.isExample est mis à true APRÈS applyProfile() (jamais avant) : applyProfile()
+        // déclenche lui-même loadDemoWithCurrentParams(true) dès que isExample est vrai, ce
+        // qui déclencherait un double chargement concurrent.
+        var _demoMetier = 'prestataire_services';
+        if (typeof applyStatutParams === 'function' && typeof getDefaultMicroStatut === 'function') {
+          applyStatutParams(getDefaultMicroStatut(_demoMetier));
+        }
+        if (typeof applyProfile === 'function') applyProfile(_demoMetier);
+        DATA.isExample = true;
         loadDemoWithCurrentParams();
       } else {
         DATA = getExampleData('prestataire_services');
         DATA.isExample = true;
-        renderAll();
+        var _doRenderFallback = function() {
+          if (typeof getCurrentYearMonths !== 'function') { setTimeout(_doRenderFallback, 80); return; }
+          renderAll();
+        };
+        _doRenderFallback();
       }
     };
     window.authLogin = async function() {
@@ -15032,6 +14566,7 @@ document.addEventListener('keydown', function(e) {
   function _enterApp(user) {
     clearTimeout(_cdnFallback);
     _authState = 'app';
+    isAnonymousDemoSession = false;
     setTimeout(addLogoutButton, 200);
     loadFromCloud(user).then(hideOverlay);
   }

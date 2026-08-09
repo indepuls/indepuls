@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>À propos · Indépuls</title>
+<meta name="description" content="La personne derrière Indépuls : Faustine, ancienne infirmière devenue développeuse d'un logiciel de rentabilité pour indépendants. L'histoire, sans mise en scène.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.7;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:64px 24px 10px;}
+  header.hero .wrap{max-width:760px;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:21px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(30px,4.6vw,46px); margin:0 0 16px; line-height:1.15;}
+  header.hero .sub{font-size:17px; color:#4a4a63; margin:0;}
+
+  article{padding:34px 24px 20px;}
+  article .wrap{max-width:720px;}
+  article p{font-size:16.5px; color:#3a3a52; margin:0 0 18px;}
+  article h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(20px,2.7vw,26px); margin:44px 0 14px;}
+  article strong{color:var(--navy);}
+  article em{color:var(--prune); font-style:italic;}
+  .lead{font-size:18px; color:var(--navy); font-weight:400;}
+
+  .stats{background:#fff; border:1px solid #e4ddd0; border-radius:16px; padding:10px 24px; margin:28px 0 8px;}
+  .stats .row{display:flex; gap:14px; align-items:baseline; padding:13px 0; border-bottom:1px dashed #e4ddd0; font-size:15px; color:#3a3a52;}
+  .stats .row:last-child{border-bottom:none;}
+  .stats .row .ico{font-size:18px; flex:none;}
+  .stats .row b{color:var(--navy);}
+
+  /* Photo reveal */
+  section.reveal{padding:24px 24px 20px;}
+  section.reveal .wrap{max-width:720px;}
+  .revealframe{
+    position:relative; border-radius:16px; overflow:hidden; border:1px solid #e4ddd0;
+    box-shadow:0 12px 40px rgba(20,21,56,.10); cursor:pointer; user-select:none; background:#fff;
+  }
+  .revealstage{position:relative; aspect-ratio:1/1; width:100%;}
+  .shot{position:absolute; inset:0; display:none; align-items:center; justify-content:center; text-align:center; padding:24px;}
+  .shot.on{display:flex;}
+  .shot .ph{font-size:13px; color:#6b6b6b; max-width:340px;}
+  .shot .ph .big{display:block; font-size:30px; margin-bottom:10px;}
+  .shot1, .shot2, .shot3{background:#f1efe9;}
+  .shot img{width:100%; height:100%; object-fit:contain; object-position:center;}
+  .revealcap{padding:14px 18px; font-size:13.5px; color:var(--prune); font-weight:600; background:#fff; border-top:1px solid #e4ddd0; display:flex; justify-content:space-between; gap:12px; align-items:flex-start;}
+  .revealcap .hint{color:#9a9aab; font-weight:400; font-size:12px; white-space:nowrap; padding-top:1px;}
+  .tapcue{position:absolute; bottom:16px; right:16px; z-index:3; width:46px; height:46px; border-radius:50%; background:rgba(20,21,56,.72); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; pointer-events:none; transition:opacity .3s var(--ease);}
+  .tapcue svg{width:24px; height:24px; fill:#fff; animation:tapbob 1.4s ease-in-out infinite;}
+  .tapcue::after{content:''; position:absolute; inset:0; border-radius:50%; border:2px solid rgba(255,255,255,.55); animation:tapripple 1.8s ease-out infinite;}
+  @keyframes tapbob{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+  @keyframes tapripple{0%{transform:scale(1); opacity:.7;}100%{transform:scale(1.75); opacity:0;}}
+  @media (prefers-reduced-motion: reduce){ .tapcue svg, .tapcue::after{animation:none;} }
+  .revealframe.ended .tapcue{opacity:0;}
+  .revealpayoff{margin-top:20px; font-size:16.5px; color:#3a3a52;}
+  .revealpayoff .punch{font-family:'Playfair Display',serif; font-style:italic; color:var(--prune); font-size:19px;}
+
+  section.cta{padding:40px 24px 70px;}
+  section.cta .box{max-width:720px; margin:0 auto; background:var(--navy); color:#fff; border-radius:16px; padding:36px 30px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(21px,3vw,26px); margin:0 0 12px; color:#fff;}
+  section.cta p{color:#dcd9ec; font-size:15px; margin:0 0 22px;}
+  .btnrow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 28px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="À propos · Indépuls">
+<meta property="og:description" content="La personne derrière Indépuls : Faustine, ancienne infirmière devenue développeuse d'un logiciel de rentabilité pour indépendants. L'histoire, sans mise en scène.">
+<meta property="og:url" content="https://indepuls.fr/a-propos/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../tarifs/index.html">Tarifs</a>
+      <a href="../demo/index.html">Démo</a>
+      <a href="../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">La personne derrière Indépuls</span>
+    <h1>Bonjour, moi c'est Faustine</h1>
+    <p class="sub">Ancienne infirmière, puis cheffe de service, aujourd'hui développeuse d'un logiciel de rentabilité pour indépendants. Non, je ne l'avais pas vu venir non plus.</p>
+  </div>
+</header>
+
+<article>
+  <div class="wrap">
+    <p class="lead">Je ne vais pas vous raconter que j'ai créé Indépuls après avoir revendu trois start-up et fait le tour du monde en van. Déjà parce que ce serait faux.</p>
+
+    <p>Pendant des années, mon métier a été d'aider les autres, souvent des personnes en situation fragile. Quand j'ai eu envie de changer de voie, après quelques déceptions professionnelles, je me suis lancée dans une formation d'OBM, ce métier qui consiste à devenir le bras droit des indépendants pour leur organisation et leur gestion.</p>
+
+    <p>Une très bonne formation, d'ailleurs, complète et pleine de ressources. Mais pour calculer mon taux horaire idéal et suivre ma rentabilité, l'outil fourni était un simple tableur. Alors j'ai cherché s'il existait une solution toute prête, plus claire et plus vivante. Je n'ai rien trouvé qui me convienne.</p>
+
+    <p>Et comme, chez moi, un problème appelle forcément une solution (je ne sais pas vraiment réfléchir autrement), j'ai commencé à me bricoler ma propre interface. Je m'y suis prise au jeu : chaque semaine, mon petit outil devenait un peu plus complet, un peu plus clair, jusqu'au jour où je me suis dit que ça pourrait servir à d'autres qu'à moi.</p>
+
+    <p>D'autant que mon tout premier client, je l'avais déjà à la maison. Mon mari est <strong>artisan à son compte</strong> depuis des années, sans comptable. C'est moi qui suis sa rentabilité, chantier par chantier, sur un fichier Excel monté il y a quatre ans. En construisant Indépuls, j'ai réalisé que je fabriquais, sans vraiment le vouloir, l'outil que j'aurais adoré avoir pour lui.</p>
+
+    <h2>Ce que je ne vous promettrai pas</h2>
+    <p>Je ne suis pas là pour vous promettre de devenir millionnaire. Ça, il y a déjà beaucoup de monde pour le faire très bien sur internet. Moi, je préfère vous montrer ce que vous gagnez <em>réellement</em>, avec le travail que vous fournissez déjà.</p>
+    <p>C'est moins spectaculaire. C'est aussi beaucoup plus utile.</p>
+    <p>Au fond, mon fil conducteur n'a pas changé depuis mes années d'infirmière : aider. Je suis convaincue qu'un bon outil ne devrait jamais vous faire sentir bête. Il devrait vous rassurer, vous faire gagner du temps, et parfois vous redonner un peu de confiance les jours où votre activité vous en fait douter.</p>
+
+    <h2>La parenthèse pas très sérieuse</h2>
+    <p>Puisqu'on fait connaissance : je suis Gémeaux ascendant Lion, curieuse d'à peu près tout (le Human Design y compris, sur lequel je suis tombée récemment)… mais dotée d'un cerveau résolument cartésien. Mon test de personnalité me classe d'ailleurs INTJ, « l'architecte », ce qui, pour quelqu'un qui a fini par construire un logiciel, tombe plutôt bien : la case de celles qui adorent comprendre les systèmes, résoudre des problèmes et lancer quinze idées avant le petit-déjeuner.</p>
+    <p>Est-ce très scientifique ? Aucune idée. En revanche, je sais une chose : quand quelque chose peut être simplifié, mon cerveau refuse catégoriquement de le laisser compliqué. Ça explique probablement Indépuls.</p>
+
+  </div>
+</article>
+
+<section class="reveal">
+  <div class="wrap">
+    <h2 style="font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(20px,2.7vw,26px); margin:12px 0 8px;">Où est né Indépuls, vraiment</h2>
+    <p style="font-size:16px; color:#3a3a52; margin:0 0 18px;">J'ai développé Indépuls pendant des mois. Dans l'ombre. Et, canicule 2026 oblige, surtout depuis ma maison. Voici l'endroit où tout ça a pris vie. Enfin… si on en croit la première photo.</p>
+
+    <div class="revealframe" id="revealFrame" role="button" tabindex="0" aria-label="Cliquer pour dévoiler la vraie photo">
+      <div class="revealstage">
+        <div class="shot shot1 on"><img src="photo-1.jpg" alt="Faustine à son bureau, version très soignée"></div>
+        <div class="shot shot2"><img src="photo-2.jpg" alt="Faustine à son bureau, lumineux et rangé"></div>
+        <div class="shot shot3"><img src="photo-3.jpg" alt="Faustine chez elle, la vraie photo"></div>
+        <div class="tapcue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6C13 6.67 12.33 6 11.5 6S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.92-1.38z"/></svg></div>
+      </div>
+      <div class="revealcap" id="revealCap">
+        <span id="revealCapText">Ça, c’est l’endroit où j’imagine pouvoir bosser au calme.</span>
+        <span class="hint" id="revealHint">1 / 3</span>
+      </div>
+    </div>
+
+    <div class="revealpayoff" id="revealPayoff" style="display:none;">
+      <p>Voilà. C'est ici qu'Indépuls est né. Pas dans un incubateur à San Francisco, pas dans des bureaux avec baby-foot, pas après une levée de fonds de plusieurs millions. Juste ici, entre un café oublié, des journées un peu trop courtes et l'envie de construire un outil qui aide vraiment.</p>
+      <p class="punch">Au fond, c'est exactement ce que fait Indépuls : derrière les apparences, il cherche toujours la réalité.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="box">
+    <h2>Merci d'être là</h2>
+    <p>Le mieux, pour se rendre compte, c'est encore d'essayer. Sans compte, sans carte bancaire.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="../demo/index.html">Explorer la démo</a>
+      <a class="btn btn-secondary" href="../fonctionnalites/index.html">Voir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../a-propos/index.html">À propos</a>
+  <a href="../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../cgu.html">CGU</a>
+  <a href="../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+
+(function(){
+  var frame = document.getElementById('revealFrame');
+  if (!frame) return;
+  var shots = frame.querySelectorAll('.shot');
+  var capText = document.getElementById('revealCapText');
+  var hint = document.getElementById('revealHint');
+  var payoff = document.getElementById('revealPayoff');
+  var caps = [
+    'Ça, c’est l’endroit où j’imagine pouvoir bosser au calme.',
+    'Bon, il faut être réaliste : ça ressemblerait plutôt à ça.',
+    'Ça, c’est la vraie vie. Mon vrai bureau, dans mon salon, entre une chaise bébé, des dossiers empilés et les cris des enfants.'
+  ];
+  var state = 0;
+  function show(i){
+    shots.forEach(function(s, idx){ s.classList.toggle('on', idx === i); });
+    capText.textContent = caps[i];
+    hint.textContent = (i + 1) + ' / 3';
+    payoff.style.display = (i === 2) ? 'block' : 'none';
+    frame.classList.toggle('ended', i === 2);
+  }
+  function next(){ state = (state + 1) % 3; show(state); }
+  frame.addEventListener('click', next);
+  frame.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); next(); }
+  });
+})();
+</script>
+
+</body>
+</html>

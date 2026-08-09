@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Indépuls — Audit stratégique révisé, contextualisé bêta (2026-07-25)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap');
+:root{--navy:#141538;--prune:#5B2C4A;--cream:#F1EFEA;--beige:#BB9E81;--ok:#2f6b4f;--warn:#a3641c;--err:#a13030;--grey:#6b6b6b;}
+*{box-sizing:border-box}
+body{background:var(--cream);color:var(--navy);font-family:'Lato',sans-serif;line-height:1.62;margin:0;padding:0 0 90px;}
+.wrap{max-width:1040px;margin:0 auto;padding:0 28px;}
+.cover{background:var(--navy);color:#fff;padding:60px 28px 44px;text-align:center;}
+.cover h1{font-family:'Playfair Display',serif;font-size:2.3em;margin:0 0 6px;font-weight:800;}
+.cover .script{font-family:'Dancing Script',cursive;color:var(--beige);font-size:1.5em;font-style:italic;margin:0 0 18px;}
+.cover .meta{color:#cfc9e0;font-size:.92em;max-width:680px;margin:0 auto;}
+h2{font-family:'Playfair Display',serif;font-weight:800;font-size:1.6em;color:var(--navy);border-bottom:3px solid var(--beige);padding-bottom:8px;margin:54px 0 6px;}
+h2 .num{color:var(--prune);}
+h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.18em;color:var(--prune);margin:28px 0 8px;}
+.script-sub{font-family:'Dancing Script',cursive;color:var(--prune);font-style:italic;font-size:1.3em;display:block;margin:-2px 0 16px;}
+p{margin:0 0 12px;}
+ul,ol{margin:0 0 14px;padding-left:21px;}
+li{margin-bottom:6px;}
+strong{color:var(--navy);}
+.note{background:#fff;border-left:4px solid var(--beige);padding:11px 15px;margin:13px 0;font-size:.93em;border-radius:0 6px 6px 0;}
+.persona{background:#fff;border-radius:10px;padding:16px 18px;margin:13px 0;border:1px solid #e4ddd0;font-size:.95em;}
+.persona b{color:var(--prune);}
+table{width:100%;border-collapse:collapse;margin:14px 0 22px;font-size:.9em;background:#fff;}
+th{background:var(--navy);color:#fff;text-align:left;padding:8px 9px;font-weight:700;}
+td{padding:8px 9px;border-bottom:1px solid #ece6d9;vertical-align:top;}
+tr:nth-child(even) td{background:#faf8f3;}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.78em;font-weight:700;color:#fff;white-space:nowrap;}
+.b-crit{background:var(--err);} .b-pay{background:var(--warn);} .b-test{background:var(--ok);}
+.b-defer{background:var(--beige);color:var(--navy);} .b-drop{background:var(--grey);}
+.fact{background:var(--navy);color:#fff;border-radius:8px;padding:10px 16px;margin:10px 0;font-size:.88em;}
+.fact b{color:var(--beige);}
+blockquote{border-left:4px solid var(--prune);margin:14px 0;padding:6px 16px;font-style:italic;color:var(--prune);background:#fff;}
+.toc{background:#fff;border-radius:10px;padding:18px 24px;margin:22px 0;columns:2;column-gap:28px;}
+.toc a{color:var(--navy);text-decoration:none;font-size:.88em;display:block;padding:3px 0;}
+@media(max-width:640px){.toc{columns:1}}
+/* case = fiche recommandation */
+.case{background:#fff;border-radius:10px;padding:16px 20px;margin:14px 0;border:1px solid #e4ddd0;border-left-width:6px;}
+.case.crit{border-left-color:var(--err);}
+.case.pay{border-left-color:var(--warn);}
+.case.test{border-left-color:var(--ok);}
+.case.defer{border-left-color:var(--beige);}
+.case.drop{border-left-color:var(--grey);}
+.case h4{font-family:'Playfair Display',serif;font-size:1.08em;margin:0 0 8px;color:var(--navy);}
+.case dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:4px 10px;font-size:.9em;}
+.case dt{font-weight:700;color:var(--prune);}
+.case dd{margin:0 0 6px;}
+.roadmap-v{background:var(--navy);color:#fff;border-radius:10px;padding:18px 20px;margin:16px 0;}
+.roadmap-v h4{font-family:'Playfair Display',serif;color:var(--beige);margin:0 0 4px;font-size:1.2em;}
+.roadmap-v .why{color:#cfc9e0;font-size:.86em;font-style:italic;margin-bottom:8px;}
+.final{background:var(--prune);color:#fff;border-radius:12px;padding:24px 24px;margin:18px 0;}
+.final h3{color:#fff;margin-top:4px;}
+.checklist{background:#fff;border-radius:10px;padding:16px 20px;margin:14px 0;}
+.checklist li{list-style:none;padding-left:26px;position:relative;}
+.checklist li::before{content:"☐";position:absolute;left:0;color:var(--prune);font-size:1.1em;}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>INDÉPULS</h1>
+  <div class="script">Audit stratégique — version révisée et contextualisée</div>
+  <div class="meta">Reprise critique du premier audit, recadrée sur le stade réel du projet : bêta privée de six semaines, fondatrice seule, sans financement ni équipe technique. Sévérité maintenue, jugement recalibré. 25 juillet 2026.</div>
+</div>
+
+<div class="wrap">
+
+<div class="fact">⚖️ <b>Principe de lecture de ce document</b> — chaque recommandation est désormais classée sur une échelle à six niveaux : <b>défaut critique</b> (vrai, quel que soit le stade) · <b>dette acceptable temporairement</b> · <b>expérimentation produit normale</b> · <b>amélioration utile</b> · <b>idée prématurée</b> · <b>recommandation inadaptée au stade actuel</b>. Le premier audit mélangeait ces six catégories sous une seule focale — "startup mature à 50 000 utilisateurs". Celui-ci les sépare.</div>
+
+<div class="toc">
+  <a href="#synth">Ce que je maintiens / nuance / retire</a>
+  <a href="#audit">Audit final en 5 catégories</a>
+  <a href="#deep">Approfondissements stratégiques (7 questions)</a>
+  <a href="#road">Roadmap solo-fondatrice</a>
+  <a href="#final">Réponse finale — 3 décisions, 3 refus</a>
+</div>
+
+<h2 id="synth"><span class="num">§</span> Ce que je maintiens, ce que je nuance, ce que je retire</h2>
+<span class="script-sub">Le désaccord assumé, pas la complaisance</span>
+
+<h3>✅ Ce que je maintiens</h3>
+<table>
+<tr><th style="width:22%">Point</th><th style="width:38%">Conclusion initiale</th><th style="width:26%">Justification (inchangée)</th><th style="width:14%">Priorité</th></tr>
+<tr><td>Perte de données cloud</td><td>Bug critique de confiance, corrigé sans filet automatisé</td><td>Un bug de ce type n'est pas relatif au stade du projet — il touche de vraies données de vraies personnes, aujourd'hui. La gravité ne se dilue pas parce que le produit est jeune ; elle s'aggrave même, car c'est le pire moment pour perdre la confiance des tout premiers témoins</td><td><span class="badge b-crit">Critique</span></td></tr>
+<tr><td>Devis PDF "tel que proposé initialement"</td><td>J'avais recommandé un export devis sans le qualifier assez précisément</td><td>Sur ce point précis je vous donne raison sans réserve (voir section dédiée) — mais je maintiens qu'un besoin réel existe et mérite une réponse, juste pas celle que j'avais esquissée. Voir "ce que je retire"</td><td><span class="badge b-pay">Avant v. payante</span></td></tr>
+<tr><td>Le formulaire mission reste dense</td><td>Trop de champs simultanés pour le geste "je note vite un chantier"</td><td>Ce point n'est pas une question d'échelle SaaS, c'est une question d'ergonomie immédiate — vraie à 4 utilisateurs comme à 4000. Une fondatrice seule ressent d'ailleurs ce coût plus vite qu'une équipe, car c'est elle qui lit chaque retour bêta sur ce sujet précis</td><td><span class="badge b-pay">Avant v. payante</span></td></tr>
+<tr><td>Le principe "jamais d'IA générative sur les textes de conseil"</td><td>Ligne rouge juste, à défendre</td><td>Inchangé — c'est un avantage de confiance, pas une contrainte technique liée à la taille de l'équipe</td><td><span class="badge b-test">Doctrine à garder</span></td></tr>
+<tr><td>Absence de monitoring d'erreur (Sentry ou équivalent)</td><td>Angle mort dangereux sur un produit financier</td><td>Je maintiens ceci comme un vrai défaut critique, pas une dette d'échelle — sans lui, une fondatrice seule ne sait même pas qu'un bug de calcul existe chez un utilisateur tant qu'il ne le signale pas lui-même. C'est le seul filet de sécurité qui ne demande presque aucun effort (installation en quelques lignes, gratuit jusqu'à un volume confortable)</td><td><span class="badge b-crit">Critique</span></td></tr>
+</table>
+
+<h3>🔄 Ce que je nuance</h3>
+<table>
+<tr><th style="width:20%">Point</th><th style="width:26%">Conclusion initiale</th><th style="width:30%">Nouveau contexte pris en compte</th><th style="width:24%">Conclusion révisée</th></tr>
+<tr><td>Les 3 refontes du Planning en un mois</td><td>Fonctionnalité "en recherche d'identité", signal d'instabilité</td><td>Bêta privée de 6 semaines, chaque refonte motivée par un usage réel (la fondatrice elle-même en tant qu'utilisatrice artisan via son mari) et documentée avec une raison explicite à chaque changement — jamais un flip-flop arbitraire</td><td>C'est de la <b>recherche produit normale à ce stade</b>. Le problème ne serait réel que si une 4ᵉ refonte survenait après la stabilisation déclarée, ou si les changements n'étaient plus justifiés par un usage réel. Voir critères de gel en section dédiée</td></tr>
+<tr><td>Les 3 notions de temps (planifié/prévu/réel)</td><td>Présentée comme complexité potentiellement inutile</td><td>Chacune répond à une vraie question métier distincte (chiffrer / mesurer le remplissage futur / vérifier la rentabilité réelle) — supprimer l'une d'elles supprimerait une capacité réelle du produit, pas juste un champ</td><td>Le problème n'est pas leur existence, c'est leur <b>simultanéité visuelle et leur vocabulaire</b>. Revoir en divulgation progressive (détail en section Approfondissements), pas en suppression</td></tr>
+<tr><td>Lots / Retours (achat_revente), construits pour une bêta-testeuse</td><td>Sur-adaptation à un retour individuel, signal de mauvaise priorisation</td><td>"Retours" concerne en réalité 2 familles entières (fabrication + achat_revente), pas une seule personne — c'est un besoin de segment, pas un caprice. "Lots" est plus spécifique, mais la doc produit elle-même documente déjà la discipline de ne pas l'étendre sans second signal (fabricant_serie)</td><td>Retours : <b>besoin de segment validé</b>, garder tel quel. Lots : <b>besoin de segment à valider</b>, garder mais geler tout enrichissement supplémentaire tant qu'un 2ᵉ ou 3ᵉ utilisateur achat_revente ne confirme pas le pattern</td></tr>
+<tr><td>Connexion bancaire et OCR</td><td>Classées "innovations à fort impact", quasi-priorité 🚀</td><td>Coût réel (API d'agrégation payante, conformité DSP2, support utilisateur quand la synchro casse, erreurs de catégorisation à corriger) totalement disproportionné pour une fondatrice seule sans financement et sans usage de base encore validé</td><td><b>Prématuré</b>. Reporté à après-financement ou après preuve de traction forte. Des alternatives à 20% du coût existent pour 80% du bénéfice immédiat (voir section dédiée)</td></tr>
+<tr><td>Refactor du "monolithe" HTML</td><td>Présenté comme un chantier de 2-3 semaines nécessaire avant tout</td><td>J'avais sous-pesé qu'une vraie séparation existe déjà pour la partie la plus risquée (<code>shared/core/calculs.js</code>, <code>planning.js</code>, <code>affaires.js</code>, <code>taux.js</code>) — c'est le moteur de calcul qui est modulaire, pas le rendu. Un script de lint anti-vocabulaire-en-dur existe déjà (<code>lint_vocab.js</code>), preuve d'auto-correction déjà en cours sans que je l'aie demandé</td><td>Le refactor complet (bundler, découpage total) est <b>une recommandation inadaptée au stade actuel</b>. Seules 2-3 duplications précises et déjà identifiées méritent un effort immédiat (voir audit)</td></tr>
+<tr><td>Vision business — note 4,5/10</td><td>Notée comme faible faute de Stripe, landing page, données de rétention</td><td>Juger l'absence de ces éléments à 6 semaines de bêta privée revient à juger un embryon sur sa capacité à courir. C'est précisément l'anachronisme que vous me demandez de corriger, et vous avez raison</td><td><b>Note retirée</b>, remplacée par une évaluation d'étape (voir audit) : ce qui est normal maintenant, ce qui doit apparaître sous 90 jours, ce qui serait inquiétant à 6 mois</td></tr>
+<tr><td>Marché français comme "plafond de croissance"</td><td>Présenté comme une limite structurelle négative</td><td>Le cadrage supposait implicitement une ambition de croissance venture-scale, jamais exprimée nulle part dans le projet (aucune mention de levée, de cap table, d'ambition de 50k utilisateurs en dehors de l'exercice de style que je m'étais moi-même fixé)</td><td>Le marché français n'est un plafond que <b>si l'ambition est venture-scale</b>. Pour un petit SaaS rentable porté par une fondatrice, c'est un marché large et suffisant (voir scénarios détaillés)</td></tr>
+<tr><td>Score Santé — instabilité du pilier Remplissage</td><td>Critiquée comme fragilisant la crédibilité de la mesure</td><td>Je maintiens que 3 changements de méthode fragilisent une mesure censée être stable dans le temps — mais je nuance : chaque changement était documenté avec un raisonnement clair, converge aujourd'hui vers un modèle plus simple, et rien n'indique qu'un utilisateur ait vu son score changer sans le comprendre (pas de plainte documentée en ce sens)</td><td>Le risque était <b>réel mais pas encore matérialisé en dommage utilisateur</b>. Passe de "défaut critique" à "dette acceptable à condition de figer maintenant" — voir critère de gel précis</td></tr>
+</table>
+
+<h3>❌ Ce que je retire ou remplace</h3>
+<table>
+<tr><th style="width:22%">Recommandation initiale</th><th style="width:34%">Pourquoi elle était inadaptée ou prématurée</th><th style="width:44%">Nouvelle recommandation</th></tr>
+<tr><td>"Ajouter un export de devis PDF" (sans autre précision)</td><td>Un vrai devis implique mentions légales, numérotation, TVA, statut, signature, transformation en facture, attentes de relance — c'est exactement le terrain de Freebe/Indy. Je n'avais pas assez qualifié le risque de dérive de positionnement que vous soulevez à raison</td><td><b>Fiche de proposition tarifaire non contractuelle</b> — export PDF du résultat du Simulateur, explicitement étiqueté "estimation, non contractuelle", sans numérotation ni mentions légales de facture. Reste un outil de communication de prix, jamais un document de gestion. Voir verdict détaillé en audit</td></tr>
+<tr><td>"Refactor du monolithe HTML en modules avec bundler" comme chantier v1.1 prioritaire</td><td>Recommandation dimensionnée pour une équipe, pas pour une fondatrice seule — le risque de régression d'une réécriture complète, sans capacité de QA parallèle, dépasse le bénéfice réel à ce stade d'usage (poignée d'utilisateurs)</td><td>Plan de refactor <b>ciblé et progressif</b> : sortir uniquement les 2-3 duplications dangereuses identifiées (voir audit), garder le reste du fichier HTML tel quel tant qu'il n'y a pas un second développeur ou un financement dédié à ce chantier</td></tr>
+<tr><td>Connexion bancaire et OCR classées en priorité 🚀 (impact énorme)</td><td>Sous-évaluait le coût réel (financier, réglementaire, support) rapporté à la capacité d'une fondatrice seule non financée</td><td>Reportées en "chantier après financement/traction prouvée". Remplacées à court terme par une réduction de friction de saisie à coût quasi nul (formulaire dépense à 2 champs, accès rapide mobile) — 80% du bénéfice perçu pour une fraction du coût</td></tr>
+<tr><td>Note "Vision business : 4,5/10"</td><td>Comparait un projet de 6 semaines à des standards post-lancement (Stripe, rétention mesurée, clients payants) — l'anachronisme que vous dénoncez à raison</td><td>Remplacée par une grille d'étape claire : normal maintenant / attendu sous 90 jours / inquiétant à 6 mois (voir audit) — sans note chiffrée, qui n'a pas de sens à ce stade</td></tr>
+<tr><td>"Le marché français plafonne la croissance" présenté comme un risque en soi</td><td>Supposait un objectif de croissance venture-scale jamais énoncé par la fondatrice</td><td>4 scénarios réalistes présentés sans hiérarchie de valeur imposée — le choix dépend d'une décision que seule Faustine peut trancher (ambition lifestyle-business vs venture), pas d'un défaut du marché</td></tr>
+</table>
+
+<div class="note">💬 <b>Un désaccord que je maintiens malgré votre objection implicite</b> — vous demandez de ne pas réduire Indépuls à "un simple dashboard émotionnel ou à un Score Santé". Je suis d'accord sur le fond (la vraie valeur est dans la couche de décision : Simulateur, rentabilité par mission, provisions) mais je maintiens que <b>le Score Santé doit rester le point d'entrée unique et non négociable</b> — pas parce qu'il est toute la valeur, mais parce qu'un utilisateur qui ouvre l'app 10 minutes par semaine a besoin d'un seul geste pour savoir "où en regarder en premier". La hiérarchie Décider/Comprendre/Analyser que vous citez vous-même (déjà écrite dans <code>VISION_PRODUIT.md</code>) suppose exactement ça : le Score en couche 1, la vraie richesse du produit (rentabilité, trajectoire, provisions) en couche 2, jamais l'inverse.</div>
+
+<h2 id="audit"><span class="num">§</span> Audit final — cinq catégories, jugement daté</h2>
+<span class="script-sub">Chaque recommandation, avec sa preuve et son test de validation</span>
+
+<h3>🔴 1. Risques critiques immédiats</h3>
+<p style="font-size:.9em;color:var(--grey)">Vrais quel que soit le stade du projet — ils ne se relativisent pas avec "c'est encore une bêta".</p>
+
+<div class="case crit">
+<h4>Perte de données cloud possible en cas de résidu de mode démo</h4>
+<dl>
+<dt>Problème observé</dt><dd>Un utilisateur explorant la démo avant de se connecter à son vrai compte pouvait, avant correctif, voir ses vraies données cloud écrasées silencieusement.</dd>
+<dt>Preuve</dt><dd><code>CLAUDE.md</code>, section "FIX CRITIQUE — Perte de données cloud" (2026-07-13) — mécanisme retracé ligne par ligne, deux garde-fous ajoutés, mais explicitement non testables automatiquement (<code>loadFromCloud</code>/<code>syncToCloud</code> privées, jamais exposées à un test d'intégration).</dd>
+<dt>Impact utilisateur</dt><dd>Maximal — perte irréversible de données saisies, sur le sujet (l'argent) où la confiance est la ressource la plus rare du produit.</dd>
+<dt>Risque à ne rien faire</dt><dd>Le correctif actuel repose sur "relire ce paragraphe avant de toucher à 5 fonctions nommées" — une protection humaine, pas technique. Une session future (y compris une IA assistante) peut recasser ce garde-fou sans le savoir.</dd>
+<dt>Effort estimé</dt><dd>Faible-moyen : un seul test d'intégration simulant le scénario exact (démo → connexion → vérification que le cloud n'est jamais écrasé) suffit, sans exposer les fonctions privées autrement que pour ce test.</dd>
+<dt>Bon moment pour agir</dt><dd>Maintenant — avant toute nouvelle fonctionnalité touchant l'auth ou le stockage.</dd>
+<dt>Test de validation</dt><dd>Le test échoue si quelqu'un retire un jour l'un des deux garde-fous documentés ; il passe sinon. Une seule exécution suffit à vérifier qu'il détecte bien la régression (en retirant volontairement un garde-fou en local).</dd>
+</dl>
+</div>
+
+<div class="case crit">
+<h4>Aucun monitoring d'erreur en production</h4>
+<dl>
+<dt>Problème observé</dt><dd>Les erreurs (y compris de calcul financier) ne remontent nulle part automatiquement — <code>try/catch</code> silencieux autour de fonctions comme <code>getMicroPlafondInfo()</code>.</dd>
+<dt>Preuve</dt><dd><code>CLAUDE.md</code> note explicitement "les erreurs sont silencieuses en prod, vérifier les logs console" pour <code>buildAlerts()</code>.</dd>
+<dt>Impact utilisateur</dt><dd>Un bug de calcul peut vivre des semaines chez un utilisateur avant d'être découvert — exactement ce qui s'est produit pour le bug des dépenses liées non déduites du taux horaire, resté actif plusieurs semaines avant d'être signalé.</dd>
+<dt>Risque à ne rien faire</dt><dd>La seule méthode de détection reste "un utilisateur s'en aperçoit et le dit" — non scalable dès qu'il y a plus de 5-10 comptes actifs, et invisible tant qu'il n'y en a pas assez pour qu'un signal statistique émerge.</dd>
+<dt>Effort estimé</dt><dd>Très faible — Sentry (ou équivalent) s'installe en quelques lignes de script, gratuit jusqu'à un volume largement supérieur à la base actuelle.</dd>
+<dt>Bon moment pour agir</dt><dd>Cette semaine. C'est la recommandation à plus haut ratio valeur/effort de tout ce document.</dd>
+<dt>Test de validation</dt><dd>Provoquer volontairement une exception en local et vérifier qu'elle apparaît dans le tableau de bord de monitoring sous 1 minute.</dd>
+</dl>
+</div>
+
+<div class="case crit">
+<h4>Duplication silencieuse de logique métier (déjà cause d'un bug réel)</h4>
+<dl>
+<dt>Problème observé</dt><dd><code>isRecurringStillActive()</code> existe en double (HTML + copie privée dans <code>planning.js</code>) ; <code>storage.js</code> (migrate/getDefaultData/applyDefaults) n'est jamais exécuté en prod, seule la copie inline d'<code>indepuls.html</code> l'est ; <code>TVA_SEUILS</code> dupliqué entre <code>taux.js</code> (mort) et l'HTML (vivant, avec un TODO déjà laissé dans le code).</dd>
+<dt>Preuve</dt><dd><code>CLAUDE.md</code> documente un bug réel déjà survenu à cause de cette duplication précise : "un statut 'ref' exclut toujours une récurrente" corrigé dans une copie, pas dans l'autre, pendant un temps.</dd>
+<dt>Impact utilisateur</dt><dd>Direct et déjà matérialisé une fois (missions faussement comptées comme actives).</dd>
+<dt>Risque à ne rien faire</dt><dd>Toute future modification de l'une des deux copies sans penser à l'autre réintroduit la même classe de bug — le risque grandit avec le temps, pas avec l'échelle d'utilisateurs.</dd>
+<dt>Effort estimé</dt><dd>Faible par duplication (quelques heures chacune), à condition de les traiter une par une avec un test avant/après, pas en réécriture globale.</dd>
+<dt>Bon moment pour agir</dt><dd>Dans les 30 prochains jours, en 3 sessions ciblées d'une demi-journée chacune — pas un "grand refactor".</dd>
+<dt>Test de validation</dt><dd>Pour chaque duplication supprimée : les suites de tests existantes (277+73 assertions) doivent rester vertes, et un cas de test dédié au bug déjà survenu doit être ajouté pour ne jamais le laisser réapparaître silencieusement.</dd>
+</dl>
+</div>
+
+<h3>🟠 2. Problèmes à résoudre avant une version payante</h3>
+<p style="font-size:.9em;color:var(--grey)">Tolérables en bêta gratuite, mais qui deviendraient des raisons légitimes de désabonnement s'ils survivaient à la mise en paiement.</p>
+
+<div class="case pay">
+<h4>Cadrer le "devis PDF" avant de le construire, pas après</h4>
+<dl>
+<dt>Problème observé</dt><dd>Le besoin d'envoyer un chiffrage à un client est réel et déjà à moitié résolu (le Simulateur calcule le prix) — mais sans cadrage explicite, ce chantier dérive naturellement vers un vrai devis (numérotation → TVA → signature → suivi → relance → facture), soit exactement le territoire que la vision produit exclut.</dd>
+<dt>Preuve</dt><dd><code>ARCHITECTURE_PRODUIT.md</code> et <code>VISION_PRODUIT.md</code> excluent explicitement "gestion des devis détaillés" et "facturation complète" des idées volontairement exclues.</dd>
+<dt>Impact utilisateur</dt><dd>Élevé si bien fait (lève une vraie friction quotidienne d'un artisan/freelance) ; élevé négativement si mal cadré (le produit se met à ressembler à ses concurrents qu'il a explicitement choisi de ne pas devenir).</dd>
+<dt>Risque à ne rien faire</dt><dd>Les utilisateurs continueront de ressaisir leur prix ailleurs (Word, un autre outil) — friction réelle mais non bloquante pour la promesse centrale du produit.</dd>
+<dt>Effort estimé</dt><dd>Faible pour la version cadrée (export PDF du résultat déjà calculé par le Simulateur, sans numérotation ni mentions légales) ; effort qui grandirait vite et dangereusement si on cède à la tentation d'ajouter "juste un peu" de gestion de statut/suivi.</dd>
+<dt>Bon moment pour agir</dt><dd>Avant la version payante, en version strictement "fiche non contractuelle" — jamais plus.</dd>
+<dt>Test de validation</dt><dd>Un bêta-testeur doit pouvoir dire, sans qu'on le lui souffle, "c'est une estimation, pas un devis officiel" en regardant le PDF.</dd>
+</dl>
+</div>
+
+<div class="case pay">
+<h4>Formulaire "Nouvelle mission" trop dense pour le geste le plus fréquent de l'app</h4>
+<dl>
+<dt>Problème observé</dt><dd>Jusqu'à une cinquantaine de champs possibles dans le DOM selon profil ; la présence de "Temps planifié" + "Sessions" + "Temps total estimé" simultanément sur la même modale, pour toute mission, quel que soit le profil, depuis la dernière refonte (2026-07-24/25).</dd>
+<dt>Preuve</dt><dd><code>CLAUDE.md</code> documente 4 refontes majeures de ce même formulaire en un seul mois, chacune corrigeant un excès de densité de la précédente.</dd>
+<dt>Impact utilisateur</dt><dd>Direct sur la promesse "10-15 minutes/semaine" — un utilisateur payant qui doit hésiter à chaque champ n'aura pas le même niveau de tolérance qu'une bêta-testeuse bienveillante et impliquée dans la construction du produit.</dd>
+<dt>Risque à ne rien faire</dt><dd>Abandon de saisie ou saisie approximative "pour que ça arrête de demander des trucs" (risque déjà identifié dans le premier audit sur les personas).</dd>
+<dt>Effort estimé</dt><dd>Moyen — pas un refactor technique, une réorganisation de divulgation progressive (voir Approfondissements, point 4).</dd>
+<dt>Bon moment pour agir</dt><dd>Pendant la bêta actuelle, avant d'élargir le nombre de testeurs.</dd>
+<dt>Test de validation</dt><dd>Chronométrer la création d'une mission simple ("je note vite un chantier terminé") sur 5 profils différents — objectif sous 45 secondes sans avoir à faire défiler l'écran plus d'une fois.</dd>
+</dl>
+</div>
+
+<div class="case pay">
+<h4>Aucun signal de disposition à payer mesuré à ce jour</h4>
+<dl>
+<dt>Problème observé</dt><dd>Zéro donnée, même informelle, sur ce que les bêta-testeuses seraient prêtes à payer.</dd>
+<dt>Preuve</dt><dd>Aucune mention de sondage, de test de prix ou de question directe aux bêta-testeuses dans <code>CLAUDE.md</code>.</dd>
+<dt>Impact utilisateur</dt><dd>Nul directement — mais impact business majeur : sans ce signal, le prix de lancement sera choisi à l'aveugle.</dd>
+<dt>Risque à ne rien faire</dt><dd>Fixer un prix trop haut (perte de conversion) ou trop bas (ancrage difficile à corriger plus tard) sans avoir testé.</dd>
+<dt>Effort estimé</dt><dd>Très faible — une question directe posée aux 4 bêta-testeuses actuelles suffit pour un premier signal, pas besoin de Stripe pour ça.</dd>
+<dt>Bon moment pour agir</dt><dd>Dès maintenant, en parallèle de tout le reste — ce n'est pas un chantier, c'est une conversation.</dd>
+<dt>Test de validation</dt><dd>Avoir une fourchette de prix ("je paierais entre X et Y€/mois") d'au moins 3 profils différents avant de fixer un prix de lancement.</dd>
+</dl>
+</div>
+
+<h3>🟢 3. Améliorations à tester pendant la bêta</h3>
+<p style="font-size:.9em;color:var(--grey)">Des hypothèses à valider avec les utilisateurs actuels, pas des chantiers à construire "parfaitement" avant de tester.</p>
+
+<div class="case test">
+<h4>Brief hebdomadaire minimal, sans IA</h4>
+<dl>
+<dt>Problème observé</dt><dd>Le produit vise un usage hebdomadaire (10-15 min/semaine) mais ne rappelle jamais activement à l'utilisateur de revenir — tout repose sur sa propre discipline à ouvrir l'app.</dd>
+<dt>Preuve</dt><dd>La logique de sélection de priorité ("Action recommandée", <code>priorite</code> dans <code>wScoreSante()</code>) existe déjà et fonctionne — il ne manque qu'un canal de sortie (email) et un déclencheur temporel.</dd>
+<dt>Impact utilisateur</dt><dd>Potentiellement le plus fort levier de rétention du produit — voir développement complet en Approfondissements.</dd>
+<dt>Risque à ne rien faire</dt><dd>Le risque de désabonnement structurel identifié dans le premier audit (usage hebdomadaire = mémoire de valeur plus faible qu'un usage quotidien) reste entier sans ce mécanisme.</dd>
+<dt>Effort estimé</dt><dd>Faible-moyen — réutilise une logique déjà écrite et testée, ajoute seulement un déclencheur (tâche planifiée) et un service d'envoi d'email basique.</dd>
+<dt>Bon moment pour agir</dt><dd>Dans les 30-60 prochains jours — c'est l'expérimentation à plus fort ratio effort/impact de toute la liste.</dd>
+<dt>Test de validation</dt><dd>Taux d'ouverture de l'email + taux de retour dans l'app dans les 48h suivant l'envoi, mesuré sur les 4-8 premières semaines d'envoi.</dd>
+</dl>
+</div>
+
+<div class="case test">
+<h4>Hiérarchisation réelle du dashboard en 3 couches</h4>
+<dl>
+<dt>Problème observé</dt><dd>Toutes les cartes du dashboard ont le même poids visuel — <code>VISION_PRODUIT.md</code> le documente lui-même depuis le 2 juillet sans que ce soit corrigé.</dd>
+<dt>Preuve</dt><dd>Capture d'écran du dashboard démo : bandeau + missions + brief + score + 4 piliers + trajectoire + donut, tous visibles avec une intensité visuelle comparable.</dd>
+<dt>Impact utilisateur</dt><dd>Charge cognitive au premier regard, contraire à l'objectif produit affiché ("comprendre sa situation en moins de 20 secondes").</dd>
+<dt>Risque à ne rien faire</dt><dd>Aucun risque immédiat (le produit fonctionne), mais une occasion manquée de renforcer la promesse à chaque ouverture.</dd>
+<dt>Effort estimé</dt><dd>Faible — réorganisation d'affichage, pas de nouvelle donnée ni de nouveau calcul.</dd>
+<dt>Bon moment pour agir</dt><dd>Pendant la bêta actuelle, testable en une itération.</dd>
+<dt>Test de validation</dt><dd>Demander à un nouveau bêta-testeur de résumer sa situation à voix haute après 15 secondes sur le dashboard, sans aide.</dd>
+</dl>
+</div>
+
+<div class="case test">
+<h4>Divulgation progressive des 3 notions de temps</h4>
+<dl>
+<dt>Problème observé</dt><dd>Temps planifié, temps prévu et sessions calendrier coexistent visuellement sur la même modale pour toute mission.</dd>
+<dt>Preuve</dt><dd><code>ARCHITECTURE_PRODUIT.md</code>, section "Gestion du temps" — confirme que les deux zones sont "toujours visibles… pour toute mission, quel que soit le profil" depuis la dernière refonte.</dd>
+<dt>Impact utilisateur</dt><dd>Charge cognitive à la création d'une mission, en particulier pour un premier usage.</dd>
+<dt>Risque à ne rien faire</dt><dd>Risque de saisie approximative ou d'abandon partiel du formulaire — déjà un pattern identifié par la fondatrice elle-même dans le changelog.</dd>
+<dt>Effort estimé</dt><dd>Faible-moyen — réorganisation d'affichage et de vocabulaire, la logique de calcul sous-jacente reste inchangée.</dd>
+<dt>Bon moment pour agir</dt><dd>Pendant la bêta, avant d'élargir à de nouveaux profils moins familiers du produit.</dd>
+<dt>Test de validation</dt><dd>Un nouvel utilisateur doit pouvoir créer une mission simple sans ouvrir la section "Gestion du temps" s'il ne le souhaite pas, et sans se sentir en faute de l'avoir ignorée.</dd>
+</dl>
+</div>
+
+<h3>🟡 4. Chantiers à reporter</h3>
+<p style="font-size:.9em;color:var(--grey)">Légitimes, mais mal dimensionnés pour une fondatrice seule et non financée aujourd'hui.</p>
+
+<div class="case defer">
+<h4>Connexion bancaire (lecture seule)</h4>
+<dl>
+<dt>Problème observé</dt><dd>100% de la saisie est aujourd'hui manuelle — c'est le plus gros irritant structurel identifié.</dd>
+<dt>Preuve</dt><dd>Aucun code, aucune intégration d'agrégateur bancaire dans le dépôt ; déjà en roadmap Phase 3 (6-18 mois) dans <code>VISION_PRODUIT.md</code>.</dd>
+<dt>Impact utilisateur</dt><dd>Élevé en théorie, mais non prouvé comme le facteur limitant réel de l'usage actuel — les bêta-testeuses actives n'ont pas cité ce manque comme bloquant dans les retours documentés.</dd>
+<dt>Risque à ne rien faire</dt><dd>Faible à court terme (la saisie manuelle reste supportable pour un usage hebdomadaire de quelques missions) — le risque grandirait seulement avec un volume d'utilisateurs bien plus élevé.</dd>
+<dt>Effort estimé</dt><dd>Élevé — coût d'API d'agrégation, conformité, support dédié quand la synchronisation échoue (elle échouera). Hors de portée d'une fondatrice seule sans financement.</dd>
+<dt>Bon moment pour agir</dt><dd>Après financement ou traction commerciale prouvée (dizaines à centaines de clients payants), jamais avant.</dd>
+<dt>Test de validation</dt><dd>Suivre le nombre de bêta-testeuses qui citent explicitement l'absence de connexion bancaire comme un frein à continuer d'utiliser le produit — construire seulement si ce chiffre devient significatif.</dd>
+</dl>
+</div>
+
+<div class="case defer">
+<h4>OCR de reçus/factures</h4>
+<dl>
+<dt>Problème observé</dt><dd>Ajouter une dépense nécessite une saisie manuelle complète.</dd>
+<dt>Preuve</dt><dd>Aucune trace de pipeline de reconnaissance d'image dans le code.</dd>
+<dt>Impact utilisateur</dt><dd>Réel mais secondaire face à des alternatives beaucoup moins coûteuses (voir Approfondissements, point sur la simplification du formulaire dépense).</dd>
+<dt>Risque à ne rien faire</dt><dd>Faible — un formulaire dépense simplifié à 2 champs couvre une grande partie du même bénéfice perçu.</dd>
+<dt>Effort estimé</dt><dd>Moyen-élevé, avec un vrai risque de maintenance (gestion des échecs de reconnaissance, correction manuelle, coût d'API par appel).</dd>
+<dt>Bon moment pour agir</dt><dd>Après avoir épuisé les options de simplification manuelle à coût quasi nul, et seulement si le volume d'usage le justifie.</dd>
+<dt>Test de validation</dt><dd>Mesurer si un formulaire dépense simplifié réduit déjà significativement le temps de saisie perçu avant de considérer l'OCR comme nécessaire.</dd>
+</dl>
+</div>
+
+<div class="case defer">
+<h4>Refactor du rendu HTML en modules avec bundler</h4>
+<dl>
+<dt>Problème observé</dt><dd><code>indepuls.html</code> concentre 12 700+ lignes de code de rendu/contrôleur.</dd>
+<dt>Preuve</dt><dd>Comptage direct du fichier ; à mettre en regard du fait que le moteur de calcul, lui, est déjà séparé (<code>shared/core/*.js</code>) et correctement testé (350+ assertions).</dd>
+<dt>Impact utilisateur</dt><dd>Nul aujourd'hui, indirect à terme (vélocité de développement qui ralentit progressivement).</dd>
+<dt>Risque à ne rien faire</dt><dd>Croît lentement, pas brutalement — chaque fonctionnalité ajoutée l'aggrave un peu, mais rien n'indique une limite atteinte à court terme.</dd>
+<dt>Effort estimé</dt><dd>Élevé, avec un vrai risque de régression pour une personne seule sans capacité de QA parallèle — c'est le type de chantier qui bloque le développement produit pendant des semaines sans valeur visible pour l'utilisateur pendant ce temps.</dd>
+<dt>Bon moment pour agir</dt><dd>Quand un second développeur rejoint le projet, ou quand la vélocité de développement ralentit visiblement à cause de la taille du fichier — pas avant.</dd>
+<dt>Test de validation</dt><dd>Mesurer le temps nécessaire pour livrer une fonctionnalité de complexité comparable tous les 2-3 mois — agir seulement si ce temps augmente significativement.</dd>
+</dl>
+</div>
+
+<h3>⚫ 5. Idées à abandonner</h3>
+<p style="font-size:.9em;color:var(--grey)">Pas "plus tard" — genuinement la mauvaise direction pour ce produit.</p>
+
+<div class="case drop">
+<h4>Un vrai devis contractuel complet</h4>
+<dl>
+<dt>Problème observé</dt><dd>La tentation naturelle, une fois un export PDF construit, d'ajouter numérotation/TVA/signature/suivi.</dd>
+<dt>Preuve</dt><dd><code>ARCHITECTURE_PRODUIT.md</code> exclut explicitement "gestion des devis détaillés" et "facturation complète" — décision déjà actée et documentée.</dd>
+<dt>Impact utilisateur</dt><dd>Négatif net — dilue le positionnement, transforme Indépuls en un Freebe/Indy moins mature qu'eux sur leur propre terrain.</dd>
+<dt>Risque à ne rien faire</dt><dd>Aucun — ne pas le faire est la bonne décision, pas une négligence.</dd>
+<dt>Effort estimé</dt><dd>Sans objet.</dd>
+<dt>Bon moment pour agir</dt><dd>Jamais, sauf changement radical de positionnement stratégique assumé consciemment.</dd>
+<dt>Test de validation</dt><dd>Toute demande future en ce sens doit être reformulée en "fiche non contractuelle" avant d'être considérée.</dd>
+</dl>
+</div>
+
+<div class="case drop">
+<h4>Chatbot conversationnel généraliste</h4>
+<dl>
+<dt>Problème observé</dt><dd>Tentation classique d'ajouter "de l'IA partout" pour paraître moderne.</dd>
+<dt>Preuve</dt><dd>Déjà explicitement écarté dans <code>VISION_PRODUIT.md</code> ("Chatbot général → Non (curiosité, pas peur précise). N'existe pas").</dd>
+<dt>Impact utilisateur</dt><dd>Négatif net sur un produit financier — un chatbot qui peut se tromper mine directement la confiance que le produit a mis 6 semaines à construire par la rigueur de ses calculs déterministes.</dd>
+<dt>Risque à ne rien faire</dt><dd>Aucun.</dd>
+<dt>Effort estimé</dt><dd>Sans objet.</dd>
+<dt>Bon moment pour agir</dt><dd>Jamais pour les textes de conseil affichés. L'IA reste acceptée en amont (extraction, catégorisation), jamais en sortie généfrative libre.</dd>
+<dt>Test de validation</dt><dd>Toute proposition d'IA doit passer le test : "le texte final affiché à l'utilisateur est-il 100% déterministe et testable ?" Si non, refuser.</dd>
+</dl>
+</div>
+
+<div class="case drop">
+<h4>Champs fantômes (<code>modules.devis</code>, <code>modules.simulateurOffre</code>)</h4>
+<dl>
+<dt>Problème observé</dt><dd>Toujours sérialisés dans chaque sauvegarde localStorage/cloud sans plus aucun effet sur le comportement du produit.</dd>
+<dt>Preuve</dt><dd><code>CLAUDE.md</code> le documente explicitement comme "ne gate plus rien depuis la fusion des interfaces".</dd>
+<dt>Impact utilisateur</dt><dd>Nul — pur nettoyage.</dd>
+<dt>Risque à ne rien faire</dt><dd>Faible, purement cosmétique/dette mineure.</dd>
+<dt>Effort estimé</dt><dd>Très faible.</dd>
+<dt>Bon moment pour agir</dt><dd>À l'occasion d'un prochain passage dans les fichiers concernés — pas urgent en soi.</dd>
+<dt>Test de validation</dt><dd>Suites de tests existantes toujours vertes après suppression.</dd>
+</dl>
+</div>
+
+<h2 id="deep"><span class="num">§</span> Approfondissements stratégiques</h2>
+<span class="script-sub">Les sept questions qui comptent vraiment maintenant</span>
+
+<h3>1. Quelle est la meilleure première cible ?</h3>
+<table>
+<tr><th>Segment</th><th>Douleur</th><th>Fréquence</th><th>Difficulté saisie</th><th>Propension à payer</th><th>Concurrence</th><th>Acquisition</th></tr>
+<tr><td><b>Artisan bâtiment</b></td><td>Très forte</td><td>Modérée</td><td>Moyenne</td><td>Bonne si ROI démontré</td><td>Faible sur l'angle "rentabilité" (les outils BTP existants visent devis/facturation, pas la santé financière)</td><td>Moyenne (chambres de métiers, bouche-à-oreille chantier)</td></tr>
+<tr><td>Prestataires de services</td><td>Modérée</td><td>Faible-moyenne</td><td>Faible</td><td>Bonne, habitués aux abonnements SaaS</td><td>Forte (Indy, Freebe ciblent précisément ce segment)</td><td>Bonne (communautés en ligne actives)</td></tr>
+<tr><td>Créatifs</td><td>Forte</td><td>Variable</td><td>Faible</td><td>Variable (revenus souvent irréguliers)</td><td>Forte (Freebe très présent)</td><td>Bonne (Instagram, Behance)</td></tr>
+<tr><td>Fabrication</td><td>Forte sur la marge</td><td>Modérée</td><td>Moyenne</td><td>Incertaine</td><td>Faible</td><td>Difficile (marché fragmenté)</td></tr>
+<tr><td>Achat-revente</td><td>Modérée à forte</td><td>Potentiellement élevée</td><td>Plus élevée (par vente)</td><td>Incertaine (marges fines, culture du gratuit)</td><td>Faible sur l'angle rentabilité</td><td>Communautés volatiles</td></tr>
+</table>
+<p><strong>Recommandation :</strong> lancer sur l'<strong>artisan bâtiment</strong>. C'est le segment où le produit est déjà le mieux adapté (TJM, chantiers, dépenses liées, calendrier), où existe déjà une preuve d'usage réelle (le conjoint de Faustine), et où la concurrence directe sur l'angle "rentabilité" est la plus faible — les outils BTP existants (devis/facturation) ne répondent pas à "suis-je rentable sur ce type de chantier", laissant le terrain libre. <strong>Cibles secondaires</strong> : services/créatifs, en parallèle, pour élargir la base de test et valider que le produit tient au-delà du profil chantier qui a inspiré la majorité des décisions récentes. <strong>À ne pas poursuivre activement</strong> : fabrication et achat-revente pour l'acquisition — continuer de les servir (le produit existe déjà pour eux) sans y investir de budget d'acquisition dédié tant que les segments primaire/secondaire ne sont pas consolidés.</p>
+
+<h3>2. Quelle fonctionnalité crée réellement le déclic d'achat ?</h3>
+<p>Pas seulement le Score Santé — la boucle complète compte :</p>
+<ul>
+<li><strong>Déclic d'activation (le "aha" en une session)</strong> : le <strong>Simulateur</strong>. C'est le seul écran qui répond à une question concrète, immédiate, avant une décision réelle ("dois-je accepter ce prix ?") — démontrable en 2 minutes à un sceptique, sans historique de données nécessaire. C'est la fonctionnalité la plus "racontable" au café du commerce.</li>
+<li><strong>Ancrage de rétention (pourquoi je reviens chaque semaine)</strong> : le <strong>Score Santé + le widget "argent à mettre de côté"</strong>. Ce n'est pas la fonctionnalité qui convertit, c'est celle qui évite une peur récurrente précise (oublier de provisionner l'URSSAF) — la vraie justification d'un abonnement mensuel n'est pas "j'aime regarder mon score", c'est "je serais anxieuse de m'en passer".</li>
+<li><strong>Moteur de bouche-à-oreille (ce qui fait témoigner)</strong> : les moments "j'ai découvert que je perdais de l'argent sur X" — révélés par le pilier Rentabilité et la comparaison par mission. C'est le type de révélation qu'un utilisateur répète spontanément, contrairement à un chiffre abstrait.</li>
+</ul>
+<p>La boucle complète : <em>saisie rapide d'une mission → Score qui bouge visiblement → Simulateur qui valide/corrige une décision de prix → révélation ponctuelle sur une mission passée peu rentable → envie de revenir la semaine suivante pour voir si le score progresse.</em> Le produit a déjà les 4 premiers maillons ; le 5ᵉ (le rappel actif) est celui qui manque — voir le brief hebdomadaire ci-dessous.</p>
+
+<h3>3. Quelle est la boucle d'usage minimale idéale (10-15 min/semaine) ?</h3>
+<p><strong>Parcours idéal :</strong> l'utilisateur reçoit (à terme) un rappel hebdomadaire → ouvre l'app → voit en premier, sans défiler, un seul chiffre et une seule phrase ("votre score : 80. Une chose à faire cette semaine : relancer Sophie.") → ajoute 1 à 3 missions de la semaine (30 secondes chacune si le formulaire est simplifié) → vérifie en un coup d'œil si l'objectif du mois est en bonne voie → referme l'app rassurée ou avec une action claire en tête. Total réaliste : 10-12 minutes.</p>
+<p><strong>Ce qui, dans le produit actuel, gêne cette boucle :</strong> (1) le formulaire mission trop dense pour un geste de 30 secondes ; (2) l'absence de rappel actif — rien ne pousse l'utilisateur à revenir, tout repose sur sa mémoire ; (3) l'équipondération visuelle du dashboard qui retarde le moment où l'utilisateur voit "la seule chose qui compte cette semaine".</p>
+
+<h3>4. Quelles données sont réellement indispensables ?</h3>
+<table>
+<tr><th>Donnée</th><th>Classement</th></tr>
+<tr><td>Métier / famille de profil (onboarding)</td><td>Indispensable — pilote tout le vocabulaire et les défauts</td></tr>
+<tr><td>Statut juridique simplifié (onboarding)</td><td>Indispensable — pilote les cotisations/impôts</td></tr>
+<tr><td>Objectif de revenu net mensuel</td><td>Indispensable — sans lui, le Score Santé n'a pas de référence</td></tr>
+<tr><td>Montant + statut d'une mission</td><td>Indispensable au fonctionnement de base</td></tr>
+<tr><td>Temps réel passé (chrono/saisie manuelle)</td><td>Utile mais facultatif — le produit fonctionne en mode dégradé sans lui (TH/TJM juste non calculé)</td></tr>
+<tr><td>Temps planifié (charge hebdomadaire)</td><td>Utile mais facultatif — n'alimente qu'un seul pilier (Remplissage), à demander uniquement si l'utilisateur veut ce signal</td></tr>
+<tr><td>Sessions calendrier (dates précises)</td><td>Spécifique à certains profils (chantier/événementiel) — à ne jamais présenter par défaut aux profils service/fabrication/achat-revente</td></tr>
+<tr><td>Dépenses liées à une affaire</td><td>Utile mais facultatif — déductible/estimable par défaut si absent (moyenne mensuelle), à affiner progressivement</td></tr>
+<tr><td>Nombre de jours travaillés/semaine, heures/jour</td><td>Déductible automatiquement d'un défaut raisonnable par métier, à ne demander que si l'utilisateur veut affiner la précision du Score</td></tr>
+<tr><td>Régime TVA exact</td><td>Indispensable si assujetti, mais devrait être déductible par défaut ("probablement en franchise si votre CA est sous X€") plutôt que demandé à l'aveugle</td></tr>
+<tr><td>Source d'acquisition d'une mission</td><td>Inutile pour la majorité des profils — actuellement facultatif, correctement traité comme tel</td></tr>
+<tr><td>Notes libres sur une mission</td><td>Utile mais totalement facultatif</td></tr>
+</table>
+<p><strong>Principe à généraliser :</strong> chaque champ non indispensable devrait avoir un défaut intelligent calculé plutôt qu'un champ vide qui attend une saisie — c'est déjà le réflexe du produit sur certains points (ex. régime TVA proposé par défaut selon le statut), à étendre systématiquement.</p>
+
+<h3>5. Quelle hiérarchie pour le dashboard ?</h3>
+<p>La structure Décider/Comprendre/Analyser est déjà spécifiée dans <code>VISION_PRODUIT.md</code>, jamais pleinement réalisée dans l'écran actuel. Version opérationnelle :</p>
+<ul>
+<li><strong>Couche 1 — Décider (visible sans défiler)</strong> : le Score (un chiffre, un mot, une couleur) + le Brief (une phrase, une action) — rien d'autre. Pas les 4 piliers en détail, pas le graphique, pas le donut.</li>
+<li><strong>Couche 2 — Comprendre (visible en descendant une fois, pas en cliquant)</strong> : les 4 piliers en version compacte (dot + une ligne humaine chacun) + trajectoire du mois + provisions à prévoir.</li>
+<li><strong>Couche 3 — Analyser (accordéon ou page dédiée, jamais imposée)</strong> : détail méthodologique de chaque pilier ("Pourquoi ce score ?"), graphiques d'évolution, donut de répartition, historique/archives.</li>
+</ul>
+<p>Concrètement sur l'écran actuel (capture "Tableau de bord") : les 4 cartes piliers en pleine taille et le donut devraient descendre en couche 3 par défaut, remplacés en couche 1-2 par une version très réduite (juste les 4 dots colorés + le Brief déjà bien conçu).</p>
+
+<h3>6. Quel niveau de personnalisation par profil ?</h3>
+<p><strong>Commun à tous, sans exception</strong> : Score Santé, Simulateur, suivi du temps, provisions/trésorerie, notion de mission/vente/chantier (même moteur, vocabulaire différent).</p>
+<p><strong>Spécifique par profil</strong> : le vocabulaire (mission/chantier/commande/vente), le KPI principal (TH/TJM/marge), les champs de dépenses typiques (matières, déplacement, achat-revente), et — plus sensible — les fonctionnalités récentes (Lots, Retours) réservées à fabrication/achat-revente.</p>
+<p><strong>Un profil trop différent pour cohabiter sans vigilance</strong> : <strong>achat-revente</strong>. C'est le seul des 4 familles qui pousse structurellement vers une logique de gestion de stock/inventaire (lots, quantités, retours article par article) — le terrain le plus proche d'un ERP-lite que le produit s'est explicitement interdit de devenir. Ce n'est pas une raison de l'exclure, mais un point de vigilance permanent : toute nouvelle demande venant de ce segment doit être passée au filtre "est-ce qu'on est en train de construire une gestion de stock déguisée ?" avant d'être acceptée.</p>
+<p><strong>Une seule marque peut-elle parler à un artisan, une consultante et une revendeuse ?</strong> Oui, à condition que le point commun affiché reste l'émotion (la même peur de mal gérer son activité), jamais le vocabulaire métier. Le système <code>tVocab()</code> fait déjà ce travail correctement — le risque n'est pas la personnalisation elle-même, c'est la discipline à maintenir dans le temps pour ne jamais coder un mot métier en dur (déjà partiellement outillé via le script de lint).</p>
+
+<h3>7. Quelle innovation est réellement atteignable ?</h3>
+<table>
+<tr><th>Catégorie</th><th>Exemples</th></tr>
+<tr><td>Solo, 3 mois, sans nouvelle infra</td><td>Brief hebdomadaire minimal (détail ci-dessous) · fiche de proposition tarifaire non contractuelle · hiérarchisation du dashboard · divulgation progressive du formulaire mission · figer et documenter la version finale du pilier Remplissage</td></tr>
+<tr><td>Nécessite un développeur</td><td>Pipeline OCR robuste avec UX de correction · PWA installable propre · infrastructure de tests end-to-end</td></tr>
+<tr><td>Nécessite une équipe + financement</td><td>Connexion bancaire · multi-compte/permissions réelles · support utilisateur dédié</td></tr>
+<tr><td>Dépend d'un volume de données</td><td>Benchmark inter-pairs anonymisé · recommandation de prix par similarité · prévision saisonnière fiable</td></tr>
+<tr><td>Séduisant mais peu rentable à ce stade</td><td>Application mobile native (la PWA suffit) · 11 thèmes visuels · chatbot conversationnel</td></tr>
+</table>
+
+<div class="note">
+<b>🔎 Le brief hebdomadaire, en détail — la meilleure occasion de tout ce document.</b>
+<ul>
+<li><b>Version minimale sans IA générative</b> : un email/notification déclenché automatiquement une fois par semaine, construit à partir de règles déjà écrites et déterministes.</li>
+<li><b>Données nécessaires</b> : la sortie déjà calculée de <code>wScoreSante()</code> (score, pilier le plus faible, "Action recommandée") comparée à l'état de la semaine précédente. La logique de snapshot mensuel existe déjà (<code>DATA.snapshotsMensuels</code>) — il "suffit" d'un snapshot à grain hebdomadaire.</li>
+<li><b>Règles de sélection de la priorité</b> : réutiliser telle quelle la logique déjà en place pour "Action recommandée" et les alertes du Brief in-app — aucune nouvelle règle métier à inventer.</li>
+<li><b>Forme du message</b> : 3-4 lignes maximum, un seul chiffre, une seule action, ton "élan" déjà documenté et respecté dans tout le produit ("il reste X à trouver", jamais "il manque X").</li>
+<li><b>Risque de répétition</b> : une alerte non résolue 3 semaines de suite devient une nuisance plutôt qu'une aide. Un mécanisme de "snooze" existe déjà pour 2 alertes du dashboard (<code>alertsDismissed</code>, fenêtre de 15 jours) — à réutiliser pour le brief email plutôt qu'à reconstruire.</li>
+<li><b>Valeur pour la rétention</b> : c'est la réponse structurelle directe au risque de churn identifié dans le premier audit (usage hebdomadaire, pas quotidien = mémoire de valeur plus faible). Sans ce mécanisme, la rétention dépend entièrement de la discipline de l'utilisateur ; avec lui, elle dépend du produit.</li>
+</ul>
+</div>
+
+<h2 id="road"><span class="num">§</span> Roadmap — adaptée à une fondatrice seule</h2>
+<span class="script-sub">Cinq priorités, pas vingt</span>
+
+<div class="roadmap-v">
+<h4>Les 30 prochains jours</h4>
+<div class="why">Objectif unique : réduire le risque et préparer le terrain, sans construire de nouvelle infrastructure lourde.</div>
+<ol>
+<li>Monitoring d'erreur (Sentry ou équivalent) — quelques heures, valeur immédiate.</li>
+<li>Résoudre les 3 duplications dangereuses identifiées (<code>isRecurringStillActive</code>, <code>storage.js</code> mort, <code>TVA_SEUILS</code>).</li>
+<li>Simplifier le formulaire dépense (2 champs pour le cas courant) et tester le geste "je note vite un chantier" en dessous de 45 secondes.</li>
+<li>Poser la question de prix aux bêta-testeuses actuelles (fourchette acceptable).</li>
+<li>Cadrer et livrer la "fiche de proposition tarifaire non contractuelle" depuis le Simulateur.</li>
+</ol>
+</div>
+
+<div class="roadmap-v">
+<h4>Les 60 jours suivants</h4>
+<div class="why">Objectif : construire le mécanisme de rétention et clarifier la hiérarchie de l'écran principal, avant d'élargir la base de testeurs.</div>
+<ol>
+<li>Brief hebdomadaire minimal par email (voir détail ci-dessus).</li>
+<li>Hiérarchisation du dashboard en 3 couches (Décider/Comprendre/Analyser).</li>
+<li>Divulgation progressive des 3 notions de temps dans le formulaire mission.</li>
+<li>Figer officiellement la méthode du pilier Remplissage + documenter le versioning du score pour garder une comparaison historique honnête.</li>
+<li>Élargir la bêta à 10-15 nouveaux testeurs, priorité artisan bâtiment + services/créatifs.</li>
+</ol>
+</div>
+
+<h3>Avant le premier abonnement payant — critères obligatoires</h3>
+<div class="checklist">
+<ul>
+<li>Aucun bug de perte/corruption de données signalé depuis au moins 30 jours de bêta élargie.</li>
+<li>Le pilier Remplissage n'a pas changé de méthode depuis au moins 4-6 semaines.</li>
+<li>Le formulaire mission peut être complété en moins d'une minute pour le cas simple, vérifié sur au moins 3 profils différents.</li>
+<li>Un signal net de disposition à payer existe (fourchette de prix confirmée par au moins 5-8 testeurs).</li>
+<li>Des mentions légales/CGV minimales existent, même sans Stripe complet — statut de la donnée, responsabilité sur ce qui est "estimation" vs "calcul garanti".</li>
+<li>Le brief hebdomadaire est en place et mesuré (taux d'ouverture, taux de retour).</li>
+<li>Au moins 2 profils différents (pas seulement chantier) confirment un usage hebdomadaire réel sans relance.</li>
+</ul>
+</div>
+
+<h3>Après les premiers clients payants — conditionné à des preuves d'usage</h3>
+<ul>
+<li>Connexion bancaire : seulement si un nombre significatif de clients payants la citent explicitement comme frein à la rétention.</li>
+<li>OCR : seulement si le formulaire dépense simplifié montre déjà ses limites en usage réel payant.</li>
+<li>Refactor technique complet : seulement à l'arrivée d'un second développeur ou d'un financement dédié.</li>
+<li>Benchmark inter-pairs : seulement une fois un volume de données suffisant par profil accumulé (probablement plusieurs centaines d'utilisateurs actifs par famille de métier).</li>
+<li>Extension de Lots/Retours à fabricant_serie ou d'autres profils : seulement sur signal terrain direct, jamais par analogie.</li>
+</ul>
+
+<h2 id="final"><span class="num">§</span> Réponse finale</h2>
+<span class="script-sub">Si j'étais à votre place aujourd'hui</span>
+
+<div class="final">
+<h3>Les 3 décisions sur lesquelles je concentrerais toute mon énergie</h3>
+<ol>
+<li><strong>Fiabiliser ce qui existe avant d'ajouter quoi que ce soit</strong> — monitoring d'erreur, résolution des 3 duplications dangereuses, gel documenté du pilier Remplissage. Ce n'est ni excitant ni visible, mais c'est la seule chose qui protège la confiance déjà construite avec vos 4 bêta-testeuses, et cette confiance est aujourd'hui votre actif le plus rare et le plus précieux.</li>
+<li><strong>Construire le brief hebdomadaire</strong> — c'est la seule fonctionnalité de cette liste entière qui répond directement et structurellement au plus grand risque business identifié (rétention faible d'un produit à usage hebdomadaire), tout en étant réalisable seule, en quelques semaines, avec une logique déjà écrite. Rien d'autre n'a un ratio effort/impact comparable en ce moment.</li>
+<li><strong>Choisir une cible de lancement et y consacrer l'attention</strong> — artisan bâtiment. Arrêter de développer au rythme des demandes individuelles isolées (aussi légitimes soient-elles) et recentrer les prochaines semaines de bêta sur la validation de ce segment précis avant de courir après les autres.</li>
+</ol>
+
+<h3>Les demandes ou idées auxquelles je dirais explicitement non pendant les 3 prochains mois</h3>
+<ol>
+<li><strong>Non à la connexion bancaire et à l'OCR</strong>, même si des utilisateurs les demandent. Ce sont des chantiers d'après-financement, pas d'avant-preuve. Une réduction de friction manuelle (formulaire simplifié) capte une grande partie du bénéfice pour une fraction infime du coût et du risque.</li>
+<li><strong>Non à tout enrichissement du "devis" au-delà d'une fiche non contractuelle</strong>, même si un bêta-testeur demande "juste un petit numéro de devis" ou "juste un statut de suivi". C'est exactement la pente qui mène à redevenir Freebe en moins bien. La ligne doit être tenue même face à une demande utilisateur légitime et bien intentionnée.</li>
+<li><strong>Non au refactor technique complet du fichier HTML</strong>, même si c'est objectivement la chose la plus "propre" à faire d'un point de vue ingénierie. Seule, sans capacité de QA parallèle, ce chantier consommerait des semaines sans qu'aucun utilisateur ne le voie — un luxe que ni le stade du produit ni la structure de l'équipe ne permettent aujourd'hui.</li>
+</ol>
+</div>
+
+<p style="margin-top:36px;text-align:center;color:var(--beige);font-size:.85em;">Version révisée du 25 juillet 2026 — construite en contradiction assumée avec certains points du premier audit, en accord assumé avec d'autres. Le désaccord, quand il subsiste, est documenté explicitement plutôt que lissé.</p>
+
+</div>
+</body>
+</html>

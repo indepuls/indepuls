@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculateur de TJM minimum · Indépuls</title>
+<meta name="description" content="Calculez gratuitement votre TJM (taux journalier moyen) minimum pour être rentable, en tenant compte de vos charges, cotisations et jours facturables.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.6;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:64px 24px 20px; text-align:center;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(26px,4vw,40px); margin:0 0 16px; line-height:1.25;}
+  header.hero p{max-width:600px; margin:0 auto; font-size:16.5px; color:#4a4a63;}
+
+  section.calc{padding:30px 24px 20px;}
+  .calc-wrap{display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:start;}
+  @media(max-width:800px){ .calc-wrap{grid-template-columns:1fr;} }
+
+  .calc-card{background:#fff; border:1px solid #e4ddd0; border-radius:16px; padding:26px; box-shadow:0 8px 30px rgba(20,21,56,.06);}
+  .field{margin-bottom:22px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{display:block; font-weight:700; font-size:14px; margin-bottom:8px; color:var(--navy);}
+  .field .hint{display:block; font-weight:400; font-size:12px; color:#8a8a9a; margin-top:2px;}
+  .clamp-note{display:block; font-size:12px; color:var(--prune); margin-top:6px;}
+  .inputrow{display:flex; align-items:center; gap:10px; background:var(--cream); border:1px solid #e4ddd0; border-radius:10px; padding:10px 14px;}
+  .inputrow input[type=number]{border:none; background:none; font-size:17px; font-weight:700; color:var(--navy); width:100%; outline:none; font-family:'Lato',sans-serif;}
+  .inputrow .unit{font-size:13px; color:#8a8a9a; white-space:nowrap;}
+  .sliderrow{display:flex; align-items:center; gap:14px;}
+  .sliderrow input[type=range]{flex:1; accent-color:var(--prune);}
+  .sliderrow .sliderval{font-weight:700; font-size:15px; color:var(--prune); min-width:48px; text-align:right;}
+
+  .calc-result{background:var(--navy); color:#fff; border-radius:16px; padding:30px 26px; text-align:center;}
+  .result-label{display:block; font-size:12.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); margin-bottom:8px;}
+  .result-num{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(38px,6vw,54px); display:block; line-height:1;}
+  .result-sub{display:block; font-size:13px; color:#b5b2cc; margin-top:6px;}
+  .result-secondary{margin-top:18px; padding-top:18px; border-top:1px solid rgba(255,255,255,.15); font-size:14.5px; color:#dcd9ec;}
+  .result-secondary b{color:#fff;}
+  .formula{margin-top:18px; padding-top:18px; border-top:1px dashed rgba(255,255,255,.15); font-family:monospace; font-size:12.5px; color:#b5b2cc; line-height:1.6; word-break:break-word;}
+
+  section.explain{padding:60px 24px; border-top:1px solid #e4ddd0;}
+  section.explain h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(21px,2.8vw,27px); margin:0 0 16px;}
+  section.explain p{color:#4a4a63; font-size:15.5px; margin:0 0 14px; max-width:720px;}
+  section.explain ul{color:#4a4a63; font-size:15px; padding-left:20px; max-width:720px;}
+  section.explain li{margin-bottom:8px;}
+
+  section.bridge{padding:50px 24px; border-top:1px solid #e4ddd0; background:#fff;}
+  section.bridge .wrap{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center;}
+  @media(max-width:800px){ section.bridge .wrap{grid-template-columns:1fr;} }
+  section.bridge h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(20px,2.6vw,25px); margin:0 0 14px;}
+  section.bridge p{color:#4a4a63; font-size:15px; margin:0 0 12px;}
+
+  .disclaimer{font-size:12.5px; color:#8a8a9a; max-width:720px; margin:18px auto 0; text-align:center;}
+
+  section.keywords{padding:40px 24px; text-align:center; border-top:1px solid #e4ddd0;}
+  section.keywords p{color:#6b6b6b; font-size:13.5px; max-width:680px; margin:0 auto;}
+
+  section.cta{padding:70px 24px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(22px,3.2vw,28px); margin:0 0 24px;}
+  .btnrow{display:flex; gap:16px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 30px; font-weight:700; font-size:15px; display:inline-block;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:var(--navy); border:1px solid var(--navy);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Calculateur de TJM minimum · Indépuls">
+<meta property="og:description" content="Calculez gratuitement votre TJM (taux journalier moyen) minimum pour être rentable, en tenant compte de vos charges, cotisations et jours facturables.">
+<meta property="og:url" content="https://indepuls.fr/outils-gratuits/calculateur-tjm/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../../tarifs/index.html">Tarifs</a>
+      <a href="../../demo/index.html">Démo</a>
+      <a href="../../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown has-active" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../calculateur-tjm/index.html" class="active">Calculateur de TJM</a>
+          <a href="../calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../../ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../../ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../../ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <span class="eyebrow">Outil gratuit</span>
+  <h1>Calculateur de TJM minimum</h1>
+  <p>Le taux journalier en dessous duquel votre activité ne couvre plus ce qu'elle doit couvrir : votre revenu visé, vos charges, et vos cotisations. Modifiez les chiffres, le résultat se met à jour tout de suite.</p>
+</header>
+
+<section class="calc">
+  <div class="wrap calc-wrap">
+    <div class="calc-card">
+      <div class="field">
+        <label for="revenu">Revenu net mensuel visé</label>
+        <div class="inputrow"><input type="number" id="revenu" value="2500" min="0" step="50"><span class="unit">€ / mois</span></div>
+      </div>
+      <div class="field">
+        <label for="charges">Charges professionnelles mensuelles<span class="hint">Outils, assurance, local, abonnements&hellip;</span></label>
+        <div class="inputrow"><input type="number" id="charges" value="300" min="0" step="10"><span class="unit">€ / mois</span></div>
+      </div>
+      <div class="field">
+        <label for="taux">Cotisations et impôts estimés<span class="hint">En % du chiffre d'affaires, à ajuster selon votre statut (micro-entreprise ou société)</span></label>
+        <div class="sliderrow">
+          <input type="range" id="taux" min="10" max="45" value="25" step="1">
+          <span class="sliderval" id="tauxVal">25 %</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="jours">Jours facturables par an<span class="hint">Sur environ 220 jours ouvrés, congés, prospection et administratif déduits. 260 au maximum, soit tous les jours ouvrés d'une année.</span></label>
+        <div class="inputrow"><input type="number" id="jours" value="200" min="20" max="260" step="5"><span class="unit">jours</span></div>
+        <span class="clamp-note" id="joursNote"></span>
+      </div>
+    </div>
+
+    <div class="calc-result">
+      <span class="result-label">TJM minimum</span>
+      <span class="result-num" id="tjmOut">224&nbsp;€</span>
+      <span class="result-sub">par jour facturé, pour ne pas être en dessous de vos charges</span>
+      <div class="result-secondary">Soit <b id="thOut">32&nbsp;€/h</b> sur une base de 7&nbsp;h par jour</div>
+      <div class="formula" id="formulaOut"></div>
+    </div>
+  </div>
+  <p class="disclaimer wrap">Calcul indicatif et simplifié, basé sur les chiffres que vous renseignez. Il ne constitue pas un conseil fiscal ou comptable personnalisé ; le taux réel de cotisations et d'impôts dépend de votre statut exact.</p>
+</section>
+
+<section class="explain">
+  <div class="wrap">
+    <h2>Comment ce calcul fonctionne</h2>
+    <p>Le TJM minimum répond à une question simple : combien dois-je facturer par jour pour que mon activité couvre tout ce qu'elle doit couvrir, sans y laisser de marge ? Quatre chiffres suffisent :</p>
+    <ul>
+      <li><strong>Le revenu net que vous voulez vraiment toucher</strong>, pas le chiffre d'affaires affiché.</li>
+      <li><strong>Vos charges professionnelles</strong>, tout ce qui sert votre activité mais ne vous revient pas en poche.</li>
+      <li><strong>La part de votre chiffre d'affaires qui part en cotisations et impôts</strong>, avant même d'arriver sur votre compte.</li>
+      <li><strong>Le nombre de jours réellement facturables</strong> dans l'année, une fois les congés, la prospection et l'administratif déduits.</li>
+    </ul>
+    <p>Le calcul reste toujours visible : aucun chiffre n'apparaît sans la formule qui le justifie.</p>
+  </div>
+</section>
+
+<section class="bridge">
+  <div class="wrap">
+    <div>
+      <h2>Un TJM minimum, ce n'est qu'une photo</h2>
+      <p>Ce calculateur donne un seuil à un instant donné, à partir de quelques chiffres. Indépuls prend en compte beaucoup plus de paramètres et suit ce seuil en continu, en le comparant à votre TJM réel, mission après mission.</p>
+      <p>Vous ne saisissez vos informations qu'une seule fois : vos objectifs, vos dépenses et vos encaissements sont gardés en mémoire et intégrés directement à chaque calcul, sans ressaisie.</p>
+    </div>
+    <div>
+      <div class="calc-result" style="background:#fff; color:var(--navy); border:1px solid #e4ddd0;">
+        <span class="result-label" style="color:var(--prune);">TJM réel</span>
+        <span class="result-num" style="color:var(--navy);">245&nbsp;€</span>
+        <span class="result-sub" style="color:#8a8a9a;">vs seuil minimum 210&nbsp;€/j</span>
+        <div class="result-secondary" style="color:#4a4a63; border-top-color:#e4ddd0;">Calculé automatiquement à chaque encaissement</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="keywords">
+  <p>Calculateur de TJM gratuit pour indépendants, freelances, consultants et artisans : calculer son TJM minimum, fixer ses tarifs, savoir si son taux journalier est trop bas par rapport à ses charges réelles.</p>
+</section>
+
+<section class="cta">
+  <h2>Voir ce calcul appliqué en continu à votre activité</h2>
+  <div class="btnrow">
+    <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
+    <a class="btn btn-secondary" href="../calculateur-rentabilite/index.html">Calculer la rentabilité d'une mission</a>
+  </div>
+</section>
+
+<footer>
+  <a href="../../a-propos/index.html">À propos</a>
+  <a href="../../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../../cgu.html">CGU</a>
+  <a href="../../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+
+(function(){
+  var fmt = function(n){ return Math.round(n).toLocaleString('fr-FR'); };
+  var revenu = document.getElementById('revenu');
+  var charges = document.getElementById('charges');
+  var taux = document.getElementById('taux');
+  var tauxVal = document.getElementById('tauxVal');
+  var jours = document.getElementById('jours');
+  var tjmOut = document.getElementById('tjmOut');
+  var thOut = document.getElementById('thOut');
+  var formulaOut = document.getElementById('formulaOut');
+
+  function calc(){
+    var r = Math.max(parseFloat(revenu.value) || 0, 0);
+    var c = Math.max(parseFloat(charges.value) || 0, 0);
+    var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
+    var j = Math.min(Math.max(parseFloat(jours.value) || 1, 1), 260);
+
+    tauxVal.textContent = t + ' %';
+
+    var revenuAnnuel = r * 12;
+    var chargesAnnuel = c * 12;
+    var caNecessaire = (revenuAnnuel + chargesAnnuel) / (1 - t / 100);
+    var tjm = caNecessaire / j;
+    var th = tjm / 7;
+
+    tjmOut.textContent = fmt(tjm) + ' €';
+    thOut.textContent = fmt(th) + ' €/h';
+    formulaOut.textContent = '(' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + t + ' %) ÷ ' + j + ' j = ' + fmt(tjm) + ' €/j';
+  }
+
+  [revenu, charges, taux, jours].forEach(function(el){ el.addEventListener('input', calc); });
+
+  jours.addEventListener('change', function(){
+    var v = parseFloat(jours.value);
+    var note = document.getElementById('joursNote');
+    if (isNaN(v)) { jours.value = 200; note.textContent = ''; }
+    else if (v > 260) { jours.value = 260; note.textContent = 'Ramené à 260 jours : c\'est le maximum de jours ouvrés dans une année.'; }
+    else if (v < 20) { jours.value = 20; note.textContent = 'Ramené à 20 jours, le minimum pris en compte.'; }
+    else { note.textContent = ''; }
+    calc();
+  });
+
+  calc();
+})();
+</script>
+
+</body>
+</html>

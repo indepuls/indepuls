@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Indépuls — Audit stratégique sévère (2026-07-25)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap');
+
+:root{
+  --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+  --ok:#2f6b4f; --warn:#a3641c; --err:#a13030;
+}
+*{box-sizing:border-box}
+body{background:var(--cream);color:var(--navy);font-family:'Lato',sans-serif;line-height:1.62;margin:0;padding:0 0 80px 0;}
+.wrap{max-width:1000px;margin:0 auto;padding:0 28px;}
+.cover{background:var(--navy);color:#fff;padding:70px 28px 50px;text-align:center;}
+.cover h1{font-family:'Playfair Display',serif;font-size:2.6em;margin:0 0 6px;font-weight:800;letter-spacing:.5px;}
+.cover .script{font-family:'Dancing Script','New Icon Script',cursive;color:var(--beige);font-size:1.6em;font-style:italic;margin:0 0 22px;}
+.cover .meta{color:#cfc9e0;font-size:.95em;max-width:640px;margin:0 auto;}
+h2{font-family:'Playfair Display',serif;font-weight:800;font-size:1.7em;color:var(--navy);border-bottom:3px solid var(--beige);padding-bottom:8px;margin:56px 0 6px;}
+h2 .num{color:var(--prune);}
+h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.22em;color:var(--prune);margin:30px 0 8px;}
+.script-sub{font-family:'Dancing Script','New Icon Script',cursive;color:var(--prune);font-style:italic;font-size:1.35em;display:block;margin:-2px 0 18px;}
+p{margin:0 0 13px;}
+ul,ol{margin:0 0 16px;padding-left:22px;}
+li{margin-bottom:7px;}
+strong{color:var(--navy);}
+.note{background:#fff;border-left:4px solid var(--beige);padding:12px 16px;margin:14px 0;font-size:.94em;border-radius:0 6px 6px 0;}
+.persona{background:#fff;border-radius:10px;padding:18px 20px;margin:14px 0;border:1px solid #e4ddd0;}
+.persona b{color:var(--prune);}
+table{width:100%;border-collapse:collapse;margin:16px 0 24px;font-size:.92em;background:#fff;}
+th{background:var(--navy);color:#fff;text-align:left;padding:9px 10px;font-weight:700;}
+td{padding:9px 10px;border-bottom:1px solid #ece6d9;vertical-align:top;}
+tr:nth-child(even) td{background:#faf8f3;}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.82em;font-weight:700;color:#fff;white-space:nowrap;}
+.b-fire{background:var(--prune);} .b-rocket{background:var(--navy);} .b-star{background:var(--beige);color:var(--navy);}
+.b-idea{background:#fff;color:var(--prune);border:1.5px solid var(--prune);} .b-x{background:var(--err);}
+.score{font-family:'Playfair Display',serif;font-weight:800;font-size:2em;color:var(--prune);}
+.grade-line{background:#fff;border:2px solid var(--navy);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:1.05em;}
+.divider{text-align:center;color:var(--beige);font-size:1.4em;margin:40px 0;letter-spacing:14px;}
+.fact{background:var(--navy);color:#fff;border-radius:8px;padding:10px 16px;margin:10px 0;font-size:.9em;}
+.fact b{color:var(--beige);}
+blockquote{border-left:4px solid var(--prune);margin:16px 0;padding:6px 18px;font-style:italic;color:var(--prune);background:#fff;}
+.roadmap-v{background:var(--navy);color:#fff;border-radius:10px;padding:20px 22px;margin:18px 0;}
+.roadmap-v h4{font-family:'Playfair Display',serif;color:var(--beige);margin:0 0 4px;font-size:1.3em;}
+.roadmap-v .why{color:#cfc9e0;font-size:.88em;font-style:italic;margin-bottom:10px;}
+.final{background:var(--prune);color:#fff;border-radius:12px;padding:26px 26px;margin:20px 0;}
+.final h3{color:#fff;margin-top:6px;}
+.toc{background:#fff;border-radius:10px;padding:20px 26px;margin:24px 0;columns:2;column-gap:30px;}
+.toc a{color:var(--navy);text-decoration:none;font-size:.92em;display:block;padding:3px 0;}
+@media(max-width:640px){.toc{columns:1}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>INDÉPULS</h1>
+  <div class="script">Audit stratégique — comité d'investissement</div>
+  <div class="meta">Revue sévère du produit, de l'UX, de la stratégie business et de l'architecture technique — sur la base du code réel (indepuls.html, shared/core/*), de la documentation produit (VISION_PRODUIT.md, ARCHITECTURE_PRODUIT.md, CLAUDE.md), de l'historique Git et de quatre captures d'écran de l'application en fonctionnement. 25 juillet 2026.</div>
+</div>
+
+<div class="wrap">
+
+<div class="fact">📊 <b>Repères factuels vérifiés avant l'audit</b> — indepuls.html : 12 734 lignes, 402 fonctions, 288 attributs onclick. Projet démarré le 11 juin 2026 (44 jours). 534 commits. 2 383 lignes de tests automatisés (fonctions pures uniquement, 0 test end-to-end). Bêta-testeurs nommément identifiés dans la documentation : 3 personnes (Pauline, Prescillia, Maryne) + le mari de Faustine. Aucune trace de pricing, paiement, Stripe ou abonnement dans le code — le produit est à ce jour à 100% pré-monétisation.</div>
+
+<div class="toc">
+  <a href="#s1">1. Proposition de valeur</a>
+  <a href="#s2">2. Fonctionnalités</a>
+  <a href="#s3">3. UX</a>
+  <a href="#s4">4. Innovation</a>
+  <a href="#s5">5. Intelligence artificielle</a>
+  <a href="#s6">6. Vision produit — 3 ans</a>
+  <a href="#s7">7. Vision business</a>
+  <a href="#s8">8. Benchmark</a>
+  <a href="#s9">9. Ce qui manque</a>
+  <a href="#s10">10. Priorisation</a>
+  <a href="#s11">11. Roadmap</a>
+  <a href="#s12">Rapport final — honnêteté totale</a>
+</div>
+
+<h2 id="s1"><span class="num">1.</span> Proposition de valeur</h2>
+<span class="script-sub">Est-ce qu'on comprend, en 5 secondes, pourquoi ce produit doit exister ?</span>
+
+<p>La promesse écrite dans <code>VISION_PRODUIT.md</code> est excellente sur le papier : <blockquote>« Indépuls ne gère pas votre activité. Il vous libère de la peur de mal la gérer. »</blockquote> C'est une promesse émotionnelle, pas fonctionnelle — exactement le bon réflexe pour un produit financier destiné à des gens qui n'aiment pas les chiffres. Le problème : <strong>cette phrase n'existe nulle part dans l'application elle-même</strong>. Elle vit dans un fichier markdown interne que l'utilisateur ne lira jamais. Sur l'écran réel (capture "Tableau de bord"), le premier mot que voit l'utilisateur est… « Tableau de bord » — le nom le plus générique et le moins différenciant possible pour un logiciel de gestion. N'importe quel concurrent (Indy, Freebe, QuickBooks) utilise exactement ce même intitulé.</p>
+
+<p>Il n'existe par ailleurs <strong>aucune page d'atterrissage, aucun site marketing, aucune landing page</strong> dans le dépôt — l'app est le seul point de contact. Un prospect qui arrive dessus tombe directement sur un écran de connexion ou le picker de profil, jamais sur une phrase qui dit « voici pourquoi vous devriez me faire confiance avec vos chiffres ». Pour un produit qui vend explicitement une émotion (soulagement de l'anxiété financière), c'est un vide critique : la promesse n'est vendue nulle part avant que l'utilisateur ait déjà dû créer un compte.</p>
+
+<div class="persona">
+<b>🧑‍💼 L'indépendant qui découvre le logiciel pour la première fois — je regarde le dashboard démo (capture d'écran) :</b> je vois un score « 80/100 », quatre cartes colorées, un bandeau « brief », une trajectoire annuelle, un donut. C'est dense et je ne sais pas ce qui me distingue d'un tableur Excel avec des couleurs. Il me faut activement chercher (ouvrir « Pourquoi ce score ? », lire les phrases) pour comprendre que le produit répond réellement à « est-ce que je vais bien ? » plutôt que de simplement afficher des KPIs comme tout logiciel de facturation. La différenciation existe, mais elle est <em>enfouie dans le détail</em>, pas dans le premier regard.
+</div>
+
+<p><strong>Risque de mauvaise compréhension</strong> : un utilisateur venant d'Indy ou Freebe pourrait légitimement demander « où est ma facturation ? » et abandonner en 30 secondes en pensant que le produit est incomplet, plutôt que de comprendre que l'absence de facturation est un choix de positionnement délibéré. Rien dans l'UI n'explique explicitement ce choix au moment critique (l'onboarding le mentionne à peine).</p>
+
+<p><strong>Le positionnement est-il trop large ou trop flou ?</strong> Ni l'un ni l'autre en théorie (7 profils, 4 familles, un moteur unique — c'est une segmentation fine et cohérente) — mais en pratique le marché visé est un mélange de personas très différents (un maçon et une consultante RH n'ont presque rien en commun dans leur rapport à l'argent, à la saisie de données, à la fréquence d'usage), unifiés uniquement par un moteur technique commun. C'est une élégance d'ingénierie, pas nécessairement une élégance de mise en marché : chaque famille de métier mériterait potentiellement son propre message d'acquisition, ce que l'architecture actuelle (un seul produit, un seul nom) ne facilite pas.</p>
+
+<h3>Meilleure promesse possible</h3>
+<p>Remplacer « copilote de rentabilité pour indépendants » (descriptif, froid, ressemble à n'importe quel concurrent) par une promesse qui porte l'émotion dès le premier mot, affichée <em>dans l'app</em>, pas seulement en interne : <blockquote>« Vous n'avez plus besoin de vous demander si ça va. Indépuls le sait à votre place. »</blockquote> Et l'accompagner d'une seule ligne factuelle immédiatement en dessous du score, sur le dashboard lui-même, pas dans une modale : <em>« Aucune facture à créer. Aucune compta à tenir. Juste la réponse. »</em> — ça retourne l'absence de facturation en argument de vente plutôt que de laisser l'utilisateur la découvrir comme un manque.</p>
+
+<div class="grade-line">Note — Proposition de valeur : <span class="score">6/10</span><br>Une idée de fond réellement forte et différenciante (le score, l'anti-comptabilité, le ton), desservie par une absence totale de mise en scène de cette promesse au moment où elle compte : le premier contact.</div>
+
+<h2 id="s2"><span class="num">2.</span> Fonctionnalités</h2>
+<span class="script-sub">Ce qui mérite d'exister, ce qui est du bruit</span>
+
+<table>
+<tr><th>Fonctionnalité</th><th>Valeur réelle</th><th>Verdict</th></tr>
+<tr><td>Score Santé (4 piliers)</td><td>Très élevée — concept différenciant, cœur de la promesse, utilisé à chaque ouverture</td><td><b>Indispensable</b>, à durcir, pas à toucher davantage</td></tr>
+<tr><td>Simulateur de rentabilité</td><td>Très élevée — répond à une vraie question avant la décision ("dois-je accepter ce prix ?")</td><td><b>Indispensable</b>, sous-exploité dans la nav (rangé dans "Outils", devrait être un réflexe quotidien)</td></tr>
+<tr><td>Missions / Chantiers (cœur transactionnel)</td><td>Très élevée — sans ça il n'y a pas de données à analyser</td><td><b>Indispensable</b>, mais le formulaire est en surcharge (voir section 3)</td></tr>
+<tr><td>Livre des recettes</td><td>Moyenne — obligation légale réelle pour les micro-entrepreneurs</td><td>Utile, mais <b>doublonne fonctionnellement</b> avec l'export comptable ajouté le même mois — deux fonctionnalités qui répondent à "donner mes chiffres à mon expert-comptable"</td></tr>
+<tr><td>Export comptable (CSV/PDF)</td><td>Moyenne — bon réflexe produit (donner sans gérer)</td><td>Bonne idée, arrivée en doublon partiel du point ci-dessus plutôt qu'en fusion</td></tr>
+<tr><td>Planning / Vue Calendrier</td><td>Potentiellement élevée pour les profils chantier/événementiel</td><td>⚠️ Reconstruite <b>3 fois en un mois</b> (mode estimé → additif → source unique), chaque version jugée insuffisante par l'unique utilisatrice active. Fonctionnalité en recherche d'identité, pas encore stabilisée</td></tr>
+<tr><td>"Temps prévu" / "Temps planifié" / "Temps réel"</td><td>Juste sur le papier, coûteuse en clarté</td><td>Complexité auto-infligée — 3 notions de temps sur un même écran pour un utilisateur qui "veut juste noter un chantier"</td></tr>
+<tr><td>Lots d'investissement (achat_revente)</td><td>Réelle, mais pour une niche d'une niche</td><td>Construite pour <b>une seule bêta-testeuse</b> (Pauline). Bon signal d'écoute utilisateur, mauvais signal de priorisation à l'échelle d'un produit à 4 familles de métiers</td></tr>
+<tr><td>Retours clients (fabrication/achat_revente)</td><td>Réelle mais niche</td><td>Même origine (Pauline) — cohérent produit, mais deux features "sur-mesure single-user" le même mois interroge la roadmap</td></tr>
+<tr><td>Mission "Mon entreprise" (temps interne)</td><td>Utile en soi (suivre le temps admin)</td><td>Implémentation en <b>fausse mission</b> qui pollue visuellement la liste des vrais clients — un hack visible dans la capture d'écran (ligne "Mon entreprise · Gestion interne" mêlée aux vrais chantiers)</td></tr>
+<tr><td>Panneau "Nouveautés"</td><td>Faible à moyenne — bon geste de transparence</td><td>Nice to have, correct</td></tr>
+<tr><td>11 thèmes visuels</td><td>Quasi nulle sur la valeur utilisateur réelle</td><td>⚠️ <b>Complexité pure sans retour mesurable</b> — chaque nouveau composant doit être vérifié contre 11 combinaisons de couleurs (déjà documenté comme source de bug de contraste). Effort de maintenance disproportionné pour un produit à 4 utilisateurs actifs connus</td></tr>
+<tr><td>indepuls_freelance.html / indepuls_artisan.html (archives)</td><td>Nulle — supprimées</td><td><b>✅ déjà nettoyé</b>, bon réflexe</td></tr>
+<tr><td>modules.devis / modules.simulateurOffre (champs fantômes)</td><td>Nulle</td><td><b>À supprimer</b> — toujours sérialisés dans chaque sauvegarde sans plus aucun effet</td></tr>
+</table>
+
+<h3>Ce qui fait peur / où l'utilisateur doit réfléchir</h3>
+<ul>
+<li><strong>Le formulaire "Nouvelle mission"</strong> peut contenir jusqu'à une cinquantaine de champs possibles dans le DOM selon profil/modules. Même masqués par défaut, la densité visuelle du bloc "Gestion du temps" (temps planifié, sessions, jours concernés, temps total estimé) reste un mur pour un premier usage.</li>
+<li><strong>Le sélecteur de régime TVA</strong> : 4 boutons radio au même niveau visuel, sans arbre de décision ("suis-je en franchise ?"). Un artisan qui ne sait pas répondre à cette question se retrouve seul devant un choix qui a un impact fiscal réel.</li>
+<li><strong>La distinction "Rémunération nette" (Fiscalité) vs "Objectif net mensuel" (Objectifs)</strong> en SASU/EURL : deux champs à rôles différents, sans erreur si le mauvais est rempli — juste un dashboard qui reste silencieusement incohérent. C'est le type d'erreur qu'un utilisateur ne détecte jamais lui-même.</li>
+<li><strong>La colonne "Taux réel"</strong> du tableau missions affiche maintenant deux nombres empilés (brut + "≈ net") sans qu'un néophyte comprenne immédiatement pourquoi il y en a deux, ni que le second est une estimation, pas un calcul officiel (l'infobulle l'explique, mais seulement au survol/clic).</li>
+</ul>
+
+<h3>Fonctions cachées</h3>
+<p>Le bouton "+ Ajouter plusieurs chantiers" (saisie en masse) existe précisément parce que le formulaire simple est trop lourd pour rattraper un historique — bon signal d'écoute, mais c'est un patch qui traite le symptôme, jamais la cause. Le lien "Pourquoi ce dépassement ?" (qualification de cause sur une trajectoire de temps) est une fonctionnalité entière avec 5 causes possibles, invisible tant qu'on n'a pas de mission en dépassement orange/rouge — bonne discrétion, mais aussi symptôme d'un produit qui a beaucoup plus de profondeur cachée que ce qu'un nouvel utilisateur soupçonnerait en 20 secondes (contraire à l'objectif affiché dans VISION_PRODUIT.md lui-même).</p>
+
+<h3>Ce qui manque aujourd'hui (fonctionnel, pas juste "innovant" — voir section 9 pour la liste ambitieuse)</h3>
+<ul>
+<li>Aucun export/génération de devis client (PDF simple) — l'app calcule un prix minimum viable dans le Simulateur, puis ne laisse aucun moyen de l'envoyer à un client sans ressaisir ailleurs.</li>
+<li>Aucune connexion bancaire (assumé en roadmap Phase 3, mais aujourd'hui 100% de saisie manuelle — le plus gros point de friction structurel du produit).</li>
+<li>Aucun compte partagé/multi-utilisateur — Faustine elle-même semble faire tourner un compte pour son conjoint artisan ; rien dans l'architecture ne prévoit qu'un couple ou un binôme associé partage un même espace sans partager le même mot de passe.</li>
+<li>Aucun monitoring d'erreur (Sentry ou équivalent) — sur un produit qui manipule de l'argent réel.</li>
+</ul>
+
+<div class="grade-line">Note — Fonctionnalités : <span class="score">6,5/10</span><br>Le cœur (Score, Simulateur, Missions) est solide et légitimement différenciant. Le reste du portefeuille de fonctionnalités souffre d'un biais de sur-adaptation à un très petit nombre de retours utilisateurs individuels (n=1 pour Lots et Retours, n=1 pour 3 refontes successives du Planning), au détriment d'un manque flagrant sur des besoins universels (devis, banque, multi-compte).</div>
+
+<h2 id="s3"><span class="num">3.</span> UX</h2>
+<span class="script-sub">Nombre de clics, charge cognitive, logique des parcours</span>
+
+<div class="persona">
+<b>🎨 L'expert UX/UI — première impression sur les 4 captures :</b> Le dashboard démo est visuellement soigné (palette cohérente, hiérarchie de cartes claire, bonnes micro-interactions documentées comme testées) — mais il viole sa propre doctrine. <code>VISION_PRODUIT.md</code> liste lui-même, en tête de fichier, une section « Erreurs du dashboard actuel » écrite le 2 juillet, encore non résolue au 25 juillet : « Équipondération : tout a la même importance visuelle », « Scroll infini sans priorité », « L'utilisateur ne sait pas où regarder en premier ». <strong>Le produit documente ses propres défauts UX depuis trois semaines sans les corriger</strong> — c'est le signe d'une roadmap dominée par les demandes entrantes (bêta-testeurs, bugs) plutôt que par la vision stratégique déjà écrite et validée en interne.
+</div>
+
+<h3>Onboarding</h3>
+<p><strong>Ce qui fonctionne :</strong> le parcours choix du métier → statut simplifié → démo préremplie → modal de bienvenue à 2 choix est un des meilleurs du produit, documenté comme raccourci depuis une version plus longue. Bon exemple à généraliser.</p>
+<p><strong>Ce qui ne fonctionne pas :</strong> le mode démo a longtemps affiché, sur son tout premier écran, des chiffres absurdes ("TJM à 3400 €/j") — corrigé, mais révélateur : le premier contact d'un utilisateur avec le produit est aussi l'endroit qui a subi le plus de régressions silencieuses documentées (proratisation, dates, taux). La première impression est précisément la zone la moins tolérante à l'erreur, et c'est historiquement celle qui en a le plus accumulé.</p>
+
+<h3>Création d'une première mission</h3>
+<p>Sur la capture "Missions/Chantiers" (tableau), la ligne "Mon entreprise · Gestion interne" apparaît en tête de liste avant même le premier vrai client — un nouvel utilisateur croise une entité fictive avant de voir son propre travail. C'est un détail, mais un détail qui contredit "compréhensible en moins de 5 secondes" (principe produit affiché dans <code>CLAUDE.md</code> lui-même).</p>
+<p>Le formulaire complet (non visible directement dans les captures, mais documenté en détail dans <code>CLAUDE.md</code>) a subi <strong>quatre refontes majeures documentées en juillet seul</strong> pour tenter de réduire sa densité — chaque refonte corrigeant la précédente. C'est un signe positif d'itération rapide, mais aussi un signe que la version "juste" n'a toujours pas été trouvée après un mois de tâtonnement sur un écran censé être le geste le plus fréquent de l'app.</p>
+
+<h3>Tableau de bord</h3>
+<p>La capture le confirme : sidebar chargée en permanence (10 items de nav + widget chrono persistant + badge nouveautés), zone principale avec bandeau démo, résumé missions, brief, score circulaire, 4 cartes piliers avec sous-texte + bouton "Pourquoi ce score ?" chacune, puis (en dessous du pli) trajectoire annuelle + donut. <strong>C'est objectivement beaucoup pour un premier écran</strong>, même si chaque bloc pris isolément est bien écrit. Le test que le produit s'est lui-même fixé ("un nouvel utilisateur comprend sa situation en moins de 20 secondes sans formation" — <code>VISION_PRODUIT.md</code>) n'a, à ma lecture, jamais été mesuré ni validé formellement : aucun tracking d'usage réel (temps passé avant premier scroll, taux d'ouverture des modales "Pourquoi ce score ?") n'apparaît dans les événements analytics listés dans <code>CLAUDE.md</code>.</p>
+
+<h3>Score santé</h3>
+<p>L'idée est la meilleure du produit. L'exécution a un défaut de fond sérieux, presque philosophique : <strong>le pilier "Remplissage" a changé de méthode de calcul trois fois en un mois</strong> (estimé seul → additif sessions+estimé → source unique). Un score qui prétend mesurer objectivement "est-ce que ça va" ne peut pas bouger seul, sans qu'aucune donnée réelle de l'utilisateur n'ait changé, simplement parce que la formule a été réécrite en coulisses. Même documentées et justifiées, ces réécritures fragilisent la promesse de fond : un score n'a de valeur que s'il est stable dans le temps et comparable d'une semaine à l'autre. Trois changements de méthode en un mois, ça n'est plus un score, c'est un chantier permanent affiché comme s'il était fini.</p>
+
+<h3>Paramètres</h3>
+<p>6 onglets narratifs, bon regroupement en soi. Le sélecteur TVA plat (section 2) et la distinction rémunération/objectif restent les deux points de friction concrets, non résolus au moment de cet audit.</p>
+
+<div class="grade-line">Note — UX : <span class="score">6/10</span><br>Une matière première de très bonne qualité (composants, ton, transparence des calculs), gâchée par une absence de hiérarchie visuelle sur l'écran le plus important — un défaut que le produit a lui-même diagnostiqué par écrit il y a trois semaines sans encore le corriger.</div>
+
+<h2 id="s4"><span class="num">4.</span> Innovation</h2>
+<span class="script-sub">Si je repartais de zéro avec l'ambition de devenir la référence</span>
+
+<ul>
+<li><strong>Benchmark anonyme entre pairs</strong> — « Votre TJM est dans le 30% supérieur des artisans bâtiment de votre région et de votre ancienneté. » C'est l'effet waouh le plus évident et le plus alignné avec la promesse : Indépuls sait déjà tout ce qu'il faut pour calculer ça (données agrégées, anonymisées, opt-in). Aucun concurrent français ne le fait à ma connaissance sur ce segment. C'est le genre de chiffre qu'un utilisateur répète à un collègue au café du commerce — la meilleure forme de croissance organique qui existe.</li>
+<li><strong>Capture photo/voix d'un reçu ou d'une dépense</strong> — un artisan sur chantier, mains sales, ne va jamais ouvrir un formulaire à 10 champs. "Prends en photo ton ticket, dis le montant à voix haute" est le geste qui rendrait Indépuls réellement utilisable dans la vraie vie professionnelle de la cible principale (artisans), pas seulement au bureau le soir.</li>
+<li><strong>Devis PDF généré depuis le Simulateur</strong> — transformer un calcul interne déjà excellent (le Simulateur) en un livrable client, sans jamais devenir un logiciel de facturation. Ligne rouge à ne pas franchir : pas de suivi de statut de devis, pas de relance automatique — juste un export propre.</li>
+<li><strong>Le "lundi matin" (Phase 4 de la vision, aujourd'hui 0% implémentée)</strong> — un message unique, pas un dashboard : « Cette semaine : une chose. Relance Sophie. Tout le reste va bien. » C'est l'idée la plus ambitieuse et la plus juste de tout le document de vision — et c'est celle qui, si elle existait vraiment, rendrait le retour à Excel matériellement impossible (personne ne revient à un tableur après avoir reçu une vraie réponse au lieu d'un tableau à interpréter).</li>
+<li><strong>Simulateur "et si" en temps réel</strong> (déjà dans la roadmap Phase 2, jamais construit) — un curseur qui recalcule instantanément la trajectoire si le TJM change, si on prend 3 semaines de vacances, si on perd un client. C'est l'équivalent Indépuls d'un tableur, mais sans jamais montrer de formule — l'expérience "je bouge un curseur et je vois ma vie professionnelle changer" est un vrai moment waouh testable en 30 secondes de démo commerciale.</li>
+<li><strong>Un "coffre-fort de confiance" visible</strong> — après l'incident de perte de données cloud (voir section 6/12), transformer la transparence en argument marketing : une page publique "état de nos données, dernier incident, nos garanties" — rare chez les concurrents, ça devient un avantage de confiance si bien exécuté plutôt qu'un aveu de faiblesse caché.</li>
+</ul>
+
+<h2 id="s5"><span class="num">5.</span> Intelligence artificielle</h2>
+<span class="script-sub">Là où elle apporte une vraie valeur — et là où elle serait une erreur</span>
+
+<p>Le choix produit déjà pris (<code>VISION_PRODUIT.md</code>) — « jamais d'IA générative pour les textes affichés, uniquement des règles métier explicites » — est <strong>juste et à défendre bec et ongles</strong>. Sur un produit qui manipule de l'argent réel et vend la confiance comme différenciateur, un LLM qui « invente » une phrase de conseil serait un risque de crédibilité disproportionné par rapport au gain de fluidité. Il faut garder cette ligne rouge — l'IA doit rester <em>en amont</em> (perception, extraction, catégorisation), jamais dans la <em>sortie</em> (le texte de conseil final doit rester déterministe et testable).</p>
+
+<table>
+<tr><th>Idée IA</th><th>Impact</th><th>Où l'IA agit</th></tr>
+<tr><td>OCR reçus/factures → catégorisation auto de dépense</td><td>🔥 Très élevé — supprime la plus grosse friction du produit (saisie manuelle)</td><td>Amont (extraction), résultat toujours modifiable par l'utilisateur avant validation</td></tr>
+<tr><td>Saisie en langage naturel ("chantier Dupont, 800€, terminé hier")</td><td>🔥 Très élevé — transforme la saisie en conversation, conforme à la vision Phase 4</td><td>Amont (parsing structuré), jamais de génération de texte affiché</td></tr>
+<tr><td>Détection d'anomalie / alerte prédictive ("à ce rythme, votre TVA de septembre sera difficile à couvrir")</td><td>🚀 Élevé — élève le produit de "constat" à "prévention"</td><td>Modèle prédictif sur données structurées, texte de sortie généré par les règles déterministes existantes (`wScoreSante`), pas par un LLM</td></tr>
+<tr><td>Recommandation de prix ("vos 3 dernières missions similaires étaient facturées 15% plus cher")</td><td>🚀 Élevé — lien direct avec la douleur n°1 des indépendants (sous-facturation)</td><td>Recherche de similarité sur historique interne, sortie via template déterministe</td></tr>
+<tr><td>Benchmark anonymisé inter-utilisateurs (section 4)</td><td>🚀 Élevé — effet réseau, viralité</td><td>Agrégation statistique, pas de génération de texte libre</td></tr>
+<tr><td>Prévision saisonnière (creux d'activité récurrents)</td><td>⭐ Utile</td><td>Modèle de série temporelle simple sur historique</td></tr>
+<tr><td>Chatbot conversationnel général</td><td>❌ À éviter</td><td>Contraire à la philosophie documentée — risque de confiance sur un produit financier, déjà explicitement écarté et il faut s'y tenir</td></tr>
+</table>
+
+<h2 id="s6"><span class="num">6.</span> Vision produit — 3 prochaines années</h2>
+<span class="script-sub">Garder, supprimer, refaire, prioriser</span>
+
+<p><strong>À garder absolument :</strong> le Score Santé et sa taxonomie à 4 piliers ; le refus documenté et tenu de la facturation complète/CRM/comptabilité ; le principe de textes déterministes (pas de génération libre) ; la rigueur documentaire elle-même — <code>CLAUDE.md</code> est, en volume et en qualité de traçabilité (cause racine, avant/après, vérifications), d'un niveau que je ne rencontre presque jamais sur un projet à ce stade, solo ou non.</p>
+
+<p><strong>À supprimer :</strong> les champs fantômes (<code>modules.devis</code>, <code>modules.simulateurOffre</code>) ; la duplication de logique entre <code>indepuls.html</code> et <code>shared/core/</code> (storage.js mort en prod, <code>isRecurringStillActive</code> dupliquée) ; les 11 thèmes visuels ramenés à 2 ou 3 tant que la base d'utilisateurs reste sous 1000 comptes actifs — chaque thème est une dette de QA récurrente pour un gain perçu marginal ; la fonction "Mon entreprise" en fausse mission, à remplacer par un vrai concept d'admin séparé de la liste clients.</p>
+
+<p><strong>À refaire entièrement :</strong> l'architecture front (monolithe HTML de 12 700 lignes → modules réels avec bundler léger, sans nécessairement changer de framework) ; le pilier Remplissage — non pas retouché une 4ᵉ fois, mais <em>figé</em> pendant six mois une fois la version actuelle validée en usage réel, pour rétablir la confiance dans la stabilité du score ; le système de gestion d'erreur (aujourd'hui : `try/catch` silencieux, aucun reporting).</p>
+
+<p><strong>Priorités de développement immédiates :</strong> (1) stabilisation technique et fiabilité des données (le bug de perte de données cloud est un signal d'alarme qui doit primer sur toute nouvelle fonctionnalité) ; (2) un canal d'acquisition et un modèle de prix — à ce stade, sans les deux, il n'y a pas d'entreprise, seulement un très bon prototype ; (3) suppression de la friction de saisie (OCR, langage naturel) avant tout enrichissement supplémentaire du Score.</p>
+
+<h2 id="s7"><span class="num">7.</span> Vision business</h2>
+<span class="script-sub">Le regard d'un investisseur, sans complaisance</span>
+
+<div class="persona">
+<b>💼 L'investisseur qui doit décider :</b> 44 jours d'existence, 534 commits, une personne (+ IA) au clavier, 3 bêta-testeuses nommées + le conjoint de la fondatrice, <strong>zéro ligne de code relative à un modèle de paiement, zéro landing page, zéro mesure de rétention connue</strong>. C'est un stade pré-seed au sens le plus strict — même pas "MVP validé", plutôt "prototype avancé avec un cercle de confiance très proche". Je ne peux évaluer ni le taux de conversion, ni le churn, ni le coût d'acquisition : aucune de ces données n'existe encore. Ce n'est pas disqualifiant à ce stade (c'est normal à 6 semaines), mais ça veut dire que toute discussion de valorisation aujourd'hui reposerait à 100% sur la qualité de l'exécution produit observée, pas sur des métriques.
+</div>
+
+<p><strong>Potentiel commercial :</strong> le marché des indépendants/micro-entrepreneurs en France dépasse 4 millions de personnes, en croissance. Le sous-segment visé (artisans + freelances de service, pas les revendeurs e-commerce purs) est réel et mal servi entre "trop simple" (Excel) et "trop lourd" (comptabilité complète). Mais c'est un marché <strong>structurellement français et fiscal</strong> — toute la logique métier (URSSAF, TVA, micro-BNC/BIC) est non exportable telle quelle, ce qui plafonne le TAM (total addressable market) bien en dessous de ce qu'un produit horizontal viserait, sauf réinvestissement massif pour chaque nouveau pays.</p>
+
+<p><strong>Risque de churn :</strong> élevé par construction. Un outil utilisé "10-15 minutes par semaine" (objectif produit assumé) a un engagement intrinsèquement plus faible qu'un outil d'usage quotidien (Linear, Superhuman) — la mémoire de la valeur perçue s'estompe plus vite entre deux sessions, et le réflexe "je désinstalle, je n'y pense plus" est plus fort. La roadmap Phase 4 (brief hebdomadaire poussé) est la bonne réponse structurelle à ce risque — mais elle n'est pas construite.</p>
+
+<p><strong>Capacité à fidéliser :</strong> le vrai actif de fidélisation n'est pas la fonctionnalité, c'est <em>l'historique de données</em> — plus un utilisateur a saisi de missions, plus quitter Indépuls coûte cher (comparaisons annuelles, patterns, archives). C'est un bon moteur de rétention à long terme, mais il ne joue pas dans les 3 premiers mois, la période la plus à risque.</p>
+
+<p><strong>Pricing :</strong> absent. Recommandation directe : un point d'entrée bas (9-15€/mois) cohérent avec la cible (revenus souvent irréguliers, sensibilité au prix réelle), avec un vrai palier gratuit limité en nombre de missions plutôt qu'en fonctionnalités (pour laisser le Score Santé, l'argument de vente principal, toujours accessible dès l'essai).</p>
+
+<p><strong>Est-ce que je paierais pour ce logiciel ?</strong> Honnêtement — pas encore, et pas pour les raisons qu'on pourrait croire. Le produit lui-même (le Score, le Simulateur, le ton) me convaincrait probablement en tant qu'indépendant anxieux face à ses chiffres. Ce qui me retiendrait aujourd'hui : l'historique documenté d'un bug ayant réellement écrasé des données cloud d'un vrai compte utilisateur. Sur un outil où je confie mes revenus, ma trésorerie, mes obligations fiscales, la confiance dans la fiabilité technique passe avant l'élégance du produit. Je paierais après avoir vu 2-3 mois de stabilité prouvée en production, pas avant.</p>
+
+<div class="grade-line">Note — Vision business : <span class="score">4,5/10</span><br>Pas une critique du potentiel du marché (réel) ni de l'équipe (compétente) — une critique factuelle de l'état d'avancement : à ce stade, il n'y a pas encore de preuve commerciale, seulement une preuve produit.</div>
+
+<h2 id="s8"><span class="num">8.</span> Benchmark</h2>
+<span class="script-sub">Ce que les meilleurs SaaS du marché font mieux</span>
+
+<table>
+<tr><th>Référence</th><th>Ce qu'ils font mieux</th><th>Ce qu'Indépuls devrait en retenir</th></tr>
+<tr><td>Linear</td><td>Défauts opinionated, zéro paralysie de configuration, clavier natif</td><td>Le sélecteur TVA à 4 radios plats et les 11 thèmes sont l'exact opposé de cette philosophie — trop de choix, pas assez de décision prise à la place de l'utilisateur</td></tr>
+<tr><td>Superhuman</td><td>Onboarding accompagné, obsession de la vitesse perçue</td><td>Le premier écran d'Indépuls (dashboard démo) devrait se limiter à ce que Superhuman montrerait en 10 secondes : une réponse, pas un tableau de bord</td></tr>
+<tr><td>Notion</td><td>Architecture modulaire, chaque bloc composable</td><td>Le monolithe HTML de 12 700 lignes est l'anti-modèle exact — aucune isolation entre écrans</td></tr>
+<tr><td>Stripe</td><td>Clarté radicale du modèle de données, documentation exhaustive</td><td>Le moteur fiscal d'Indépuls (taux, seuils dupliqués entre fichiers) mériterait le même niveau de rigueur structurelle que l'API Stripe</td></tr>
+<tr><td>Sunsama / Motion</td><td>Rituel quotidien/hebdomadaire de planification</td><td>Exactement la vision Phase 4 d'Indépuls ("lundi matin, une chose") — à construire en priorité, c'est le modèle le plus proche de ce que le produit veut devenir</td></tr>
+<tr><td>Qonto / Pennylane</td><td>Données vivantes via connexion bancaire</td><td>Le plus gros écart concurrentiel réel — Indépuls reste 100% déclaratif quand ces deux-là sont déjà connectés à la source</td></tr>
+<tr><td>Freebe / Indy</td><td>Facturation intégrée, écosystème complet</td><td>Ne pas copier (choix de ne pas faire de facturation est bon) — mais s'assurer qu'un export/devis basique existe pour ne pas forcer l'utilisateur à jongler entre deux outils pour un besoin quotidien trivial</td></tr>
+<tr><td>Duolingo (cité en modèle, pas dans la liste mais pertinent)</td><td>Boucle de récompense/habitude</td><td>Le "Score Santé" pourrait avoir une mécanique de suivi de progression dans le temps bien plus ludique et addictive qu'aujourd'hui (courbe, séries de bons mois) sans jamais tomber dans la gamification infantilisante déjà écartée à raison ("moins de gamification, plus de médical" — VISION_PRODUIT.md)</td></tr>
+</table>
+
+<h2 id="s9"><span class="num">9.</span> Ce qui manque</h2>
+<span class="script-sub">"Je suis étonné que ça n'existe pas"</span>
+
+<ul>
+<li><strong>Un export/PDF de devis</strong> depuis le Simulateur — le calcul existe déjà, l'envoyer à un client ne devrait pas nécessiter un second outil.</li>
+<li><strong>Une connexion bancaire en lecture seule</strong> — en roadmap Phase 3 (6-18 mois), mais c'est objectivement le plus gros irritant quotidien du produit dès aujourd'hui (100% de saisie manuelle).</li>
+<li><strong>Un compte partagé</strong> — pour un couple ou un binôme (le cas d'usage existe déjà dans les captures elles-mêmes, avec des chantiers visiblement gérés pour le conjoint de Faustine).</li>
+<li><strong>Un vrai système de monitoring d'erreur</strong> (Sentry) — aucune remontée automatique d'anomalie à ce jour ; chaque bug de calcul découvert l'a été par une bêta-testeuse qui s'en est aperçue elle-même.</li>
+<li><strong>Un badge de fiabilité systématique</strong> ("estimation" vs "donnée garantie") — le principe existe ponctuellement en petit texte, jamais généralisé en un langage visuel cohérent partout où une limite de calcul existe (ex. TVA sans historique des paiements réels).</li>
+<li><strong>Une app mobile ou PWA installable</strong> — pour un artisan sur chantier, un onglet de navigateur perdu dans 30 autres n'est pas un point d'entrée fiable.</li>
+<li><strong>Une page de statut/transparence publique</strong> — après un incident de perte de données cloud, la transparence proactive (même s'il n'y a eu que très peu d'utilisateurs touchés) serait un signal de maturité fort.</li>
+<li><strong>Un vrai canal de test fiscal automatisé</strong> (matrice statut × régime × cas limite) — recommandé aussi dans l'audit technique existant, toujours absent.</li>
+</ul>
+
+<h2 id="s10"><span class="num">10.</span> Priorisation</h2>
+<span class="script-sub">Impact × effort, sans complaisance</span>
+
+<table>
+<tr><th></th><th>Recommandation</th></tr>
+<tr><td><span class="badge b-fire">🔥 Impact énorme / effort faible</span></td><td>Figer le pilier Remplissage (arrêter de le reconstruire) · Supprimer les champs fantômes (`modules.devis`/`simulateurOffre`) · Ajouter un badge visuel "estimation" cohérent partout · Simplifier la ligne "Mon entreprise" hors de la liste missions · Écrire une phrase de proposition de valeur réelle sur le dashboard lui-même · Réduire 11 thèmes à 2-3</td></tr>
+<tr><td><span class="badge b-rocket">🚀 Impact énorme / effort important</span></td><td>Refactor du monolithe HTML en modules réels · Suppression de la duplication HTML/shared-core · Tests end-to-end sur les 5-6 parcours critiques · Connexion bancaire lecture seule · OCR reçus/dépenses · Pricing + Stripe + landing page · Brief hebdomadaire (vision Phase 4)</td></tr>
+<tr><td><span class="badge b-star">⭐ Amélioration utile</span></td><td>Export devis PDF · Hiérarchiser le dashboard (couches Décider/Comprendre/Analyser déjà spécifiées dans VISION_PRODUIT.md, jamais implémentées) · Monitoring d'erreur (Sentry) · Compte partagé/multi-utilisateur · Sélecteur TVA en arbre de décision plutôt qu'à plat</td></tr>
+<tr><td><span class="badge b-idea">💡 Idée intéressante, non prioritaire</span></td><td>Benchmark anonyme entre pairs · Saisie en langage naturel · App mobile native · Page de statut publique</td></tr>
+<tr><td><span class="badge b-x">❌ À supprimer</span></td><td>Duplication `storage.js` non exécutée en prod · `TVA_SEUILS` dupliqué · Archives HTML déjà supprimées (bon) · Champs fantômes `modules.devis`/`simulateurOffre` · Excès de thèmes visuels</td></tr>
+</table>
+
+<h2 id="s11"><span class="num">11.</span> Roadmap</h2>
+<span class="script-sub">Pourquoi chaque version arrive à ce moment précis</span>
+
+<div class="roadmap-v">
+<h4>Version 1.1 — Consolider avant d'ajouter</h4>
+<div class="why">Pourquoi maintenant : la vitesse d'itération (534 commits/44 jours) a dépassé la vitesse de consolidation. Chaque nouvelle fonctionnalité ajoutée sur cette base augmente le risque du prochain bug de type "perte de données". C'est la seule fenêtre où arrêter d'ajouter des fonctionnalités est encore peu coûteuse (peu d'utilisateurs, encore réversible).</div>
+<p>Geler les nouvelles fonctionnalités 2-3 semaines · figer le pilier Remplissage · supprimer duplication HTML/core · monitoring d'erreur · 5-6 tests end-to-end sur les parcours déjà cassés une fois · badge "estimation" systématique · nettoyage des champs fantômes.</p>
+</div>
+
+<div class="roadmap-v">
+<h4>Version 1.2 — Prouver le modèle commercial</h4>
+<div class="why">Pourquoi maintenant : sans preuve de willingness-to-pay, aucune décision produit suivante n'a de base solide. Il vaut mieux le savoir à 10-20 utilisateurs payants qu'à 5000.</div>
+<p>Landing page dédiée avec la vraie proposition de valeur · pricing + intégration Stripe · export devis PDF · hiérarchisation réelle du dashboard (couches Décider/Comprendre/Analyser déjà spécifiées) · sélecteur TVA en arbre de décision.</p>
+</div>
+
+<div class="roadmap-v">
+<h4>Version 2.0 — Supprimer la friction de saisie</h4>
+<div class="why">Pourquoi maintenant : une fois le modèle commercial validé, le principal frein à la rétention devient l'effort de saisie hebdomadaire. C'est le moment où l'investissement technique (OCR, banque) a le plus fort retour, parce qu'il y a enfin des utilisateurs payants pour le mesurer.</div>
+<p>Connexion bancaire lecture seule · OCR reçus/dépenses · saisie en langage naturel · benchmark anonyme entre pairs (premier jalon IA à impact viral) · compte partagé.</p>
+</div>
+
+<div class="roadmap-v">
+<h4>Version 3.0 — Le rituel, pas le dashboard</h4>
+<div class="why">Pourquoi maintenant : c'est la vision Phase 4 déjà écrite en interne — le produit devient une conversation plutôt qu'un tableau de bord. Elle ne peut fonctionner qu'une fois les données arrivent automatiquement (v2.0) — sans ça, le "brief du lundi" n'aurait rien à raconter.</div>
+<p>Brief hebdomadaire poussé (email/notification) · app mobile/PWA · "et si" en temps réel sur les métriques · alertes prédictives basées sur les patterns historiques accumulés.</p>
+</div>
+
+<h2 id="s12">Rapport final — sans complaisance</h2>
+<span class="script-sub">Le comité d'investissement tranche</span>
+
+<div class="final">
+<h3>Pourquoi Indépuls pourrait échouer</h3>
+<ol>
+<li>Le monolithe technique de 12 700 lignes devient plus coûteux à faire évoluer chaque semaine — le coût de correction d'un bug augmente avec chaque fonctionnalité ajoutée sans refactor.</li>
+<li>Zéro modèle de monétisation prouvé après 44 jours — le risque n'est pas "le produit est mauvais", c'est "personne n'a encore vérifié que quelqu'un paierait".</li>
+<li>Le bus factor est de 1 (une fondatrice + IA) — aucune redondance humaine sur un produit qui touche à l'argent réel de tiers.</li>
+<li>Le pilier Remplissage a été reconstruit 3 fois — un score qui change de méthode aussi souvent perd sa crédibilité de mesure fiable dans le temps.</li>
+<li>Le bug de perte de données cloud, même corrigé, est le type d'incident qui, s'il se reproduisait à plus grande échelle, détruirait la confiance en une seule fois sur un produit financier.</li>
+<li>Roadmap dirigée par 3-4 retours utilisateurs individuels (Pauline notamment) plutôt que par la vision stratégique déjà écrite — risque de sur-adapter le produit à des cas non représentatifs.</li>
+<li>Marché structurellement français, non exportable sans réécriture fiscale complète — plafond de croissance bas comparé à un SaaS horizontal.</li>
+<li>Usage hebdomadaire (pas quotidien) = rétention structurellement plus fragile que les références citées en benchmark (Linear, Superhuman).</li>
+<li>Aucun canal d'acquisition testé, aucune landing page, aucune preuve de coût d'acquisition maîtrisable.</li>
+<li>Complexité de saisie (formulaire mission, 3 notions de temps) qui contredit frontalement la promesse "10-15 min/semaine" affichée comme objectif produit.</li>
+</ol>
+
+<h3>Pourquoi Indépuls pourrait devenir un succès</h3>
+<ol>
+<li>Une idée de fond réellement différenciante (le Score Santé comme réponse émotionnelle, pas comme dashboard) — rare dans cette catégorie.</li>
+<li>Une discipline de refus rare : dire non à la facturation complète, au CRM, à la comptabilité, malgré la tentation constante de "faire comme les autres".</li>
+<li>Une vélocité d'itération exceptionnelle (534 commits en 44 jours) qui, une fois recentrée sur la consolidation plutôt que l'accumulation, peut corriger sa dette aussi vite qu'elle l'a créée.</li>
+<li>Une rigueur documentaire et une culture du post-mortem honnête (chaque bug tracé, cause racine, vérification) largement supérieures à la moyenne d'un projet à ce stade.</li>
+<li>Une écoute utilisateur réelle et rapide (features livrées en jours suite à un retour bêta) — un vrai actif si elle est recentrée sur des besoins représentatifs plutôt que ponctuels.</li>
+<li>Un marché réel, mal servi entre deux extrêmes (Excel vs comptabilité complète).</li>
+<li>Une vision long terme déjà écrite, cohérente et ambitieuse (Phase 4, le "lundi matin") — rare qu'un projet à ce stade ait déjà cette clarté d'intention.</li>
+</ol>
+
+<h3>10 plus gros risques</h3>
+<ol>
+<li>Fiabilité des données (cloud sync) — critique, déjà matérialisé une fois.</li>
+<li>Dette technique du monolithe — croît chaque semaine.</li>
+<li>Absence de modèle commercial prouvé.</li>
+<li>Bus factor = 1.</li>
+<li>Instabilité du Score de Santé (méthode de calcul qui bouge).</li>
+<li>Roadmap pilotée par des cas individuels non représentatifs.</li>
+<li>Zéro monitoring d'erreur en production.</li>
+<li>Marché plafonné géographiquement (France).</li>
+<li>Aucun canal d'acquisition validé.</li>
+<li>Charge de saisie contradictoire avec la promesse de simplicité.</li>
+</ol>
+
+<h3>10 plus gros leviers de croissance</h3>
+<ol>
+<li>Landing page + proposition de valeur réellement mise en scène.</li>
+<li>Pricing testé + premiers clients payants.</li>
+<li>Benchmark anonyme entre pairs (effet réseau, bouche-à-oreille).</li>
+<li>OCR/capture rapide (lever la friction de saisie principale).</li>
+<li>Connexion bancaire lecture seule.</li>
+<li>Partenariats avec des experts-comptables (canal de distribution naturel pour ce type d'export).</li>
+<li>Brief hebdomadaire poussé (rétention, habitude).</li>
+<li>Export devis PDF (bouche à bouche facile — "je viens de calculer mon prix avec Indépuls").</li>
+<li>Communautés d'artisans/indépendants (Facebook, forums métier) — acquisition organique ciblée à faible coût.</li>
+<li>Programme de parrainage/ambassadeur appuyé sur les bêta-testeuses déjà convaincues (Pauline, Prescillia, Maryne).</li>
+</ol>
+
+<h3>Si j'étais CEO d'Indépuls pendant 6 mois — semaine par semaine</h3>
+<p><strong>Semaines 1-4 — Fondations.</strong> Gel des nouvelles fonctionnalités. Refactor structurel minimal (suppression duplication HTML/core, monitoring d'erreur, 5 tests end-to-end sur les parcours déjà cassés). Écriture de la vraie proposition de valeur, testée en un-à-un avec 10 indépendants hors du cercle actuel (pas les bêta-testeuses déjà acquises).</p>
+<p><strong>Semaines 5-8 — Preuve commerciale.</strong> Landing page + pricing + Stripe. Lancement d'une offre payante limitée (30-50 places), prix bas. Objectif unique : obtenir 20 clients payants et mesurer honnêtement combien reviennent en semaine 2 et semaine 4.</p>
+<p><strong>Semaines 9-12 — Écoute élargie.</strong> Sortir du cercle des 4 bêta-testeuses actuelles : recruter 15-20 utilisateurs test issus de segments non couverts (coach, consultant, e-commerce) pour vérifier que le produit tient au-delà du profil artisan qui a inspiré la majorité des décisions récentes.</p>
+<p><strong>Semaines 13-16 — Lever la friction de saisie.</strong> OCR reçus en version minimale (un seul type de document). Mesurer l'impact direct sur la fréquence de saisie hebdomadaire.</p>
+<p><strong>Semaines 17-20 — Connexion bancaire.</strong> Intégration d'un agrégateur (Bridge/Powens) en lecture seule, réservée dans un premier temps aux comptes payants existants.</p>
+<p><strong>Semaines 21-26 — Rituel et rétention.</strong> Premier brief hebdomadaire poussé par email. Mesure de la rétention à 90 jours du premier cohort payant. Décision de lever des fonds ou non, sur la base de données réelles plutôt que d'une conviction.</p>
+</div>
+
+<p style="margin-top:40px;text-align:center;color:var(--beige);font-size:.85em;">Audit rédigé le 25 juillet 2026 — sur la base du code source, de la documentation produit interne et de quatre captures d'écran de l'application en fonctionnement.</p>
+
+</div>
+</body>
+</html>

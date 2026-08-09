@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Indépuls — L'écosystème complet du site</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap');
+:root{--navy:#141538;--prune:#5B2C4A;--cream:#F1EFEA;--beige:#BB9E81;--grey:#6b6b6b;}
+*{box-sizing:border-box}
+body{background:var(--cream);color:var(--navy);font-family:'Lato',sans-serif;line-height:1.65;margin:0;padding:0 0 110px;}
+.wrap{max-width:1040px;margin:0 auto;padding:0 28px;}
+.cover{background:var(--navy);color:#fff;padding:90px 28px 60px;text-align:center;}
+.cover h1{font-family:'Playfair Display',serif;font-size:2.5em;margin:0 0 8px;font-weight:800;}
+.cover .script{font-family:'Dancing Script',cursive;color:var(--beige);font-size:1.6em;font-style:italic;margin:0 0 20px;}
+.cover .meta{color:#a9a3c9;font-size:.9em;max-width:680px;margin:16px auto 0;}
+.cover .badges{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:18px;}
+.cover .badge{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 14px;font-size:.82em;color:#e7e2f2;}
+h2{font-family:'Playfair Display',serif;font-weight:800;font-size:1.65em;color:var(--navy);border-bottom:3px solid var(--beige);padding-bottom:9px;margin:58px 0 6px;}
+h2 .num{color:var(--prune);}
+h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.15em;color:var(--prune);margin:22px 0 6px;}
+.script-sub{font-family:'Dancing Script',cursive;color:var(--prune);font-style:italic;font-size:1.25em;display:block;margin:-2px 0 18px;}
+p{margin:0 0 12px;}
+ul,ol{margin:0 0 14px;padding-left:22px;}
+li{margin-bottom:6px;}
+strong{color:var(--navy);}
+.note{background:#fff;border-left:4px solid var(--beige);padding:13px 17px;margin:14px 0;font-size:.93em;border-radius:0 8px 8px 0;}
+.small{font-size:.85em;color:var(--grey);}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.9em;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+th{background:var(--navy);color:#fff;text-align:left;padding:9px 12px;font-weight:700;font-size:.85em;}
+td{padding:9px 12px;border-bottom:1px solid #ece6d8;vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#faf8f3;}
+.tree{background:var(--navy);color:#e7e2f2;border-radius:12px;padding:22px 26px;margin:16px 0;font-family:'Lato',monospace;font-size:.92em;line-height:1.9;}
+.tree .root{color:#fff;font-weight:900;}
+.tree .lvl1{padding-left:22px;color:var(--beige);}
+.tree .lvl2{padding-left:44px;color:#c3bde0;font-size:.92em;}
+.tag{display:inline-block;background:var(--cream);border:1px solid var(--beige);border-radius:20px;padding:2px 12px;font-size:.78em;color:var(--prune);font-weight:700;margin:2px 4px 2px 0;}
+.tag.now{background:var(--prune);color:#fff;border-color:var(--prune);}
+.tag.later{background:#fff;color:var(--grey);}
+.tag.never{background:#fff;color:#b55;border-color:#b55;}
+.card{background:#fff;border-radius:12px;padding:20px 24px;margin:14px 0;border:1px solid #e4ddd0;}
+.opt{background:#fff;border-radius:10px;padding:16px 20px;margin:10px 0;border:1px solid #e4ddd0;border-left:4px solid var(--beige);}
+.opt.chosen{border-left-color:var(--prune);background:#fdfaf6;}
+.opt h4{font-family:'Playfair Display',serif;color:var(--navy);margin:0 0 6px;}
+.verdict{background:var(--navy);color:#fff;border-radius:14px;padding:26px 30px;margin:18px 0;}
+.verdict h3{color:var(--beige);margin-top:0;}
+.verdict p{color:#e7e2f2}
+hr{border:none;border-top:1px solid #e4ddd0;margin:26px 0;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.phase{display:flex;gap:14px;align-items:flex-start;background:#fff;border-radius:10px;padding:14px 18px;margin:10px 0;border:1px solid #e4ddd0;}
+.phase .ph-label{font-family:'Playfair Display',serif;color:var(--prune);font-weight:800;min-width:100px;font-size:1.05em;}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}table{font-size:.8em}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>INDÉPULS</h1>
+  <div class="script">Chapitre 2 — L'écosystème complet du site</div>
+  <div class="meta">La Bible "Bruit → Silence" reste le chapitre "Landing page émotionnelle" — inchangée dans son cœur. Ce chapitre construit tout ce qui l'entoure : le site entier, pensé pour tenir quatre objectifs à la fois plutôt qu'un seul. 1er août 2026.</div>
+  <div class="badges">
+    <span class="badge">🎬 Effet waouh</span>
+    <span class="badge">⏱️ Compris en 30 secondes</span>
+    <span class="badge">🔍 Référencement Google</span>
+    <span class="badge">🤖 Référence pour les IA</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<h2><span class="num">0.</span> Résoudre la tension de départ</h2>
+<span class="script-sub">Un film de 3 minutes et une compréhension en 30 secondes ne sont pas contradictoires</span>
+
+<p>Les deux objectifs semblent s'opposer. Ils ne le sont pas, à condition de ne pas les demander à la même personne au même endroit.</p>
+<p>Un visiteur qui arrive sur l'accueil <strong>depuis Instagram, un post LinkedIn ou le bouche-à-oreille</strong>, sans intention de recherche précise, a le temps et la curiosité pour vivre le film — c'est lui qui reçoit la version 3 minutes, et sa conversion vaut plus cher précisément parce qu'elle est plus lente et plus émotionnelle. Un visiteur qui arrive <strong>depuis une recherche Google</strong> ("calcul TJM freelance"), <strong>une page métier</strong> ou <strong>le bouton d'échappement</strong> de l'accueil a déjà une intention — c'est lui qui doit comprendre en 30 secondes, sur une page pensée pour ça, pas sur le film.</p>
+<div class="note">🎯 <strong>La règle de répartition retenue dans tout ce chapitre :</strong> l'accueil reste 100% cinéma, jamais optimisé SEO au sens classique. Toutes les pages qui l'entourent (fonctionnalités, métier, blog, FAQ) sont 100% rationnelles, optimisées et compréhensibles en 30 secondes. Le site n'a pas à choisir entre les deux — il les distribue.</div>
+
+<h2><span class="num">1.</span> L'architecture du site</h2>
+<span class="script-sub">Missions 1 & 10 — le plan qui tiendra plusieurs années</span>
+
+<div class="tree">
+<div class="root">indepuls.fr</div>
+<div class="lvl1">/ — Accueil (le film Bruit → Silence)</div>
+<div class="lvl1">/demo — mode démo libre, sans compte</div>
+<div class="lvl1">/tarifs</div>
+<div class="lvl1">/fonctionnalites</div>
+<div class="lvl2">/fonctionnalites/score-de-sante</div>
+<div class="lvl2">/fonctionnalites/et-si</div>
+<div class="lvl2">/fonctionnalites/devis</div>
+<div class="lvl1">/pour/ — portes d'entrée métier</div>
+<div class="lvl2">/pour/artisans-batiment · /pour/photographes · /pour/wedding-planners · /pour/consultants · ...</div>
+<div class="lvl1">/ressources/ — bibliothèque de référence (blog)</div>
+<div class="lvl2">/ressources/guides/... · /ressources/outils-gratuits/... · /ressources/comparatifs/... · /ressources/glossaire/...</div>
+<div class="lvl1">/faq</div>
+<div class="lvl1">/a-propos</div>
+<div class="lvl1">/contact</div>
+<div class="lvl1">/changelog · /roadmap · /aide</div>
+<div class="lvl1">/mentions-legales · /cgu · /cgv · /confidentialite · /cookies</div>
+<div class="lvl1">app.indepuls.fr — /connexion (l'application, hors site vitrine)</div>
+</div>
+
+<table>
+<tr><th>Page</th><th>Objectif</th><th>Rôle dans le parcours</th><th>Potentiel SEO</th><th>Potentiel conversion</th></tr>
+<tr><td><strong>Accueil</strong></td><td>Conversion émotionnelle, mémorisation de marque</td><td>Entrée principale (réseaux, bouche-à-oreille)</td><td>Faible — branded search uniquement</td><td>Très élevé si vécu en entier</td></tr>
+<tr><td><strong>/fonctionnalites</strong></td><td>Réassurance rationnelle après l'émotion</td><td>2ᵉ étape pour qui ne convertit pas à froid</td><td>Moyen-élevé</td><td>Élevé — intention déjà là</td></tr>
+<tr><td><strong>/tarifs</strong></td><td>Lever la dernière objection</td><td>Fin de tunnel</td><td>Moyen (comparateurs)</td><td>Très élevé — page de décision</td></tr>
+<tr><td><strong>/demo</strong></td><td>Preuve, essai sans friction</td><td>Le vrai moment de vérité produit</td><td>Faible directement, forte valeur de partage</td><td>Le plus haut du site par construction</td></tr>
+<tr><td><strong>/pour/[métier]</strong></td><td>Résonance immédiate ("c'est fait pour moi")</td><td>Porte d'entrée directe (recherche, post ciblé)</td><td>Très élevé — longue traîne métier</td><td>Très élevé — audience pré-qualifiée</td></tr>
+<tr><td><strong>/ressources (blog)</strong></td><td>Capter la recherche informationnelle, construire l'autorité</td><td>Tout le haut du tunnel</td><td>Le moteur de croissance n°1 sur plusieurs années</td><td>Faible directe, très élevée en assistée (newsletter)</td></tr>
+<tr><td><strong>/faq</strong></td><td>Dernières objections + citation par les IA</td><td>Bas de tunnel + AI Engine Optimization</td><td>Très élevé (SEO + IA)</td><td>Moyen-élevé</td></tr>
+<tr><td><strong>/a-propos</strong></td><td>Incarner la marque, dire pourquoi le produit existe</td><td>Réassurance secondaire, indécis en fin de parcours</td><td>Faible</td><td>Moyen, indirect</td></tr>
+</table>
+
+<h3>Ce qui rend cette architecture extensible sans jamais la repenser</h3>
+<p>Le principe est le même que celui déjà utilisé dans le moteur du produit : <strong>découpler le contenu du gabarit</strong>. Un nouveau métier n'exige jamais une nouvelle structure de page — juste une nouvelle entrée sous <code>/pour/</code> avec le même template. Un nouvel article ne redéfinit jamais la navigation — il prend juste sa place dans une taxonomie de clusters posée dès le premier jour (rentabilité, tarification, trésorerie, par-métier, outils). Un futur témoignage, une future étude de cas, une future vidéo ont déjà un type de contenu prévu (Mission 10) même si aucun n'existe encore aujourd'hui — pour ne jamais avoir à improviser une structure le jour où le premier arrive.</p>
+
+<h2><span class="num">2.</span> Préserver le film</h2>
+<span class="script-sub">Mission 2 — où l'on comprend, où l'on décroche, où renforcer</span>
+
+<table>
+<tr><th>Section</th><th>Compréhension du produit</th><th>Risque de décrochage</th><th>Action</th></tr>
+<tr><td>1 — Le bruit</td><td>0%</td><td>Faible (coût de rester : quelques secondes)</td><td>Aucune — son rôle est la reconnaissance, pas la compréhension</td></tr>
+<tr><td>2 — La bascule</td><td>~20%</td><td>Faible à moyen</td><td>Le lien "Aller à l'essentiel →" devient visible ici (voir Mission 8)</td></tr>
+<tr><td>3 — Le miroir</td><td>~30%</td><td><strong>Moyen — 3 sections de pure émotion</strong></td><td>7ᵉ ligne ajoutée : "et si tu n'avais qu'une seule chose à regarder ?" (voir la Bible, section 3)</td></tr>
+<tr><td>4 — La révélation</td><td>~60%</td><td>Chute nette — la curiosité pour le chiffre tire vers l'avant</td><td>Aucune</td></tr>
+<tr><td>5 — La preuve</td><td>~75%</td><td>Faible</td><td>Aucune</td></tr>
+<tr><td>6 — Le "et si"</td><td>~90%</td><td>Faible — c'est le pic d'engagement du site</td><td>Ligne de renfort ajoutée (traduction en heures gagnées)</td></tr>
+<tr><td>7 — Ce qu'Indépuls refuse</td><td>reste ~90%</td><td>Ennui possible si la 6 a déjà tout dit</td><td>Garder très court, scroll rapide plutôt que scroll-pin long</td></tr>
+<tr><td>8 — La démo libre</td><td>100%</td><td>—</td><td>Moment de conversion</td></tr>
+<tr><td>9 — Le silence</td><td>—</td><td>Acceptable — l'ask a déjà eu lieu</td><td>Aucune</td></tr>
+</table>
+
+<h2><span class="num">3.</span> Penser Google</h2>
+<span class="script-sub">Mission 3 — la stratégie SEO pluriannuelle</span>
+
+<h3>Les clusters de mots-clés</h3>
+<table>
+<tr><th>Cluster</th><th>Exemples de requêtes</th><th>Intention</th><th>Contenu associé</th></tr>
+<tr><td><strong>A — Rentabilité</strong> (cœur du positionnement)</td><td>"comment savoir si mon entreprise est rentable", "calcul rentabilité artisan", "seuil de rentabilité auto-entrepreneur"</td><td>Informationnelle</td><td>Guides piliers</td></tr>
+<tr><td><strong>B — Tarification / TJM</strong></td><td>"calculer son TJM", "fixer ses tarifs freelance", "suis-je trop cher"</td><td>Informationnelle</td><td>Guides + calculateur gratuit</td></tr>
+<tr><td><strong>C — Trésorerie</strong></td><td>"combien me payer en SASU", "combien mettre de côté URSSAF", "prévision trésorerie freelance"</td><td>Informationnelle</td><td>Guides par statut</td></tr>
+<tr><td><strong>D — Logiciel</strong> (commercial)</td><td>"logiciel rentabilité indépendant", "meilleur logiciel auto-entrepreneur", "alternative à [concurrent]"</td><td>Commerciale/comparative</td><td>/fonctionnalites, comparatifs</td></tr>
+<tr><td><strong>E — Par métier</strong> (longue traîne)</td><td>"logiciel rentabilité artisan bâtiment", "outil pilotage activité coach"</td><td>Commerciale ciblée</td><td>/pour/[métier]</td></tr>
+</table>
+
+<div class="note">⚠️ <strong>Une tension à assumer, pas à éviter :</strong> la charte de marque interdit de nommer un concurrent dans le ton émotionnel de l'accueil — c'est la bonne règle, à garder. Mais les pages de comparatif (cluster D) sont un genre différent, orienté recherche : les gens tapent littéralement "Indy vs Pennylane". Une page comparative qui refuse de nommer les concurrents n'existera simplement jamais dans les résultats de recherche. Ces pages doivent être factuelles, neutres, presque austères dans le ton — l'opposé du film, et c'est voulu.</div>
+
+<h3>Les outils gratuits — l'actif SEO le plus rentable de la catégorie</h3>
+<p>Deux ou trois calculateurs autonomes, embarquables aussi bien en page seule qu'à l'intérieur d'un article : un <strong>calculateur de TJM</strong>, un <strong>calculateur de rentabilité</strong> (marge par mission/chantier), éventuellement un <strong>simulateur "combien me payer en SASU/EURL"</strong>. Ce sont les seuls contenus qui combinent intention de recherche forte, utilité immédiate et pont naturel vers le produit — un visiteur qui vient de calculer son TJM gratuit sur le site est à un clic de comprendre pourquoi suivre ce chiffre en continu a de la valeur.</p>
+
+<h3>Le plan pluriannuel</h3>
+<div class="phase"><span class="ph-label">Année 1</span><span>3 guides piliers (clusters A/B/C) + 2 calculateurs gratuits + FAQ complète + 3 pages métier (les plus asymétriques, voir Mission 5) — le socle qui doit exister avant tout le reste.</span></div>
+<div class="phase"><span class="ph-label">Année 2</span><span>Extension des pages métier, premiers comparatifs, approfondissement du cluster blog, premiers backlinks via contenu invité.</span></div>
+<div class="phase"><span class="ph-label">Année 3+</span><span>Le "Baromètre annuel de la rentabilité des indépendants" (voir Mission 6) prend le relais comme moteur de backlinks et de citations, une fois qu'il existe assez de données utilisateurs réelles pour le construire honnêtement.</span></div>
+
+<h2><span class="num">4.</span> Penser IA</h2>
+<span class="script-sub">Mission 4 — devenir une source que les moteurs génératifs citent</span>
+
+<p>Ce qui détermine si ChatGPT, Perplexity ou l'AI Overview de Google citent Indépuls plutôt qu'un concurrent n'est pas la qualité du site tel qu'un humain le perçoit — c'est sa capacité à fournir des réponses <strong>courtes, non ambiguës, autonomes et factuelles</strong>, extractibles sans contexte supplémentaire.</p>
+
+<table>
+<tr><th>Levier</th><th>Ce qu'il faut construire</th></tr>
+<tr><td><strong>Glossaire</strong></td><td>Définitions courtes et autonomes ("Qu'est-ce que le taux horaire réel ?", "Qu'est-ce que le Score de Santé ?") — chacune répond en un paragraphe, sans renvoyer ailleurs pour être comprise.</td></tr>
+<tr><td><strong>FAQ structurée</strong></td><td>Balisage schema.org <code>FAQPage</code>, une question = une réponse, ton neutre — jamais de discours de vente mélangé à la réponse factuelle (les moteurs IA filtrent ce mélange).</td></tr>
+<tr><td><strong>Comparatifs neutres</strong></td><td>Répondre à "quel logiciel pour X" avec un ton d'arbitre, pas de vendeur — c'est ce que l'IA cherche à citer quand on lui demande une réponse impartiale.</td></tr>
+<tr><td><strong>Données structurées produit</strong></td><td>Schema.org <code>SoftwareApplication</code> sur l'accueil et /tarifs (nom, catégorie, prix, description) — consommé directement par certains moteurs de réponse.</td></tr>
+<tr><td><strong>Résumés en tête d'article</strong></td><td>Un encart de 2-3 phrases de réponse directe avant le contenu long, formaté pour être extrait proprement.</td></tr>
+<tr><td><strong>Présence externe cohérente</strong></td><td>Annuaires SaaS français, plateformes d'avis — une partie de ce que les IA "savent" d'un produit vient de sources tierces qui se recoupent, pas seulement du site lui-même.</td></tr>
+</table>
+
+<h2><span class="num">5.</span> Les portes d'entrée métier</h2>
+<span class="script-sub">Mission 5 — cohérent avec l'analyse de lancement déjà tranchée</span>
+
+<p>Le classement ci-dessous reprend directement les conclusions de la stratégie de lancement (score go-to-market, asymétrie de distribution) plutôt que d'en inventer un nouveau — les deux documents doivent se répondre, pas se contredire.</p>
+
+<h3>Vague 1 — maintenant</h3>
+<div class="opt chosen"><h4>🏗️ Artisans du bâtiment</h4><p>Le pari final de la stratégie de lancement (asymétrie de distribution réelle). Bénéfices à mettre en avant : marge par chantier, TJM réel une fois les fournitures déduites. Captures : vue "chantier", module TJM. Mots-clés : "logiciel rentabilité artisan bâtiment", "marge chantier calcul".</p></div>
+<div class="opt"><h4>💐 Wedding planners</h4><p>Score go-to-market le plus élevé (25/30). Bénéfices : trajectoire de saison, TH réel par prestation. Mots-clés : "rentabilité wedding planner", "combien facturer mariage".</p></div>
+<div class="opt"><h4>📷 Photographes</h4><p>Score élevé (22/30), même famille produit que wedding planners (mode service/TH). Bénéfices, captures, mots-clés analogues.</p></div>
+
+<h3>Vague 2 — dès 3-4 témoignages obtenus</h3>
+<p><span class="tag later">Consultants</span> <span class="tag later">Coachs</span> <span class="tag later">Community managers</span> <span class="tag later">Artisans fabrication</span> — bon score produit, mais nécessitent une preuve sociale déjà en place pour convertir (catégorie plus habituée à comparer plusieurs outils avant de choisir).</p>
+
+<h3>Vague 3 — à la demande, pas prioritaire</h3>
+<p><span class="tag never">Freelances web</span> <span class="tag never">Développeurs indépendants</span> — score go-to-market plus faible dans l'analyse de lancement (CAC plus élevé, positionnement déjà occupé par des concurrents qui ciblent spécifiquement cette audience). Construire une page dédiée maintenant serait de l'effort investi contre le signal produit-marché le plus faible du classement.</p>
+
+<h2><span class="num">6.</span> Le blog — bibliothèque de référence</h2>
+<span class="script-sub">Mission 6 — pas un blog, une stratégie éditoriale</span>
+
+<table>
+<tr><th>Palier</th><th>Rôle</th><th>Exemples de pièces phares</th></tr>
+<tr><td><strong>1 — Piliers</strong></td><td>Backlinks, citation IA, autorité de fond</td><td>"Le guide complet de la rentabilité pour indépendants", "Comment calculer son taux horaire réel (pas votre TJM affiché)"</td></tr>
+<tr><td><strong>2 — Par métier</strong></td><td>Longue traîne + conversion ciblée</td><td>Déclinaisons des guides piliers pour chaque métier de la Mission 5</td></tr>
+<tr><td><strong>3 — Outils intégrés</strong></td><td>Trafic + utilité immédiate</td><td>Les calculateurs de la Mission 3, présentés comme de vrais articles autonomes</td></tr>
+<tr><td><strong>4 — Confiance / fidélisation</strong></td><td>Newsletter, réactivation, moins de SEO direct</td><td>Études de cas réelles une fois disponibles ("dans la tête d'un artisan qui a doublé sa marge")</td></tr>
+</table>
+
+<div class="note">📊 <strong>L'actif à plus fort potentiel, mais pas pour tout de suite :</strong> un "Baromètre annuel de la rentabilité des indépendants", construit sur des données agrégées et anonymisées des utilisateurs réels d'Indépuls (ou, à défaut, sur une enquête dédiée). C'est le format qui génère le plus de retombées presse, de backlinks spontanés et de citations IA dans cette catégorie — mais il n'a de sens et de crédibilité qu'une fois qu'il existe assez d'utilisateurs pour que les chiffres soient honnêtes. À prévoir pour l'an 2 ou 3, pas l'an 1.</div>
+
+<h2><span class="num">7.</span> Les pages oubliées</h2>
+<span class="script-sub">Mission 7 — lesquelles sont réellement utiles aujourd'hui</span>
+
+<table>
+<tr><th>Statut</th><th>Pages</th><th>Raison</th></tr>
+<tr><td><span class="tag now">Obligatoire dès le lancement</span></td><td>Mentions légales, CGU, CGV, Confidentialité, Cookies</td><td>Légal, non négociable, RGPD</td></tr>
+<tr><td><span class="tag now">Utile rapidement</span></td><td>Centre d'aide, Contact</td><td>Crédibilité, support réel</td></tr>
+<tr><td><span class="tag later">Peut attendre un peu</span></td><td>Changelog public, Roadmap (lecture seule)</td><td>Un vrai atout dormant : le journal des mises à jour interne d'Indépuls (déjà tenu avec un niveau de détail rare) n'attend qu'à être reformulé en version publique — un avantage concret que peu de concurrents ont déjà en réserve.</td></tr>
+<tr><td><span class="tag never">Pas encore pertinent</span></td><td>Page de statut serveurs, API publique, Communauté</td><td>N'a de crédibilité qu'avec un historique d'incidents ou une masse critique d'utilisateurs à afficher — vide aujourd'hui, elle nuirait plus qu'elle n'aiderait.</td></tr>
+</table>
+
+<h2><span class="num">8.</span> Le menu</h2>
+<span class="script-sub">Mission 8 — quatre options, un compromis retenu</span>
+
+<div class="opt"><h4>A — Menu classique complet dès l'arrivée</h4><p><strong>Pour :</strong> familier, rassure immédiatement, bon pour le crawl SEO. <strong>Contre :</strong> casse l'immersion à la seconde 1 — annule l'effet différenciant recherché dès le départ.</p></div>
+<div class="opt"><h4>B — Aucun menu du tout</h4><p><strong>Pour :</strong> immersion totale, cohérence à 100% avec Bruit → Silence. <strong>Contre :</strong> risque de conversion réel pour les visiteurs pressés (le point le plus juste de la relecture croisée), mauvais pour le crawl si rien n'est atteignable avant la fin du scroll, problème d'accessibilité.</p></div>
+<div class="opt"><h4>C — Menu qui apparaît progressivement au scroll</h4><p><strong>Pour :</strong> bon compromis pour qui scrolle volontairement. <strong>Contre :</strong> ne règle rien pour un visiteur qui ne veut pas scroller du tout — justement celui qui a le plus besoin d'une échappatoire, dès la seconde 0.</p></div>
+<div class="opt chosen"><h4>D — Retenu : un lien unique dès la seconde 0, qui s'enrichit ensuite</h4><p>Un seul élément discret en haut à droite, présent dans le DOM dès le chargement : <strong>"Aller à l'essentiel →"</strong>, qui mène directement à la démo libre. Pas de barre chargée, pas de mot "Menu" — juste une échappatoire honnête. À partir de la section 4 (une fois l'essentiel du produit compris), cet élément s'enrichit en mini-menu complet (logo, Fonctionnalités, Tarifs, Démo) : donner accès à la navigation totale n'interrompt plus rien une fois que le "waouh" est vécu. <strong>Résout le vrai problème</strong> (échapper dès la seconde 0) sans jamais sacrifier l'immersion pour ceux qui restent.</p></div>
+
+<h2><span class="num">9.</span> Conversion</h2>
+<span class="script-sub">Mission 9 — ce qui peut se décider maintenant, ce qui attendra les vraies données</span>
+
+<h3>Densité de CTA — deux régimes différents</h3>
+<p><strong>Sur l'accueil :</strong> exactement deux moments de CTA — le lien d'échappement (Mission 8, permanent, faible engagement) et la section 8 (fort engagement : "Explorer la démo" en primaire, "Créer mon compte" en secondaire). Multiplier les appels à l'action sur le film dilue l'urgence et casse le rythme cinématographique. <strong>Sur les pages profondes</strong> (fonctionnalités, métier, articles de blog) : densité de CTA normale pour un site SaaS — ces visiteurs sont plus avancés dans leur intention et l'attendent.</p>
+
+<h3>Preuve sociale — l'honnêteté comme différenciateur, pas le mensonge</h3>
+<p>Indépuls est en bêta, sans témoignages en volume. Fabriquer une preuve sociale générique ("des milliers d'indépendants nous font confiance") serait à la fois faux et contraire à la position de marque ("zéro boîte noire"). Deux options honnêtes : soit assumer frontalement le stade de bêta ("voici ce qui est déjà solide, ce qui ne l'est pas encore"), soit, dès que 3-5 témoignages réels existent, les nommer précisément plutôt que de les généraliser — "3 indépendants la testent déjà" est plus crédible qu'une promesse générique qu'un produit en bêta ne peut pas tenir.</p>
+
+<h3>Captures d'écran et prix — jamais sur l'accueil</h3>
+<p>Règle nette et défendable : zéro capture, zéro mention de prix sur le film. Les deux appartiennent exclusivement aux pages rationnelles (/fonctionnalites pour les captures par métier, /tarifs pour le prix) — jamais mélangées à la séquence émotionnelle, qui perdrait sa légitimité si elle se mettait soudain à vendre.</p>
+
+<h3>Ce qui ne peut pas être tranché ici</h3>
+<div class="note">Certaines questions posées (où les visiteurs décrochent réellement, quel CTA gagne, comment un profil se comporte différemment d'un autre) ne peuvent honnêtement pas recevoir de réponse définitive depuis un document de conception — elles exigent du trafic réel, des outils d'analyse (heatmaps, scroll depth, A/B tests) et du temps. Ce chapitre pose la structure qui permettra de les mesurer une fois le site en ligne ; il ne prétend pas les avoir résolues à l'avance.</div>
+
+<h2><span class="num">10.</span> Synthèse — 0 → 10 000 visiteurs/mois sans publicité</h2>
+<span class="script-sub">La réponse directe à la question finale</span>
+
+<div class="verdict">
+<p><strong>Le film de l'accueil ne portera jamais la croissance organique à lui seul.</strong> Un visiteur qui atterrit sur une page émotionnelle sans intention de recherche ne vient pas de Google — il vient d'un post, d'une recommandation, d'un lien direct. La croissance organique vers 10 000 visiteurs/mois vient presque entièrement des pages construites dans ce chapitre, pas du film.</p>
+<p><strong>Année 1 :</strong> les pages métier (Mission 5) et les 2-3 calculateurs gratuits (Mission 3) portent l'essentiel du trafic — ce sont les seuls formats capables d'indexer rapidement sur des requêtes à intention claire, sans historique de domaine à construire au préalable.</p>
+<p><strong>Année 2 :</strong> la largeur du cluster de blog (Mission 6) prend le relais — plus d'articles, plus de requêtes couvertes, effet de compounding classique du SEO de contenu.</p>
+<p><strong>Année 3 et au-delà :</strong> le Baromètre annuel (Mission 6) et la présence croisée dans les moteurs IA (Mission 4) deviennent les moteurs dominants — la marque elle-même commence à générer du trafic direct et des citations, ce que ni les pages métier ni le blog ne peuvent faire seuls.</p>
+<p class="small">Dans cet ordre, pas un autre : construire le Baromètre en année 1 (avant d'avoir assez d'utilisateurs pour des données crédibles) ou négliger les pages métier au profit du blog général serait le contresens le plus courant sur ce type de plan.</p>
+</div>
+
+</div>
+</body>
+</html>

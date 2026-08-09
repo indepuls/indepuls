@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combien mettre de côté quand on est indépendant · Indépuls</title>
+<meta name="description" content="Une partie de ce que vous encaissez est due plus tard en cotisations et impôts. Le guide pour bien gérer sa trésorerie d'indépendant : combien provisionner, combien se payer, quel matelas garder.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.65;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:60px 24px 10px;}
+  header.hero .wrap{max-width:760px;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(28px,4.4vw,44px); margin:0 0 18px; line-height:1.2;}
+
+  .tldr{background:#fff; border:1px solid #e4ddd0; border-left:3px solid var(--prune); border-radius:12px; padding:20px 24px; margin:0 auto; max-width:760px;}
+  .tldr .lbl{font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); font-weight:700; display:block; margin-bottom:8px;}
+  .tldr p{margin:0; font-size:15.5px; color:#3a3a52;}
+
+  article{padding:40px 24px 40px;}
+  article .wrap{max-width:760px;}
+  article h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(21px,2.9vw,27px); margin:44px 0 14px; line-height:1.3;}
+  article h2:first-of-type{margin-top:0;}
+  article p{font-size:16px; color:#3a3a52; margin:0 0 16px;}
+  article ul{font-size:16px; color:#3a3a52; padding-left:22px; margin:0 0 16px;}
+  article li{margin-bottom:9px;}
+  article a{color:var(--prune); font-weight:600;}
+  article strong{color:var(--navy);}
+  .example{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:0 0 16px;}
+  .example p{margin:0 0 8px; font-size:15px;}
+  .example p:last-child{margin:0;}
+  .example .r{color:var(--ok); font-weight:700;}
+  .toolcard{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:8px 0 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+  .toolcard .t{flex:1; min-width:200px;}
+  .toolcard .t b{display:block; color:var(--navy); font-size:15px; margin-bottom:2px;}
+  .toolcard .t span{font-size:13.5px; color:#6b6b6b;}
+  .toolcard a{background:var(--prune); color:#fff; text-decoration:none; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:999px; white-space:nowrap;}
+
+  section.cta{padding:20px 24px 70px;}
+  section.cta .box{max-width:760px; margin:0 auto; background:var(--navy); color:#fff; border-radius:16px; padding:36px 30px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(21px,3vw,26px); margin:0 0 12px; color:#fff;}
+  section.cta p{color:#dcd9ec; font-size:15px; margin:0 0 22px;}
+  .btnrow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 28px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Combien mettre de côté quand on est indépendant">
+<meta property="og:description" content="Une partie de ce que vous encaissez est due plus tard en cotisations et impôts. Le guide pour bien gérer sa trésorerie d'indépendant : combien provisionner, combien se payer, quel matelas garder.">
+<meta property="og:url" content="https://indepuls.fr/ressources/combien-mettre-de-cote/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../../tarifs/index.html">Tarifs</a>
+      <a href="../../demo/index.html">Démo</a>
+      <a href="../../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown has-active" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../combien-mettre-de-cote/index.html" class="active">Guide de la trésorerie</a>
+          <a href="../temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Combien mettre de côté quand on est indépendant</h1>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tldr">
+    <span class="lbl">En résumé</span>
+    <p>Une partie de ce que vous encaissez ne vous appartient pas : elle sert à payer, plus tard, vos cotisations, vos impôts, vos charges, vos congés et vos gros achats pro. Une fois tout additionné, on est souvent plus proche de 50 % à mettre de côté que de 30 %. Bien gérer sa trésorerie, c'est provisionner cet argent dès qu'il rentre, se verser un revenu régulier plutôt que de tout dépenser les bons mois, et garder un matelas pour les creux.</p>
+  </div>
+</div>
+
+<article>
+  <div class="wrap">
+
+    <h2>L'argent qui rentre n'est pas l'argent qui vous revient</h2>
+    <p>Quand un paiement arrive sur votre compte, une partie est déjà due, même si vous ne la voyez pas encore partir. Selon votre statut, cela peut comprendre vos cotisations sociales, votre impôt sur le revenu, et la TVA si vous y êtes assujetti·e.</p>
+    <p>Le solde de votre compte en banque est donc trompeur : il affiche de l'argent dont une part appartient déjà à l'URSSAF ou au fisc. Confondre ce solde avec votre argent disponible, c'est le point de départ de la plupart des trous de trésorerie.</p>
+
+    <h2>Combien mettre de côté, concrètement</h2>
+    <p>La méthode la plus sûre est de provisionner une part de <strong>chaque encaissement</strong>, au moment où il arrive, plutôt que de découvrir la note en fin d'année. En pratique : à chaque paiement reçu, virez immédiatement un pourcentage sur un compte séparé, et n'y touchez plus.</p>
+    <p>Ce pourcentage couvre bien plus que les seules cotisations sociales : votre impôt, la TVA si vous la collectez, vos charges professionnelles récurrentes, et de quoi anticiper les périodes sans revenu et les gros achats à venir. Une fois tout additionné, beaucoup d'indépendants sont en réalité plus proches de <strong>50 %</strong> à mettre de côté que de 30 %.</p>
+    <div class="example">
+      <p>Vous encaissez 3 000 € ce mois-ci. En comptant cotisations, impôt, charges courantes et provisions, vous mettez la moitié de côté.</p>
+      <p>Ce sont <span class="r">1 500 €</span> qui partent aussitôt sur le compte dédié. Vous raisonnez sur les 1 500 € restants, jamais sur les 3 000 affichés.</p>
+    </div>
+    <p>Le bon pourcentage dépend de votre statut et de votre situation. L'important n'est pas le chiffre exact, c'est de le connaître et de provisionner avec régularité : mieux vaut mettre un peu trop de côté et se rembourser que l'inverse.</p>
+
+    <h2>Ce qu'on oublie souvent de provisionner</h2>
+    <p>Au-delà des cotisations et des impôts, plusieurs dépenses bien réelles passent sous le radar parce qu'elles ne tombent pas tous les mois :</p>
+    <ul>
+      <li><strong>Les charges professionnelles récurrentes</strong> : mutuelle, prévoyance, loyer d'un local pro, assurances, abonnements aux outils. Elles reviennent, autant les lisser.</li>
+      <li><strong>Les vacances.</strong> Un salarié continue de toucher sa paie pendant ses congés ; un indépendant, non. C'est une période où l'on dépense sans qu'aucun revenu ne rentre, et elle se prépare en mettant de côté sur les mois travaillés.</li>
+      <li><strong>Les gros achats professionnels.</strong> Un ordinateur qui lâche, une nouvelle machine, un véhicule : ces investissements ponctuels mais lourds se provisionnent au fil de l'eau plutôt que de plomber la trésorerie d'un seul coup.</li>
+    </ul>
+    <p>C'est en additionnant tout cela qu'on comprend pourquoi la part à mettre de côté est souvent bien plus élevée qu'on ne le croit.</p>
+
+    <h2>Le piège du seuil de TVA</h2>
+    <p>En micro-entreprise, tant que vous restez sous certains seuils de chiffre d'affaires, vous ne facturez pas la TVA. Dès que vous les dépassez, vous devenez redevable, et vos prix doivent en tenir compte du jour au lendemain.</p>
+    <p>Beaucoup découvrent ce basculement trop tard, après avoir facturé des mois sans provisionner la TVA. Surveiller sa progression vers ces seuils tout au long de l'année évite la mauvaise surprise. Les montants exacts évoluent régulièrement : vérifiez ceux en vigueur pour votre activité.</p>
+
+    <h2>Combien se payer</h2>
+    <p>La tentation, les bons mois, est de tout dépenser. C'est le meilleur moyen de se retrouver à sec les mois creux. La logique inverse est plus solide : vous verser un <strong>revenu régulier</strong>, calculé sur une moyenne prudente de votre activité, et laisser le surplus des bons mois amortir les moins bons.</p>
+    <p>Un revenu lissé transforme une activité en dents de scie en quelque chose de vivable. Ce que vous vous versez doit tenir compte de ce qui a déjà été provisionné, pas du chiffre brut encaissé.</p>
+
+    <h2>Se constituer un matelas de sécurité</h2>
+    <p>Au-delà des provisions pour cotisations et impôts, garder d'avance l'équivalent de quelques mois de charges et de revenu change tout. C'est ce matelas qui absorbe un client qui paie en retard, un creux d'activité, un imprévu ou des congés.</p>
+    <p>Il n'existe pas de chiffre universel, mais viser trois à six mois de sécurité est un repère courant. L'objectif n'est pas d'immobiliser de l'argent pour rien, c'est de ne jamais être forcé d'accepter une mission à perte juste pour boucler le mois.</p>
+
+    <h2>Les erreurs de trésorerie les plus courantes</h2>
+    <ul>
+      <li><strong>Confondre le solde du compte et l'argent disponible.</strong> Une part est déjà due.</li>
+      <li><strong>Ne pas provisionner au fil de l'eau.</strong> Les cotisations et impôts tombent toujours, la question est seulement si vous les avez anticipés.</li>
+      <li><strong>Tout dépenser un bon mois.</strong> Le bon mois doit financer les creux, pas disparaître.</li>
+      <li><strong>Ne pas séparer les comptes.</strong> Sans compte dédié aux provisions, l'argent mis de côté finit par être dépensé sans le vouloir.</li>
+    </ul>
+
+    <h2>Suivre sa trésorerie sans y penser en permanence</h2>
+    <p>Tout cela peut se tenir dans un tableur, à condition de le mettre à jour à chaque encaissement et de recalculer ses provisions en continu. C'est précisément ce suivi régulier qui manque le plus souvent.</p>
+    <p>Indépuls calcule automatiquement, à chaque encaissement, ce qu'il faut mettre de côté et ce qui reste vraiment disponible, surveille votre progression vers le seuil de TVA, et vous évite de confondre le solde affiché avec votre argent réel.</p>
+    <p>Il vous montre aussi, sur le mois ou sur l'année, la part de ce que vous encaissez qui vous revient réellement une fois tout déduit : pour 100 € encaissés, combien finissent vraiment dans votre poche.</p>
+    <p>Pour la vue d'ensemble, lisez aussi le guide <a href="../savoir-si-son-activite-est-rentable/index.html">Comment savoir si votre activité est rentable</a>.</p>
+
+  </div>
+</article>
+
+<section class="cta">
+  <div class="box">
+    <h2>Savoir ce qui est vraiment à vous, à chaque encaissement</h2>
+    <p>La démo tourne avec des données fictives réalistes, sans compte ni carte bancaire.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
+      <a class="btn btn-secondary" href="../../fonctionnalites/index.html">Voir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../../a-propos/index.html">À propos</a>
+  <a href="../../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../../cgu.html">CGU</a>
+  <a href="../../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+
+</body>
+</html>

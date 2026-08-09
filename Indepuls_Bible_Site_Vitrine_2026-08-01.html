@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Indépuls — Bible créative du site vitrine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;700;900&family=Dancing+Script:wght@600&display=swap');
+:root{--navy:#141538;--prune:#5B2C4A;--cream:#F1EFEA;--beige:#BB9E81;--grey:#6b6b6b;}
+*{box-sizing:border-box}
+body{background:var(--cream);color:var(--navy);font-family:'Lato',sans-serif;line-height:1.65;margin:0;padding:0 0 110px;}
+.wrap{max-width:980px;margin:0 auto;padding:0 28px;}
+.cover{background:var(--navy);color:#fff;padding:90px 28px 60px;text-align:center;}
+.cover h1{font-family:'Playfair Display',serif;font-size:2.7em;margin:0 0 10px;font-weight:800;}
+.cover .script{font-family:'Dancing Script',cursive;color:var(--beige);font-size:1.7em;font-style:italic;margin:0 0 22px;}
+.cover .promise{font-family:'Playfair Display',serif;font-style:italic;font-size:1.15em;color:#e7e2f2;max-width:620px;margin:0 auto 10px;line-height:1.5;}
+.cover .meta{color:#a9a3c9;font-size:.88em;max-width:600px;margin:18px auto 0;}
+h2{font-family:'Playfair Display',serif;font-weight:800;font-size:1.7em;color:var(--navy);border-bottom:3px solid var(--beige);padding-bottom:9px;margin:60px 0 6px;}
+h2 .num{color:var(--prune);}
+h3{font-family:'Playfair Display',serif;font-weight:700;font-size:1.25em;color:var(--prune);margin:0 0 4px;}
+.script-sub{font-family:'Dancing Script',cursive;color:var(--prune);font-style:italic;font-size:1.3em;display:block;margin:-2px 0 20px;}
+p{margin:0 0 12px;}
+ul{margin:0 0 14px;padding-left:22px;}
+li{margin-bottom:6px;}
+strong{color:var(--navy);}
+.note{background:#fff;border-left:4px solid var(--beige);padding:13px 17px;margin:14px 0;font-size:.93em;border-radius:0 8px 8px 0;}
+.arc{display:flex;justify-content:space-between;gap:8px;margin:20px 0 30px;flex-wrap:wrap;}
+.arc-step{flex:1;min-width:130px;text-align:center;background:#fff;border-radius:10px;padding:16px 10px;border:1px solid #e4ddd0;}
+.arc-step .emoji{font-size:1.8em;display:block;margin-bottom:6px;}
+.arc-step .label{font-family:'Playfair Display',serif;font-weight:700;font-size:.95em;color:var(--prune);}
+.arc-step .quote{font-size:.82em;color:var(--grey);font-style:italic;margin-top:4px;}
+.map{background:var(--navy);color:#fff;border-radius:12px;padding:22px 26px;margin:20px 0;}
+.map ol{counter-reset:sect;list-style:none;padding-left:0;margin:0;}
+.map li{counter-increment:sect;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.12);display:flex;gap:14px;align-items:baseline;}
+.map li:last-child{border-bottom:none}
+.map li::before{content:counter(sect);font-family:'Playfair Display',serif;color:var(--beige);font-weight:800;font-size:1.1em;min-width:22px;}
+.map .sname{font-weight:700;color:#fff;min-width:230px;}
+.map .sdesc{color:#c3bde0;font-size:.9em;}
+.section-card{background:#fff;border-radius:12px;padding:26px 28px;margin:18px 0 30px;border:1px solid #e4ddd0;}
+.section-card .tag{display:inline-block;background:var(--cream);border:1px solid var(--beige);border-radius:20px;padding:2px 12px;font-size:.78em;color:var(--prune);font-weight:700;margin-bottom:10px;}
+.spec{display:grid;grid-template-columns:150px 1fr;gap:8px 16px;margin-top:14px;font-size:.92em;}
+.spec dt{font-weight:700;color:var(--prune);padding-top:2px;}
+.spec dd{margin:0 0 4px;}
+.copyblock{background:var(--cream);border-left:3px solid var(--prune);padding:10px 15px;font-family:'Playfair Display',serif;font-style:italic;color:var(--navy);margin:4px 0;font-size:1.02em;}
+.swatch{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;margin-right:5px;border:1px solid rgba(0,0,0,.1);}
+.rules{background:#fff;border-radius:10px;padding:18px 22px;margin:14px 0;border:1px solid #e4ddd0;}
+.rules h4{font-family:'Playfair Display',serif;color:var(--navy);margin:0 0 6px;font-size:1.02em;}
+.verdict{background:var(--navy);color:#fff;border-radius:14px;padding:30px 32px;margin:22px 0;}
+.verdict h3{color:var(--beige);margin-top:0;}
+.verdict p{color:#e7e2f2}
+.small{font-size:.85em;color:var(--grey);}
+hr{border:none;border-top:1px solid #e4ddd0;margin:26px 0;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.two-col,.arc{grid-template-columns:1fr;flex-direction:column}.spec{grid-template-columns:1fr}.map .sname{min-width:0}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>INDÉPULS</h1>
+  <div class="script">La bible créative du site vitrine</div>
+  <div class="promise">"Indépuls ne gère pas votre activité. Il vous libère de la peur de mal la gérer."</div>
+  <div class="meta">Pas un site de SaaS. Un film de trois minutes qui fait vivre au visiteur exactement ce que le produit lui fait vivre : passer du bruit au silence. Document de conception, section par section, prêt à être construit. 1er août 2026.</div>
+</div>
+
+<div class="wrap">
+
+<h2><span class="num">0.</span> L'idée fondatrice</h2>
+<span class="script-sub">Une seule phrase doit pouvoir résumer tout le site</span>
+
+<div class="note">🎬 <strong>Le bruit devient le silence.</strong> C'est le seul concept qui porte tout le reste. Le site s'ouvre dans le chaos mental d'un indépendant à 23h qui n'ose pas regarder ses comptes — des questions qui flottent, se chevauchent, s'effacent au fil du scroll. Il se referme dans un silence complet, la même scène, mais calme. Entre les deux, rien n'est raconté comme une liste de fonctionnalités. Tout est raconté comme la disparition progressive d'un bruit. C'est la traduction sensorielle, littérale, de la promesse — pas une illustration de la promesse, la promesse elle-même, vécue avant d'être lue.</div>
+
+<p>Pourquoi ce concept précisément, et pas un autre : Indy, Freebe, Pennylane et Dougs racontent tous la même histoire — "voici ce que notre logiciel fait". Un site construit autour du bruit et du silence ne raconte jamais ce que le logiciel fait. Il raconte ce que ça fait de ne plus avoir peur. C'est la seule façon de tenir la promesse "le visiteur ne doit jamais avoir l'impression qu'on lui vend un logiciel."</p>
+
+<h2><span class="num">1.</span> La progression émotionnelle</h2>
+<span class="script-sub">Ce que le visiteur ressent, minute par minute</span>
+
+<div class="arc">
+<div class="arc-step"><span class="emoji">🤔</span><span class="label">Section 1</span><div class="quote">"Ces phrases... je les ai déjà pensées."</div></div>
+<div class="arc-step"><span class="emoji">😮</span><span class="label">Sections 2-3</span><div class="quote">"Attends, c'est exactement mon problème."</div></div>
+<div class="arc-step"><span class="emoji">😍</span><span class="label">Sections 4-6</span><div class="quote">"Pourquoi ça n'existait pas avant ?"</div></div>
+<div class="arc-step"><span class="emoji">🤝</span><span class="label">Section 7</span><div class="quote">"Ils refusent des choses. Je peux leur faire confiance."</div></div>
+<div class="arc-step"><span class="emoji">👉</span><span class="label">Section 8</span><div class="quote">"Je veux l'essayer. Maintenant."</div></div>
+<div class="arc-step"><span class="emoji">😌</span><span class="label">Section 9</span><div class="quote">"...je respire un peu mieux."</div></div>
+</div>
+
+<h2><span class="num">2.</span> Le plan du film</h2>
+<span class="script-sub">Neuf séquences, un seul mouvement</span>
+
+<div class="map">
+<ol>
+<li><span class="sname">Le bruit</span><span class="sdesc">Ouverture. Aucun logo, aucune promesse. Le miroir de la tête qui tourne.</span></li>
+<li><span class="sname">La bascule</span><span class="sdesc">Navy → crème. Le nom apparaît. La promesse, en une phrase, tenue longtemps.</span></li>
+<li><span class="sname">Le miroir du quotidien</span><span class="sdesc">Scrollytelling rythmé. Le CA qui monte, le doute qui ne bouge pas.</span></li>
+<li><span class="sname">La révélation</span><span class="sdesc">Un seul chiffre. La jauge du Score de Santé, recréée en direct, pas en capture.</span></li>
+<li><span class="sname">La preuve</span><span class="sdesc">"Pourquoi ce score ?" s'ouvre au clic. Zéro boîte noire, montrée, pas promise.</span></li>
+<li><span class="sname">Le "et si"</span><span class="sdesc">Un curseur manipulable, sans compte. La première vraie interaction produit.</span></li>
+<li><span class="sname">Ce qu'Indépuls refuse</span><span class="sdesc">Trois négations. Une affirmation. La confiance par la sobriété.</span></li>
+<li><span class="sname">La démo libre</span><span class="sdesc">L'app elle-même, en lecture, sans compte, sans carte. L'invitation.</span></li>
+<li><span class="sname">Le retour au silence</span><span class="sdesc">Fermeture. Même décor que l'ouverture. Plus rien ne flotte.</span></li>
+</ol>
+</div>
+
+<h2><span class="num">3.</span> Séquence par séquence</h2>
+<span class="script-sub">Objectif, texte, animation, ambiance, interaction — pour chacune</span>
+
+<div class="section-card">
+<span class="tag">Section 1 — Le bruit</span>
+<h3>Ouverture</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Faire ressentir avant d'expliquer. Le visiteur ne doit pas comprendre qu'il est sur un site de logiciel avant plusieurs secondes — il doit d'abord se sentir vu.</dd>
+<dt>Texte</dt><dd>Aucun titre. Des fragments qui dérivent, en plusieurs tailles et opacités (8 à 25%), qui se croisent lentement sur fond bleu marine plein écran :
+<div class="copyblock">"Est-ce que j'ai pensé à l'URSSAF ?" · "Pourquoi mon compte est vide alors que j'ai facturé ?" · "J'aurais peut-être dû accepter ce devis." · "J'ai encore travaillé ce week-end." · "Et si ce client s'en va ?" · "Ça va aller."</div>
+<span class="small">(révisé après relecture croisée — voir l'addendum en fin de document : les deux phrases trop abstraites de la première version ont été remplacées par des pensées concrètes du quotidien d'un indépendant, "Ça va aller" étant conservée seule, en dernière position, comme bascule émotionnelle vers la ligne de clôture.)</span>
+Dernière phrase, seule, plus grande, centrée, juste avant la transition : <div class="copyblock">"Tu n'es pas seul(e) à te poser ces questions."</div></dd>
+<dt>Animation</dt><dd>Les fragments dérivent en continu à vitesse quasi imperceptible (parallax léger, directions croisées). Au scroll, ils ralentissent puis s'effacent un par un depuis les bords vers le centre — l'opacité de chaque fragment est directement pilotée par la position de scroll, pas par une minuterie. Rien ne bouge si le visiteur ne scrolle pas : le silence ne s'impose jamais, il se mérite.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#141538"></span>Bleu marine plein écran, texte en beige très désaturé (10-20% d'opacité). Aucune icône, aucune image. Silence visuel absolu en dehors du texte.</dd>
+<dt>Illustration</dt><dd>Aucune. Le texte est l'image.</dd>
+<dt>Interaction</dt><dd>Scroll = seule commande. Sur mobile, un léger défilement tactile déclenche le même effet, calibré pour ne pas nécessiter plus de deux gestes.</dd>
+<dt>Pourquoi</dt><dd>C'est le refus le plus radical du site : pas de hero classique, pas de logo, pas de promesse. Le visiteur doit se reconnaître avant de savoir qui lui parle — c'est ce qui rend la suite crédible plutôt que "marketée".</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 2 — La bascule</span>
+<h3>Le nom, la promesse</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Le premier "wow" structurel. Le visiteur qui vient de se reconnaître dans le bruit reçoit enfin une réponse — sous forme de couleur, avant même les mots.</dd>
+<dt>Texte</dt><dd>Le mot "Indépuls" se compose lentement, comme une encre qui se dépose (Playfair Display, très grand). En dessous, en New Icon Script italique : "Il n'y a qu'une question qui compte." — reprend directement le fatras de questions de la Section 1 pour n'en garder qu'une seule, sans jamais nommer de catégorie produit ("copilote", "assistant", "outil"... des mots-étiquettes qui datent plus vite que le produit lui-même). Puis, seule, en pleine largeur, ancrée le temps d'une respiration de scroll :
+<div class="copyblock">"Indépuls ne gère pas votre activité. Il vous libère de la peur de mal la gérer."</div></dd>
+<dt>Animation</dt><dd>Transition de fond bleu marine → crème, pilotée par le scroll, comme un rideau qui se lève ou une lumière qui s'allume (dégradé radial qui s'étend depuis le centre). C'est la première fois que la charte graphique claire du produit apparaît — un vrai changement d'état, pas un simple fondu.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#F1EFEA"></span>Crème, texte bleu marine, un seul accent prune sur le mot "peur" dans la phrase-promesse (souligné d'un trait fin, jamais surligné en aplat — trop appuyé).</dd>
+<dt>Illustration</dt><dd>Aucune. Typographie seule.</dd>
+<dt>Interaction</dt><dd>La phrase-promesse reste fixée à l'écran (scroll-pinned) le temps que le visiteur la lise entièrement avant de pouvoir continuer — un rythme de cinéma, pas de page web.</dd>
+<dt>Pourquoi</dt><dd>C'est le seul endroit du site où la marque et la promesse sont énoncées frontalement. Les délivrer après le miroir émotionnel, jamais avant, inverse l'ordre habituel d'un site SaaS (logo → promesse → problème) et c'est précisément cette inversion qui crée l'effet de surprise.</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 3 — Le miroir du quotidien</span>
+<h3>Le rythme du doute</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Faire vivre, pas décrire, l'écart entre "je travaille plus" et "je me sens mieux". C'est le cœur du 😮.</dd>
+<dt>Texte</dt><dd>Sept lignes, en grand Playfair Display bleu marine sur crème, chacune remplaçant la précédente par fondu-enchaîné lié au scroll (une ligne = un écran) :
+<div class="copyblock">"Tu factures. Tu encaisses. Tu recommences."<br>"Le chiffre d'affaires grimpe."<br>"Le doute, lui, ne bouge pas."<br>"Parce qu'augmenter son chiffre et savoir si on va bien, ce n'est pas la même chose."<br>"Tu n'as jamais appris à lire tes propres chiffres. Personne ne te l'a montré."<br>"Tu avances au feeling."<br>"Et si tu n'avais qu'une seule chose à regarder ?"</div>
+<span class="small">(ligne 7 ajoutée après relecture croisée — voir l'addendum : c'est le pont vers la section 4, qui promet une réponse concrète sans jamais devenir une phrase-bénéfice de plaquette commerciale.)</span></dd>
+<dt>Animation</dt><dd>Scrollytelling scrubé (la position de scroll pilote directement l'avancement, comme une vidéo qu'on rembobine à la main). Rythme volontairement irrégulier : les lignes courtes passent vite, la ligne longue ("parce qu'augmenter...") reste plus longtemps à l'écran, légèrement plus petite en taille pour créer une respiration différente. La ligne "tu avances au feeling" se fige, tremble à peine, comme une voiture qui perd le contrôle sur une route mouillée — un tout petit effet, jamais gadget. La 7ᵉ et dernière ligne ("et si tu n'avais qu'une seule chose à regarder ?") s'affiche plus lentement que les autres et reste à l'écran un peu plus longtemps : c'est la question suspendue qui appelle directement la réponse de la section 4.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#F1EFEA"></span>Crème, texte navy, teinte de fond qui se réchauffe imperceptiblement vers le beige à mesure qu'on approche la fin de la séquence — annonce sans le dire que quelque chose va changer.</dd>
+<dt>Illustration</dt><dd>Aucune. Seul le rythme du texte porte l'émotion.</dd>
+<dt>Interaction</dt><dd>Scroll uniquement, mais le visiteur peut remonter et l'animation revient en arrière avec la même fluidité — jamais un piège à scroll qui empêche de reculer.</dd>
+<dt>Pourquoi</dt><dd>C'est l'adaptation du scénario "tu travailles beaucoup → tu doutes encore" demandé, mais resserré en sept respirations plutôt qu'en dix lignes égales — pour éviter l'effet liste déguisée et donner un vrai rythme de film. La 7ᵉ ligne répond directement à un vrai risque signalé en relecture croisée : rester trois sections complètes sans jamais laisser entrevoir ce que fait concrètement le produit. Ce n'est pas une phrase-bénéfice ("Indépuls fait X") — c'est une question qui promet une réponse, ce qui maintient le film intact tout en amorçant la compréhension.</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 4 — La révélation</span>
+<h3>Un chiffre au lieu de mille</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Le 😍. La première preuve concrète que le produit existe et qu'il tient une promesse simple — un seul chiffre remplace tout le bruit du début.</dd>
+<dt>Texte</dt><dd>Silence total pendant 1 à 2 secondes de scroll (aucun texte, fond crème vide — la vraie respiration du site). Puis, centré : "97" qui grimpe en direct de 0 à 97 pendant que l'anneau se remplit. En dessous, petit, discret : "Votre activité tourne très bien aujourd'hui." (le vrai texte du produit, pas un slogan inventé).</dd>
+<dt>Animation</dt><dd>L'anneau et le chiffre sont recréés en SVG/CSS natif, animés en direct au scroll — jamais une image ou une vidéo. Effet miroir avec la Section 1 : quelques-uns des fragments de texte flottants de l'ouverture reviennent brièvement, mais cette fois ils convergent vers le centre de l'écran et se fondent dans l'anneau, comme si le bruit du début se transformait littéralement en ce chiffre.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#F1EFEA"></span>Crème en fond, <span class="swatch" style="background:#5B2C4A"></span>anneau en prune, chiffre en navy. Palette resserrée à trois couleurs pour ce moment précis — c'est le point le plus "propre" visuellement de tout le site.</dd>
+<dt>Illustration</dt><dd>L'anneau lui-même est la seule "image" — recréée en code, pas une capture d'écran. C'est un choix fort : le produit existe visuellement sans jamais montrer un écran.</dd>
+<dt>Interaction</dt><dd>Le visiteur n'a rien à faire ici, volontairement — c'est un moment de contemplation, pas d'action. L'action arrive en section 5 et 6.</dd>
+<dt>Pourquoi</dt><dd>C'est le pivot du film : la première preuve tangible, et elle rejoue littéralement la transformation "bruit → silence" annoncée en section 0, ce qui donne au visiteur le sentiment d'avoir vécu quelque chose de cohérent, pas juste vu une animation jolie.</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 5 — La preuve</span>
+<h3>Zéro boîte noire</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Neutraliser le scepticisme au moment exact où il apparaît naturellement ("c'est trop simple, il y a sûrement un piège").</dd>
+<dt>Texte</dt><dd>Au-dessus de l'anneau, désormais fixé en haut de section : "Zéro boîte noire. Vous voyez toujours le calcul." Au clic sur l'anneau, un panneau s'ouvre avec la vraie décomposition (reprise fidèle de l'écran produit réel) : TJM réel, seuil minimum, écart, méthode de calcul — en typographie sobre, labels en petites capitales beige.</dd>
+<dt>Animation</dt><dd>Ouverture en accordéon fluide (spring physics légère, pas un simple slide linéaire) — l'anneau semble littéralement "s'ouvrir comme un tiroir" pour révéler ce qu'il y a derrière.</dd>
+<dt>Ambiance & couleurs</dt><dd>Identique à la section précédente, avec l'ajout du beige pour les libellés — cohérence visuelle totale, aucune rupture de palette.</dd>
+<dt>Illustration</dt><dd>Le détail chiffré lui-même, présenté comme une pièce de preuve plutôt que comme une capture d'écran encadrée.</dd>
+<dt>Interaction</dt><dd>Premier clic du site. Volontairement placé ici, pas avant — le visiteur doit avoir envie de vérifier avant qu'on lui donne la possibilité de le faire.</dd>
+<dt>Pourquoi</dt><dd>C'est la fonctionnalité la plus différenciante du vrai produit (aucun concurrent ne montre sa formule), et elle mérite d'être vécue en interaction plutôt que lue en argument marketing.</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 6 — Le "et si"</span>
+<h3>La décision, pas juste le constat</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Faire passer le visiteur de spectateur à acteur. C'est le moment où "je comprends le problème" devient "je peux déjà agir dessus, ici, maintenant."</dd>
+<dt>Texte</dt><dd>"Avant de décider, on aimerait savoir. Maintenant, on peut." Puis un curseur manipulable, avec une phrase qui se réécrit en direct selon sa position :
+<div class="copyblock">"Si vous augmentiez vos prix de <u>12%</u>, vous gagneriez le même revenu en travaillant <u>3h de moins</u> chaque semaine."</div></dd>
+<dt>Animation</dt><dd>Le curseur est un vrai composant tactile (grand, rond, prune, avec un léger relâchement élastique quand on le lâche). Les deux valeurs soulignées se recalculent et se réécrivent en direct avec un effet de "compteur qui défile" à chaque déplacement, jamais un simple remplacement instantané de texte.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#F1EFEA"></span>Crème, curseur et accents en <span class="swatch" style="background:#BB9E81"></span>beige chaud, texte recalculé en prune pour bien distinguer ce qui bouge de ce qui est fixe.</dd>
+<dt>Illustration</dt><dd>Le curseur et la phrase vivante en tiennent lieu — encore une fois, pas de capture d'écran.</dd>
+<dt>Renfort <span class="small">(ajout)</span></dt><dd>Après un court palier d'immobilité du curseur (~1,5s sans déplacement), une seconde ligne apparaît sous la phrase principale, qui traduit le pourcentage en unité humaine plutôt qu'en abstraction financière : <span class="copyblock" style="display:inline">"Tu viens peut-être de gagner 9 heures par mois."</span> Ce n'est jamais un chiffre en euros à cet endroit précis — l'euro est déjà couvert par la phrase principale, cette ligne doit convertir la décision en temps de vie récupéré, qui est l'unité la plus proche de la vraie question que se pose l'indépendant.</dd>
+<dt>Interaction</dt><dd>Manipulation libre, sans compte, sans limite de temps. La logique de calcul est simplifiée pour la démo publique (illustrative, pas connectée aux vraies données), mais doit paraître entièrement réelle — c'est le moment le plus important du site en termes de perception de valeur.</dd>
+<dt>Pourquoi</dt><dd>Aucun concurrent ne laisse un visiteur anonyme toucher à une vraie fonctionnalité avant de créer un compte. C'est l'interaction qui, à elle seule, peut faire gagner un "Site of the Day".</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 7 — Ce qu'Indépuls refuse</span>
+<h3>La confiance par la sobriété</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Rassurer un public qui a déjà été déçu par des outils qui promettaient tout et livraient un fatras de fonctionnalités mal reliées entre elles.</dd>
+<dt>Texte</dt><dd>Trois lignes, une par une, chacune barrée d'un trait fin horizontal après son apparition :
+<div class="copyblock">"Indépuls n'est pas un logiciel de facturation."<br>"Indépuls n'est pas un CRM."<br>"Indépuls n'est pas un logiciel de comptabilité."</div>
+Puis, plus grand, en prune, seule au centre : "Indépuls est le seul endroit où vous savez, en une minute, si vous allez bien."</dd>
+<dt>Animation</dt><dd>Chaque négation apparaît, se lit, puis se barre lentement (comme rayée à la main) avant de céder la place à la suivante. La phrase finale n'est jamais barrée — elle reste, seule, centrée, en grand.</dd>
+<dt>Ambiance & couleurs</dt><dd>Fond crème quasi vide, énormément de respiration autour du texte (au moins 60% d'espace vide à l'écran) — la sobriété visuelle doit porter le message autant que le texte.</dd>
+<dt>Illustration</dt><dd>Aucune. Section volontairement la plus nue du site.</dd>
+<dt>Interaction</dt><dd>Aucune. Un moment de pur repos avant la dernière poussée vers l'action.</dd>
+<dt>Pourquoi</dt><dd>C'est une section de features à l'envers, jamais vue ailleurs dans la catégorie — elle répond en creux à "en quoi c'est différent d'Indy ou de Pennylane" sans jamais les nommer, ce qui reste toujours plus élégant qu'une comparaison frontale.</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 8 — La démo libre</span>
+<h3>L'invitation</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Le 👉. Le visiteur a déjà "essayé" une micro-fonctionnalité en section 6 — ici, on lui offre le reste, sans aucune barrière.</dd>
+<dt>Texte</dt><dd>"Pas de compte à créer. Pas de carte bancaire. Juste vous, et vos vrais chiffres, quand vous serez prêt(e)." Deux boutons de poids visuel très inégal : un grand bouton chaud "Explorer la démo" et, en dessous, discret, "Créer mon compte" pour ceux déjà convaincus.</dd>
+<dt>Animation</dt><dd>Le bouton principal respire légèrement (micro-pulsation d'ombre portée, jamais un scintillement) — la seule animation "d'appel" de tout le site, réservée à cet unique endroit pour ne pas se banaliser.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#141538"></span>Fond navy à nouveau (on quitte le crème pour la première fois depuis la section 2 — signal fort de "moment charnière").</dd>
+<dt>Illustration</dt><dd>Aucune. Deux boutons, une phrase.</dd>
+<dt>Interaction</dt><dd>Clic sur "Explorer la démo" ouvre le vrai mode démo du produit (déjà existant techniquement), en lecture, sans authentification — pas une maquette, l'app réelle avec des données fictives réalistes.</dd>
+<dt>Pourquoi</dt><dd>Un produit qui refuse de montrer son intérieur avant l'inscription (comme la plupart des concurrents) paraît toujours plus fermé qu'un produit qui l'ouvre en grand. C'est cohérent avec le principe "zéro boîte noire" déjà établi en section 5.</dd>
+</div>
+</div>
+
+<div class="section-card">
+<span class="tag">Section 9 — Le retour au silence</span>
+<h3>Fermeture</h3>
+<div class="spec">
+<dt>Objectif psychologique</dt><dd>Boucler l'histoire. Le visiteur doit sentir, physiquement, la différence entre l'ouverture et la fermeture — c'est la preuve la plus forte que la promesse a été tenue, même sur le site vitrine.</dd>
+<dt>Texte</dt><dd>Décor identique à la section 1 (même fond navy, même cadrage), mais entièrement silencieux. Aucun fragment ne flotte. Une seule ligne, petite, centrée, en New Icon Script italique beige : "Vous n'avez plus besoin de deviner."</dd>
+<dt>Animation</dt><dd>Aucune, volontairement. Après huit sections en mouvement, l'absence totale de mouvement devient elle-même l'effet le plus fort du site.</dd>
+<dt>Ambiance & couleurs</dt><dd><span class="swatch" style="background:#141538"></span>Navy plein écran, silence visuel total.</dd>
+<dt>Illustration</dt><dd>Aucune.</dd>
+<dt>Interaction</dt><dd>Footer minimal en dessous (contact, mentions légales, un lien social ou deux) — discret, jamais en compétition avec le calme de la scène.</dd>
+<dt>Pourquoi</dt><dd>C'est la seule façon de clore un film construit sur "bruit → silence" sans trahir sa propre structure : la dernière image doit être le silence lui-même, pas un dernier argument de vente.</dd>
+</div>
+</div>
+
+<h2><span class="num">4.</span> Règles transverses</h2>
+<span class="script-sub">Ce qui tient le film ensemble d'un bout à l'autre</span>
+
+<div class="two-col">
+<div class="rules"><h4>Navigation <span class="small">(révisé après relecture croisée)</span></h4>Un unique élément discret est présent dès la seconde 0, en haut à droite : un lien texte sobre, "Aller à l'essentiel →" (jamais "Comprendre en 60 secondes" — cette formulation suggérerait que la version complète est un investissement de temps à éviter, ce qui dessert le film plutôt que de le servir). Ce lien mène directement à la section 8 (démo libre) pour les visiteurs pressés — salle d'attente, entre deux devis, sur téléphone. À partir de la section 4 (une fois l'essentiel du produit compris), cet élément s'enrichit progressivement en mini-menu complet (logo, Fonctionnalités, Tarifs, Démo) : donner accès à la navigation complète n'interrompt plus rien une fois que le "waouh" est déjà vécu. Voir le chapitre "Écosystème" (Mission 8) pour l'analyse complète des options envisagées et pourquoi celle-ci a été retenue.</div>
+<div class="rules"><h4>Mouvement</h4>Toutes les transitions pilotées par le scroll (scrubbing), jamais par une minuterie seule. Courbes d'accélération douces (type <code>cubic-bezier(0.16, 1, 0.3, 1)</code>), jamais de rebond agressif. Un seul effet "vivant" continu par section maximum — la règle est la retenue, pas l'accumulation.</div>
+<div class="rules"><h4>Accessibilité</h4><code>prefers-reduced-motion</code> respecté strictement : toutes les séquences scrollytelling se replient en apparitions simples par fondu, sans dérive ni parallax. Contrastes vérifiés sur fond navy et crème. Le site reste utilisable et compréhensible avec le JavaScript désactivé (dégradation en page longue classique, texte visible directement).</div>
+<div class="rules"><h4>Performance</h4>Aucune vidéo. Toutes les animations en CSS/SVG/Canvas léger, jamais en images lourdes. Chargement différé de tout ce qui suit la section 3. Le poids total de la page doit rester pensé pour un chargement instantané, y compris en 4G.</div>
+<div class="rules"><h4>Résistance au lien direct <span class="small">(ajout)</span></h4>Le site s'enrichit de pages profondes (fonctionnalités, tarifs, pages métier — voir le chapitre "Écosystème") vers lesquelles Google et les réseaux mèneront directement, sans passer par le film. Les sections 4, 5 et 6, seules candidates à être partagées isolément (capture d'écran d'un ami, lien direct depuis une page métier), doivent rester compréhensibles sans les sections 1-3 : chacune porte une micro-légende de contexte, discrète pour un visiteur qui a vécu le film, suffisante pour celui qui ne l'a pas vécu.</div>
+</div>
+
+<h2><span class="num">5.</span> Addendum — relecture croisée</h2>
+<span class="script-sub">Ce qui a été accepté, modifié, rejeté — et pourquoi</span>
+
+<p>Un second regard critique a été passé sur ce document. Certaines remarques étaient justes et ont changé le contenu (voir les éditions marquées <span class="small">"ajout"</span>/<span class="small">"révisé après relecture croisée"</span> ci-dessus). D'autres méritaient d'être nuancées avant d'être appliquées. Le détail :</p>
+
+<div class="section-card">
+<div class="spec" style="grid-template-columns:280px 90px 1fr">
+<dt>Remarque</dt><dt>Décision</dt><dt>Raison</dt>
+
+<dd>"Il manque un ancrage concret, une phrase-bénéfice."</dd><dd><strong>Modifié</strong></dd><dd>Juste sur le risque, pas sur la solution proposée. Une phrase-bénéfice insérée en section 2 aurait cassé le ton poétique de la promesse. La réponse retenue est une question suspendue en fin de section 3 ("et si tu n'avais qu'une seule chose à regarder ?"), qui amorce la compréhension sans jamais devenir une phrase de plaquette commerciale.</dd>
+
+<dd>"Deux phrases de la section 1 sont trop théâtrales."</dd><dd><strong>Accepté</strong></dd><dd>Remplacées par des pensées plus concrètes et quotidiennes (URSSAF, devis, compte vide). "Ça va aller" est conservée seule, en dernière position, comme bascule émotionnelle vers la ligne de clôture — la retirer entièrement aurait cassé la cadence.</dd>
+
+<dd>"Aller plus loin sur le curseur 'et si', traduire en heures gagnées."</dd><dd><strong>Accepté tel quel</strong></dd><dd>Idée juste et directement exploitable — ajoutée comme ligne de renfort après un court palier d'immobilité du curseur.</dd>
+
+<dd>"Il manque l'histoire de la fondatrice, le 'pourquoi' du produit."</dd><dd><strong>Rejeté à cet endroit</strong>, accepté ailleurs</dd><dd>L'insérer dans le film casserait la cohérence Bruit → Silence — précisément ce que la relecture elle-même qualifie de "très rare". La bonne réponse n'est pas de diluer l'accueil, mais de construire une vraie page /a-propos (chapitre Écosystème), reliée discrètement, jamais imposée en plein film.</dd>
+
+<dd>"Chaque section doit se comprendre seule pour un visiteur en lien direct."</dd><dd><strong>Accepté</strong></dd><dd>Nouvelle règle transverse ajoutée — pertinent dès que le site a des pages profondes vers lesquelles Google et les réseaux mènent directement.</dd>
+
+<dd>"Risque de conversion des sites primés Awwwards, prévoir une échappatoire."</dd><dd><strong>Accepté</strong>, wording modifié</dd><dd>Le principe est juste. Le wording proposé ("Comprendre en 60 secondes") est rejeté : il sous-entend que la version complète est un investissement de temps à éviter, ce qui dessert le film au lieu de le servir. Reformulé en "Aller à l'essentiel →".</dd>
+
+<dd>"Claude ne devrait plus travailler sur le design, mais sur la conversion."</dd><dd><strong>Rejeté</strong> comme cadrage, accepté comme contenu</dd><dd>Opposer design et conversion est un faux choix — les deux avancent ensemble dans ce document. Mais une partie honnête doit être dite : certaines questions de conversion (où les visiteurs décrochent vraiment, quel CTA gagne) ne peuvent pas être tranchées depuis un document, seulement avec du trafic réel et des tests. La Mission 9 du chapitre Écosystème répond à tout ce qui peut l'être structurellement — le reste attendra les vraies données.</dd>
+</div>
+</div>
+
+<h2><span class="num">6.</span> Verdict — pourquoi ça gagnerait un Site of the Day</h2>
+<span class="script-sub">Ce que le jury retiendrait</span>
+
+<div class="verdict">
+<h3>La citation du jury</h3>
+<p>"Ce site ne raconte pas un produit, il fait vivre une émotion, et c'est précisément cette émotion que le produit promet de résoudre. La transition bruit-vers-silence n'est pas un effet de style : c'est une structure narrative complète, tenue de la première à la dernière seconde, avec une symétrie d'ouverture et de fermeture rarement vue dans la catégorie SaaS. Aucune capture d'écran, aucune icône générique, aucune grille de fonctionnalités — et pourtant, à la fin, le visiteur a compris exactement ce que fait le produit, parce qu'il l'a essayé avant qu'on le lui demande. La section 6, qui laisse un visiteur anonyme manipuler une vraie décision business sans inscription, est le genre de détail qui distingue un site '<em>joli</em>' d'un site qui <em>mérite</em> d'être primé."</p>
+<p class="small">Trois raisons concrètes, en plus de l'émotion : (1) l'originalité du concept structurant — bruit/silence n'est repris nulle part ailleurs dans la catégorie financière, (2) la retenue — zéro capture d'écran, zéro icône de stock, un produit rendu visible uniquement par des éléments recréés en code, (3) l'interaction jouable avant la conversion — le curseur "et si" de la section 6 transforme un site vitrine passif en expérience produit active, ce qui est exactement le critère qu'Awwwards récompense le plus systématiquement sur les sites SaaS primés ces dernières années.</p>
+</div>
+
+<hr>
+
+<h2><span class="num">7.</span> Pont vers Claude Code</h2>
+<span class="script-sub">Ce que la construction technique devra prévoir</span>
+
+<ul>
+<li><strong>Exposer le mode démo existant sans authentification</strong> — c'est la pièce technique la plus importante de tout le site (section 8), et elle repose sur une fonctionnalité qui existe déjà dans le produit (<code>getExampleData()</code>, mode démo). Il s'agit d'ouvrir un accès en lecture seule, isolé du compte réel, jamais d'en créer une copie séparée à maintenir.</li>
+<li><strong>La section 6 n'a besoin d'aucune vraie donnée</strong> — une formule illustrative suffit (même logique que le simulateur "Et si ?" du produit, simplifiée), tant que le résultat reste crédible et cohérent avec ce que fait vraiment le produit une fois connecté.</li>
+<li><strong>L'anneau de score (section 4-5) doit être un vrai composant réutilisable</strong>, recréé en SVG, pas une image — il doit pouvoir être réutilisé tel quel dans l'app elle-même à terme, pour que la promesse visuelle du site et celle du produit ne se désynchronisent jamais.</li>
+<li><strong>Un seul fichier de règles de mouvement partagé</strong> (durées, courbes d'accélération, seuils de scroll) entre toutes les sections, pour garder la cohérence de rythme sans dupliquer les réglages neuf fois.</li>
+<li><strong>Tester en priorité sur mobile</strong> — la plupart des visiteurs découvriront probablement ce site depuis Instagram ou LinkedIn, donc depuis un téléphone. Chaque séquence scroll-pilotée doit être repensée pour un pouce, pas pour une souris.</li>
+<li><strong>Le lien "Aller à l'essentiel →"</strong> doit exister dans le DOM dès le premier rendu (pas injecté après coup en JS) — c'est ce qui le rend utilisable par un lecteur d'écran et crawlable par Google, indépendamment de l'expérience scroll.</li>
+<li><strong>Voir le chapitre "Écosystème complet du site Indépuls"</strong> pour l'architecture des pages qui entourent ce film (sitemap, SEO, pages métier, blog, menu) — cette Bible ne couvre que la page d'accueil.</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment calculer son taux horaire réel · Indépuls</title>
+<meta name="description" content="Votre taux horaire affiché n'est pas votre taux horaire réel. Le guide pour calculer ce que vous gagnez vraiment de l'heure, une fois le temps non facturé et les charges pris en compte.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.65;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:60px 24px 10px;}
+  header.hero .wrap{max-width:760px;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(28px,4.4vw,44px); margin:0 0 18px; line-height:1.2;}
+
+  .tldr{background:#fff; border:1px solid #e4ddd0; border-left:3px solid var(--prune); border-radius:12px; padding:20px 24px; margin:0 auto; max-width:760px;}
+  .tldr .lbl{font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); font-weight:700; display:block; margin-bottom:8px;}
+  .tldr p{margin:0; font-size:15.5px; color:#3a3a52;}
+
+  article{padding:40px 24px 40px;}
+  article .wrap{max-width:760px;}
+  article h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(21px,2.9vw,27px); margin:44px 0 14px; line-height:1.3;}
+  article h2:first-of-type{margin-top:0;}
+  article p{font-size:16px; color:#3a3a52; margin:0 0 16px;}
+  article ul{font-size:16px; color:#3a3a52; padding-left:22px; margin:0 0 16px;}
+  article li{margin-bottom:9px;}
+  article a{color:var(--prune); font-weight:600;}
+  article strong{color:var(--navy);}
+  .example{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:0 0 16px;}
+  .example p{margin:0 0 8px; font-size:15px;}
+  .example p:last-child{margin:0;}
+  .example .r{color:var(--ok); font-weight:700;}
+  .formula{font-family:monospace; font-size:14px; color:var(--navy); background:var(--cream); border:1px solid #e4ddd0; border-radius:8px; padding:12px 16px; margin:0 0 16px;}
+  .toolcard{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:8px 0 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+  .toolcard .t{flex:1; min-width:200px;}
+  .toolcard .t b{display:block; color:var(--navy); font-size:15px; margin-bottom:2px;}
+  .toolcard .t span{font-size:13.5px; color:#6b6b6b;}
+  .toolcard a{background:var(--prune); color:#fff; text-decoration:none; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:999px; white-space:nowrap;}
+
+  section.cta{padding:20px 24px 70px;}
+  section.cta .box{max-width:760px; margin:0 auto; background:var(--navy); color:#fff; border-radius:16px; padding:36px 30px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(21px,3vw,26px); margin:0 0 12px; color:#fff;}
+  section.cta p{color:#dcd9ec; font-size:15px; margin:0 0 22px;}
+  .btnrow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 28px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Comment calculer son taux horaire réel">
+<meta property="og:description" content="Votre taux horaire affiché n'est pas votre taux horaire réel. Le guide pour calculer ce que vous gagnez vraiment de l'heure, une fois le temps non facturé et les charges pris en compte.">
+<meta property="og:url" content="https://indepuls.fr/ressources/calculer-son-taux-horaire-reel/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../../tarifs/index.html">Tarifs</a>
+      <a href="../../demo/index.html">Démo</a>
+      <a href="../../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown has-active" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../calculer-son-taux-horaire-reel/index.html" class="active">Guide du taux horaire réel</a>
+          <a href="../combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Comment calculer son taux horaire réel</h1>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tldr">
+    <span class="lbl">En résumé</span>
+    <p>Votre taux horaire réel, c'est votre chiffre d'affaires encaissé divisé par le temps réellement passé, tout compris. Il est presque toujours plus bas que le taux affiché sur vos devis, parce que le temps non facturé (prospection, devis, administratif) et les charges n'apparaissent nulle part dans le prix. Le calculer, c'est la première étape pour fixer des tarifs qui tiennent vraiment.</p>
+  </div>
+</div>
+
+<article>
+  <div class="wrap">
+
+    <h2>Taux affiché et taux réel : deux chiffres différents</h2>
+    <p>Quand on demande son taux horaire à un indépendant, il donne en général le chiffre inscrit sur ses devis. C'est le taux <strong>affiché</strong>. Le taux <strong>réel</strong>, lui, est ce que vous gagnez effectivement pour chaque heure de votre activité, une fois tout pris en compte.</p>
+    <p>Les deux sont rarement égaux, et l'écart penche toujours du même côté : le réel est plus bas. Comprendre pourquoi, c'est déjà reprendre la main sur ses tarifs.</p>
+
+    <h2>La formule du taux horaire réel</h2>
+    <p>Elle tient en une ligne :</p>
+    <div class="formula">Taux horaire réel = chiffre d'affaires encaissé ÷ heures réellement passées</div>
+    <p>La subtilité est dans le dénominateur : les heures réellement passées, pas les heures facturées. Toute heure travaillée pour votre activité compte, même celle que le client ne paie pas.</p>
+    <div class="example">
+      <p>Vous facturez une mission 1 500 € pour 20 heures affichées, soit 75 €/h sur le papier.</p>
+      <p>En comptant les échanges, les retouches et la préparation, vous y avez passé 30 heures. Votre taux réel est de <span class="r">50 €/h</span>, pas 75.</p>
+    </div>
+    <div class="toolcard">
+      <div class="t"><b>Calculez votre TJM minimum</b><span>Le taux en dessous duquel votre activité ne se couvre plus.</span></div>
+      <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+    </div>
+
+    <h2>Le temps qu'on oublie toujours de compter</h2>
+    <p>Si le taux réel est si souvent surestimé, c'est parce qu'une grande partie du travail d'un indépendant n'est jamais facturée directement :</p>
+    <ul>
+      <li>La <strong>prospection</strong> et les rendez-vous commerciaux.</li>
+      <li>La rédaction des <strong>devis</strong>, y compris ceux qui ne se transforment pas.</li>
+      <li>La <strong>communication</strong> : réseaux sociaux, création de contenu, newsletter, tout ce qui vous rend visible.</li>
+      <li>L'<strong>administratif</strong> : facturation, relances, comptabilité, déclarations.</li>
+      <li>Le <strong>pilotage de votre activité</strong> : suivre vos chiffres, vos indicateurs, faire vos comptes.</li>
+      <li>La <strong>formation</strong> et la veille pour rester à niveau.</li>
+    </ul>
+    <p>Ces heures sont réelles. Les ignorer revient à se raconter une rentabilité qui n'existe pas.</p>
+
+    <h2>Partez de ce que vous voulez gagner, pas de la concurrence</h2>
+    <p>Beaucoup fixent leur tarif en regardant ce que font les autres. C'est un point de repère utile, mais ce n'est pas un point de départ. Le bon point de départ, c'est vous : le revenu que vous voulez toucher, vos charges, vos cotisations, et le nombre de jours réellement facturables dans votre année.</p>
+    <p>De là, on remonte au taux minimum en dessous duquel votre activité ne tient pas, quel que soit le prix du marché. C'est ce seuil qui protège, pas la moyenne des concurrents.</p>
+
+    <h2>Suis-je trop cher, ou pas assez ?</h2>
+    <p>Une fois votre taux réel et votre seuil minimum connus, la question devient simple à trancher. Si votre taux réel est nettement au-dessus du seuil, vous avez de la marge. S'il est en dessous, augmenter vos prix n'est pas une option, c'est une nécessité.</p>
+    <p>Attention à l'idée qu'un tarif bas met à l'abri : facturer peu cher oblige à travailler plus pour le même revenu, ce qui fait mécaniquement chuter le taux réel et fragilise l'activité, sans que le chiffre d'affaires ne l'annonce jamais.</p>
+
+    <h2>Les erreurs de tarification les plus courantes</h2>
+    <ul>
+      <li><strong>Se baser sur le taux affiché</strong> pour se juger rentable, sans jamais mesurer le réel.</li>
+      <li><strong>Aligner son prix sur la concurrence</strong> avant d'avoir calculé son propre seuil.</li>
+      <li><strong>Ne pas réévaluer ses tarifs</strong> quand les charges augmentent.</li>
+      <li><strong>Confondre "être compétitif" et "être bon marché".</strong> Un prix trop bas se paie en volume de travail.</li>
+    </ul>
+
+    <h2>Suivre son taux réel dans le temps</h2>
+    <p>Un taux horaire réel n'est pas un chiffre qu'on calcule une fois. Il bouge à chaque mission, selon le temps réellement passé et les prix pratiqués. Le suivre à la main suppose de reprendre le calcul régulièrement, ce qui finit rarement par se faire.</p>
+    <p>C'est ce que fait Indépuls automatiquement : à partir de vos missions et de vos encaissements, il compare en continu votre taux réel à votre seuil minimum, mission après mission, et vous alerte quand vous passez en dessous.</p>
+    <p>Pour aller plus loin sur la vue d'ensemble, lisez aussi le guide <a href="../savoir-si-son-activite-est-rentable/index.html">Comment savoir si votre activité est rentable</a>.</p>
+
+  </div>
+</article>
+
+<section class="cta">
+  <div class="box">
+    <h2>Voir votre taux réel se calculer tout seul</h2>
+    <p>La démo tourne avec des données fictives réalistes, sans compte ni carte bancaire.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
+      <a class="btn btn-secondary" href="../../fonctionnalites/index.html">Voir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../../a-propos/index.html">À propos</a>
+  <a href="../../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../../cgu.html">CGU</a>
+  <a href="../../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+
+</body>
+</html>

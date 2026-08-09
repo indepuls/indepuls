@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ · Indépuls</title>
+<meta name="description" content="Les réponses aux questions les plus fréquentes sur Indépuls : produit, prix, sécurité des données, fonctionnement au quotidien.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.6;}
+  .wrap{max-width:840px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{max-width:1040px; display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:22px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:70px 24px 20px; text-align:center;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(28px,4.2vw,44px); margin:0 0 16px;}
+  header.hero p{max-width:520px; margin:0 auto; font-size:16.5px; color:#4a4a63;}
+
+  main{padding:30px 24px 70px;}
+
+  section.faqgroup{margin-top:44px;}
+  section.faqgroup h2{
+    font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(19px,2.4vw,23px);
+    margin:0 0 16px; padding-bottom:10px; border-bottom:1px solid #e4ddd0;
+  }
+
+  details{background:#fff; border:1px solid #e4ddd0; border-radius:12px; margin-bottom:10px; overflow:hidden;}
+  details summary{
+    list-style:none; cursor:pointer; padding:16px 46px 16px 20px; font-weight:700; font-size:15px;
+    color:var(--navy); position:relative;
+  }
+  details summary::-webkit-details-marker{display:none;}
+  details summary::after{
+    content:'+'; position:absolute; right:18px; top:50%; transform:translateY(-50%);
+    font-size:20px; font-weight:400; color:var(--prune); transition:transform .25s var(--ease);
+  }
+  details[open] summary::after{transform:translateY(-50%) rotate(45deg);}
+  details p{margin:0; padding:0 20px 18px; font-size:14.5px; color:#4a4a63;}
+
+  section.cta{padding:60px 24px 20px; text-align:center; max-width:1040px; margin:0 auto;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(20px,3vw,26px); margin:0 0 22px;}
+  .btnrow{display:flex; gap:16px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 30px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:var(--navy); border:1px solid var(--navy);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="FAQ · Indépuls">
+<meta property="og:description" content="Les réponses aux questions les plus fréquentes sur Indépuls : produit, prix, sécurité des données, fonctionnement au quotidien.">
+<meta property="og:url" content="https://indepuls.fr/faq/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../tarifs/index.html">Tarifs</a>
+      <a href="../demo/index.html">Démo</a>
+      <a href="index.html" class="active">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <h1>Questions fréquentes</h1>
+  <p>Les réponses courtes aux questions qu'on nous pose le plus souvent, sur le produit, le prix, la sécurité et le fonctionnement au quotidien.</p>
+</header>
+
+<main class="wrap">
+
+  <section class="faqgroup">
+    <h2>Le produit</h2>
+
+    <details>
+      <summary>Qu'est-ce qu'Indépuls ?</summary>
+      <p>Indépuls est un copilote de rentabilité pour les indépendants (freelances, artisans, revendeurs). Il calcule un Score de Santé à partir de l'activité réelle de l'utilisateur et répond à une seule question : est-ce que ça va, financièrement ?</p>
+    </details>
+
+    <details>
+      <summary>Indépuls est-il un logiciel de facturation ?</summary>
+      <p>Non. Indépuls peut générer un devis, mais ce n'est ni un logiciel de facturation complet, ni un CRM, ni un logiciel de comptabilité. Il se concentre sur un seul sujet : la rentabilité réelle de l'activité.</p>
+    </details>
+
+    <details>
+      <summary>Indépuls remplace-t-il un expert-comptable ?</summary>
+      <p>Non. Les montants et estimations affichés dans Indépuls (URSSAF, TVA, impôts, provisions, projections) sont indicatifs, calculés à partir des données saisies par l'utilisateur. Ils ne constituent pas un conseil fiscal, comptable ou juridique personnalisé.</p>
+    </details>
+
+    <details>
+      <summary>Pour quels métiers Indépuls est-il fait ?</summary>
+      <p>Indépuls s'adapte à sept profils : prestataires de services, créatifs, prestataires événementiels, artisans du bâtiment, artisans et fabricants sur-mesure, fabricants en série, et achat-revente. Le vocabulaire et les indicateurs mis en avant changent selon le métier, le moteur de calcul reste le même pour tout le monde.</p>
+    </details>
+
+    <details>
+      <summary>Qu'est-ce que le Score de Santé ?</summary>
+      <p>Un indicateur unique, calculé à partir de quatre piliers de l'activité : rentabilité, remplissage, trésorerie et horizon. Chaque pilier est toujours accompagné du calcul qui le justifie, jamais affiché seul.</p>
+    </details>
+
+    <details>
+      <summary>Qu'est-ce que le taux horaire (ou journalier) réel ?</summary>
+      <p>Le taux que l'indépendant gagne réellement, une fois le chiffre d'affaires rapporté au temps effectivement passé, à distinguer d'un taux affiché sur un devis qui ne tient pas compte du temps réellement consacré à la mission.</p>
+    </details>
+  </section>
+
+  <section class="faqgroup">
+    <h2>Le prix et l'essai</h2>
+
+    <details>
+      <summary>Combien coûte Indépuls ?</summary>
+      <p>19&nbsp;€ par mois, prix de lancement bêta pour les personnes inscrites sur liste d'attente, garanti à vie pour elles même si le tarif évolue par la suite.</p>
+    </details>
+
+    <details>
+      <summary>Peut-on essayer Indépuls avant de créer un compte ?</summary>
+      <p>Oui. Une démo avec des données fictives réalistes est accessible librement, sans compte ni carte bancaire, sur la page Démo.</p>
+    </details>
+
+    <details>
+      <summary>Le prix va-t-il augmenter ?</summary>
+      <p>Il peut évoluer à l'ouverture officielle des inscriptions payantes. Toute personne inscrite sur liste d'attente avant cette date conserve le tarif de lancement, durablement.</p>
+    </details>
+
+    <details>
+      <summary>Y a-t-il un engagement ?</summary>
+      <p>Non, aucun engagement : vous pouvez résilier à tout moment. Si vous vous désabonnez, votre compte et vos données restent conservés, pour pouvoir vous reconnecter plus tard et retrouver votre historique. Un export de vos données reste disponible à tout moment.</p>
+    </details>
+  </section>
+
+  <section class="faqgroup">
+    <h2>La sécurité et les données</h2>
+
+    <details>
+      <summary>Les données sont-elles sécurisées ?</summary>
+      <p>Les connexions sont chiffrées (HTTPS), les données sont chiffrées au repos, et chaque compte est isolé techniquement des autres au niveau de la base de données. Le détail des mécanismes est sur la page Sécurité.</p>
+    </details>
+
+    <details>
+      <summary>Qui peut voir les données saisies dans Indépuls ?</summary>
+      <p>Personne d'autre que l'utilisateur. Seuls quelques prestataires techniques (hébergement, authentification, envoi d'email) traitent les données pour faire fonctionner le service, jamais à des fins commerciales.</p>
+    </details>
+
+    <details>
+      <summary>Indépuls revend-il les données des utilisateurs ?</summary>
+      <p>Non. Les données ne sont ni vendues, ni transmises à des tiers à des fins publicitaires, ni utilisées pour entraîner des modèles d'intelligence artificielle.</p>
+    </details>
+
+    <details>
+      <summary>Peut-on supprimer son compte et ses données ?</summary>
+      <p>Oui, en écrivant à contact@indepuls.fr. Un mécanisme de suppression en libre-service est en cours de réflexion.</p>
+    </details>
+  </section>
+
+  <section class="faqgroup">
+    <h2>Le fonctionnement au quotidien</h2>
+
+    <details>
+      <summary>Faut-il tout ressaisir manuellement ?</summary>
+      <p>Non. Les missions, devis et encaissements saisis dans Indépuls alimentent directement les indicateurs, sans double saisie dans un autre outil.</p>
+    </details>
+
+    <details>
+      <summary>Faut-il changer de logiciel de facturation actuel ?</summary>
+      <p>Non. Indépuls n'a pas vocation à remplacer un logiciel de facturation, il peut fonctionner en complément.</p>
+    </details>
+
+    <details>
+      <summary>Indépuls fonctionne-t-il pour une micro-entreprise ou une société ?</summary>
+      <p>Oui. Indépuls s'adapte à plusieurs statuts (micro-entreprise, société) et à leurs paramètres spécifiques (seuils de TVA, cotisations, comparateurs de statut).</p>
+    </details>
+
+    <details>
+      <summary>Le produit est-il déjà stable et terminé ?</summary>
+      <p>Indépuls est actuellement en phase bêta. Le service évolue et certaines fonctionnalités peuvent être ajustées avant une version stable, comme précisé dans les conditions d'utilisation.</p>
+    </details>
+
+    <details>
+      <summary>Qui est derrière Indépuls ?</summary>
+      <p>Indépuls est actuellement édité à titre personnel par Faustine Patissier, en attendant la création prochaine d'une société dédiée.</p>
+    </details>
+  </section>
+
+</main>
+
+<section class="cta">
+  <h2>Une autre question ?</h2>
+  <div class="btnrow">
+    <a class="btn btn-primary" href="../demo/index.html">Explorer la démo</a>
+    <a class="btn btn-secondary" href="mailto:contact@indepuls.fr">Écrire à contact@indepuls.fr</a>
+  </div>
+</section>
+
+<footer>
+  <a href="../a-propos/index.html">À propos</a>
+  <a href="../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../cgu.html">CGU</a>
+  <a href="../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"Qu'est-ce qu'Indépuls ?","acceptedAnswer":{"@type":"Answer","text":"Indépuls est un copilote de rentabilité pour les indépendants (freelances, artisans, revendeurs). Il calcule un Score de Santé à partir de l'activité réelle de l'utilisateur et répond à une seule question : est-ce que ça va, financièrement ?"}},
+    {"@type":"Question","name":"Indépuls est-il un logiciel de facturation ?","acceptedAnswer":{"@type":"Answer","text":"Non. Indépuls peut générer un devis, mais ce n'est ni un logiciel de facturation complet, ni un CRM, ni un logiciel de comptabilité. Il se concentre sur un seul sujet : la rentabilité réelle de l'activité."}},
+    {"@type":"Question","name":"Indépuls remplace-t-il un expert-comptable ?","acceptedAnswer":{"@type":"Answer","text":"Non. Les montants et estimations affichés dans Indépuls (URSSAF, TVA, impôts, provisions, projections) sont indicatifs, calculés à partir des données saisies par l'utilisateur. Ils ne constituent pas un conseil fiscal, comptable ou juridique personnalisé."}},
+    {"@type":"Question","name":"Pour quels métiers Indépuls est-il fait ?","acceptedAnswer":{"@type":"Answer","text":"Indépuls s'adapte à sept profils : prestataires de services, créatifs, prestataires événementiels, artisans du bâtiment, artisans et fabricants sur-mesure, fabricants en série, et achat-revente. Le vocabulaire et les indicateurs mis en avant changent selon le métier, le moteur de calcul reste le même pour tout le monde."}},
+    {"@type":"Question","name":"Qu'est-ce que le Score de Santé ?","acceptedAnswer":{"@type":"Answer","text":"Un indicateur unique, calculé à partir de quatre piliers de l'activité : rentabilité, remplissage, trésorerie et horizon. Chaque pilier est toujours accompagné du calcul qui le justifie, jamais affiché seul."}},
+    {"@type":"Question","name":"Qu'est-ce que le taux horaire (ou journalier) réel ?","acceptedAnswer":{"@type":"Answer","text":"Le taux que l'indépendant gagne réellement, une fois le chiffre d'affaires rapporté au temps effectivement passé, à distinguer d'un taux affiché sur un devis qui ne tient pas compte du temps réellement consacré à la mission."}},
+    {"@type":"Question","name":"Combien coûte Indépuls ?","acceptedAnswer":{"@type":"Answer","text":"19 € par mois, prix de lancement bêta pour les personnes inscrites sur liste d'attente, garanti à vie pour elles même si le tarif évolue par la suite."}},
+    {"@type":"Question","name":"Peut-on essayer Indépuls avant de créer un compte ?","acceptedAnswer":{"@type":"Answer","text":"Oui. Une démo avec des données fictives réalistes est accessible librement, sans compte ni carte bancaire."}},
+    {"@type":"Question","name":"Le prix va-t-il augmenter ?","acceptedAnswer":{"@type":"Answer","text":"Il peut évoluer à l'ouverture officielle des inscriptions payantes. Toute personne inscrite sur liste d'attente avant cette date conserve le tarif de lancement, durablement."}},
+    {"@type":"Question","name":"Y a-t-il un engagement ?","acceptedAnswer":{"@type":"Answer","text":"Non, aucun engagement : vous pouvez résilier à tout moment. Si vous vous désabonnez, votre compte et vos données restent conservés, pour pouvoir vous reconnecter plus tard et retrouver votre historique. Un export de vos données reste disponible à tout moment."}},
+    {"@type":"Question","name":"Les données sont-elles sécurisées ?","acceptedAnswer":{"@type":"Answer","text":"Les connexions sont chiffrées (HTTPS), les données sont chiffrées au repos, et chaque compte est isolé techniquement des autres au niveau de la base de données."}},
+    {"@type":"Question","name":"Qui peut voir les données saisies dans Indépuls ?","acceptedAnswer":{"@type":"Answer","text":"Personne d'autre que l'utilisateur. Seuls quelques prestataires techniques (hébergement, authentification, envoi d'email) traitent les données pour faire fonctionner le service, jamais à des fins commerciales."}},
+    {"@type":"Question","name":"Indépuls revend-il les données des utilisateurs ?","acceptedAnswer":{"@type":"Answer","text":"Non. Les données ne sont ni vendues, ni transmises à des tiers à des fins publicitaires, ni utilisées pour entraîner des modèles d'intelligence artificielle."}},
+    {"@type":"Question","name":"Peut-on supprimer son compte et ses données ?","acceptedAnswer":{"@type":"Answer","text":"Oui, en écrivant à contact@indepuls.fr. Un mécanisme de suppression en libre-service est en cours de réflexion."}},
+    {"@type":"Question","name":"Faut-il tout ressaisir manuellement ?","acceptedAnswer":{"@type":"Answer","text":"Non. Les missions, devis et encaissements saisis dans Indépuls alimentent directement les indicateurs, sans double saisie dans un autre outil."}},
+    {"@type":"Question","name":"Faut-il changer de logiciel de facturation actuel ?","acceptedAnswer":{"@type":"Answer","text":"Non. Indépuls n'a pas vocation à remplacer un logiciel de facturation, il peut fonctionner en complément."}},
+    {"@type":"Question","name":"Indépuls fonctionne-t-il pour une micro-entreprise ou une société ?","acceptedAnswer":{"@type":"Answer","text":"Oui. Indépuls s'adapte à plusieurs statuts (micro-entreprise, société) et à leurs paramètres spécifiques (seuils de TVA, cotisations, comparateurs de statut)."}},
+    {"@type":"Question","name":"Le produit est-il déjà stable et terminé ?","acceptedAnswer":{"@type":"Answer","text":"Indépuls est actuellement en phase bêta. Le service évolue et certaines fonctionnalités peuvent être ajustées avant une version stable, comme précisé dans les conditions d'utilisation."}},
+    {"@type":"Question","name":"Qui est derrière Indépuls ?","acceptedAnswer":{"@type":"Answer","text":"Indépuls est actuellement édité à titre personnel par Faustine Patissier, en attendant la création prochaine d'une société dédiée."}}
+  ]
+}
+</script>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+
+</body>
+</html>

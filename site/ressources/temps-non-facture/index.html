@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le temps non facturé : le coût caché de votre activité · Indépuls</title>
+<meta name="description" content="Trajets, achats de fournitures, réponses aux messages, photos, chine, comparaison des prix : le temps non facturé fait baisser votre taux réel. Le guide concret, métier par métier.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.65;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:60px 24px 10px;}
+  header.hero .wrap{max-width:760px;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(28px,4.4vw,44px); margin:0 0 18px; line-height:1.2;}
+
+  .tldr{background:#fff; border:1px solid #e4ddd0; border-left:3px solid var(--prune); border-radius:12px; padding:20px 24px; margin:0 auto; max-width:760px;}
+  .tldr .lbl{font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); font-weight:700; display:block; margin-bottom:8px;}
+  .tldr p{margin:0; font-size:15.5px; color:#3a3a52;}
+
+  article{padding:40px 24px 40px;}
+  article .wrap{max-width:760px;}
+  article h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(21px,2.9vw,27px); margin:44px 0 14px; line-height:1.3;}
+  article h2:first-of-type{margin-top:0;}
+  article p{font-size:16px; color:#3a3a52; margin:0 0 16px;}
+  article ul{font-size:16px; color:#3a3a52; padding-left:22px; margin:0 0 16px;}
+  article li{margin-bottom:9px;}
+  article a{color:var(--prune); font-weight:600;}
+  article strong{color:var(--navy);}
+
+  .metierblock{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:20px 24px; margin:0 0 16px;}
+  .metierblock h3{font-family:'Playfair Display',serif; font-size:17px; margin:0 0 10px; color:var(--navy);}
+  .metierblock ul{margin:0; padding-left:20px; font-size:15px;}
+  .metierblock li{margin-bottom:7px;}
+
+  .example{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:0 0 16px;}
+  .example p{margin:0 0 8px; font-size:15px;}
+  .example p:last-child{margin:0;}
+  .example .r{color:var(--ok); font-weight:700;}
+  .toolcard{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:8px 0 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+  .toolcard .t{flex:1; min-width:200px;}
+  .toolcard .t b{display:block; color:var(--navy); font-size:15px; margin-bottom:2px;}
+  .toolcard .t span{font-size:13.5px; color:#6b6b6b;}
+  .toolcard a{background:var(--prune); color:#fff; text-decoration:none; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:999px; white-space:nowrap;}
+
+  section.cta{padding:20px 24px 70px;}
+  section.cta .box{max-width:760px; margin:0 auto; background:var(--navy); color:#fff; border-radius:16px; padding:36px 30px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(21px,3vw,26px); margin:0 0 12px; color:#fff;}
+  section.cta p{color:#dcd9ec; font-size:15px; margin:0 0 22px;}
+  .btnrow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 28px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Le temps non facturé : le coût caché de votre activité">
+<meta property="og:description" content="Trajets, achats de fournitures, réponses aux messages, photos, chine, comparaison des prix : le temps non facturé fait baisser votre taux réel. Le guide concret, métier par métier.">
+<meta property="og:url" content="https://indepuls.fr/ressources/temps-non-facture/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../../tarifs/index.html">Tarifs</a>
+      <a href="../../demo/index.html">Démo</a>
+      <a href="../../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown has-active" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../temps-non-facture/index.html" class="active">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Le temps non facturé : le coût caché de votre activité</h1>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tldr">
+    <span class="lbl">En résumé</span>
+    <p>Le temps non facturé, c'est toutes les heures que votre activité exige mais qu'aucune facture ne mentionne : trajets, achats, réponses aux messages, préparation, photos, recherche. Elles sont bien réelles, elles font baisser votre taux horaire réel, et on les sous-estime presque toujours parce qu'elles ne ressemblent pas à du "vrai travail". Les repérer, c'est la condition pour fixer des prix qui les couvrent.</p>
+  </div>
+</div>
+
+<article>
+  <div class="wrap">
+
+    <h2>Le travail qui ne se facture jamais, mais qui existe</h2>
+    <p>Quand on pense à son travail, on pense aux heures passées "sur la mission" : le chantier, la prestation, la commande. Mais autour de ces heures visibles, il y en a beaucoup d'autres, invisibles, que personne ne paie directement et qu'on oublie de compter.</p>
+    <p>Ce temps non facturé ne disparaît pas pour autant. Il occupe vos journées, il vous fatigue, et surtout il pèse sur votre rentabilité réelle : chaque heure passée sans être facturée fait baisser ce que vous gagnez vraiment de l'heure.</p>
+
+    <h2>À quoi ça ressemble, concrètement, selon votre métier</h2>
+    <p>Le plus simple, c'est de le voir sur son propre métier. Voici, corps de métier par corps de métier, ce temps qu'on ne facture jamais mais qui compte.</p>
+
+    <div class="metierblock">
+      <h3>Artisans du bâtiment</h3>
+      <ul>
+        <li>Les trajets : rejoindre un chantier, passer à la station essence, faire la route entre deux clients.</li>
+        <li>Les achats de fournitures et de matériaux, en magasin ou au téléphone avec un fournisseur.</li>
+        <li>Les allers à la déchetterie en fin de chantier.</li>
+        <li>Les rendez-vous avec un commercial, ou pour aller chiffrer un futur chantier.</li>
+        <li>La rédaction des devis, y compris tous ceux qui ne se signeront pas.</li>
+      </ul>
+    </div>
+
+    <div class="metierblock">
+      <h3>Prestataires de services et créatifs</h3>
+      <ul>
+        <li>Répondre aux clients par mail ou WhatsApp, souvent en dehors des heures de travail.</li>
+        <li>Préparer en amont : construire un support de formation, un visuel, faire des recherches avant une mission.</li>
+        <li>Les allers-retours de validation et les retouches non prévues au départ.</li>
+        <li>La veille et la montée en compétences pour rester à niveau dans son domaine.</li>
+      </ul>
+    </div>
+
+    <div class="metierblock">
+      <h3>Métiers de l'événementiel</h3>
+      <ul>
+        <li>Les repérages de lieu avant l'événement.</li>
+        <li>La coordination des autres prestataires : traiteur, DJ, décorateur, photographe.</li>
+        <li>Le montage et le démontage, avant et après la prestation elle-même.</li>
+        <li>Les innombrables échanges avec le client pour caler chaque détail.</li>
+      </ul>
+    </div>
+
+    <div class="metierblock">
+      <h3>Fabricants et artisanat</h3>
+      <ul>
+        <li>Comparer les prix des matières premières et chercher les bons fournisseurs.</li>
+        <li>Les tests, les prototypes et les ratés qui ne se vendront jamais.</li>
+        <li>Le réassort et la gestion des stocks de matières.</li>
+        <li>La mise en valeur des créations : photos, fiches produits, descriptions.</li>
+      </ul>
+    </div>
+
+    <div class="metierblock">
+      <h3>Achat et revente</h3>
+      <ul>
+        <li>Chiner : brocantes, vide-greniers, déstockages, pour dénicher les bons produits.</li>
+        <li>Photographier chaque article et rédiger les annonces.</li>
+        <li>Répondre aux questions des acheteurs, négocier, relancer.</li>
+        <li>Préparer les colis et gérer les expéditions et les retours.</li>
+      </ul>
+    </div>
+
+    <h2>Pourquoi on l'oublie presque toujours</h2>
+    <p>Ce temps est invisible pour trois raisons. Il ne ressemble pas à du travail facturable : personne n'a l'impression de "travailler" en faisant la route ou en répondant à un message. Il est fragmenté : dix minutes par-ci, une demi-heure par-là, jamais un bloc identifiable. Et il se fait "en plus", souvent le soir ou entre deux missions, là où on ne le compte pas.</p>
+    <p>Additionné sur une semaine, il représente pourtant très souvent plusieurs heures, parfois l'équivalent d'une journée entière.</p>
+
+    <h2>Ce que ça change vraiment sur votre rentabilité</h2>
+    <p>Ignorer ce temps, c'est se raconter une rentabilité qui n'existe pas. Le calcul honnête inclut toutes les heures que l'activité a exigées, pas seulement celles inscrites sur la facture.</p>
+    <div class="example">
+      <p>Une mission facturée 1 200 € pour 15 heures "sur la mission" semble tourner à 80 €/h.</p>
+      <p>En ajoutant les 5 heures de trajet, d'échanges et de préparation, on arrive à 20 heures réelles, soit <span class="r">60 €/h</span>. Un quart de rentabilité en moins, invisible sur la facture.</p>
+    </div>
+    <div class="toolcard">
+      <div class="t"><b>Mesurez l'écart sur votre taux</b><span>Comparez votre taux affiché à votre taux réel, temps non facturé compris.</span></div>
+      <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+    </div>
+
+    <h2>Comment en tenir compte sans tout chronométrer</h2>
+    <p>L'objectif n'est pas de minuter chaque déplacement au risque de virer à l'obsession. C'est d'en prendre conscience et de l'intégrer :</p>
+    <ul>
+      <li><strong>Estimez un ratio.</strong> Pour une heure facturée, combien d'heures non facturées en moyenne ? Même une estimation approximative change tout.</li>
+      <li><strong>Intégrez-le dans vos prix.</strong> Vos tarifs doivent couvrir ce temps invisible, pas seulement les heures visibles.</li>
+      <li><strong>Comparez de temps en temps le prévu et le réel</strong>, sur quelques missions, pour affiner votre perception.</li>
+    </ul>
+
+    <h2>Le réflexe à prendre</h2>
+    <p>Le temps non facturé ne se supprime pas : il fait partie du métier. Ce qui se travaille, c'est de le rendre visible pour qu'il soit couvert par vos prix plutôt que subi.</p>
+    <p>C'est un des points que suit Indépuls : le temps réellement passé sur chaque mission, comparé à ce qui était prévu, pour que votre taux réel reflète toute votre activité, pas seulement la partie facturée.</p>
+    <p>Pour aller plus loin, lisez le guide <a href="../calculer-son-taux-horaire-reel/index.html">Comment calculer son taux horaire réel</a>.</p>
+
+  </div>
+</article>
+
+<section class="cta">
+  <div class="box">
+    <h2>Voir votre taux réel, temps non facturé compris</h2>
+    <p>La démo tourne avec des données fictives réalistes, sans compte ni carte bancaire.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
+      <a class="btn btn-secondary" href="../../fonctionnalites/index.html">Voir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../../a-propos/index.html">À propos</a>
+  <a href="../../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../../cgu.html">CGU</a>
+  <a href="../../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+
+</body>
+</html>

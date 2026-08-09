@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Indépuls — Brand Bible v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --navy-soft:#2A2C57; --line:#E4DED2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--cream); color:var(--navy);
+    font-family:'Lato',sans-serif; line-height:1.65; font-size:16px;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:0 32px 140px;}
+  header.cover{
+    background:var(--navy); color:var(--cream); padding:100px 32px 80px;
+    text-align:center; margin-bottom:64px;
+  }
+  header.cover .eyebrow{
+    font-family:'Dancing Script',cursive; color:var(--beige);
+    font-size:28px; margin-bottom:6px;
+  }
+  header.cover h1{
+    font-family:'Playfair Display',serif; font-weight:700; font-size:52px;
+    margin:0 0 18px; letter-spacing:.3px;
+  }
+  header.cover p{
+    max-width:560px; margin:0 auto; color:#D9D7EA; font-size:17px;
+  }
+  header.cover .meta{
+    margin-top:36px; font-size:13px; letter-spacing:.5px; text-transform:uppercase;
+    color:var(--beige); opacity:.85;
+  }
+  h2.section-title{
+    font-family:'Playfair Display',serif; font-weight:600; font-size:30px;
+    color:var(--navy); margin:80px 0 6px; display:flex; align-items:baseline; gap:14px;
+  }
+  h2.section-title .num{
+    font-family:'Lato',sans-serif; font-weight:700; font-size:14px; color:var(--beige);
+    background:var(--navy); border-radius:999px; width:30px; height:30px;
+    display:inline-flex; align-items:center; justify-content:center; flex:none;
+  }
+  .subtitle{
+    font-family:'Dancing Script',cursive; color:var(--prune); font-size:22px; margin:0 0 28px 44px;
+  }
+  p{margin:0 0 16px;}
+  .lead{font-size:18px; color:var(--navy-soft);}
+  strong{color:var(--navy);}
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:28px 30px; margin:22px 0;
+  }
+  .promise{
+    background:var(--navy); color:var(--cream); border-radius:16px;
+    padding:44px 40px; text-align:center; margin:28px 0 8px;
+  }
+  .promise .txt{
+    font-family:'Playfair Display',serif; font-style:italic; font-weight:500;
+    font-size:26px; line-height:1.5; color:#fff;
+  }
+  .promise .sub{color:var(--beige); font-size:14px; margin-top:14px; letter-spacing:.3px;}
+  table{width:100%; border-collapse:collapse; margin:20px 0; font-size:14.5px;}
+  th{
+    text-align:left; background:var(--navy); color:var(--cream);
+    padding:11px 14px; font-weight:700; font-size:12.5px; letter-spacing:.3px; text-transform:uppercase;
+  }
+  td{padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top;}
+  tr:nth-child(even) td{background:#FAF8F4;}
+  .tag{
+    display:inline-block; background:var(--beige); color:var(--navy);
+    font-size:11.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase;
+    padding:3px 10px; border-radius:999px; margin-right:6px;
+  }
+  .tag.accepte{background:#7A9B76; color:#fff;}
+  .tag.modifie{background:var(--beige);}
+  .tag.rejete{background:var(--prune); color:#fff;}
+  .before-after{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:14px 0;
+  }
+  .ba-box{border-radius:10px; padding:14px 16px; font-size:14.5px;}
+  .ba-no{background:#FBECEC; border:1px solid #E9C8C8;}
+  .ba-yes{background:#EFF6EC; border:1px solid #C8E0C0;}
+  .ba-box .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.4px; font-weight:700; margin-bottom:6px; display:block;}
+  .ba-no .lbl{color:#A34E4E;}
+  .ba-yes .lbl{color:#4F7A47;}
+  .word-grid{display:grid; grid-template-columns:1fr 1fr; gap:0; margin:20px 0; border-radius:14px; overflow:hidden; border:1px solid var(--line);}
+  .word-col{padding:24px 26px;}
+  .word-col.adores{background:#F4F1E9;}
+  .word-col.interdits{background:#F6EDEC;}
+  .word-col h4{
+    margin:0 0 14px; font-family:'Playfair Display',serif; font-size:17px;
+  }
+  .word-col.adores h4{color:#4F7A47;}
+  .word-col.interdits h4{color:var(--prune);}
+  .word-col ul{margin:0; padding-left:0; list-style:none;}
+  .word-col li{padding:6px 0; border-bottom:1px dashed var(--line); font-size:14.5px;}
+  .word-col li:last-child{border-bottom:none;}
+  .word-col.interdits li{text-decoration:line-through; color:#8a6a68;}
+  .conviction{
+    background:#fff; border-left:4px solid var(--prune); border-radius:0 12px 12px 0;
+    padding:16px 20px; margin:12px 0; font-size:15.5px; display:flex; gap:14px; align-items:baseline;
+  }
+  .conviction .n{font-family:'Playfair Display',serif; font-weight:700; color:var(--beige); font-size:20px; flex:none;}
+  .journal-entry{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px 28px; margin:20px 0;
+    position:relative;
+  }
+  .journal-entry .date{font-size:12px; letter-spacing:.4px; text-transform:uppercase; color:var(--beige); font-weight:700;}
+  .journal-entry h5{font-family:'Playfair Display',serif; font-size:19px; margin:6px 0 12px; color:var(--navy);}
+  .journal-entry p{font-size:15px; margin-bottom:10px;}
+  .journal-entry .draft-flag{
+    position:absolute; top:20px; right:24px; font-size:11px; text-transform:uppercase;
+    letter-spacing:.4px; color:var(--prune); font-weight:700; border:1px solid var(--prune);
+    border-radius:999px; padding:2px 10px;
+  }
+  .journal-entry .draft-flag.ready{color:#4F7A47; border-color:#4F7A47;}
+  .journal-entry.is-real{border:1px solid #C8E0C0; background:#FBFDF9;}
+  .not-list{margin:0; padding:0; list-style:none;}
+  .not-list li{
+    padding:16px 0; border-bottom:1px solid var(--line); display:grid;
+    grid-template-columns:200px 1fr; gap:20px; align-items:start;
+  }
+  .not-list li:last-child{border-bottom:none;}
+  .not-list .what{font-weight:700; color:var(--prune);}
+  .principle-num{
+    display:flex; gap:16px; margin:18px 0; align-items:flex-start;
+  }
+  .principle-num .circ{
+    flex:none; width:32px; height:32px; border-radius:50%; background:var(--navy); color:var(--cream);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;
+  }
+  .callout{
+    background:var(--beige); background:linear-gradient(135deg,#EFE6D9,#E4D6BF);
+    border-radius:12px; padding:20px 24px; font-size:15px; margin:18px 0;
+  }
+  .callout.dark{background:var(--navy); color:var(--cream);}
+  .callout.dark strong{color:#fff;}
+  .status-strip{
+    display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 8px;
+  }
+  .status-strip span{
+    background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 14px;
+    font-size:13px; color:var(--navy-soft);
+  }
+  .colorpalette{display:flex; gap:14px; margin:20px 0; flex-wrap:wrap;}
+  .swatch{
+    flex:1; min-width:150px; border-radius:12px; padding:60px 16px 14px; color:#fff; font-size:13px;
+    position:relative;
+  }
+  .swatch .name{font-weight:700; display:block; margin-bottom:2px;}
+  .swatch .hex{font-family:monospace; font-size:12px; opacity:.85;}
+  .toc{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px 30px; margin:0 0 60px;
+  }
+  .toc a{color:var(--navy); text-decoration:none; font-size:14.5px;}
+  .toc a:hover{color:var(--prune);}
+  .toc ol{margin:0; padding-left:22px; columns:2; column-gap:32px;}
+  .toc li{margin-bottom:8px; break-inside:avoid;}
+  footer.close{
+    margin-top:110px; padding:60px 40px; background:var(--navy); color:var(--cream);
+    border-radius:16px; text-align:center;
+  }
+  footer.close .sig{font-family:'Dancing Script',cursive; font-size:26px; color:var(--beige); margin-top:18px;}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="eyebrow">Indépuls</div>
+  <h1>Brand Bible v1</h1>
+  <p>Comment on parle d'Indépuls, partout où on en parle : sur le site, sur Instagram, dans l'app, dans un email, face à un client. Pas comment on le construit — ça, c'est déjà écrit ailleurs.</p>
+  <div class="meta">Document vivant · rédigé le 2 août 2026 · à revoir dans 3 à 4 mois</div>
+</header>
+
+<div class="wrap">
+
+  <div class="toc">
+    <strong style="font-family:'Playfair Display',serif; font-size:15px;">Sommaire</strong>
+    <ol style="margin-top:14px;">
+      <li><a href="#methode">Comment ce document a été construit</a></li>
+      <li><a href="#pourquoi">Pourquoi Indépuls existe</a></li>
+      <li><a href="#promesse">La promesse</a></li>
+      <li><a href="#probleme">Le problème qu'on résout</a></li>
+      <li><a href="#nest-pas">Ce qu'Indépuls n'est pas</a></li>
+      <li><a href="#principes-produit">Les principes produit</a></li>
+      <li><a href="#principes-design">Les principes de design</a></li>
+      <li><a href="#ton">Le ton</a></li>
+      <li><a href="#mots">Les mots</a></li>
+      <li><a href="#convictions">Les grandes convictions</a></li>
+      <li><a href="#journal">Le Journal d'Indépuls</a></li>
+      <li><a href="#addendum">Addendum — relecture de la proposition ChatGPT</a></li>
+      <li><a href="#statut">Statut du document</a></li>
+    </ol>
+  </div>
+
+  <h2 class="section-title" id="methode"><span class="num">0</span>Comment ce document a été construit</h2>
+  <p class="lead">Ce document n'invente presque rien. Il rassemble.</p>
+  <p>Tout ce qui suit existait déjà, dispersé dans trois endroits : la spécification produit (VISION_PRODUIT.md), la matrice d'architecture (ARCHITECTURE_PRODUIT.md) et ta charte de style personnelle. Ces fichiers répondent à <strong>« comment on construit Indépuls »</strong>. Celui-ci répond à <strong>« comment on en parle »</strong> — une question différente, jamais formalisée jusqu'ici parce qu'elle n'avait pas encore de endroit où vivre.</p>
+  <p>Chaque affirmation ci-dessous vient de l'un de ces trois documents, ou en est une reformulation directe. Les rares endroits où j'ai dû trancher moi-même (la liste des mots interdits, par exemple, qui n'existait pas telle quelle) sont signalés comme tels plutôt que présentés comme des règles déjà en vigueur.</p>
+  <div class="status-strip">
+    <span>Source : VISION_PRODUIT.md</span>
+    <span>Source : ARCHITECTURE_PRODUIT.md</span>
+    <span>Source : charte de style perso</span>
+    <span>Nouveau : liste des mots, Le Journal</span>
+  </div>
+
+  <h2 class="section-title" id="pourquoi"><span class="num">1</span>Pourquoi Indépuls existe</h2>
+  <p class="subtitle">Pas une histoire de fondatrice. Une conviction.</p>
+  <div class="card">
+    <p>Un indépendant qui travaille bien peut quand même avoir peur. Pas parce qu'il gère mal — parce que personne ne lui a jamais dit clairement ce qui compte vraiment dans ses chiffres. Les logiciels existants répondent à des questions qu'il ne pose pas : combien de factures ce mois-ci, quel est le solde du compte, quand envoyer la prochaine relance. Aucun ne répond à la seule question qui l'empêche de dormir : <strong>est-ce que ça va ?</strong></p>
+    <p>Indépuls part de là. Pas de l'idée qu'il fallait un logiciel de plus pour les indépendants. De l'observation qu'il n'en existait aucun qui réponde à la question qu'ils se posent réellement, en dix secondes, sans qu'ils aient à faire le calcul eux-mêmes.</p>
+  </div>
+  <p style="font-size:13.5px; color:#7a7692;">Source directe : VISION_PRODUIT.md, « La philosophie produit ».</p>
+
+  <h2 class="section-title" id="promesse"><span class="num">2</span>La promesse</h2>
+  <div class="promise">
+    <div class="txt">Indépuls ne gère pas votre activité.<br>Il vous libère de la peur de mal la gérer.</div>
+    <div class="sub">Filtre absolu de toute décision produit</div>
+  </div>
+  <p>Cette phrase n'est pas un slogan qu'on a choisi pour le site. C'est le filtre qui décide, en interne, si une fonctionnalité a le droit d'exister dans Indépuls. Elle est donc plus vraie que n'importe quel slogan marketing, parce qu'elle contraint le produit avant de contraindre le discours.</p>
+  <div class="callout">
+    <strong>Une nuance à tenir dans la copy publique :</strong> le mot « copilote » décrit très bien Indépuls en interne (c'est le nom du rôle que je tiens dans nos échanges, le nom du skill). Mais à l'audit du site vitrine, on a identifié que ce mot est devenu un générique de catégorie SaaS en 2024-2025 — tout le monde a un « copilote » maintenant. Sur le site et dans toute copy tournée vers un visiteur externe, on ne le pose plus comme accroche. C'est déjà appliqué : la Bible du site vitrine ne l'utilise plus dans sa promesse d'ouverture.
+  </div>
+
+  <h2 class="section-title" id="probleme"><span class="num">3</span>Le problème qu'on résout</h2>
+  <p>Le problème n'est pas comptable. Il est cognitif. Un indépendant sait généralement bien travailler. Ce qu'il ne sait pas, c'est traduire son activité en une réponse simple. Il a les chiffres. Il n'a pas la lecture.</p>
+  <table>
+    <tr><th>Ce que dit un logiciel classique</th><th>Ce que demande la personne, en réalité</th></tr>
+    <tr><td>12 factures émises ce mois-ci</td><td>Est-ce que je peux me permettre de refuser cette mission ?</td></tr>
+    <tr><td>Solde du compte : 4 200 €</td><td>Combien je dois vraiment mettre de côté pour la TVA ?</td></tr>
+    <tr><td>Taux de remplissage : 62 %</td><td>Est-ce que je travaille pour rien en ce moment ?</td></tr>
+    <tr><td>CA annuel : 38 000 €</td><td>Est-ce que ça va, moi, là, maintenant ?</td></tr>
+  </table>
+  <p>Indépuls existe dans l'écart entre les deux colonnes.</p>
+
+  <h2 class="section-title" id="nest-pas"><span class="num">4</span>Ce qu'Indépuls n'est pas</h2>
+  <p>Une marque se définit autant par ce qu'elle refuse que par ce qu'elle promet. Ces exclusions sont volontaires, pas provisoires : elles ne sont pas des fonctionnalités « pas encore faites », elles ne seront jamais faites.</p>
+  <ul class="not-list">
+    <li><span class="what">Un logiciel de facturation complète</span><span>La facturation est une tâche administrative. Indépuls répond à une question de pilotage, pas de production de documents. Le champ « devis » existe comme référence libre, jamais comme entité gérée avec un statut, une relance, un cycle de vie.</span></li>
+    <li><span class="what">Un CRM</span><span>Suivre une relation client dans le détail (historique d'échanges, pipeline commercial complexe) n'aide pas à répondre à « est-ce que ça va ? ». Ça aide à vendre, ce qui est un métier différent.</span></li>
+    <li><span class="what">Une synchronisation bancaire automatique</span><span>Envisagée à long terme, jamais comme un raccourci pour éviter de comprendre ses propres chiffres. Le CA d'Indépuls, c'est l'argent réellement encaissé, saisi consciemment — jamais une estimation au devis signé.</span></li>
+    <li><span class="what">Un outil de gestion RH ou de stock</span><span>Hors du problème qu'on résout. Un indépendant seul n'en a généralement pas besoin ; celui qui en a besoin a déjà un autre outil pour ça.</span></li>
+    <li><span class="what">Un logiciel de comptabilité</span><span>Indépuls ne remplace jamais un expert-comptable. Il donne une lecture claire en amont, pour que la personne arrive chez son comptable en sachant déjà où elle en est.</span></li>
+    <li><span class="what">Une fonctionnalité qui suppose une expertise comptable</span><span>Si comprendre un conseil d'Indépuls nécessite d'avoir déjà des notions de comptabilité, le conseil a échoué, pas la personne.</span></li>
+  </ul>
+  <p style="font-size:13.5px; color:#7a7692;">Source directe : CLAUDE.md, « Idées volontairement exclues » + « Décisions produit validées ».</p>
+
+  <h2 class="section-title" id="principes-produit"><span class="num">5</span>Les principes produit</h2>
+  <p>Huit règles qui gouvernent chaque écran, chaque widget, chaque phrase du produit. Elles ne sont pas décoratives : elles ont chacune fait annuler ou reformuler une fonctionnalité au moins une fois.</p>
+  <div class="principle-num"><div class="circ">1</div><div><strong>La réponse avant la donnée.</strong> On arrive avec une question, Indépuls répond d'abord. Les chiffres viennent en preuve, jamais en ouverture.</div></div>
+  <div class="principle-num"><div class="circ">2</div><div><strong>Le conseil et sa preuve sont inséparables.</strong> Toute recommandation affiche immédiatement ce qui la justifie.</div></div>
+  <div class="principle-num"><div class="circ">3</div><div><strong>La profondeur progressive, jamais l'information cachée.</strong> Tout existe, tout est accessible, rien n'est imposé au premier regard.</div></div>
+  <div class="principle-num"><div class="circ">4</div><div><strong>Deux trajectoires toujours visibles.</strong> La situation actuelle, et la situation si le conseil est suivi.</div></div>
+  <div class="principle-num"><div class="circ">5</div><div><strong>L'incertitude est honnête et visible.</strong> « Estimation, mois pas encore terminé » vaut mieux qu'un chiffre faussement précis calculé sur des données incomplètes.</div></div>
+  <div class="principle-num"><div class="circ">6</div><div><strong>Jamais de problème sans solution.</strong> Quand quelque chose ne va pas, Indépuls dit quoi faire. Toujours.</div></div>
+  <div class="principle-num"><div class="circ">7</div><div><strong>L'élan, jamais la culpabilité.</strong> « Il reste 1 148 € à trouver » plutôt que « il manque 1 148 € ».</div></div>
+  <div class="principle-num"><div class="circ">8</div><div><strong>Zéro boîte noire.</strong> Tout calcul est visible. Toute logique est explicable, sans exception, y compris quand le résultat n'est pas bon.</div></div>
+  <p style="font-size:13.5px; color:#7a7692;">Source directe : VISION_PRODUIT.md, « Les grands principes UX ».</p>
+
+  <h2 class="section-title" id="principes-design"><span class="num">6</span>Les principes de design</h2>
+  <p>La charte graphique existe déjà. Ce qui manquait, c'est le pourquoi derrière chaque choix — pour qu'un futur écran, une future page, une future story Instagram restent cohérents sans qu'on ait à se souvenir de chaque décision une par une.</p>
+  <div class="colorpalette">
+    <div class="swatch" style="background:#141538;"><span class="name">Bleu marine</span><span class="hex">#141538</span></div>
+    <div class="swatch" style="background:#5B2C4A;"><span class="name">Prune</span><span class="hex">#5B2C4A</span></div>
+    <div class="swatch" style="background:#BB9E81;"><span class="name">Beige chaud</span><span class="hex">#BB9E81</span></div>
+    <div class="swatch" style="background:#8a8578;"><span class="name">Crème (fond)</span><span class="hex">#F1EFEA</span></div>
+  </div>
+  <table>
+    <tr><th>Élément</th><th>Règle</th><th>Pourquoi</th></tr>
+    <tr><td>Titres</td><td>Playfair Display, marine</td><td>Une sérif classique, jamais une police de « startup tech » — Indépuls parle de rentabilité, pas de disruption.</td></tr>
+    <tr><td>Sous-titres</td><td>New Icon Script (manuscrite), prune, italique</td><td>La seule touche personnelle, presque manuscrite — un rappel qu'il y a une vraie personne derrière l'outil.</td></tr>
+    <tr><td>Corps de texte</td><td>Lato, marine</td><td>Lisible, neutre, sans effet. Le texte n'a pas besoin de se faire remarquer, seulement d'être compris.</td></tr>
+    <tr><td>Animations</td><td>Toujours discrètes</td><td>Une animation démonstrative dit « regarde comme c'est joli ». Une animation discrète dit « je m'efface pour te laisser comprendre ».</td></tr>
+    <tr><td>Mobile</td><td>Aucun scroll horizontal, jamais</td><td>Contrainte non négociable — la majorité des indépendants consultent leur activité entre deux chantiers, au téléphone.</td></tr>
+  </table>
+
+  <h2 class="section-title" id="ton"><span class="num">7</span>Le ton</h2>
+  <p>Ta charte de style personnelle donne déjà les règles. Elles s'appliquent identiquement au produit et à toute copy externe — pas deux tons différents selon qu'on écrit une notification in-app ou une légende Instagram.</p>
+  <div class="before-after">
+    <div class="ba-box ba-no"><span class="lbl">On n'écrit jamais</span>« Il manque 1 148 € pour atteindre votre objectif. »</div>
+    <div class="ba-box ba-yes"><span class="lbl">On écrit</span>« Il reste 1 148 € à trouver — 3 semaines devant vous. »</div>
+  </div>
+  <div class="before-after">
+    <div class="ba-box ba-no"><span class="lbl">On n'écrit jamais</span>« Vos données sont incomplètes. »</div>
+    <div class="ba-box ba-yes"><span class="lbl">On écrit</span>« Basé sur 82 % de vos données. »</div>
+  </div>
+  <div class="before-after">
+    <div class="ba-box ba-no"><span class="lbl">On n'écrit jamais</span>« Un copilote intelligent qui révolutionne votre gestion. »</div>
+    <div class="ba-box ba-yes"><span class="lbl">On écrit</span>« La seule question qui compte : est-ce que ça va ? »</div>
+  </div>
+  <p>Trois règles pratiques, prises directement dans ta charte perso :</p>
+  <ul style="padding-left:22px;">
+    <li>Pas de phrases toutes faites, pas de tournures qu'on reconnaît d'avance parce qu'elles sont partout ailleurs.</li>
+    <li>Pas de tiret cadratin, pas d'emoji 👉, pas de symbole en guise de ponctuation.</li>
+    <li>Un texte réussi ressemble à une vraie personne qui parle. Pas à une IA qui rédige.</li>
+  </ul>
+
+  <h2 class="section-title" id="mots"><span class="num">8</span>Les mots</h2>
+  <p>Cette liste n'existait pas telle quelle avant ce document — c'est la première vraie nouveauté du Brand Bible, construite en appliquant la charte de style perso et le constat de l'audit ("copilote" est un générique de catégorie) à des mots concrets. À enrichir au fil de l'usage réel, pas figée.</p>
+  <div class="word-grid">
+    <div class="word-col adores">
+      <h4>Mots adorés</h4>
+      <ul>
+        <li>Élan</li>
+        <li>Trajectoire</li>
+        <li>Preuve</li>
+        <li>Silence</li>
+        <li>Honnête</li>
+        <li>Reste (« il reste »)</li>
+        <li>Libère / libérer</li>
+        <li>Clarté</li>
+        <li>Est-ce que ça va ?</li>
+      </ul>
+    </div>
+    <div class="word-col interdits">
+      <h4>Mots interdits</h4>
+      <ul>
+        <li>Copilote (usage externe)</li>
+        <li>Révolutionnaire / disruptif</li>
+        <li>Intelligent / smart (comme adjectif vague)</li>
+        <li>Il manque</li>
+        <li>Solution</li>
+        <li>Écosystème</li>
+        <li>Boostez / boostez votre</li>
+        <li>Game changer</li>
+        <li>Powered by l'IA</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:13.5px; color:#7a7692;">« Mots interdits » ne veut pas dire censurés partout dans l'absolu — « écosystème » reste un terme de travail légitime dans un document technique comme celui sur l'architecture du site. Interdit veut dire : jamais dans une phrase adressée à un visiteur ou une utilisatrice.</p>
+
+  <h2 class="section-title" id="convictions"><span class="num">9</span>Les grandes convictions</h2>
+  <p>Dix, pas plus. Chacune est citable seule, hors contexte, et reste vraie. Aucune n'est inventée pour ce document — chacune existait déjà, noyée dans un fichier technique.</p>
+  <div class="conviction"><span class="n">1</span>Une fonctionnalité qui n'aide pas à répondre à « est-ce que ça va ? » n'a pas sa place ici.</div>
+  <div class="conviction"><span class="n">2</span>Le silence est une information. Quand tout va bien, on ne dit rien.</div>
+  <div class="conviction"><span class="n">3</span>On ne culpabilise jamais une personne pour sa propre activité.</div>
+  <div class="conviction"><span class="n">4</span>Tout calcul affiché doit pouvoir s'expliquer en une phrase. Sinon il ne s'affiche pas.</div>
+  <div class="conviction"><span class="n">5</span>Le logiciel propose. Il ne décide jamais à la place de la personne.</div>
+  <div class="conviction"><span class="n">6</span>Le chiffre d'affaires, c'est l'argent réellement encaissé. Toujours. Sans exception, sans profil qui y échappe.</div>
+  <div class="conviction"><span class="n">7</span>Un bug de confiance se répare et se raconte. Il ne se cache jamais.</div>
+  <div class="conviction"><span class="n">8</span>La simplicité gagne contre l'exhaustivité, à chaque arbitrage.</div>
+  <div class="conviction"><span class="n">9</span>Comprendre son activité ne devrait jamais exiger d'avoir fait des études de comptabilité.</div>
+  <div class="conviction"><span class="n">10</span>Mieux vaut construire lentement et juste que vite et faux.</div>
+  <p style="font-size:13.5px; color:#7a7692;">1, 2, 3, 4, 5, 7 : citations directes ou quasi-directes de VISION_PRODUIT.md. 6, 9 : CLAUDE.md, « Décisions produit validées » et « Vision produit ». 8 : CLAUDE.md, « La simplicité est prioritaire sur l'exhaustivité ». 10 : la seule vraie synthèse de ce document — observée, pas citée, dans la discipline de tests et de vérification qui accompagne chaque changement documenté au fil du changelog produit.</p>
+
+  <h2 class="section-title" id="journal"><span class="num">10</span>Le Journal d'Indépuls</h2>
+  <p class="subtitle">Pas un changelog. Pas un blog. Un journal de décisions.</p>
+  <div class="callout dark">
+    <strong>Pourquoi ce format et pas un autre.</strong> Un changelog dit ce qui a changé. Un blog explique un sujet en général. Le Journal fait autre chose : il raconte pourquoi une décision précise a été prise, y compris — surtout — quand la décision est « on ne le fera pas ». C'est la seule forme de contenu que la quasi-totalité des concurrents ne peuvent pas copier facilement, parce qu'elle suppose d'avoir vraiment ce niveau de transparence en interne, pas seulement l'afficher en façade.
+  </div>
+  <p>Le lien avec l'existant : cette transparence n'est pas à inventer, elle existe déjà, en interne, dans le suivi produit d'Indépuls — chaque fonctionnalité, chaque refus, chaque bug corrigé y est déjà documenté avec sa raison. Le Journal n'est rien d'autre que la version publique, réécrite en langage humain, de ce qui se passe déjà en coulisses.</p>
+  <p><strong>Trois règles de format, pour que ça reste un Journal et ne dérive pas vers un blog déguisé :</strong></p>
+  <ul style="padding-left:22px;">
+    <li>Une entrée = une décision. Jamais un sujet général ou un conseil de gestion.</li>
+    <li>On raconte aussi les refus. Un Journal qui ne parle que des ajouts n'est qu'un changelog avec plus de mots.</li>
+    <li>Court. Une entrée se lit en moins d'une minute, sinon c'est un article de blog qui s'ignore.</li>
+  </ul>
+
+  <div class="journal-entry is-real">
+    <span class="draft-flag ready">Rédigé le 2 août 2026 — prêt à publier</span>
+    <span class="date">Premier vrai brouillon du Journal, né de cette conversation</span>
+    <h5>Pourquoi on ne construira pas de facturation électronique</h5>
+    <p>La réforme de la facturation électronique arrive, et elle inquiète beaucoup d'indépendants qu'on connaît. À raison : à partir de septembre 2026, toute entreprise devra pouvoir recevoir des factures électroniques. Beaucoup y lisent « il va falloir un nouveau logiciel, tout de suite ».</p>
+    <p>En réalité, recevoir une facture électronique se règle gratuitement, via une plateforme agréée par l'État, sans rapport avec l'outil qu'on utilise pour piloter son activité. La vraie obligation, celle d'émettre soi-même des factures électroniques, ne concerne les micro-entreprises qu'à partir de septembre 2027, et uniquement pour les clients professionnels.</p>
+    <p>On s'est quand même posé la question : construire notre propre solution de facturation, pour ne prendre aucun risque ? On a choisi de ne pas le faire. Émettre une facture est une tâche administrative. Répondre à « est-ce que ça va » est une tâche différente, celle qu'on a choisie il y a longtemps. On préfère la faire bien plutôt que d'en ajouter une deuxième à moitié, même si cette réforme donne à beaucoup d'outils une bonne excuse pour le faire.</p>
+    <p>Concrètement : gardez ou choisissez un outil de facturation conforme, il en existe des gratuits. Gardez Indépuls pour la seule question qu'aucun de ces outils ne pose.</p>
+  </div>
+  <p style="font-size:13.5px; color:#7a7692; margin:-6px 0 30px;">Volontairement sans nommer de plateforme précise (Tiime et d'autres proposent des offres gratuites conformes aujourd'hui) — cette recommandation change vite et mérite d'être choisie et assumée par toi au moment de la publication, pas figée ici.</p>
+
+  <div class="journal-entry">
+    <span class="draft-flag">Exemple, brouillon</span>
+    <span class="date">Exemple — pourquoi pas les devis</span>
+    <h5>On n'a pas construit de vraie gestion des devis. Voici pourquoi.</h5>
+    <p>On aurait pu. Ajouter un statut, une relance automatique, un suivi. Beaucoup de logiciels le font. On ne l'a pas fait, et ce n'est pas un manque de temps.</p>
+    <p>Un devis, ce n'est pas une question de pilotage. C'est une tâche administrative. Notre travail, c'est de répondre à « est-ce que ça va ? », pas de remplacer un logiciel de facturation. Alors le mot « devis » existe toujours chez nous — comme référence libre sur une mission — mais jamais comme un objet qu'on gère avec un cycle de vie complet. On préfère faire une chose bien plutôt que dix à moitié.</p>
+  </div>
+
+  <div class="journal-entry">
+    <span class="draft-flag">Exemple, brouillon</span>
+    <span class="date">Exemple — un vrai bug, raconté</span>
+    <h5>On a trouvé (et corrigé) un risque réel de perte de données. On préfère vous le dire.</h5>
+    <p>Une utilisatrice qui explore la démo avant de se connecter à son vrai compte, sur le même téléphone, pouvait dans un cas précis voir ses vraies données remplacées par les données de démonstration au prochain enregistrement. Un scénario rare, mais réel — et on l'a corrigé dès qu'on l'a identifié, avec deux garde-fous indépendants pour que ça ne puisse plus jamais se reproduire, même si l'un des deux venait à être modifié par erreur un jour.</p>
+    <p>On aurait pu ne rien dire. On préfère que vous sachiez que ce genre de chose arrive, qu'on le cherche activement, et qu'on le corrige vite quand on le trouve.</p>
+  </div>
+
+  <div class="journal-entry">
+    <span class="draft-flag">Exemple, brouillon</span>
+    <span class="date">Exemple — une fonctionnalité volontairement simple</span>
+    <h5>« Et si ? » ne fait que quatre choses. On aurait pu en faire vingt.</h5>
+    <p>On avait la tentation de construire un vrai moteur de simulation, extensible à l'infini, capable de répondre à n'importe quel scénario imaginé plus tard. On a choisi quatre cartes précises à la place : et si je changeais mon rythme, et si j'augmentais mes prix, et si je perdais un client, et si je changeais de statut. Quatre questions qu'on entend réellement, pas vingt questions qu'on imagine.</p>
+    <p>Un outil plus généraliste aurait été plus impressionnant à présenter. Il aurait aussi été plus difficile à comprendre en dix secondes. On a choisi la clarté.</p>
+  </div>
+
+  <h2 class="section-title" id="addendum"><span class="num">11</span>Addendum — relecture de la proposition ChatGPT</h2>
+  <p>Comme pour la Bible du site vitrine, voici précisément ce qui a été retenu, modifié ou écarté dans la proposition de ChatGPT, et pourquoi.</p>
+  <table>
+    <tr><th>Proposition</th><th>Décision</th><th>Raison</th></tr>
+    <tr>
+      <td>Inventorier les .md existants avant de créer un nouveau document</td>
+      <td><span class="tag accepte">Accepté</span></td>
+      <td>Vérifié directement dans VISION_PRODUIT.md et ARCHITECTURE_PRODUIT.md avant d'écrire une ligne : la quasi-totalité du contenu de fond existait déjà. Ce document est à plus de 80 % de la consolidation, pas de l'invention.</td>
+    </tr>
+    <tr>
+      <td>Page « Pourquoi Indépuls existe », écrite au format « Nous ne pensons pas que X, nous pensons que Y »</td>
+      <td><span class="tag modifie">Modifié</span></td>
+      <td>Le principe est conservé (une conviction, pas une bio de fondatrice). L'exécution proposée reproduit exactement le tic de langage qu'on vient de corriger pour « copilote » : un format de manifeste devenu générique dans tout le SaaS depuis 2023. Réécrit sans la structure « nous croyons que ».</td>
+    </tr>
+    <tr>
+      <td>Page « Notre philosophie » en liste de convictions à cocher, séparée de la page « Pourquoi »</td>
+      <td><span class="tag modifie">Modifié</span></td>
+      <td>Fusionnée avec la section « Pourquoi Indépuls existe ». Une deuxième page dans le même registre de manifeste aurait doublé le risque de cliché plutôt que de le diluer.</td>
+    </tr>
+    <tr>
+      <td>Le Journal d'Indépuls</td>
+      <td><span class="tag accepte">Accepté sans réserve</span></td>
+      <td>La meilleure idée de toute la proposition. Repose sur un vrai actif qu'Indépuls a déjà (l'historique de décisions documentées, y compris les refus) et qu'aucun concurrent ne peut copier facilement sans avoir la même discipline en coulisses.</td>
+    </tr>
+    <tr>
+      <td>« 50 idées reçues sur la rentabilité », comme pilier du Brand Bible</td>
+      <td><span class="tag rejete">Rejeté à cet endroit</span></td>
+      <td>Bonne idée de contenu, mauvais endroit. Elle appartient à la stratégie AI-first et éditoriale déjà écrite dans le chapitre Écosystème (missions 4 et 6), pas au Brand Bible — ce n'est pas une question d'identité de marque, c'est un format de contenu SEO/citation.</td>
+    </tr>
+    <tr>
+      <td>Positionner Indépuls comme « la marque qui remet du calme dans l'entrepreneuriat », comparaison Apple / Notion / Linear</td>
+      <td><span class="tag rejete">Rejeté pour maintenant</span></td>
+      <td>La direction est juste, la revendication est prématurée. Ces marques ont des années de marché et des millions d'utilisateurs derrière leur formule. Indépuls a une poignée de bêta-testeuses et pas encore de site en ligne. Gardée comme boussole interne, jamais affichée publiquement tant qu'il n'y a pas de traction pour la porter.</td>
+    </tr>
+    <tr>
+      <td>Un document de 10 à 20 pages, écrit en une fois</td>
+      <td><span class="tag modifie">Modifié</span></td>
+      <td>Volontairement plus court. Un Brand Bible trop complet dès la v1 fige des choses qui n'ont pas encore été testées face à de vraies visiteuses. Ce document couvre l'essentiel et se déclare explicitement révisable.</td>
+    </tr>
+  </table>
+
+  <h2 class="section-title" id="statut"><span class="num">12</span>Statut du document</h2>
+  <p>Ce document n'est pas fini, il n'est pas censé l'être. Trois règles pour le garder vivant sans qu'il devienne un poids :</p>
+  <ul style="padding-left:22px;">
+    <li><strong>Révision prévue dans 3 à 4 mois</strong>, ou plus tôt si le site vitrine ou la première vague de contenu révèle une incohérence de ton.</li>
+    <li><strong>Les convictions peuvent changer.</strong> Certaines, écrites aujourd'hui à partir de peu de retours réels, ne survivront peut-être pas au contact de vraies utilisatrices. C'est normal, ce n'est pas un échec du document.</li>
+    <li><strong>Toute nouvelle page ou tout nouveau post</strong> se vérifie contre la section 8 (le ton) et 9 (les mots) avant publication, comme un réflexe, pas comme une contrainte.</li>
+  </ul>
+
+</div>
+
+<footer class="close">
+  <p style="max-width:480px; margin:0 auto; font-size:16px;">Ce document dit comment Indépuls parle. Le silence, l'élan, la preuve avant l'affirmation, jamais la culpabilité. Ce n'est pas un ton qu'on a choisi pour vendre mieux. C'est le même ton que celui du produit — parce que la marque et le produit ne devraient jamais se contredire.</p>
+  <div class="sig">Indépuls</div>
+</footer>
+
+</body>
+</html>

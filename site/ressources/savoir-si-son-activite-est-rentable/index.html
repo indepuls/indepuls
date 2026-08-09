@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment savoir si votre activité est rentable · Indépuls</title>
+<meta name="description" content="Un chiffre d'affaires élevé ne veut pas dire une activité rentable. Le guide complet pour mesurer la vraie rentabilité de votre activité d'indépendant : taux horaire réel, charges, trésorerie.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.65;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropbtn{display:none;}
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; padding:0; display:flex; gap:10px 14px; min-width:0; background:none; flex-wrap:wrap;}
+    nav.nav .dropmenu a{padding:0; display:inline; border-radius:0; font-size:13px; opacity:.75;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:60px 24px 10px;}
+  header.hero .wrap{max-width:760px;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(28px,4.4vw,44px); margin:0 0 18px; line-height:1.2;}
+
+  .tldr{background:#fff; border:1px solid #e4ddd0; border-left:3px solid var(--prune); border-radius:12px; padding:20px 24px; margin:0 auto; max-width:760px;}
+  .tldr .lbl{font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); font-weight:700; display:block; margin-bottom:8px;}
+  .tldr p{margin:0; font-size:15.5px; color:#3a3a52;}
+
+  article{padding:40px 24px 40px;}
+  article .wrap{max-width:760px;}
+  article h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(21px,2.9vw,27px); margin:44px 0 14px; line-height:1.3;}
+  article h2:first-of-type{margin-top:0;}
+  article p{font-size:16px; color:#3a3a52; margin:0 0 16px;}
+  article ul{font-size:16px; color:#3a3a52; padding-left:22px; margin:0 0 16px;}
+  article li{margin-bottom:9px;}
+  article a{color:var(--prune); font-weight:600;}
+  article strong{color:var(--navy);}
+  .example{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:0 0 16px;}
+  .example p{margin:0 0 8px; font-size:15px;}
+  .example p:last-child{margin:0;}
+  .example .r{color:var(--ok); font-weight:700;}
+  .toolcard{background:#fff; border:1px solid #e4ddd0; border-radius:12px; padding:18px 22px; margin:8px 0 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+  .toolcard .t{flex:1; min-width:200px;}
+  .toolcard .t b{display:block; color:var(--navy); font-size:15px; margin-bottom:2px;}
+  .toolcard .t span{font-size:13.5px; color:#6b6b6b;}
+  .toolcard a{background:var(--prune); color:#fff; text-decoration:none; font-weight:700; font-size:13.5px; padding:10px 18px; border-radius:999px; white-space:nowrap;}
+
+  section.cta{padding:20px 24px 70px;}
+  section.cta .box{max-width:760px; margin:0 auto; background:var(--navy); color:#fff; border-radius:16px; padding:36px 30px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(21px,3vw,26px); margin:0 0 12px; color:#fff;}
+  section.cta p{color:#dcd9ec; font-size:15px; margin:0 0 22px;}
+  .btnrow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 28px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+</style>
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Comment savoir si votre activité est rentable">
+<meta property="og:description" content="Un chiffre d'affaires élevé ne veut pas dire une activité rentable. Le guide complet pour mesurer la vraie rentabilité de votre activité d'indépendant : taux horaire réel, charges, trésorerie.">
+<meta property="og:url" content="https://indepuls.fr/ressources/savoir-si-son-activite-est-rentable/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../../tarifs/index.html">Tarifs</a>
+      <a href="../../demo/index.html">Démo</a>
+      <a href="../../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../../pour/services-creatifs/index.html">Services &amp; créatifs</a>
+          <a href="../../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+          <a href="../../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown has-active" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../savoir-si-son-activite-est-rentable/index.html" class="active">Guide de la rentabilité</a>
+          <a href="../calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../../../indepuls.html">Mon espace</a>
+      <a class="cta" href="../../../indepuls.html">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Guide</span>
+    <h1>Comment savoir si votre activité est rentable</h1>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tldr">
+    <span class="lbl">En résumé</span>
+    <p>Une activité est rentable quand ce qu'elle vous rapporte réellement, une fois tout le temps passé et toutes les charges déduits, dépasse ce dont vous avez besoin pour vivre et la faire tourner. Le chiffre d'affaires ne le dit pas : ce qui compte, c'est votre taux horaire ou journalier réel, ce qui reste vraiment en trésorerie, et la visibilité que vous avez sur les semaines à venir.</p>
+  </div>
+</div>
+
+<article>
+  <div class="wrap">
+
+    <h2>Le chiffre d'affaires ne dit pas si vous êtes rentable</h2>
+    <p>C'est la confusion la plus fréquente chez les indépendants : croire qu'un bon chiffre d'affaires veut dire une activité qui va bien. Le chiffre d'affaires mesure un volume, l'argent qui rentre. Il ne dit rien de ce qui reste une fois le temps passé et les charges déduits.</p>
+    <p>Deux indépendants peuvent afficher exactement le même chiffre d'affaires et avoir des situations opposées : l'un travaille sereinement, l'autre s'épuise à perte sans le savoir. La différence ne se lit jamais sur le relevé de compte.</p>
+
+    <h2>La vraie question : combien vous gagnez par heure, réellement</h2>
+    <p>L'indicateur le plus honnête, c'est votre <strong>taux horaire réel</strong> (ou journalier, si vous facturez à la journée) : votre chiffre d'affaires encaissé rapporté au temps que vous avez <strong>réellement</strong> passé, pas au temps que vous aviez prévu ou facturé.</p>
+    <div class="example">
+      <p>Un devis de 1 000 € pour une mission estimée à 2 jours semble correct : 500 €/jour.</p>
+      <p>Mais si la mission prend finalement 5 jours entre les allers-retours et les imprévus, le taux réel tombe à <span class="r">200 €/jour</span>. Le même devis, une rentabilité deux fois et demie plus faible.</p>
+    </div>
+    <p>C'est ce chiffre, et lui seul, qui vous dit si votre prix tient la route une fois confronté au temps réel.</p>
+    <div class="toolcard">
+      <div class="t"><b>Calculez votre taux journalier minimum</b><span>Le seuil en dessous duquel votre activité ne se couvre plus.</span></div>
+      <a href="../../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+    </div>
+
+    <h2>Ce qu'il faut déduire avant de parler de rentabilité</h2>
+    <p>Le chiffre d'affaires n'est pas votre revenu. Entre les deux, il y a tout ce qui part avant d'arriver dans votre poche :</p>
+    <ul>
+      <li><strong>Les charges professionnelles</strong> : outils, logiciels, assurance, local, déplacements, sous-traitance.</li>
+      <li><strong>Les cotisations sociales</strong>, prélevées sur votre chiffre d'affaires selon votre statut.</li>
+      <li><strong>Les impôts</strong>, à provisionner même s'ils tombent plus tard.</li>
+    </ul>
+    <p>Une activité rentable, c'est une activité dont ce qui reste, une fois tout cela déduit, dépasse ce dont vous avez besoin pour vivre. Pas avant.</p>
+    <div class="toolcard">
+      <div class="t"><b>Testez la marge d'une mission</b><span>Ce qu'il reste vraiment sur un chantier, une commande ou une prestation.</span></div>
+      <a href="../../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+    </div>
+
+    <h2>La rentabilité ne se résume pas à la marge</h2>
+    <p>Savoir si votre activité va bien, ce n'est pas regarder un seul chiffre, mais quatre choses à la fois :</p>
+    <ul>
+      <li><strong>La rentabilité</strong> : votre taux réel est-il au-dessus de votre seuil minimum ?</li>
+      <li><strong>Le remplissage</strong> : votre temps est-il bien vendu par rapport à votre capacité, ou travaillez-vous beaucoup pour peu ?</li>
+      <li><strong>La trésorerie</strong> : une fois ce qu'il faut mettre de côté provisionné, que reste-t-il vraiment disponible ?</li>
+      <li><strong>L'horizon</strong> : avez-vous de la visibilité sur les semaines à venir, ou tout peut-il s'arrêter le mois prochain ?</li>
+    </ul>
+    <p>Une activité peut être très rentable à l'heure mais fragile parce que rien n'est signé pour la suite. Ou bien remplie mais à un tarif trop bas. Les quatre se regardent ensemble.</p>
+
+    <h2>Combien mettre de côté pour éviter les mauvaises surprises</h2>
+    <p>Une part de ce que vous encaissez ne vous appartient pas vraiment : elle est due plus tard, en cotisations et en impôts. La rentabilité réelle se juge une fois cet argent mis de côté, pas avant de l'avoir provisionné.</p>
+    <p>Surveiller ses seuils (notamment le seuil de TVA en micro-entreprise) et provisionner au fil des encaissements évite le classique trou de trésorerie de fin d'année, où l'argent semblait là mais était déjà dû.</p>
+
+    <h2>Les erreurs les plus courantes</h2>
+    <ul>
+      <li><strong>Confondre chiffre d'affaires et revenu.</strong> Le premier est brut, le second est ce qui reste vraiment.</li>
+      <li><strong>Oublier le temps non facturé.</strong> Prospection, devis, communication, suivi de ses chiffres, administratif : ces heures existent et pèsent sur votre taux réel, même si aucune facture ne les mentionne.</li>
+      <li><strong>Ne pas provisionner.</strong> Un bon mois dépensé en entier devient un mauvais trimestre quand les cotisations tombent.</li>
+      <li><strong>Juger sur un seul mois.</strong> Un pic isolé ne dit rien de la santé de fond de l'activité.</li>
+    </ul>
+
+    <h2>Comment suivre sa rentabilité sans y passer des heures</h2>
+    <p>Tout ce qui précède peut se calculer à la main, dans un tableur, à condition de s'y tenir chaque mois. En pratique, c'est ce suivi régulier qui manque le plus souvent, faute de temps.</p>
+    <p>C'est précisément ce que fait Indépuls : à partir de vos missions et de vos encaissements réels, il calcule en continu votre taux réel, votre remplissage, votre trésorerie disponible et votre horizon, et les résume en un seul indicateur, le Score de Santé, sans jamais cacher le calcul derrière.</p>
+
+  </div>
+</article>
+
+<section class="cta">
+  <div class="box">
+    <h2>Voir où en est votre activité, en une minute</h2>
+    <p>La démo tourne avec des données fictives réalistes, sans compte ni carte bancaire.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
+      <a class="btn btn-secondary" href="../../fonctionnalites/index.html">Voir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../../a-propos/index.html">À propos</a>
+  <a href="../../../politique-confidentialite.html">Confidentialité</a>
+  <a href="../../../cgu.html">CGU</a>
+  <a href="../../../securite.html">Sécurité</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+
+</body>
+</html>
