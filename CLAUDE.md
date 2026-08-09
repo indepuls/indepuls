@@ -3226,6 +3226,18 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — Trajectoire : lisibilité du mois négatif ("objectif atteint à -91 %")
+
+Retour Faustine : quand le revenu net du mois est négatif (charges déjà passées, aucun encaissement en face), le widget "Ma trajectoire" affichait "🔴 Objectif atteint à seulement -91 % ce mois" et "-91 % de l'objectif" : un pourcentage négatif d'un objectif n'a aucun sens.
+
+- **Cause** : `pctObj` n'était borné qu'en haut (`Math.min(..., 100)`), pas en bas, donc un net négatif produisait un pourcentage négatif.
+- **Fix** : `pctObj` borné à `Math.max(0, Math.min(..., 100))` (jauge propre à 0 %), et nouveau drapeau `estMoisNegatif` (`objNet>0 && caNetMois<0`) qui bascule sur des messages dédiés :
+  - phrase : "🔴 Ce mois, vos charges dépassent vos encaissements de X pour l'instant." ("pour l'instant" pour rester dans l'esprit "élan plutôt que culpabilité", le mois n'étant pas fini).
+  - sous-jauge : "Solde du mois négatif : -X € (objectif Y €)" au lieu de "-91 % de l'objectif".
+- Deux tirets cadratins retirés au passage dans les phrases voisines de ce bloc.
+
+**Vérifié** : `node --check` (6 chunks) + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : sur un mois à net négatif, le widget n'affiche plus de pourcentage négatif mais le message de solde négatif ; sur un mois positif, comportement inchangé.
+
 ### 2026-08-09 — Sources d'acquisition : détail par canal (panier moyen, transformation, rentabilité)
 
 Enrichissement du widget existant "📡 Sources d'acquisition" (`wSourceAcq`, onglet Missions), suite à un retour de Justin. **Aucune nouvelle saisie** : tout est dérivé des données déjà présentes. La partie "coût d'acquisition / heures passées par canal" proposée par Justin a été volontairement écartée (saisie récurrente peu fiable, dérive marketing analytics, ratio incertain).

@@ -5988,15 +5988,20 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
 
   // ── KPI 2 : REVENU NET DU MOIS ────────────────────────────────
   const caNetMois=getRevenuNetMois(curMk);
-  const pctObj=objNet>0?Math.min(Math.round(caNetMois/objNet*100),100):0;
+  // Mois négatif (charges déjà passées, encaissements pas encore en face) : un "% de l'objectif"
+  // négatif ("atteint à -91 %") n'a aucun sens (retour Faustine, 2026-08-09). On borne le
+  // pourcentage à 0..100 pour la jauge et on bascule sur un message dédié au solde négatif.
+  const estMoisNegatif=objNet>0&&caNetMois<0;
+  const pctObj=objNet>0?Math.max(0,Math.min(Math.round(caNetMois/objNet*100),100)):0;
   const pcObj=pctObj>=100?'ok':pctObj>=75?'wn':'bd';
   let phraseNet;
   if(isSASU()){phraseNet='Rémunération fixe définie dans mon profil.';}
   else if(objNet>0){
     const manque=objNet-caNetMois;
-    if(pctObj>=100) phraseNet='🟢 Objectif du mois atteint — excellent !';
+    if(estMoisNegatif) phraseNet=`🔴 Ce mois, vos charges dépassent vos encaissements de ${fmtE(-caNetMois)} pour l'instant.`;
+    else if(pctObj>=100) phraseNet='🟢 Objectif du mois atteint, excellent !';
     else if(pctObj>=75) phraseNet=`🟠 Il reste ${fmtE(manque)} à trouver pour votre objectif du mois.`;
-    else if(pctObj>=50) phraseNet=`🟠 Il reste ${fmtE(manque)} à trouver — c'est le moment d'agir.`;
+    else if(pctObj>=50) phraseNet=`🟠 Il reste ${fmtE(manque)} à trouver, c'est le moment d'agir.`;
     else phraseNet=`🔴 Objectif atteint à seulement ${pctObj} % ce mois.`;
   } else {
     phraseNet='Définissez un objectif mensuel dans Paramètres pour suivre votre progression.';
@@ -6108,7 +6113,7 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
       <div class="kpi-val" style="font-size:22px">${fmtE(caNetMois)}</div>
       ${objNet>0
         ?`<div class="prog-bar mt8" style="height:8px"><div class="prog-fill ${pcObj}" style="width:${pctObj}%"></div></div>
-           <div class="kpi-sub mt4">${pctObj} % de l'objectif — ${fmtE(caNetMois)} / ${fmtE(objNet,0)}</div>`
+           <div class="kpi-sub mt4">${estMoisNegatif?`Solde du mois négatif : ${fmtE(caNetMois)} (objectif ${fmtE(objNet,0)})`:`${pctObj} % de l'objectif · ${fmtE(caNetMois)} / ${fmtE(objNet,0)}`}</div>`
         :''
       }
       <div style="font-size:11px;color:var(--tl);line-height:1.6;margin-top:9px">
