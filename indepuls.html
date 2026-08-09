@@ -63,6 +63,10 @@ body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--te
 @keyframes fadeInPage{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
 .page{padding:24px 28px;display:none;}.page.active{display:block;animation:fadeInPage .2s ease;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+/* "Et si ?" : 2 colonnes indépendantes (masonry) pour empiler les cartes au plus serré, sans le
+   décalage vertical d'une grille où chaque rangée s'aligne sur la carte la plus haute. */
+.etsi-cols{display:flex;gap:16px;align-items:flex-start;}
+.etsi-cols>.etsi-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
 .g2-traj{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start;}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
@@ -327,6 +331,7 @@ html,body{overflow-x:hidden;}
   .topbar{padding:10px 16px;}
   .page{padding:16px;}
   .g2{grid-template-columns:1fr;}
+  .etsi-cols{flex-direction:column;}
   .g2-traj{grid-template-columns:1fr;}
   .g3{grid-template-columns:1fr;}
   .btn-label{display:none;}
@@ -3830,9 +3835,21 @@ function getExampleData(metier) {
   const _sessH = id => (demoSessions[id]||[]).reduce((s,x) => s + (x.heures||0), 0);
   const _tp = (id, fallback) => _isChantierFamily ? (_sessH(id) > 0 ? _sessH(id) : null) : fallback;
 
+  // Temps interne catégorisé pour la démo (illustre la carte "Et si je déléguais ?", 2026-08-09) :
+  // quelques heures d'admin/support sur les 3 derniers mois, avec les 2 premières catégories de temps
+  // de la famille — sinon la démo n'a aucune tâche catégorisée et la carte reste vide (retour Faustine).
+  const _catsTempsDemo = (VOCABULARY_FAMILIES[family] && VOCABULARY_FAMILIES[family].defaultCategoriesTemps) || [];
+  const _demoTempsInterne = [];
+  if (_catsTempsDemo.length) {
+    const catA = _catsTempsDemo[0], catB = _catsTempsDemo[1] || _catsTempsDemo[0];
+    [mk0, mk1, mk2].forEach((mk, i) => {
+      _demoTempsInterne.push({ id: `tm-int-a${i}`, date: `${mk}-08`, ms: 4 * 3600000, categorie: catA });
+      if (catB !== catA) _demoTempsInterne.push({ id: `tm-int-b${i}`, date: `${mk}-18`, ms: 3 * 3600000, categorie: catB });
+    });
+  }
   // ── Missions (structure financière identique, contenu adapté) ─
   const missions = [
-    {id:'mgmt-interne',client:'Mon entreprise',categorie:'Gestion interne',description:'Gestion de mon activité',montantDevis:0,montantPrestation:0,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[],isManagement:true,encaissements:[],sessions:[]},
+    {id:'mgmt-interne',client:'Mon entreprise',categorie:'Gestion interne',description:'Gestion de mon activité',montantDevis:0,montantPrestation:0,montantVente:0,statut:'cours',dateFact:null,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:_demoTempsInterne,isManagement:true,encaissements:[],sessions:[]},
     {id:'ex-rec', sessions:demoSessions['ex-rec']||[], client:c.rec.client,categorie:c.rec.cat,description:c.rec.desc,montantDevis:18000,montantPrestation:18000,montantVente:0,statut:'cours',dateFact:null,isRecurring:true,montantMensuel:1500,nbMoisRec:12,dateDebutRec:mk4,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'Contrat annuel renouvelable',tempsManuel:[tm('tm-rec1',mk4,18,9),tm('tm-rec2',mk3,18,9),tm('tm-rec3',mk2,18,9),tm('tm-rec4',mk1,18,9),tm('tm-rec5',mk0,8,9)],isManagement:false,isExample:true,encaissements:[],sourceAcquisition:'client_existant',chargeEstimee:5,chargeUnit:'h_sem',tempsPrevu:5*44/12},
     {id:'ex-jan', sessions:demoSessions['ex-jan']||[], client:c.m1.client,categorie:c.m1.cat,description:c.m1.desc,montantDevis:1800,montantPrestation:1800,montantVente:0,statut:'fact',dateFact:mk4+'-22',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-jan',mk4,20,12)],isManagement:false,isExample:true,encaissements:[{id:'enc-j1',date:mk4+'-22',montant:1800,note:'',modeReglement:'virement',refJustificative:'FAC-'+y+'-001',dateModif:y+'-01-25'}],sourceAcquisition:'recommandation',tempsPrevu:_tp('ex-jan',11),...(c.m1.quantite!=null?{quantite:c.m1.quantite}:{}),...(c.m1.prixAchat!=null?{prixAchat:c.m1.prixAchat}:{})},
     {id:'ex-fev', sessions:demoSessions['ex-fev']||[], client:c.m2.client,categorie:c.m2.cat,description:c.m2.desc,montantDevis:980,montantPrestation:980,montantVente:0,statut:'fact',dateFact:mk3+'-18',heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,notes:'',tempsManuel:[tm('tm-fev',mk3,16,7)],isManagement:false,isExample:true,encaissements:[{id:'enc-f1',date:mk3+'-18',montant:980,note:''}],sourceAcquisition:'reseau',tempsPrevu:_tp('ex-fev',6.5),...(c.m2.quantite!=null?{quantite:c.m2.quantite}:{}),...(c.m2.prixAchat!=null?{prixAchat:c.m2.prixAchat}:{})},
@@ -14210,7 +14227,10 @@ function renderEtSiPage() {
       <div class="card-title" style="font-family:'Playfair Display',Georgia,serif;font-size:20px">Et si les choses changeaient ?</div>
       <div class="ts" style="color:var(--tl)">Testez une hypothèse sur votre activité. Bougez un curseur, voyez immédiatement ce que ça change. Rien n'est enregistré.</div>
     </div>
-    <div class="g2" style="gap:16px">${card1}${card2}${card3}${card4}${card5}</div>
+    <div class="etsi-cols">
+      <div class="etsi-col">${card1}${card3}${card5}</div>
+      <div class="etsi-col">${card2}${card4}</div>
+    </div>
   `;
   etsiRecalc();
   etsiDelegationRecalc();
