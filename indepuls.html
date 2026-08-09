@@ -13993,6 +13993,7 @@ const ETSI_METH = {
   rythme: `<strong>Données ·</strong> Vos paramètres réels (Objectifs) et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> (Revenu net visé + dépenses moyennes) ÷ (1 − charges − impôts) ÷ heures disponibles sur l'année (jours × semaines, moins les congés).<br>Un seul curseur à la fois change une valeur ; le reste — y compris vos dépenses réelles — ne bouge pas.`,
   prix: `<strong>Données ·</strong> Votre chiffre d'affaires et vos heures des 12 derniers mois glissants (mêmes valeurs que "Ma rentabilité").<br><strong>Calcul ·</strong> Marge en plus = CA × hausse. Temps gagné = heures actuelles − (heures actuelles ÷ (1 + hausse)) : le temps qu'il faudrait en moins pour gagner la même chose au nouveau tarif.`,
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
+  delegation: `<strong>Données ·</strong> Le temps que vous avez passé sur les catégories cochées, sur les 3 derniers mois (moyenne mensuelle), et votre taux horaire net réel (revenu net ÷ heures, sur vos 12 derniers mois glissants — le même "TH réel net" qu'ailleurs).<br><strong>Calcul ·</strong> Budget = heures/mois libérées × taux horaire NET. On prend le net (ce que vous gardez vraiment) et pas le brut (ce que vous facturez), parce que le budget est une dépense réelle : la facture du prestataire. C'est un plafond à coût neutre, jusqu'auquel déléguer ne vous coûte rien si vous revendez le temps libéré.<br><strong>Garde-fou ·</strong> Ce budget ne se réalise que si vous revendez réellement le temps gagné. En dessous de 80 % de remplissage, on vous prévient : libérer du temps ne crée pas de CA tant que votre agenda facturable n'est pas plein. Si votre calendrier n'est pas renseigné, on affiche quand même le budget mais on ne peut pas vérifier votre saturation.`,
   statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut — le même calcul que "Combien facturer ?". Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU) — ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
 };
 // Lien contextuel depuis le dashboard vers une carte "Et si ?" précise (retour Faustine
@@ -14017,7 +14018,7 @@ function irVersEtSi(card, missionId) {
   }, 80);
 }
 function openEtSiMeth(key) {
-  const labels={rythme:'Rythme de travail',prix:'Augmenter mes prix',client:"Perte d'un client",statut:'Changement de statut'};
+  const labels={rythme:'Rythme de travail',prix:'Augmenter mes prix',client:"Perte d'un client",statut:'Changement de statut',delegation:'Déléguer des tâches'};
   document.getElementById('etsi-meth-title').textContent=labels[key]||'';
   document.getElementById('etsi-meth-body').innerHTML=ETSI_METH[key]||'';
   openModal('modal-etsi-meth');
@@ -14101,6 +14102,50 @@ function etsiCard4Html() {
     </div>
   </div>`;
 }
+// Carte "Et si je déléguais ?" (retour Justin, 2026-08-09). L'utilisateur coche ses PROPRES
+// catégories de temps (aucune imposée, aucune devinée) : Indépuls calcule le budget qu'il pourrait
+// mettre en délégation en revendant le temps libéré. Voir simulerDelegation() pour le détail.
+function etsiCard5Html() {
+  const cats=DATA.categoriesTemps||[];
+  const head=`<div class="card-header"><div class="card-title">🤝 Et si je déléguais ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('delegation')">Comment c'est calculé ?</button></div>`;
+  if(!cats.length){
+    return `<div class="card" id="etsi-card5">${head}
+      <div class="ts" style="color:var(--tl)">Ce scénario s'active dès que vous catégorisez votre temps (chrono ou "+ temps" sur vos missions). Vous pourrez alors cocher les tâches à déléguer et voir le budget que vous pourriez y consacrer.</div>
+    </div>`;
+  }
+  const cases=cats.map(c=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;background:var(--bg);border:1px solid var(--brd);border-radius:16px;padding:4px 10px;cursor:pointer"><input type="checkbox" value="${esc(c)}" onchange="etsiDelegationRecalc()" style="accent-color:var(--pri)">${esc(c)}</label>`).join('');
+  return `<div class="card" id="etsi-card5">${head}
+    <div class="ts" style="color:var(--tl);margin-bottom:8px">Cochez les tâches que vous pourriez confier à quelqu'un (admin, réseaux, devis…). Indépuls calcule le budget que vous pourriez y consacrer, en revendant le temps libéré.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${cases}</div>
+    <div id="etsi-deleg-out"></div>
+  </div>`;
+}
+function etsiDelegationRecalc() {
+  const out=document.getElementById('etsi-deleg-out');
+  if(!out) return;
+  const cats=[...document.querySelectorAll('#etsi-card5 input[type=checkbox]:checked')].map(c=>c.value);
+  if(!cats.length){ out.innerHTML=`<div class="ts" style="color:var(--tl)">Cochez au moins une tâche pour estimer le budget.</div>`; return; }
+  const sim=simulerDelegation(cats,3);
+  if(!(sim.heuresMois>0)){ out.innerHTML=`<div class="ts" style="color:var(--tl)">Aucun temps enregistré sur ces tâches ces 3 derniers mois. Catégorisez votre temps (chrono ou "+ temps") pour activer l'estimation.</div>`; return; }
+  if(!(sim.thNet>0)){ out.innerHTML=`<div class="ts" style="color:var(--tl)">Pas encore assez de recul sur votre rentabilité pour estimer un budget. Revenez quand quelques mois seront enregistrés.</div>`; return; }
+  // Garde-fou remplissage : alerte, jamais blocage — le budget s'affiche dans tous les cas.
+  const gate=sim.gate==='ok'
+    ?`<div class="ts mt8" style="color:var(--ok);line-height:1.5">✅ Votre remplissage est à ${sim.tauxRemplissage} % : vous pouvez revendre ce temps, ce budget est réaliste.</div>`
+    :sim.gate==='bas'
+      ?`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Votre remplissage est à ${sim.tauxRemplissage} %. Déléguer ne créera du CA que si vous revendez le temps libéré : tant que votre agenda facturable n'est pas plein, ce budget reste théorique. Priorité à remplir votre temps d'abord.</div>`
+      :`<div class="alert al-info mt8" style="font-size:11px;line-height:1.5">ℹ️ Votre calendrier n'est pas renseigné, je ne peux pas vérifier votre saturation. Ce budget suppose que vous revendez bien le temps libéré, ce qui n'est vrai que si votre agenda est déjà plein.</div>`;
+  const estSociete=['sasu','eurl'].includes(DATA.params.statut);
+  const phraseSociete=estSociete?`<div class="ts mt8" style="color:var(--tl);line-height:1.5">💡 En société, la facture du prestataire est déductible : votre gain réel sera un peu supérieur à ce budget.</div>`:'';
+  out.innerHTML=`
+    <div style="border-top:1px solid var(--brd);padding-top:10px;margin-top:4px">
+      <div class="ts">Budget délégation possible</div>
+      <div style="font-size:22px;font-weight:700;color:var(--pri)">jusqu'à ~${fmtE(sim.budget,0)}/mois</div>
+    </div>
+    <div class="ts mt4" style="color:var(--acc);cursor:pointer;font-weight:700" onclick="var d=document.getElementById('etsi-deleg-detail');var o=d.style.display==='none';d.style.display=o?'block':'none';this.querySelector('.dlg-caret').textContent=o?'▴':'▾'">Comment c'est calculé ? <span class="dlg-caret">▾</span></div>
+    <div id="etsi-deleg-detail" style="display:none;margin-top:4px" class="ts">${sim.heuresMois} h/mois passées sur ces tâches × ${fmtE(sim.thNet,0)}/h net (votre taux horaire réel net) = ~${fmtE(sim.budget,0)}/mois. C'est un plafond à coût neutre : en dessous, déléguer ne vous coûte rien si vous revendez le temps libéré.</div>
+    ${gate}
+    ${phraseSociete}`;
+}
 function renderEtSiPage() {
   const zone=document.getElementById('etsi-content');
   if(!zone) return;
@@ -14158,15 +14203,17 @@ function renderEtSiPage() {
     </div>`;
 
   const card4=etsiCard4Html();
+  const card5=etsiCard5Html();
 
   zone.innerHTML=`
     <div style="margin-bottom:16px">
       <div class="card-title" style="font-family:'Playfair Display',Georgia,serif;font-size:20px">Et si les choses changeaient ?</div>
       <div class="ts" style="color:var(--tl)">Testez une hypothèse sur votre activité. Bougez un curseur, voyez immédiatement ce que ça change. Rien n'est enregistré.</div>
     </div>
-    <div class="g2" style="gap:16px">${card1}${card2}${card3}${card4}</div>
+    <div class="g2" style="gap:16px">${card1}${card2}${card3}${card4}${card5}</div>
   `;
   etsiRecalc();
+  etsiDelegationRecalc();
 }
 function etsiRecalc() {
   const objMod=DATA.params.modules?.objectif||'th';
