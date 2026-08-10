@@ -3451,35 +3451,65 @@ function renderPlanning() {
     </div>`;
   }).join('');
 
+  // Coûts par affaire calculés une seule fois pour toute la liste (perf, comme le Tableau).
+  const _coutMapPlanning = typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {};
+  const _bmPlanning = { att:'b-att', cours:'b-cours', ref:'b-ref', fact:'b-fact' };
+  const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven', 6:'Sam', 0:'Dim' };
   const missionRows = missionsMois.map(m => {
     const c = colorMap[m.id];
     // Récurrente sans fin : "touche" tout mois >= son début (pas de fin connue à comparer).
     const sessThisMois = (m.sessions||[]).filter(s => s.sansFin ? s.debut <= mLast : (s.debut <= mLast && (s.fin||s.debut) >= mFirst));
+    // Rappel des dates/sessions du mois (info propre au calendrier), fusionné dans la ligne titre.
+    // Le prévu/réel n'est plus déduit des heures de session (souvent absentes depuis le retrait du
+    // champ "Durée") mais de getTrajectoireCompacte (basé sur tempsPrevu, comme le Tableau) — sinon
+    // il ne s'affichait que pour les missions dont les sessions portaient des heures (bug, retour
+    // Faustine 2026-08-09 : Galland Catherine, tempsPrevu bien rempli, n'affichait rien ici).
     let range;
-    // x.heures est déjà un total "par mois" pour une session sans fin (voir getChargeSessionJour)
-    // — la somme est donc directement correcte, sans traitement différent des sessions bornées.
-    const hMois = sessThisMois.reduce((s,x)=>s+(x.heures||0),0);
-    // Réalisé du mois (tempsManuel/chrono) affiché à côté du prévu — déjà visible dans la fiche
-    // mission, dupliqué ici pour l'avoir d'un coup d'œil sans ouvrir la mission (retour Faustine).
-    const realiseMois = getMissionHeuresMois(m, mk);
-    const hLabel = hMois > 0 ? ` · <strong>${hMois}h</strong> prévues · <strong>${fmt(realiseMois,1)}h</strong> réalisées` : '';
-    const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven', 6:'Sam', 0:'Dim' };
     if (sessThisMois.length===0) range='Présent ce mois';
     else if (sessThisMois.length===1 && sessThisMois[0].sansFin){
       const s=sessThisMois[0];
       const joursTxt=(s.jours&&s.jours.length?s.jours:[1,2,3,4,5]).map(j=>JOURS_LABELS_FR[j]).join(', ');
-      range=`Récurrente (${joursTxt})${hLabel}`;
+      range=`Récurrente (${joursTxt})`;
     } else if (sessThisMois.length===1){
       const s=sessThisMois[0], fin=s.fin||s.debut;
-      range=(s.debut===fin?`${formatDateFR(s.debut)} (1 jour)`:`${formatDateFR(s.debut)} → ${formatDateFR(fin)}`)+hLabel;
-    } else { range=`${sessThisMois.length} sessions${hLabel}`; }
-    return `<div class="widget-item" style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openMissionModal('${m.id}')">
-      <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.client||'—'} <span style="font-weight:400;color:var(--tl)">${m.description||''}</span></div>
-        <div class="ts" style="margin-top:1px">${range}</div>
+      range=(s.debut===fin?`${formatDateFR(s.debut)} (1 jour)`:`${formatDateFR(s.debut)} → ${formatDateFR(fin)}`);
+    } else { range=`${sessThisMois.length} sessions`; }
+    // Mêmes chiffres que le Tableau : trajectoire (prévu/réel + taux réel brut) + taux net.
+    const traj = getTrajectoireCompacte(m);
+    const { th, thNet, unit } = _tauxReelMission(m, _coutMapPlanning);
+    const netSuffix = thNet!=null ? ` <span style="color:var(--tl)">≈ ${fmtE(thNet,1)}${unit} net</span>` : '';
+    let trajLine = '';
+    if (traj) trajLine = traj.replace('</div>', netSuffix + '</div>');
+    else if (th!=null) trajLine = `<div class="ts" style="color:var(--tl);margin-top:2px">Taux réel ${fmtE(th,1)}${unit}${netSuffix}</div>`;
+    // Encaissé / reste (missions ponctuelles avec au moins un versement), comme la sous-ligne du Tableau.
+    let encLine = '';
+    if (!m.isRecurring && (m.encaissements||[]).length){
+      const enc=getTotalEncaisse(m), reste=getResteAEncaisser(m);
+      encLine = `<div class="ts" style="margin-top:2px">💰 Encaissé <strong style="color:var(--ok)">${fmtE(enc)}</strong> · Reste <strong style="color:${reste>0?'var(--warn)':'var(--ok)'}">${fmtE(reste)}</strong></div>`;
+    }
+    const montantTxt = m.isRecurring ? `${fmtE(m.montantMensuel)}<span style="font-weight:400;color:var(--tl)">/mois</span>` : (m.montantDevis>0 ? fmtE(m.montantDevis) : '');
+    const badge = `<span class="badge ${_bmPlanning[m.statut]||'b-cours'}" style="font-size:10px;padding:2px 6px;flex-shrink:0">${tVocabStatut(m.statut, m.isRecurring)}</span>`;
+    const btn = (onclick,title,ico,cls) => `<button type="button" class="btn ${cls||'btn-out'} btn-xs" title="${title}" onclick="${onclick}">${ico}</button>`;
+    return `<div class="widget-item" style="display:flex;align-items:flex-start;gap:10px;padding:7px 0">
+      <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;margin-top:5px"></div>
+      <div style="flex:1;min-width:0;cursor:pointer" onclick="openMissionModal('${m.id}')">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.client||'—')} <span style="font-weight:400;color:var(--tl)">${esc(m.description||'')}</span></span>
+          ${badge}
+          ${montantTxt?`<span style="font-size:13px;font-weight:700;flex-shrink:0">${montantTxt}</span>`:''}
+        </div>
+        <div class="ts" style="color:var(--tl);margin-top:1px">${range}</div>
+        ${trajLine}
+        ${encLine}
       </div>
-      <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="event.stopPropagation();startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono" style="opacity:1;flex-shrink:0;border:1px solid var(--brd);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center">${m.timerRunning?'⏹':'▶'}</button>
+      <div style="display:flex;gap:3px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:152px">
+        <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono" style="opacity:1;border:1px solid var(--brd);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">${m.timerRunning?'⏹':'▶'}</button>
+        ${btn(`openAddTimeModal('${m.id}')`,'Ajouter du temps','⏱️')}
+        ${btn(`openMissionModal('${m.id}')`,'Modifier','✏️')}
+        ${btn(`openEncaissementsModal('${m.id}')`,'Encaissements','💰')}
+        ${btn(`duplicateMission('${m.id}')`,'Dupliquer','⧉')}
+        ${btn(`deleteMission('${m.id}')`,'Supprimer','🗑','btn-del')}
+      </div>
     </div>`;
   }).join('');
 
@@ -10032,6 +10062,21 @@ function getTrajectoireCompacte(m) {
   const thTxt=` · ${thEstime?'≈':''}${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${_isJours?'/j':'/h'}`;
   return `<div class="ts" style="color:${color};margin-top:2px">${emoji} ${reelLabel} ${fmt(reelDisp,1)}${unit} / Prévu ${fmt(prevuDisp,1)}${unit}${thTxt}</div>`;
 }
+// Taux réel (brut + net estimé) d'une affaire, partagé entre le Tableau et la vue Calendrier
+// (retour Faustine 2026-08-09 : retrouver les mêmes chiffres partout, sans dupliquer la formule).
+// Taux = marge brute (devis − dépenses directement liées) ÷ temps réel, dans l'unité du profil.
+// Net = même ratio global (1 − charges − impôts) que partout ailleurs — approximation assumée,
+// jamais un calcul officiel affaire par affaire. coutMap facultatif : le Tableau passe sa map déjà
+// calculée en un passage (perf) ; ailleurs on la recalcule.
+function _tauxReelMission(m, coutMap) {
+  coutMap = coutMap || (typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {});
+  const h = getMissionHeures(m);
+  const _isJours = DATA.params.modules?.uniteTemps === 'jours', _hj = DATA.params.heuresParJour || 7;
+  const marge = (m.montantDevis || 0) - (coutMap[m.id] || 0);
+  const th = m.montantDevis > 0 && h > 0 ? (_isJours ? marge / (h / _hj) : marge / h) : null;
+  const netRatio = 1 - getTauxChargesPresta() - getImpotsTaux();
+  return { th, thNet: th != null ? th * netRatio : null, unit: _isJours ? '/j' : '/h' };
+}
 function renderMissions() {
   _applyMissionsView(missionsView);
   renderMissionsSummary(DATA.missions);
@@ -10096,25 +10141,11 @@ function renderMissions() {
   let totD=0,totF=0,totH=0;
   // Un seul passage sur DATA.depenses pour tout le tableau (voir getDepensesAffairesMap).
   const _missionsCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
-  // Ratio net estimé (retour Faustine 2026-07-24, demande de son mari) : même taux global que
-  // celui déjà utilisé ailleurs dans l'app pour une estimation rapide (voir "netR", ~L5357),
-  // appliqué ici au taux réel (brut) de chaque affaire. Approximation assumée et non un calcul
-  // officiel : l'URSSAF/l'impôt se calculent légalement sur le CA global, jamais affaire par
-  // affaire — mais le taux étant fixe en micro-BNC/BIC, l'appliquer à la marge d'une affaire
-  // donne une estimation honnête. En SASU/EURL, getTauxChargesPresta() vaut 0 (la rémunération
-  // n'est pas un % direct du CA) : le ratio ne reflète alors que impotsTaux, moins pertinent —
-  // affiché quand même, cohérent avec le reste de l'app qui fait le même choix (ex: ~L5357).
-  const _netRatio=1-getTauxChargesPresta()-getImpotsTaux();
   filtered.forEach(m=>{
     const h=getMissionHeures(m),ms=getMissionTotalMs(m);
-    const _isJours=DATA.params.modules?.uniteTemps==='jours', _hj=DATA.params.heuresParJour||7;
-    // Taux réel = marge brute (devis − dépenses directement liées à l'affaire), pas le devis
-    // seul — sinon une affaire avec de gros coûts directs (matériaux, sous-traitance...)
-    // paraît aussi rentable qu'une affaire sans coût, à devis et temps égaux.
-    const _margeM=(m.montantDevis||0)-(_missionsCoutMap[m.id]||0);
-    const th=m.montantDevis>0&&h>0?(_isJours?_margeM/(h/_hj):_margeM/h):null;
-    const _thUnit=_isJours?'/j':'/h';
-    const thNet=th!=null?th*_netRatio:null;
+    // Taux réel brut + net estimé, via le helper partagé avec la vue Calendrier (map de coûts déjà
+    // calculée passée pour la perf). Rationale du taux/ratio net : voir _tauxReelMission.
+    const {th,thNet,unit:_thUnit}=_tauxReelMission(m,_missionsCoutMap);
     if(!m.isManagement){ totD+=m.montantDevis||0; if(m.statut==='fact') totF+=m.montantDevis||0; }
     totH+=h;
     const tr=document.createElement('tr'); if(m.isManagement) tr.className='row-pinned'; tr.id='mrow-'+m.id;

@@ -3226,6 +3226,20 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — Vue Calendrier : liste "Missions ce mois" enrichie (parité avec le Tableau) + fix prévu/réel
+
+Objectif (retour Faustine) : qu'une personne qui vit dans la vue Calendrier n'ait pas à repasser sur le Tableau pour les infos clés. La liste "Missions ce mois" (`renderPlanning`) affiche désormais, par ligne, la même chose que le Tableau, en réutilisant les mêmes fonctions (aucun calcul dupliqué) :
+- **Ligne 1** : client + prestation, **badge de statut** (`b-att/b-cours/b-ref/b-fact` + `tVocabStatut`), **montant** (devis ou mensuel), et le rappel sessions/dates fusionné.
+- **Ligne 2** : **prévu vs réel + taux réel** via `getTrajectoireCompacte(m)` (déjà profil-aware j/h), suivi du **taux net** (`≈ …/j net`).
+- **Ligne 3** : **encaissé / reste** pour les ponctuelles avec versement (`getTotalEncaisse`/`getResteAEncaisser`).
+- **Raccourcis à droite** comme le Tableau : chrono + Temps + Modifier + Encaissements + Dupliquer + Supprimer.
+
+**Fix du bug remonté par Faustine** : le prévu/réel du calendrier ne s'affichait que si les **sessions** du mois portaient des heures (`hMois = Σ s.heures`). Or depuis le retrait du champ "Durée" des sessions (2026-07-25), les vraies sessions n'en portent souvent pas → rien ne s'affichait, alors que `tempsPrevu` était bien rempli (cas Galland Catherine). En démo, les sessions sont générées AVEC heures, d'où l'incohérence. Corrigé en passant sur `getTrajectoireCompacte` (basé sur `tempsPrevu`, comme le Tableau).
+
+**Refactor associé (anti-duplication)** : extraction de `_tauxReelMission(m, coutMap)` (taux réel brut + net estimé, dans l'unité du profil) ; le Tableau ET la vue Calendrier l'appellent → mêmes chiffres partout, une seule formule. Le Tableau passe sa `getDepensesAffairesMap()` déjà calculée (perf) ; le calendrier calcule la sienne une fois par rendu.
+
+**Vérifié** : `node --check` (6 chunks) + suite Node complète, 0 échec. Rendu DOM non testable en session : **vérification navigateur (Faustine)** attendue — sur la vue Calendrier, chaque mission du mois montre statut + montant + prévu/réel + taux (brut et net) + encaissé/reste + les raccourcis ; en particulier vérifier que les missions à `tempsPrevu` renseigné (ex. Galland Catherine) affichent bien le prévu/réel, et que le Tableau est inchangé.
+
 ### 2026-08-09 — "Et si je déléguais ?" : budget de délégation (retour Justin)
 
 Nouvelle carte dans le simulateur "Et si ?" (5e carte) : combien on peut se permettre de payer pour déléguer des tâches, en revendant le temps libéré. Sans nouvelle saisie obligatoire, et sans jamais imposer/deviner de catégories.
