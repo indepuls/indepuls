@@ -3579,8 +3579,13 @@ function selectPlanningDay(ds) {
 // getSessionsSansTempsRecent (shared/core/planning.js) pour la borne des 3 jours et la logique
 // de masquage définitif via "Non".
 function renderSessionsSansTempsBlock() {
-  const suggestions = getSessionsSansTempsRecent();
+  let suggestions = getSessionsSansTempsRecent();
   if (!suggestions.length) return '';
+  // En mode DÉMO uniquement, on limite à 2 rappels : les sessions récurrentes de l'exemple en
+  // génèrent un par jour ouvré (sur 7 jours), ce qui noierait l'écran en fin de mois. En usage
+  // RÉEL on affiche tout, c'est justement l'objectif (voir tout ce qu'il reste à compléter,
+  // retour Faustine 2026-08-09).
+  if (DATA.isExample && suggestions.length > 2) suggestions = suggestions.slice(0, 2);
   return suggestions.map(s => `
     <div class="alert al-warn" style="margin-bottom:8px;padding:8px 10px;font-size:12px;line-height:1.5">
       <div>La session prévue du <strong>${formatDateFR(s.date)}</strong> (${esc(s.client||tVocab('item'))}) n'a pas de temps enregistré. Souhaitez-vous en ajouter ?</div>
