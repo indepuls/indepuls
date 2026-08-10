@@ -3226,6 +3226,23 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — Conformité livre des recettes : supprimer un encaissement = l'annuler (jamais l'effacer)
+
+Un livre des recettes est légalement intangible (chronologique, sans suppression). Le mécanisme d'annulation existait déjà dans le Livre (`toggleAnnulationRecette` → `statutLivre==='annulee'`, l'écriture reste, barrée), MAIS deux trous (retour Faustine) :
+1. Le `✕` de la modale Encaissements faisait un **hard-delete** (`deleteEncaissementModal`, supprimé) → l'écriture disparaissait du livre.
+2. Plus grave : `getTotalEncaisse` et `getCaFromMissions` (et plusieurs sommes CA inline) **ne filtraient pas** `statutLivre==='annulee'` → une recette annulée continuait de compter dans le CA et le "reste à encaisser".
+
+**Correctif** :
+- Nouveau helper **`encaissementsComptes(m)`** (`shared/core/calculs.js`, bridgé unified.js + `window`) = encaissements non annulés. Point de vérité unique.
+- `getTotalEncaisse` et `getCaFromMissions` passent par lui ; idem pour toutes les sommes CA/marge/trésorerie inline d'`indepuls.html` (marge alertes, marge annuelle/mensuelle, CA par client, répartition presta/vente, comptages de missions encaissées, date de premier paiement). Repli inchangé : plus aucun encaissement **valide** + mission facturée → on recompte le montant du devis (donc une mission dont TOUS les encaissements sont annulés se comporte comme une facturée sans encaissement).
+- La modale Encaissements : le `✕` **annule** (via `toggleAnnulationRecette('auto', encId, missionId)`), l'encaissement reste **barré** avec un bouton **↩ Réactiver**. Total TTC recalculé hors annulés.
+- **Cohérence dans les deux sens** : `toggleAnnulationRecette` rafraîchit désormais Livre + fiche mission + modale + dashboard + revenus. Annuler depuis le Livre fait remonter le "reste à encaisser" de la mission, et inversement.
+- Le Livre (`renderRecettes`) excluait déjà les annulées de ses totaux (`filter(r=>r.statut!=='annulee')`) — inchangé.
+
+**À noter (comportement assumé, à rediscuter si besoin)** : annuler le dernier encaissement d'une mission **facturée** ne remet pas son CA à zéro — la mission reste "facturée", donc son CA est recompté au montant du devis (modèle existant fact→CA). Seul le "reste à encaisser" remonte. Pour que l'annulation supprime aussi le CA, il faudrait aussi repasser la mission hors "facturé" (décision produit, non prise ici).
+
+**Vérifié** : `node --check` (6 chunks) + nouveau `encaissement_annulation.test.js` 10/10 (exclusion du CA/reste, réactivation, tous-annulés → repli devis) + suite Node complète, 0 échec.
+
 ### 2026-08-09 — Vue Calendrier : liste "Missions ce mois" enrichie (parité avec le Tableau) + fix prévu/réel
 
 Objectif (retour Faustine) : qu'une personne qui vit dans la vue Calendrier n'ait pas à repasser sur le Tableau pour les infos clés. La liste "Missions ce mois" (`renderPlanning`) affiche désormais, par ligne, la même chose que le Tableau, en réutilisant les mêmes fonctions (aucun calcul dupliqué) :

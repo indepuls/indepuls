@@ -4693,7 +4693,7 @@ function getCaPrestaMois(mk) {
       const nb=m.nbMoisRec||9999;
       if(diff>=0&&diff<nb) t+=m.montantMensuel||0;
     } else {
-      const encs=m.encaissements||[];
+      const encs=encaissementsComptes(m);
       if(encs.length>0){
         const vr=getMissionVenteRatio(m);
         encs.forEach(e=>{ if(e.date&&getMonthKey(e.date)===mk) t+=(e.montant||0)*(1-vr); });
@@ -4709,7 +4709,7 @@ function getCaVenteMissions(mk) {
   if(!isActiviteMixte()) return 0;
   let t=0;
   DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring).forEach(m=>{
-    const encs=m.encaissements||[];
+    const encs=encaissementsComptes(m);
     if(encs.length>0){
       const vr=getMissionVenteRatio(m);
       encs.forEach(e=>{ if(e.date&&getMonthKey(e.date)===mk) t+=(e.montant||0)*vr; });
@@ -5196,7 +5196,7 @@ function markInvalid(...ids) {
 // tout leur historique contre le seul CA de ce mois-là.
 function getHeuresMoisCoherentes(mk) {
   const missionsNonRec=DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring).filter(m=>{
-    const encs=m.encaissements||[];
+    const encs=encaissementsComptes(m);
     if(encs.length>0) return encs.some(e=>e.date&&e.date.slice(0,7)===mk);
     return m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===mk;
   });
@@ -5451,7 +5451,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
     // comptée, faussant le dénominateur du "Gain / commande" à la baisse (voire —).
     const _prevNbM=DATA.missions.filter(m=>{
       if(m.isManagement) return false;
-      const encs=m.encaissements||[];
+      const encs=encaissementsComptes(m);
       return encs.length>0 ? encs.some(e=>(e.date||'').startsWith(prevMk)) : (m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===prevMk);
     }).length;
     const _prevItemLbl=_prevFamily==='achat_revente'?'vente':'commande';
@@ -5790,7 +5790,7 @@ function buildAlerts({caBrut,caNetMoy,hF,hI,caP,caV,caNetRoulant,hTRoulant}) {
     // sans ce repli, l'alerte ne se déclenchait jamais pour une mission facturée sans encaissement.
     const _cAgg=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
       const co=_buildAlertsCoutMap[m.id]||0;
-      const encs=m.encaissements||[];
+      const encs=encaissementsComptes(m);
       const en=encs.length>0
         ? encs.reduce((a,e)=>a+(parseFloat(e.montant)||0),0)
         : (m.statut==='fact'?(m.montantDevis||0):0);
@@ -5873,7 +5873,7 @@ function getCaMissionsADate(mk, jour) {
   const cutoff=`${mk}-${String(jour).padStart(2,'0')}`;
   let total=getCaFromMissions(mk);
   DATA.missions.filter(m=>!m.isManagement&&!m.isRecurring).forEach(m=>{
-    const encs=m.encaissements||[];
+    const encs=encaissementsComptes(m);
     if(encs.length>0){
       encs.forEach(e=>{
         if(e.date&&e.date.slice(0,7)===mk&&e.date>cutoff) total-=parseFloat(e.montant)||0;
@@ -6465,7 +6465,7 @@ function wScoreSante(d) {
   const _rentCoutMap=typeof getDepensesAffairesMap==='function'?getDepensesAffairesMap():{};
   const _rentCouts=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
     const co=_rentCoutMap[m.id]||0;
-    const encs=m.encaissements||[];
+    const encs=encaissementsComptes(m);
     // Repli sur dateFact (mission facturée) quand il n'y a pas d'encaissements détaillés —
     // sinon son CA n'est jamais compté ici et la marge brute annuelle affiche "—" (aucune
     // donnée) même quand des coûts directs et un CA réels existent bel et bien. Même angle
@@ -6550,7 +6550,7 @@ function wScoreSante(d) {
   const caMoisCourant=getCaFromMissions(curMk)+getPonctuelsCA(curMk);
   const _rentCoutsMois=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
     const co=(DATA.depenses||[]).filter(dep=>dep.chantierId===m.id&&dep.date&&dep.date.slice(0,7)===curMk).reduce((a,dep)=>a+(dep.montant||0),0);
-    const encs=m.encaissements||[];
+    const encs=encaissementsComptes(m);
     // Repli sur dateFact quand la mission n'a pas d'encaissements détaillés (chantier saisi a
     // posteriori) — sinon son CA n'est jamais compté ici (toujours 0), contrairement à
     // caMoisCourant/getCaFromMissions qui gèrent déjà ce repli. Même angle mort que celui
@@ -6990,7 +6990,7 @@ function wScoreSante(d) {
     // Plafond volontaire à 12 mois : estimation glissante sur 1 an du poids du client pour le
     // risque de concentration, pas une durée de mission tronquée — ne pas "corriger" en nbMoisRec brut.
     if(m.isRecurring&&m.statut==='cours') ca=(m.montantMensuel||0)*Math.min(m.nbMoisRec||12,12);
-    else{const enc=(m.encaissements||[]).reduce((s,e)=>s+(e.montant||0),0);ca=enc>0?enc:(m.statut==='fact'&&m.montantDevis>0?m.montantDevis:0);}
+    else{const enc=encaissementsComptes(m).reduce((s,e)=>s+(e.montant||0),0);ca=enc>0?enc:(m.statut==='fact'&&m.montantDevis>0?m.montantDevis:0);}
     if(ca>0) clientCA[cl]=(clientCA[cl]||0)+ca;
   });
   const totalCaCli=Object.values(clientCA).reduce((s,v)=>s+v,0);
@@ -7481,10 +7481,10 @@ function openEncaissementsModal(missionId) {
 }
 function renderEncaissementsModal() {
   const m=DATA.missions.find(x=>x.id===_encModalMissionId); if(!m) return;
-  const encs=m.encaissements||[];
+  const encs=m.encaissements||[]; // liste complète : les annulés restent affichés (barrés)
   const tvaOn=DATA.params.tva, tvaRate=(DATA.params.tauxTVA||20)/100;
   const totalHT=getTotalEncaisse(m), resteHT=Math.max(0,(m.montantDevis||0)-totalHT);
-  const totalTTC=tvaOn?encs.reduce((s,e)=>s+(e.montantTTC||Math.round(e.montant*(1+tvaRate)*100)/100),0):null;
+  const totalTTC=tvaOn?encaissementsComptes(m).reduce((s,e)=>s+(e.montantTTC||Math.round(e.montant*(1+tvaRate)*100)/100),0):null;
   const resteTTC=tvaOn?Math.round(resteHT*(1+tvaRate)*100)/100:null;
   const sumEl=document.getElementById('enc-m-summary');
   if(sumEl){
@@ -7507,18 +7507,25 @@ function renderEncaissementsModal() {
   const typeLabel={acompte:'Acompte',solde:'Solde',paiement:'Paiement'};
   const typeColor={acompte:'#fef3c7;color:#92400e',solde:'#dcfce7;color:#166534',paiement:'#dbeafe;color:#1e40af'};
   list.innerHTML=encs.map(e=>{
+    const annulee=e.statutLivre==='annulee';
+    const strike=annulee?'text-decoration:line-through;opacity:.55':'';
     const ttc=tvaOn?(e.montantTTC||Math.round(e.montant*(1+tvaRate)*100)/100):null;
     const montantStr=tvaOn
       ?`<span style="font-weight:700">${fmtE(ttc)} TTC</span> <span class="ts" style="color:var(--tl)">= ${fmtE(e.montant)} HT</span>`
       :`<span style="font-weight:700">${fmtE(e.montant||0)}</span>`;
     const tc=typeColor[e.type]||typeColor.paiement;
     const tl=typeLabel[e.type]||e.type||'—';
+    // Annuler (jamais supprimer : intangibilité du livre des recettes) / Réactiver — même bascule
+    // que dans le Livre (toggleAnnulationRecette), donc cohérent dans les deux sens.
+    const actionBtn=annulee
+      ? `<button class="btn btn-sm" style="color:var(--ok);border-color:var(--ok);padding:2px 7px;font-size:11px" title="Réactiver cet encaissement" onclick="toggleAnnulationRecette('auto','${e.id}','${m.id}')">↩</button>`
+      : `<button class="btn btn-sm" style="color:#e53935;border-color:#e53935;padding:2px 7px;font-size:11px" title="Annuler cet encaissement (il reste dans le Livre des recettes, barré)" onclick="toggleAnnulationRecette('auto','${e.id}','${m.id}')">✕</button>`;
     return `<div style="display:grid;grid-template-columns:100px 80px 1fr 2fr auto;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--brd)">
-      <span class="ts">${e.date||'—'}</span>
+      <span class="ts" style="${strike}">${e.date||'—'}</span>
       <span class="badge" style="background:${tc};font-size:10px">${tl}</span>
-      <span class="ts">${montantStr}</span>
-      <span class="ts" style="color:var(--tl);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${e.note||''}</span>
-      <button class="btn btn-sm" style="color:#e53935;border-color:#e53935;padding:2px 7px;font-size:11px" onclick="deleteEncaissementModal('${e.id}')">✕</button>
+      <span class="ts"><span style="${strike}">${montantStr}</span>${annulee?' <span class="badge" style="background:var(--brd);color:var(--tl);font-size:9px;padding:1px 5px">annulé</span>':''}</span>
+      <span class="ts" style="color:var(--tl);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;${strike}">${e.note||''}</span>
+      ${actionBtn}
     </div>`;}).join('');
 }
 // ══ LIVRE DES RECETTES ════════════════════════════════════════
@@ -7873,7 +7880,14 @@ function toggleAnnulationRecette(origine, id, missionId) {
     enc.dateModif=now;
   }
   saveData();
+  // Cohérence dans les deux sens (retour Faustine 2026-08-09) : annuler/réactiver depuis le Livre
+  // OU depuis la fiche mission met à jour toutes les surfaces (le "reste à encaisser" remonte, le CA
+  // se recalcule). renderEncaissementsModal fait un early-return si la modale n'est pas ouverte.
+  renderEncaissementsModal();
   if(currentPage==='recettes') renderRecettes();
+  if(currentPage==='missions') renderMissions();
+  if(currentPage==='dashboard') renderDashboard();
+  if(currentPage==='revenus') renderRevenus();
 }
 
 // Même principe de traçabilité que exportRecettesPDF() ci-dessous : toujours 'tout' (jamais le
@@ -8185,11 +8199,6 @@ function addEncaissementModal() {
   if(DATA.params.livreRecettesActif) {
     setTimeout(()=>ouvrirPopupCompletion(_encModalMissionId, newEncId), 250);
   }
-}
-function deleteEncaissementModal(encId) {
-  const m=DATA.missions.find(x=>x.id===_encModalMissionId); if(!m) return;
-  m.encaissements=m.encaissements.filter(e=>e.id!==encId);
-  saveData(); renderEncaissementsModal(); if(currentPage==='missions') renderMissions();
 }
 
 // Repli "Gestion du temps" (temps planifié/semaine + sessions Planning) — mêmes mécaniques que
@@ -9193,7 +9202,7 @@ function modifierDateRembourseRetour(retourId, val) {
 // déclaration URSSAF déjà faite nécessite une déclaration rectificative.
 function getVenteCaMonth(m) {
   if(!m) return null;
-  const encs=m.encaissements||[];
+  const encs=encaissementsComptes(m);
   if(encs.length>0){
     const dates=encs.map(e=>e.date).filter(Boolean).sort();
     return dates.length?dates[dates.length-1].slice(0,7):null;
@@ -14799,6 +14808,7 @@ document.addEventListener('keydown', function(e) {
   window.tvaZoneFill               = Mode.tvaZoneFill;
   window.tvaZoneKpi                = Mode.tvaZoneKpi;
   window.getTotalEncaisse          = (m) => { sync(); return Mode.getTotalEncaisse(m); };
+  window.encaissementsComptes      = (m) => { sync(); return Mode.encaissementsComptes(m); };
   window.getTresorerieDepart       = () => { sync(); return Mode.getTresorerieDepart(); };
   window.getTvaRegime              = () => { sync(); return Mode.getTvaRegime(); };
   window.getUrssafAnnuelBrut       = () => { sync(); return Mode.getUrssafAnnuelBrut(); };

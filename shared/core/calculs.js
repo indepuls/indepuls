@@ -214,6 +214,14 @@ export function getCaBreakdownMois(DATA, mk) {
 //     (CA reconnu en une fois au moment de la facturation), uniquement si statut='fact'.
 // isRecurring est désormais supporté par les deux modes (Freelance et Artisan),
 // donc cette même fonction reste valide pour les deux.
+// Encaissements réellement comptés : on exclut ceux annulés (statutLivre==='annulee'). Un
+// encaissement annulé reste dans le livre des recettes (intangibilité — jamais supprimé), mais ne
+// compte plus dans le CA ni le "reste à encaisser". Point de vérité unique pour toutes les sommes
+// d'encaissements côté CA/trésorerie (retour Faustine 2026-08-09, conformité livre des recettes).
+export function encaissementsComptes(m) {
+  return (m.encaissements || []).filter(e => e.statutLivre !== 'annulee');
+}
+
 export function getCaFromMissions(DATA, mk) {
   let total = 0;
   DATA.missions.filter(m => !m.isManagement).forEach(m => {
@@ -225,7 +233,7 @@ export function getCaFromMissions(DATA, mk) {
       const nb = m.nbMoisRec || 9999;
       if (diff >= 0 && diff < nb) total += m.montantMensuel || 0;
     } else {
-      const encs = m.encaissements || [];
+      const encs = encaissementsComptes(m);
       if (encs.length > 0) {
         encs.forEach(e => { if (e.date && monthKeyOf(e.date) === mk) total += e.montant || 0; });
       } else {
@@ -774,7 +782,7 @@ export function getSasuProjectionFinAnnee(DATA) {
 // ── ENCAISSEMENTS ────────────────────────────────────────────
 
 export function getTotalEncaisse(m) {
-  return (m.encaissements || []).reduce((s, e) => s + (e.montant || 0), 0);
+  return encaissementsComptes(m).reduce((s, e) => s + (e.montant || 0), 0);
 }
 
 export function getResteAEncaisser(m) {
