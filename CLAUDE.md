@@ -3226,6 +3226,27 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — "Et si je déléguais ?" : budget de délégation (retour Justin)
+
+Nouvelle carte dans le simulateur "Et si ?" (5e carte) : combien on peut se permettre de payer pour déléguer des tâches, en revendant le temps libéré. Sans nouvelle saisie obligatoire, et sans jamais imposer/deviner de catégories.
+
+**Calculs (dormants d'abord, testés `delegation_test.js` 15/15)** :
+- `getHeuresMoisParCategories(categories, nbMois=3)` : heures/mois moyennes passées sur des catégories cochées (via `mission.tempsManuel`), fenêtre glissante 3 mois.
+- `getTHNetParHeure()` : revenu net roulant ÷ heures roulantes (`getRentabiliteRoulante`) = le "TH réel net" déjà affiché ailleurs. **Net** et pas brut : le budget est une dépense réelle (la facture du prestataire), à comparer à ce qu'on garde vraiment (décision Faustine).
+- `simulerDelegation(...)` : budget = heures × TH net, + garde-fou remplissage en 3 états (`ok` ≥ 80 %, `bas` < 80 %, `inconnu` si calendrier non renseigné) — **alerte, jamais blocage** (l'agenda peut être plein sans qu'Indépuls le sache).
+- `getHeuresInterneMois(nbMois=3)` : temps interne moyen/mois (missions de gestion + `DATA.tempsInterne`), pour le rappel proactif.
+
+**UI** :
+- Carte `etsiCard5Html` + `etsiDelegationRecalc` : cases à cocher des **propres catégories de temps** de l'utilisateur (aucune imposée). Un **champ "Heures à déléguer / mois" éditable** (`#etsi-deleg-heures`) : auto-rempli par la somme des cases (`etsiDelegCatsChanged`), mais librement modifiable ou saisissable directement — utile à qui ne répertorie pas tout son temps (retour Faustine). Le budget suit ce champ.
+- Sortie : "Budget délégation possible : jusqu'à ~X €/mois" + détail dépliable (heures × TH net) + message de garde-fou + phrase "déductible" pour les profils SASU/EURL seulement. Méthodo dans `ETSI_METH.delegation`.
+- **Rappel proactif** (Brief > Alertes) : si temps interne ≥ 8 h/mois ET remplissage ≥ 80 % (connu), "Vous passez ~X h/mois sur des tâches internes. Et si vous en déléguiez une partie ? → Simuler", masquable 15 j (`delegationNudge` dans `DATA.alertsDismissed`). Ne s'affiche jamais si l'agenda n'est pas rempli (déléguer ne créerait pas de CA).
+- **Mise en page "Et si ?"** : passage de la grille `.g2` à `.etsi-cols` (2 colonnes flex indépendantes, masonry) — la carte déléguer se cale sous "perdre un client" sans le décalage vertical d'une grille où chaque rangée s'aligne sur la plus haute carte. Empile à 768 px.
+- **Démo** : temps interne catégorisé (2 premières catégories de la famille via `VOCABULARY_FAMILIES[family].defaultCategoriesTemps`) sur 3 mois de la mission de gestion, pour que la carte montre un budget au lieu de rester vide.
+
+**Écarté volontairement** (échange produit avec Faustine) : demander le coût du prestataire en entrée (personne ne le connaît → on sort un budget à la place) ; chiffrer les effets de second ordre (meilleure com → plus de clients → réputation : réels mais invérifiables, donc mentionnés en qualitatif, jamais un nombre) ; auto-détecter les tâches délégables (imposerait des catégories, contre la personnalisation) ; le TH brut (survendrait le budget).
+
+**Vérifié** : `node --check` (6 chunks) + `delegation_test.js` 15/15 (heures/mois, TH net, budget, 3 états du garde-fou, seuil 80 %, cas 0 h) + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : carte "Et si je déléguais ?", cocher une tâche → heures auto-remplies + budget ; modifier le champ heures à la main → budget recalculé ; sans cocher, saisir des heures → budget quand même ; message de garde-fou selon le remplissage ; rappel proactif sur le dashboard quand le temps interne est élevé et l'agenda plein.
+
 ### 2026-08-09 — Trajectoire : lisibilité du mois négatif ("objectif atteint à -91 %")
 
 Retour Faustine : quand le revenu net du mois est négatif (charges déjà passées, aucun encaissement en face), le widget "Ma trajectoire" affichait "🔴 Objectif atteint à seulement -91 % ce mois" et "-91 % de l'objectif" : un pourcentage négatif d'un objectif n'a aucun sens.

@@ -3078,6 +3078,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-08-09', titre:'Nouveau scénario "Et si je déléguais ?" dans le simulateur : cochez des tâches (ou saisissez vos heures), Indépuls estime le budget que vous pourriez consacrer à un prestataire en revendant le temps libéré.', icon:'🤝', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Le widget "Sources d\'acquisition" détaille maintenant chaque canal : panier moyen, taux de transformation et rentabilité, sans aucune saisie en plus.', icon:'📡', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Vos devis sont maintenant suivis dans la mission : brouillon, émis, accepté. Une fois un devis accepté, vous pouvez y ajouter des avenants (ajouts ou retraits), et le montant de la mission se met à jour automatiquement.', icon:'📄', merci:null },
   { date:'2026-08-02', titre:'Ajoutez une remise sur chaque ligne de vos devis, en pourcentage ou en euros. Le net et la remise totale apparaissent automatiquement sur le devis.', icon:'🏷️', merci:'Merci à Justin pour l\'idée 🙏' },
@@ -5227,6 +5228,19 @@ function simulerDelegation(categories, nbMois = 3) {
   const gate = !remplissageConnu ? 'inconnu' : (remp.taux >= SEUIL ? 'ok' : 'bas');
   return { heuresMois, thNet: Math.round(thNet), budget, tauxRemplissage: remp.taux, remplissageConnu, gate, seuil: SEUIL };
 }
+// Heures internes moyennes par mois (temps de gestion/admin) sur les nbMois derniers mois : temps
+// catégorisé sur les missions de gestion + DATA.tempsInterne. Sert au rappel proactif "et si je
+// déléguais ?" (une part notable de temps interne = candidat naturel à la délégation).
+function getHeuresInterneMois(nbMois = 3) {
+  const now = new Date();
+  const fenetre = new Set();
+  for (let i = 0; i < nbMois; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); fenetre.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
+  let ms = 0;
+  (DATA.missions || []).forEach(m => { if (!m.isManagement) return; (m.tempsManuel || []).forEach(t => { if (fenetre.has((t.date || '').slice(0, 7))) ms += (t.ms || 0); }); });
+  let h = ms / 3600000;
+  if (DATA.tempsInterne) fenetre.forEach(mk => { h += ((DATA.tempsInterne[mk]) || 0) / 3600000; });
+  return Math.round(h / nbMois * 10) / 10;
+}
 
 function renderDashboard() {
 const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisActifsAnnee().length,1);
@@ -6999,6 +7013,18 @@ function wScoreSante(d) {
       alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} ${tVocab('item')} <strong>${esc(m.client||m.description||'sans nom')}</strong> sans réponse depuis <strong>${j} j</strong>${montant}. Relancer ?<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions');setTimeout(()=>openMissionModal('${m.id}'),100)">Ouvrir ${tVocab('item').toLowerCase()}</span></span>${_dismissBtn(k)}</div>`);
     });
   } catch(e){reportError('relanceDevisAttente',e);}
+  // Rappel proactif "Et si je déléguais ?" (retour Justin/Faustine 2026-08-09) : une part notable de
+  // temps interne (gestion/admin) EST candidate à la délégation, mais seulement si l'agenda est
+  // rempli (sinon libérer du temps ne crée pas de CA). On ne propose donc que si remplissage >= 80 %,
+  // connu. Snooze 15 j comme les autres. Le calcul complet reste dans la carte du simulateur.
+  try {
+    const hInt=getHeuresInterneMois(3);
+    const rempDeleg=getTauxRemplissageAnnee();
+    const kDeleg='delegationNudge';
+    if(hInt>=8 && rempDeleg.ouvrables>0 && rempDeleg.taux>=80 && !_alertDismissed(kDeleg)){
+      alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">🤝 Vous passez environ <strong>${fmt(hInt,hInt%1===0?0:1)} h/mois</strong> sur des tâches internes (gestion, admin…). Et si vous en déléguiez une partie ?<br><span class="step-cta" style="margin-top:4px" onclick="irVersEtSi(5)">Simuler une délégation</span></span>${_dismissBtn(kDeleg)}</div>`);
+    }
+  } catch(e){reportError('delegationNudge',e);}
   const shown5=alertLines.slice(0,5).join('');
   const rest5=alertLines.length>5?alertLines.slice(5).join(''):'';
   const alertsSection=alertLines.length?`<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">Alertes</div>${shown5}${rest5?`<div style="font-size:11px;color:var(--acc);cursor:pointer;margin-top:2px;font-weight:700" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">+ ${alertLines.length-5} autre${alertLines.length-5>1?'s':''} →</div><div style="display:none">${rest5}</div>`:''}` + '</div>' : '';
