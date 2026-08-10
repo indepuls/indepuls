@@ -163,18 +163,25 @@ export function getDepensesMoyenneMensuelle(DATA) {
 
 // ── REVENUS PONCTUELS ────────────────────────────────────────
 
+// Un revenu ponctuel annulé (statut==='annulee') reste dans le livre des recettes (intangibilité)
+// mais ne compte plus dans le CA ni le seuil TVA — même principe que les encaissements annulés
+// (retour Faustine 2026-08-09). Les "hors_ca" n'ont ni montantPrestation ni montantVente, donc déjà
+// hors CA, et n'apparaissent pas dans le livre : ils ne sont pas concernés par l'annulation.
 export function getPonctuelsCA(DATA, mk) {
   return ((DATA.revenus[mk] || {}).autresList || [])
+    .filter(e => e.statut !== 'annulee')
     .reduce((s, e) => s + (e.montantPrestation || 0) + (e.montantVente || 0), 0);
 }
 
 export function getPonctuelsPresta(DATA, mk) {
   return ((DATA.revenus[mk] || {}).autresList || [])
+    .filter(e => e.statut !== 'annulee')
     .reduce((s, e) => s + (e.montantPrestation || 0), 0);
 }
 
 export function getPonctuelsVente(DATA, mk) {
   return ((DATA.revenus[mk] || {}).autresList || [])
+    .filter(e => e.statut !== 'annulee')
     .reduce((s, e) => s + (e.montantVente || 0), 0);
 }
 

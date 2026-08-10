@@ -4,7 +4,7 @@
 // PLUS compter dans getTotalEncaisse, getResteAEncaisser ni getCaFromMissions. Réactiver le remet
 // dans les totaux. Ces tests verrouillent l'exclusion (le point sensible : le moteur de CA).
 
-import { encaissementsComptes, getTotalEncaisse, getResteAEncaisser, getCaFromMissions } from '../core/calculs.js';
+import { encaissementsComptes, getTotalEncaisse, getResteAEncaisser, getCaFromMissions, getPonctuelsCA, getPonctuelsPresta, getPonctuelsVente } from '../core/calculs.js';
 
 let passed = 0, failed = 0;
 function test(label, actual, expected) {
@@ -41,6 +41,17 @@ test('réactivé : CA mars = 1800 (1000+800)', getCaFromMissions({ missions: [m2
 const mAll = { id: 'm3', montantDevis: 500, statut: 'fact', dateFact: '2026-05-15', encaissements: [ enc('x', '2026-05-15', 500, 'annulee') ] };
 test('tous annulés -> total 0', getTotalEncaisse(mAll), 0);
 test('tous annulés + facturé -> CA mai = montant devis (500)', getCaFromMissions({ missions: [mAll] }, '2026-05'), 500);
+
+// ── Revenus ponctuels annulés : exclus du CA / seuil TVA, hors_ca non concerné ──
+const D2 = { revenus: { '2026-06': { autresList: [
+  { id: 'p1', montantPrestation: 500, montantVente: 0 },
+  { id: 'p2', montantPrestation: 0, montantVente: 300, statut: 'annulee' },   // annulé -> exclu
+  { id: 'p3', montantPrestation: 200, montantVente: 100 },
+  { id: 'p4', type: 'hors_ca', montant: 90, montantPrestation: 0, montantVente: 0 }, // hors CA, non concerné
+] } } };
+test('ponctuels CA exclut l\'annulé (500 + 300)', getPonctuelsCA(D2, '2026-06'), 800);
+test('ponctuels presta exclut l\'annulé (500 + 200)', getPonctuelsPresta(D2, '2026-06'), 700);
+test('ponctuels vente exclut l\'annulé (0 + 100, pas le 300 annulé)', getPonctuelsVente(D2, '2026-06'), 100);
 
 console.log(`\n${failed === 0 ? '✅ TOUS VERTS' : '❌ ' + failed + ' ÉCHEC(S)'} — ${passed}/${passed + failed}`);
 process.exit(failed === 0 ? 0 : 1);

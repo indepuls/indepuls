@@ -3238,6 +3238,7 @@ Un livre des recettes est légalement intangible (chronologique, sans suppressio
 - La modale Encaissements : le `✕` **annule** (via `toggleAnnulationRecette('auto', encId, missionId)`), l'encaissement reste **barré** avec un bouton **↩ Réactiver**. Total TTC recalculé hors annulés.
 - **Cohérence dans les deux sens** : `toggleAnnulationRecette` rafraîchit désormais Livre + fiche mission + modale + dashboard + revenus. Annuler depuis le Livre fait remonter le "reste à encaisser" de la mission, et inversement.
 - Le Livre (`renderRecettes`) excluait déjà les annulées de ses totaux (`filter(r=>r.statut!=='annulee')`) — inchangé.
+- **Revenus ponctuels** (même vérif, retour Faustine) : `getPonctuelsCA`/`getPonctuelsPresta`/`getPonctuelsVente` filtrent aussi `statut==='annulee'` désormais (un ponctuel annulé restait sinon dans le CA et le seuil TVA). Les `hors_ca` ne sont pas concernés (ni montantPrestation ni montantVente, et absents du Livre). Le **seuil TVA** est donc à jour dans les deux cas : `getCaAnnuelBrut`→`getCaFromMissions` (non mixte) et `getCaPrestaMois`/`getCaVenteMissions` (mixte) passent tous par le CA corrigé.
 
 **À noter (comportement assumé, à rediscuter si besoin)** : annuler le dernier encaissement d'une mission **facturée** ne remet pas son CA à zéro — la mission reste "facturée", donc son CA est recompté au montant du devis (modèle existant fact→CA). Seul le "reste à encaisser" remonte. Pour que l'annulation supprime aussi le CA, il faudrait aussi repasser la mission hors "facturé" (décision produit, non prise ici).
 
