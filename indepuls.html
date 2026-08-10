@@ -754,8 +754,8 @@ html,body{overflow-x:hidden;}
       <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center" id="missions-view-toggle">
         <button class="btn btn-out btn-xs active-filter" onclick="setMissionsView('table')" id="missions-view-btn-table">📋 Tableau</button>
         <button class="btn btn-out btn-xs" onclick="setMissionsView('calendrier')" id="missions-view-btn-calendrier">📅 Calendrier</button>
-        <button class="btn btn-out btn-xs" onclick="setMissionsView('pipeline')" id="missions-view-btn-pipeline">🗂️ Pipeline</button>
-        <span class="info-tip" title="Trois façons de voir la même chose : en tableau (tout votre portefeuille), en calendrier (le planning du mois) ou en pipeline (vos missions par statut, en colonnes). Les informations et les actions sont les mêmes partout. Sur ordinateur, dans le pipeline, vous pouvez faire glisser une mission d'une colonne à l'autre pour changer son statut ; sur mobile, un menu déroulant sur chaque carte le permet. Choisissez la vue que vous préférez, vous n'avez pas à naviguer entre les deux.">?</span>
+        <button class="btn btn-out btn-xs" onclick="setMissionsView('pipeline')" id="missions-view-btn-pipeline">🗂️ Kanban</button>
+        <span class="info-tip" title="Trois façons de voir la même chose : en tableau (tout votre portefeuille), en calendrier (le planning du mois) ou en kanban (vos missions par statut, en colonnes). Les informations et les actions sont les mêmes partout. Sur ordinateur, dans le pipeline, vous pouvez faire glisser une mission d'une colonne à l'autre pour changer son statut ; sur mobile, un menu déroulant sur chaque carte le permet. Choisissez la vue que vous préférez, vous n'avez pas à naviguer entre les deux.">?</span>
         <!-- Widget "Temps interne" (ex-ligne "Mon entreprise" du tableau, chantier présentation
              2026-07-27) : partagé entre les deux vues (Tableau/Calendrier) puisqu'il vit dans la
              barre commune, pas dans une vue en particulier. Centré dans l'espace restant après le
@@ -3097,7 +3097,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
-  { date:'2026-08-10', titre:'Nouvelle vue "Pipeline" pour vos missions : vos affaires en colonnes par statut. Sur ordinateur, glissez une carte d\'une colonne à l\'autre pour changer son statut ; sur mobile, un menu déroulant fait la même chose.', icon:'🗂️', merci:'Merci à Justin pour l\'idée 🙏' },
+  { date:'2026-08-10', titre:'Nouvelle vue "Kanban" pour vos missions : vos affaires en colonnes par statut. Sur ordinateur, glissez une carte d\'une colonne à l\'autre pour changer son statut ; sur mobile, un menu déroulant fait la même chose.', icon:'🗂️', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Nouveau scénario "Et si je déléguais ?" dans le simulateur : cochez des tâches (ou saisissez vos heures), Indépuls estime le budget que vous pourriez consacrer à un prestataire en revendant le temps libéré.', icon:'🤝', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Le widget "Sources d\'acquisition" détaille maintenant chaque canal : panier moyen, taux de transformation et rentabilité, sans aucune saisie en plus.', icon:'📡', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Vos devis sont maintenant suivis dans la mission : brouillon, émis, accepté. Une fois un devis accepté, vous pouvez y ajouter des avenants (ajouts ou retraits), et le montant de la mission se met à jour automatiquement.', icon:'📄', merci:null },
