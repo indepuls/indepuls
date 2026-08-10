@@ -3226,6 +3226,18 @@ Le montant contractuel (`_missionMontantContractuel` = devis accepté + avenants
 
 **Reste (étape 6, clôture)** : bilan/tests de bout en bout + note "Nouveautés" utilisateur du chantier devis (documents + avenants). Numérotation auto volontairement écartée (décision Faustine).
 
+### 2026-08-09 — Vue Pipeline (kanban) des missions, 3e vue (retour Justin)
+
+3e onglet 🗂️ Pipeline à côté de Tableau et Calendrier (`setMissionsView('pipeline')`, `_applyMissionsView` gère le bouton+zone, `renderMissions` rafraîchit le pipeline s'il est actif comme il rafraîchit déjà le calendrier). Colonnes par statut (att / cours / fact / ref), en-tête = nombre + total €, cartes = client + prestation + montant + un repère selon le statut (ancienneté du devis, à encaisser/soldé, motif de refus). Carte cliquable → fiche mission.
+
+- **Glisser-déposer (desktop)** : cartes `draggable`, colonnes = zones de dépôt ; au drop → **`setMissionStatut(id, statut)`** — donc **mêmes effets et garde-fous que le menu déroulant** (modale facturation date+temps, modale motif de refus, recalcul CA/reste/seuil TVA). Aucune logique de statut dupliquée.
+- **Mobile** : le drag HTML5 ne se déclenche pas au tactile → chaque carte porte un **menu déroulant de statut** (classe `.pl-card-statut`, masquée ≥ 769 px, visible ≤ 768 px). Colonnes empilées verticalement sur mobile (pas de scroll horizontal).
+- **Colonnes bornées** : facturé/refusé triées récentes d'abord et **plafonnées à `_PL_CAP=8`**, avec « + N autres → » qui bascule sur le Tableau filtré (`_plVoirTout`). Colonnes actives (attente/en cours) complètes.
+- **Info-tip** du toggle mis à jour (3 vues, drag desktop / menu mobile).
+- Réutilise `_joursDepuisEmissionDevis`, `getResteAEncaisser`, `estMissionPayee`, `tVocabStatut`, `REF_MOTIF_LABELS` — aucun calcul neuf. La vérité "un changement de statut ne double-compte jamais le CA entre vues" tient : les 3 vues ne sont que des affichages, le CA vient des encaissements via les fonctions canoniques.
+
+**Vérifié** : `node --check` (6 chunks) + suite Node complète, 0 échec. Rendu DOM + drag non testables en session : **vérification navigateur (Faustine)** — desktop : glisser une carte d'une colonne à l'autre change le statut (et ouvre la modale facturation en déposant dans "facturé") ; mobile : le menu déroulant change le statut, colonnes empilées ; le "+ N autres" renvoie au Tableau filtré.
+
 ### 2026-08-09 — Conformité livre des recettes : supprimer un encaissement = l'annuler (jamais l'effacer)
 
 Un livre des recettes est légalement intangible (chronologique, sans suppression). Le mécanisme d'annulation existait déjà dans le Livre (`toggleAnnulationRecette` → `statutLivre==='annulee'`, l'écriture reste, barrée), MAIS deux trous (retour Faustine) :

@@ -67,6 +67,16 @@ body{font-family:'Lato',system-ui,sans-serif;background:var(--bg);color:var(--te
    décalage vertical d'une grille où chaque rangée s'aligne sur la carte la plus haute. */
 .etsi-cols{display:flex;gap:16px;align-items:flex-start;}
 .etsi-cols>.etsi-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
+/* Vue Pipeline (kanban) des missions : colonnes par statut. Desktop = glisser-déposer (cartes
+   draggable) ; mobile = colonnes empilées + menu déroulant de statut sur chaque carte. */
+.pl-cols{display:flex;gap:12px;align-items:flex-start;overflow-x:auto;}
+.pl-col{flex:1 1 0;min-width:200px;background:var(--bg);border-radius:12px;padding:10px;}
+.pl-col.pl-drop{outline:2px dashed var(--acc);outline-offset:-3px;}
+.pl-card{background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:grab;}
+.pl-card:active{cursor:grabbing;}
+.pl-card-statut{margin-top:6px;}
+@media(min-width:769px){.pl-card-statut{display:none;}}
+@media(max-width:768px){.pl-cols{flex-direction:column;overflow-x:visible;}.pl-col{min-width:0;width:100%;}}
 .g2-traj{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;align-items:start;}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
@@ -744,7 +754,8 @@ html,body{overflow-x:hidden;}
       <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center" id="missions-view-toggle">
         <button class="btn btn-out btn-xs active-filter" onclick="setMissionsView('table')" id="missions-view-btn-table">📋 Tableau</button>
         <button class="btn btn-out btn-xs" onclick="setMissionsView('calendrier')" id="missions-view-btn-calendrier">📅 Calendrier</button>
-        <span class="info-tip" title="Deux façons de voir la même chose : en tableau (tout votre portefeuille d'un coup) ou en calendrier (le planning du mois). Les informations et les actions sont les mêmes dans les deux. Choisissez la vue que vous préférez, vous n'avez pas à naviguer entre les deux.">?</span>
+        <button class="btn btn-out btn-xs" onclick="setMissionsView('pipeline')" id="missions-view-btn-pipeline">🗂️ Pipeline</button>
+        <span class="info-tip" title="Trois façons de voir la même chose : en tableau (tout votre portefeuille), en calendrier (le planning du mois) ou en pipeline (vos missions par statut, en colonnes). Les informations et les actions sont les mêmes partout. Sur ordinateur, dans le pipeline, vous pouvez faire glisser une mission d'une colonne à l'autre pour changer son statut ; sur mobile, un menu déroulant sur chaque carte le permet. Choisissez la vue que vous préférez, vous n'avez pas à naviguer entre les deux.">?</span>
         <!-- Widget "Temps interne" (ex-ligne "Mon entreprise" du tableau, chantier présentation
              2026-07-27) : partagé entre les deux vues (Tableau/Calendrier) puisqu'il vit dans la
              barre commune, pas dans une vue en particulier. Centré dans l'espace restant après le
@@ -802,6 +813,9 @@ html,body{overflow-x:hidden;}
     </div>
     <div id="missions-view-calendrier" style="display:none">
       <div id="planning-content"></div>
+    </div>
+    <div id="missions-view-pipeline" style="display:none">
+      <div id="pipeline-content"></div>
     </div>
   </div>
 
@@ -3083,6 +3097,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-08-10', titre:'Nouvelle vue "Pipeline" pour vos missions : vos affaires en colonnes par statut. Sur ordinateur, glissez une carte d\'une colonne à l\'autre pour changer son statut ; sur mobile, un menu déroulant fait la même chose.', icon:'🗂️', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Nouveau scénario "Et si je déléguais ?" dans le simulateur : cochez des tâches (ou saisissez vos heures), Indépuls estime le budget que vous pourriez consacrer à un prestataire en revendant le temps libéré.', icon:'🤝', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Le widget "Sources d\'acquisition" détaille maintenant chaque canal : panier moyen, taux de transformation et rentabilité, sans aucune saisie en plus.', icon:'📡', merci:'Merci à Justin pour l\'idée 🙏' },
   { date:'2026-08-09', titre:'Vos devis sont maintenant suivis dans la mission : brouillon, émis, accepté. Une fois un devis accepté, vous pouvez y ajouter des avenants (ajouts ou retraits), et le montant de la mission se met à jour automatiquement.', icon:'📄', merci:null },
@@ -7318,18 +7333,97 @@ let missionsView = (function() { try { return localStorage.getItem('indepuls_mis
 function _applyMissionsView(view) {
   const btnTable = document.getElementById('missions-view-btn-table');
   const btnCal   = document.getElementById('missions-view-btn-calendrier');
+  const btnPipe  = document.getElementById('missions-view-btn-pipeline');
   const zoneTable = document.getElementById('missions-view-table');
   const zoneCal   = document.getElementById('missions-view-calendrier');
+  const zonePipe  = document.getElementById('missions-view-pipeline');
   if (btnTable) btnTable.classList.toggle('active-filter', view === 'table');
   if (btnCal)   btnCal.classList.toggle('active-filter', view === 'calendrier');
+  if (btnPipe)  btnPipe.classList.toggle('active-filter', view === 'pipeline');
   if (zoneTable) zoneTable.style.display = view === 'table' ? '' : 'none';
   if (zoneCal)   zoneCal.style.display   = view === 'calendrier' ? '' : 'none';
+  if (zonePipe)  zonePipe.style.display  = view === 'pipeline' ? '' : 'none';
 }
 function setMissionsView(view) {
   missionsView = view;
   try { localStorage.setItem('indepuls_missions_view', view); } catch(e) {}
   _applyMissionsView(view);
   if (view === 'calendrier') renderPlanning();
+  if (view === 'pipeline') renderPipeline();
+}
+
+// ── VUE PIPELINE (kanban) des missions (retour Justin, 2026-08-09) ────────────
+// 3e vue : colonnes par statut. Desktop = glisser-déposer (au drop -> setMissionStatut, donc mêmes
+// effets/garde-fous que le menu déroulant : modale facturation, modale motif, recalcul CA…). Mobile
+// = menu déroulant de statut sur chaque carte (le drag HTML5 ne se déclenche pas au tactile).
+// Colonnes terminales (facturé/refusé) plafonnées, avec "+ N autres" vers le Tableau filtré. Aucun
+// calcul neuf : réutilise setMissionStatut, _joursDepuisEmissionDevis, getResteAEncaisser, etc.
+let _plDraggingId = null;
+const _PL_CAP = 8;
+function _plDragStart(e, id) { _plDraggingId = id; try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch(_) {} }
+function _plDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('pl-drop'); }
+function _plDragLeave(e) { e.currentTarget.classList.remove('pl-drop'); }
+function _plDrop(e, statut) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('pl-drop');
+  let id = ''; try { id = e.dataTransfer.getData('text/plain'); } catch(_) {}
+  id = id || _plDraggingId; _plDraggingId = null;
+  const m = DATA.missions.find(x => x.id === id);
+  if (m && !m.isManagement && m.statut !== statut) setMissionStatut(id, statut);
+}
+function _plVoirTout(statut) {
+  setMissionsView('table');
+  missionFilter = statut;
+  const sel = document.getElementById('mission-filter-select'); if (sel) sel.value = statut;
+  renderMissions();
+}
+function _plStatutSelect(m) {
+  return `<select class="s-select s-${m.statut}" style="width:100%;font-size:11px;height:26px;padding:1px 4px" onclick="event.stopPropagation()" onchange="setMissionStatut('${m.id}',this.value)"><option value="att"${m.statut==='att'?' selected':''}>${tVocabStatut('att')}</option><option value="cours"${m.statut==='cours'?' selected':''}>${tVocabStatut('cours')}</option><option value="ref"${m.statut==='ref'?' selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact"${m.statut==='fact'?' selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isRecurring&&estMissionPayee(m))}</option></select>`;
+}
+function _plCardMeta(m) {
+  if (m.statut === 'att') { const j = _joursDepuisEmissionDevis(m); return j !== null ? `depuis ${j} j` : ''; }
+  if (m.statut === 'ref') { return m.motifRefus ? (REF_MOTIF_LABELS[m.motifRefus]||m.motifRefus).toLowerCase() : ''; }
+  if (!m.isRecurring && m.statut === 'fact') { const r = getResteAEncaisser(m); return r > 0 ? `à encaisser ${fmtE(r)}` : 'soldé'; }
+  return '';
+}
+function _plCard(m) {
+  const montant = m.isRecurring ? `${fmtE(m.montantMensuel)}/mois` : (m.montantDevis>0 ? fmtE(m.montantDevis) : '');
+  const meta = _plCardMeta(m);
+  return `<div class="pl-card" draggable="true" ondragstart="_plDragStart(event,'${m.id}')" onclick="openMissionModal('${m.id}')">
+    <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.client||'—')}</div>
+    ${m.description?`<div class="ts" style="color:var(--tl);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${esc(m.description)}</div>`:''}
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px">
+      ${montant?`<span style="font-size:12px;font-weight:700">${montant}</span>`:'<span></span>'}
+      ${meta?`<span class="ts" style="color:var(--tl);white-space:nowrap">${meta}</span>`:''}
+    </div>
+    <div class="pl-card-statut" onclick="event.stopPropagation()">${_plStatutSelect(m)}</div>
+  </div>`;
+}
+function renderPipeline() {
+  const zone = document.getElementById('pipeline-content');
+  if (!zone) return;
+  const missions = DATA.missions.filter(m => !m.isManagement);
+  const COLS = [{k:'att',color:'#BA7517'},{k:'cours',color:'#378ADD'},{k:'fact',color:'#639922'},{k:'ref',color:'#888780'}];
+  const colsHtml = COLS.map(col => {
+    let items = missions.filter(m => m.statut === col.k);
+    const terminal = (col.k === 'fact' || col.k === 'ref');
+    if (terminal) items = items.slice().sort((a,b) => (b.dateFact||'').localeCompare(a.dateFact||'') || (b.id||'').localeCompare(a.id||''));
+    const total = items.reduce((s,m) => s + (m.isRecurring ? (m.montantMensuel||0) : (m.montantDevis||0)), 0);
+    const shown = terminal ? items.slice(0, _PL_CAP) : items;
+    const reste = terminal ? Math.max(0, items.length - _PL_CAP) : 0;
+    const cards = shown.map(_plCard).join('') || `<div class="ts" style="color:var(--tl);padding:4px 2px">—</div>`;
+    return `<div class="pl-col" ondragover="_plDragOver(event)" ondragleave="_plDragLeave(event)" ondrop="_plDrop(event,'${col.k}')">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <span style="width:9px;height:9px;border-radius:50%;background:${col.color};flex-shrink:0"></span>
+        <span style="font-size:13px;font-weight:700">${tVocabStatut(col.k)}</span>
+        <span class="ts" style="margin-left:auto;color:var(--tl)">${items.length}</span>
+      </div>
+      <div class="ts" style="color:var(--tl);margin-bottom:8px">${total>0?fmtE(total):'&nbsp;'}</div>
+      ${cards}
+      ${reste>0?`<div class="step-cta" style="margin-top:4px" onclick="_plVoirTout('${col.k}')">+ ${reste} autre${reste>1?'s':''} →</div>`:''}
+    </div>`;
+  }).join('');
+  zone.innerHTML = `<div class="pl-cols">${colsHtml}</div>`;
 }
 
 // ── REVENUS PONCTUELS UI ──────────────────────────────────────
@@ -10216,6 +10310,7 @@ function renderMissions() {
   // active, la garder synchronisée à chaque rafraîchissement du tableau — un seul point de
   // sortie, pas besoin de dupliquer l'appel à chaque site qui appelle déjà renderMissions().
   if (missionsView === 'calendrier') renderPlanning();
+  if (missionsView === 'pipeline') renderPipeline();
 }
 
 function startTimerInterval() {
