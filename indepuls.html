@@ -7383,19 +7383,44 @@ function _plStatutSelect(m) {
 function _plCardMeta(m) {
   if (m.statut === 'att') { const j = _joursDepuisEmissionDevis(m); return j !== null ? `depuis ${j} j` : ''; }
   if (m.statut === 'ref') { return m.motifRefus ? (REF_MOTIF_LABELS[m.motifRefus]||m.motifRefus).toLowerCase() : ''; }
-  if (!m.isRecurring && m.statut === 'fact') { const r = getResteAEncaisser(m); return r > 0 ? `à encaisser ${fmtE(r)}` : 'soldé'; }
   return '';
 }
-function _plCard(m) {
+// Carte kanban : même contenu que le Tableau/Calendrier (parité, retour Faustine 2026-08-10) —
+// prévu/réel + taux réel (brut+net), encaissé/reste, marqueur "payé", et les raccourcis d'action.
+function _plCard(m, coutMap) {
   const montant = m.isRecurring ? `${fmtE(m.montantMensuel)}/mois` : (m.montantDevis>0 ? fmtE(m.montantDevis) : '');
   const meta = _plCardMeta(m);
+  const paye = !m.isRecurring && estMissionPayee(m);
+  const traj = getTrajectoireCompacte(m);
+  const { th, thNet, unit } = _tauxReelMission(m, coutMap);
+  const netSuffix = thNet!=null ? ` <span style="color:var(--tl)">≈ ${fmtE(thNet,1)}${unit} net</span>` : '';
+  let trajLine = '';
+  if (traj) trajLine = traj.replace('</div>', netSuffix + '</div>');
+  else if (th!=null) trajLine = `<div class="ts" style="color:var(--tl);margin-top:2px">Taux réel ${fmtE(th,1)}${unit}${netSuffix}</div>`;
+  let encLine = '';
+  if (!m.isRecurring && (m.encaissements||[]).length){
+    const enc=getTotalEncaisse(m), reste=getResteAEncaisser(m);
+    encLine = `<div class="ts" style="margin-top:2px">💰 <strong style="color:var(--ok)">${fmtE(enc)}</strong> · reste <strong style="color:${reste>0?'var(--warn)':'var(--ok)'}">${fmtE(reste)}</strong></div>`;
+  }
+  const btn=(onclick,title,ico,cls)=>`<button type="button" class="btn ${cls||'btn-out'} btn-xs" title="${title}" onclick="${onclick}">${ico}</button>`;
+  const actions = `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:6px" onclick="event.stopPropagation()">
+    <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono" style="border:1px solid var(--brd);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center">${m.timerRunning?'⏹':'▶'}</button>
+    ${btn(`openAddTimeModal('${m.id}')`,'Ajouter du temps','⏱️')}
+    ${btn(`openMissionModal('${m.id}')`,'Modifier','✏️')}
+    ${btn(`openEncaissementsModal('${m.id}')`,'Encaissements','💰')}
+    ${btn(`duplicateMission('${m.id}')`,'Dupliquer','⧉')}
+    ${btn(`deleteMission('${m.id}')`,'Supprimer','🗑','btn-del')}
+  </div>`;
   return `<div class="pl-card" draggable="true" ondragstart="_plDragStart(event,'${m.id}')" onclick="openMissionModal('${m.id}')">
-    <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.client||'—')}</div>
+    <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.client||'—')}${paye?' <span class="badge b-fact" style="font-size:9px;padding:1px 5px">payé</span>':''}</div>
     ${m.description?`<div class="ts" style="color:var(--tl);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${esc(m.description)}</div>`:''}
     <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px">
       ${montant?`<span style="font-size:12px;font-weight:700">${montant}</span>`:'<span></span>'}
       ${meta?`<span class="ts" style="color:var(--tl);white-space:nowrap">${meta}</span>`:''}
     </div>
+    ${trajLine}
+    ${encLine}
+    ${actions}
     <div class="pl-card-statut" onclick="event.stopPropagation()">${_plStatutSelect(m)}</div>
   </div>`;
 }
@@ -7403,6 +7428,8 @@ function renderPipeline() {
   const zone = document.getElementById('pipeline-content');
   if (!zone) return;
   const missions = DATA.missions.filter(m => !m.isManagement);
+  const coutMap = typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {};
+  const rappels = renderSessionsSansTempsBlock(); // parité : mêmes rappels que Tableau/Calendrier
   const COLS = [{k:'att',color:'#BA7517'},{k:'cours',color:'#378ADD'},{k:'fact',color:'#639922'},{k:'ref',color:'#888780'}];
   const colsHtml = COLS.map(col => {
     let items = missions.filter(m => m.statut === col.k);
@@ -7411,7 +7438,7 @@ function renderPipeline() {
     const total = items.reduce((s,m) => s + (m.isRecurring ? (m.montantMensuel||0) : (m.montantDevis||0)), 0);
     const shown = terminal ? items.slice(0, _PL_CAP) : items;
     const reste = terminal ? Math.max(0, items.length - _PL_CAP) : 0;
-    const cards = shown.map(_plCard).join('') || `<div class="ts" style="color:var(--tl);padding:4px 2px">—</div>`;
+    const cards = shown.map(m => _plCard(m, coutMap)).join('') || `<div class="ts" style="color:var(--tl);padding:4px 2px">—</div>`;
     return `<div class="pl-col" ondragover="_plDragOver(event)" ondragleave="_plDragLeave(event)" ondrop="_plDrop(event,'${col.k}')">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
         <span style="width:9px;height:9px;border-radius:50%;background:${col.color};flex-shrink:0"></span>
@@ -7423,7 +7450,7 @@ function renderPipeline() {
       ${reste>0?`<div class="step-cta" style="margin-top:4px" onclick="_plVoirTout('${col.k}')">+ ${reste} autre${reste>1?'s':''} →</div>`:''}
     </div>`;
   }).join('');
-  zone.innerHTML = `<div class="pl-cols">${colsHtml}</div>`;
+  zone.innerHTML = `${rappels?`<div style="margin-bottom:12px">${rappels}</div>`:''}<div class="pl-cols">${colsHtml}</div>`;
 }
 
 // ── REVENUS PONCTUELS UI ──────────────────────────────────────
