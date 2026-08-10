@@ -3233,7 +3233,7 @@ Nouvelle carte dans le simulateur "Et si ?" (5e carte) : combien on peut se perm
 **Calculs (dormants d'abord, testés `delegation_test.js` 15/15)** :
 - `getHeuresMoisParCategories(categories, nbMois=3)` : heures/mois moyennes passées sur des catégories cochées (via `mission.tempsManuel`), fenêtre glissante 3 mois.
 - `getTHNetParHeure()` : revenu net roulant ÷ heures roulantes (`getRentabiliteRoulante`) = le "TH réel net" déjà affiché ailleurs. **Net** et pas brut : le budget est une dépense réelle (la facture du prestataire), à comparer à ce qu'on garde vraiment (décision Faustine).
-- `simulerDelegation(...)` : budget = heures × TH net, + garde-fou remplissage en 3 états (`ok` ≥ 80 %, `bas` < 80 %, `inconnu` si calendrier non renseigné) — **alerte, jamais blocage** (l'agenda peut être plein sans qu'Indépuls le sache).
+- `simulerDelegation(...)` : budget = heures × TH net, + garde-fou remplissage en 3 états (`ok` ≥ 80 %, `bas` < 80 %, `inconnu` si temps planifié non renseigné) — **alerte, jamais blocage** (l'agenda peut être plein sans qu'Indépuls le sache). Le remplissage vient de **`getPilierRemplissage`** (temps planifié `chargeEstimee` en h/semaine, la MÊME source que le pilier du Score de Santé), pas de la version sessions/calendrier `getTauxRemplissage*` (retour Faustine : afficher le même chiffre que celui que l'utilisateur voit).
 - `getHeuresInterneMois(nbMois=3)` : temps interne moyen/mois (missions de gestion + `DATA.tempsInterne`), pour le rappel proactif.
 
 **UI** :

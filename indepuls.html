@@ -5219,14 +5219,18 @@ function simulerDelegation(categories, nbMois = 3) {
   const heuresMois = getHeuresMoisParCategories(categories, nbMois);
   const thNet = getTHNetParHeure();
   const budget = Math.round(heuresMois * thNet);
-  const remp = getTauxRemplissageAnnee();
-  const remplissageConnu = remp.ouvrables > 0;
+  // Remplissage = MÊME source que le pilier du Score de Santé (getPilierRemplissage : temps planifié
+  // estimatif chargeEstimee en h/semaine), pour afficher le même chiffre que celui que voit
+  // l'utilisateur — pas la version sessions/calendrier (getTauxRemplissage*), qui est un autre calcul.
+  const pil = getPilierRemplissage();
+  const remplissageConnu = !!(pil && pil.details && pil.methode !== 'aucun');
+  const taux = remplissageConnu ? (pil.details.taux || 0) : 0;
   const SEUIL = 80;
   // 'ok' : remplissage ≥ 80% -> revendre le temps libéré est crédible.
   // 'bas' : < 80% -> alerte (pas blocage) : déléguer ne créera pas de CA tant que le temps facturable n'est pas rempli.
-  // 'inconnu' : calendrier non renseigné (ouvrables=0) -> on montre le budget mais on prévient qu'on ne peut pas vérifier la saturation.
-  const gate = !remplissageConnu ? 'inconnu' : (remp.taux >= SEUIL ? 'ok' : 'bas');
-  return { heuresMois, thNet: Math.round(thNet), budget, tauxRemplissage: remp.taux, remplissageConnu, gate, seuil: SEUIL };
+  // 'inconnu' : temps planifié non renseigné -> on montre le budget mais on prévient qu'on ne peut pas vérifier la saturation.
+  const gate = !remplissageConnu ? 'inconnu' : (taux >= SEUIL ? 'ok' : 'bas');
+  return { heuresMois, thNet: Math.round(thNet), budget, tauxRemplissage: taux, remplissageConnu, gate, seuil: SEUIL };
 }
 // Heures internes moyennes par mois (temps de gestion/admin) sur les nbMois derniers mois : temps
 // catégorisé sur les missions de gestion + DATA.tempsInterne. Sert au rappel proactif "et si je
@@ -7019,9 +7023,9 @@ function wScoreSante(d) {
   // connu. Snooze 15 j comme les autres. Le calcul complet reste dans la carte du simulateur.
   try {
     const hInt=getHeuresInterneMois(3);
-    const rempDeleg=getTauxRemplissageAnnee();
+    const pilDeleg=getPilierRemplissage(); // même remplissage que le pilier du Score de Santé
     const kDeleg='delegationNudge';
-    if(hInt>=8 && rempDeleg.ouvrables>0 && rempDeleg.taux>=80 && !_alertDismissed(kDeleg)){
+    if(hInt>=8 && pilDeleg && pilDeleg.details && pilDeleg.methode!=='aucun' && pilDeleg.details.taux>=80 && !_alertDismissed(kDeleg)){
       alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">🤝 Vous passez environ <strong>${fmt(hInt,hInt%1===0?0:1)} h/mois</strong> sur des tâches internes (gestion, admin…). Et si vous en déléguiez une partie ?<br><span class="step-cta" style="margin-top:4px" onclick="irVersEtSi(5)">Simuler une délégation</span></span>${_dismissBtn(kDeleg)}</div>`);
     }
   } catch(e){reportError('delegationNudge',e);}
@@ -14188,12 +14192,15 @@ function etsiDelegationRecalc() {
   if(!(heures>0)){ out.innerHTML=`<div class="ts" style="color:var(--tl)">Cochez des tâches (le total d'heures se remplit tout seul) ou saisissez directement vos heures à déléguer.</div>`; return; }
   if(!(thNet>0)){ out.innerHTML=`<div class="ts" style="color:var(--tl)">Pas encore assez de recul sur votre rentabilité pour estimer un budget. Revenez quand quelques mois seront enregistrés.</div>`; return; }
   const budget=Math.round(heures*thNet);
-  const remp=getTauxRemplissageAnnee();
-  const gate=remp.ouvrables<=0
-    ?`<div class="alert al-info mt8" style="font-size:11px;line-height:1.5">ℹ️ Votre calendrier n'est pas renseigné, je ne peux pas vérifier votre saturation. Ce budget suppose que vous revendez bien le temps libéré, ce qui n'est vrai que si votre agenda est déjà plein.</div>`
-    :remp.taux>=80
-      ?`<div class="ts mt8" style="color:var(--ok);line-height:1.5">✅ Votre remplissage est à ${remp.taux} % : vous pouvez revendre ce temps, ce budget est réaliste.</div>`
-      :`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Votre remplissage est à ${remp.taux} %. Déléguer ne créera du CA que si vous revendez le temps libéré : tant que votre agenda facturable n'est pas plein, ce budget reste théorique. Priorité à remplir votre temps d'abord.</div>`;
+  // Même remplissage que le pilier du Score de Santé (voir simulerDelegation).
+  const pil=getPilierRemplissage();
+  const rempConnu=!!(pil&&pil.details&&pil.methode!=='aucun');
+  const tauxR=rempConnu?(pil.details.taux||0):0;
+  const gate=!rempConnu
+    ?`<div class="alert al-info mt8" style="font-size:11px;line-height:1.5">ℹ️ Votre temps planifié n'est pas renseigné, je ne peux pas vérifier votre saturation. Ce budget suppose que vous revendez bien le temps libéré, ce qui n'est vrai que si votre agenda est déjà plein.</div>`
+    :tauxR>=80
+      ?`<div class="ts mt8" style="color:var(--ok);line-height:1.5">✅ Votre remplissage est à ${tauxR} % : vous pouvez revendre ce temps, ce budget est réaliste.</div>`
+      :`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Votre remplissage est à ${tauxR} %. Déléguer ne créera du CA que si vous revendez le temps libéré : tant que votre agenda facturable n'est pas plein, ce budget reste théorique. Priorité à remplir votre temps d'abord.</div>`;
   const estSociete=['sasu','eurl'].includes(DATA.params.statut);
   const phraseSociete=estSociete?`<div class="ts mt8" style="color:var(--tl);line-height:1.5">💡 En société, la facture du prestataire est déductible : votre gain réel sera un peu supérieur à ce budget.</div>`:'';
   out.innerHTML=`
