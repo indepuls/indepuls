@@ -332,6 +332,9 @@ html,body{overflow-x:hidden;}
   .page{padding:16px;}
   .g2{grid-template-columns:1fr;}
   .etsi-cols{flex-direction:column;}
+  /* Liste "Missions ce mois" (calendrier) : sur mobile, les 6 raccourcis passent sur 2 lignes de 3
+     pour ne pas chevaucher le texte à gauche (retour Faustine). Desktop reste sur une ligne. */
+  .pcal-mission-actions{flex-wrap:wrap;max-width:96px;}
   .g2-traj{grid-template-columns:1fr;}
   .g3{grid-template-columns:1fr;}
   .btn-label{display:none;}
@@ -3502,7 +3505,7 @@ function renderPlanning() {
         ${trajLine}
         ${encLine}
       </div>
-      <div style="display:flex;gap:3px;flex-shrink:0;justify-content:flex-end;align-items:flex-start">
+      <div class="pcal-mission-actions" style="display:flex;gap:3px;flex-shrink:0;justify-content:flex-end;align-items:flex-start">
         <button type="button" class="timer-btn ${m.timerRunning?'running':''}" onclick="startTimer('${m.id}')" title="${m.timerRunning?'Arrêter':'Démarrer'} le chrono" style="opacity:1;border:1px solid var(--brd);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">${m.timerRunning?'⏹':'▶'}</button>
         ${btn(`openAddTimeModal('${m.id}')`,'Ajouter du temps','⏱️')}
         ${btn(`openMissionModal('${m.id}')`,'Modifier','✏️')}
