@@ -3457,7 +3457,6 @@ function renderPlanning() {
 
   // Coûts par affaire calculés une seule fois pour toute la liste (perf, comme le Tableau).
   const _coutMapPlanning = typeof getDepensesAffairesMap === 'function' ? getDepensesAffairesMap() : {};
-  const _bmPlanning = { att:'b-att', cours:'b-cours', ref:'b-ref', fact:'b-fact' };
   const JOURS_LABELS_FR = { 1:'Lun', 2:'Mar', 3:'Mer', 4:'Jeu', 5:'Ven', 6:'Sam', 0:'Dim' };
   const missionRows = missionsMois.map(m => {
     const c = colorMap[m.id];
@@ -3492,14 +3491,16 @@ function renderPlanning() {
       encLine = `<div class="ts" style="margin-top:2px">💰 Encaissé <strong style="color:var(--ok)">${fmtE(enc)}</strong> · Reste <strong style="color:${reste>0?'var(--warn)':'var(--ok)'}">${fmtE(reste)}</strong></div>`;
     }
     const montantTxt = m.isRecurring ? `${fmtE(m.montantMensuel)}<span style="font-weight:400;color:var(--tl)">/mois</span>` : (m.montantDevis>0 ? fmtE(m.montantDevis) : '');
-    const badge = `<span class="badge ${_bmPlanning[m.statut]||'b-cours'}" style="font-size:10px;padding:2px 6px;flex-shrink:0">${tVocabStatut(m.statut, m.isRecurring)}</span>`;
+    // Statut : même menu déroulant que le Tableau (parité fonctionnelle, retour Faustine 2026-08-09) —
+    // stopPropagation pour que cliquer le select n'ouvre pas la fiche mission.
+    const statutSelect = `<select class="s-select s-${m.statut}" style="flex-shrink:0;font-size:11px;height:26px;padding:1px 4px" onclick="event.stopPropagation()" onchange="setMissionStatut('${m.id}',this.value)"><option value="att"${m.statut==='att'?' selected':''}>${tVocabStatut('att')}</option><option value="cours"${m.statut==='cours'?' selected':''}>${tVocabStatut('cours')}</option><option value="ref"${m.statut==='ref'?' selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact"${m.statut==='fact'?' selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isRecurring&&estMissionPayee(m))}</option></select>`;
     const btn = (onclick,title,ico,cls) => `<button type="button" class="btn ${cls||'btn-out'} btn-xs" title="${title}" onclick="${onclick}">${ico}</button>`;
     return `<div class="widget-item" style="display:flex;align-items:flex-start;gap:10px;padding:7px 0">
       <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;margin-top:5px"></div>
       <div style="flex:1;min-width:0;cursor:pointer" onclick="openMissionModal('${m.id}')">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.client||'—')} <span style="font-weight:400;color:var(--tl)">${esc(m.description||'')}</span></span>
-          ${badge}
+          ${statutSelect}
           ${montantTxt?`<span style="font-size:13px;font-weight:700;flex-shrink:0">${montantTxt}</span>`:''}
         </div>
         <div class="ts" style="color:var(--tl);margin-top:1px">${range}</div>
