@@ -766,6 +766,7 @@ html,body{overflow-x:hidden;}
         </div>
       </div>
       <div id="missions-view-table">
+        <div id="missions-table-rappels"></div>
         <div class="flex gap6 mb12" style="flex-wrap:wrap;align-items:center;" id="mission-filters">
           <div style="display:flex;align-items:center;gap:6px">
             <span style="font-size:11px;color:var(--tl);white-space:nowrap">Statut</span>
@@ -3601,6 +3602,9 @@ function dismissSessionSansTemps(missionId, ds) {
   DATA.alertsDismissed[`sessTemps_${missionId}_${ds}`] = Date.now();
   saveData();
   renderPlanningDayPanel();
+  // Parité Tableau : rafraîchir aussi le bloc de rappels en tête du Tableau s'il est affiché.
+  const _rappelsEl = document.getElementById('missions-table-rappels');
+  if (_rappelsEl) _rappelsEl.innerHTML = renderSessionsSansTempsBlock();
 }
 // "✅ J'ai payé" sur les alertes d'échéance URSSAF/TVA — fonction dédiée plutôt qu'une
 // assignation en dot-notation inline dans le onclick : la clé contient la date de l'échéance
@@ -10083,6 +10087,10 @@ function _tauxReelMission(m, coutMap) {
 function renderMissions() {
   _applyMissionsView(missionsView);
   renderMissionsSummary(DATA.missions);
+  // Rappels "session passée sans temps enregistré" — mêmes que le Calendrier (renderSessionsSansTempsBlock),
+  // affichés en tête du Tableau pour la parité entre les deux vues (retour Faustine 2026-08-09).
+  const _rappelsEl=document.getElementById('missions-table-rappels');
+  if(_rappelsEl) _rappelsEl.innerHTML=renderSessionsSansTempsBlock();
   const _mfAtt=document.getElementById('mf-opt-att'), _mfCours=document.getElementById('mf-opt-cours'),
         _mfRef=document.getElementById('mf-opt-ref'), _mfFact=document.getElementById('mf-opt-fact'),
         _mfPaye=document.getElementById('mf-opt-paye');
