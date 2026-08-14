@@ -3192,6 +3192,18 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-17 — Correctifs sélecteur sidebar (retour Faustine sur le chantier point 5)
+
+Faustine a repéré 3 défauts sur le sélecteur du widget sidebar livré la veille, tous corrigés :
+
+- **Options invisibles (bug)** : le `<select>` héritait bien des couleurs de thème, mais le panneau déroulant natif du navigateur retombait sur un fond **blanc par défaut** — texte blanc sur blanc, options illisibles sauf au survol (surlignage bleu, seul endroit où le texte blanc redevenait lisible). Fix : style inline directement sur chaque `<option>`/`<optgroup>` (`background:var(--sb);color:var(--sbt)`, mêmes variables que la sidebar) — la plupart des navigateurs respectent un style posé sur l'option elle-même, contrairement au panneau du select. Corrigé pour les 5 thèmes de l'app, pas seulement le thème sombre par défaut où le bug passait inaperçu au fond.
+- **Accord de genre (bug)** : "Afficher **toutes** mes chantiers" — "toutes" ne s'accordait jamais avec la famille masculine (chantier). Fix : `tVocabMasculin()?'tous mes':'toutes mes'`, comme partout ailleurs dans l'app.
+- **Titre du widget à l'état idle** (retour produit) : "Temps interne" ne convenait plus une fois le widget devenu un sélecteur général — il lance désormais un chrono sur n'importe quelle mission, pas seulement "Mon entreprise". Renommé en **"Suivi du temps"** (suggestion de Faustine), à l'état idle uniquement (statique HTML + `updateSbTimer()`). Inchangé partout ailleurs : bandeau Missions ("💼 Temps interne") et légende du graphique, qui parlent bien de cette catégorie précise, pas du widget.
+
+**Pas fait, question ouverte laissée à Faustine** : différencier visuellement le widget du reste de la sidebar par une couleur dédiée. Avis donné : le renommage + le correctif d'affichage résolvent déjà les deux confusions concrètes remontées ; un traitement couleur reste une piste cosmétique valable mais sans preuve qu'elle soit encore nécessaire une fois ces deux points réglés — à revoir seulement si le signal persiste en bêta.
+
+**Vérifié** : `node --check` + suite Node complète inchangée. Vérifié manuellement (app en local, mode démo) : options du sélecteur lisibles (style confirmé sur le DOM), libellé idle = "Suivi du temps", et bascule profil chantier → "Afficher tous mes chantiers" (accord correct).
+
 ### 2026-08-16 — Temps loggé sur un jour non programmé : la mission apparaît désormais au calendrier
 
 **Constat de Faustine (usage réel)** : ajouter du temps (chrono ou "+ Temps" manuel) sur un jour où la mission n'avait initialement aucune session programmée versait bien le temps dans `tempsManuel`, mais la mission n'apparaissait pas au calendrier ce jour-là — `sessions[]` (ce qui pilote l'affichage calendrier) et `tempsManuel[]` (le temps réel) sont **volontairement découplés** dans l'architecture (voir l'en-tête de `shared/core/planning.js` : "Temps prévu ≠ Temps réel, jamais additionnés automatiquement"), et rien ne les reliait dans l'autre sens.

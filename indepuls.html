@@ -687,7 +687,7 @@ html,body{overflow-x:hidden;}
   <div class="sb-timer" id="sb-timer-widget">
     <div class="sb-timer-head">
       <span class="sb-timer-ico" id="sb-timer-ico" title="Ce chronomètre est un raccourci rapide : il enregistre le temps passé sur votre activité (gestion, admin, prospection…) et l'ajoute automatiquement à la ligne « Mon entreprise » dans vos missions. Démarrez-le quand vous lancez le logiciel.">⏱</span>
-      <span class="sb-timer-label" id="sb-timer-label">Temps interne</span>
+      <span class="sb-timer-label" id="sb-timer-label">Suivi du temps</span>
       <span class="info-tip" id="sb-timer-tip" title="Lancez ce chrono quand vous travaillez pour votre propre entreprise : gestion, admin, prospection, comptabilité… Ce temps a une valeur réelle. Le suivre vous aide à savoir combien d'heures vous investissez dans votre activité — et si c'est rentable.">?</span>
     </div>
     <div class="sb-timer-sub" id="sb-timer-sub">Tps passé sur mon activité → « Mon entreprise »</div>
@@ -13509,6 +13509,13 @@ function sbTimerToggle() {
 // deux points d'entrée (ce sélecteur pour lancer un chrono sans quitter sa page, les boutons ▶ de
 // ligne existants — Tableau/Calendrier/Kanban — pour quand on est déjà sur la mission), tous deux
 // appellent startTimer(id) tel quel, aucune modification du modèle "un seul chrono à la fois".
+// Style inline sur CHAQUE <option>/<optgroup> (correctif bêta, 2026-08-17) : le <select> lui-même
+// héritait bien des couleurs de thème, mais le panneau déroulant natif du navigateur retombe sur un
+// fond blanc par défaut — texte blanc sur blanc, options invisibles sauf au survol (surlignage
+// bleu). La plupart des navigateurs respectent un style directement posé sur <option>/<optgroup> :
+// on y force var(--sb)/var(--sbt) (mêmes variables que la sidebar elle-même), pour rester correct
+// sur les 5 thèmes de l'app, pas seulement sur le thème sombre par défaut où le bug passait inaperçu.
+const SB_TIMER_OPT_STYLE="background:var(--sb);color:var(--sbt)";
 function sbTimerOptionLabel(m) {
   return esc(m.client||tVocab('item'))+(m.description?' — '+esc(m.description):'');
 }
@@ -13522,15 +13529,15 @@ function sbTimerOptionLabel(m) {
 // appel découverte).
 function sbTimerOptionsHtml(all) {
   const mgmt=getMgmtMission();
-  const mgmtOpt=mgmt?`<option value="${mgmt.id}">Mon entreprise</option>`:'';
+  const mgmtOpt=mgmt?`<option value="${mgmt.id}" style="${SB_TIMER_OPT_STYLE}">Mon entreprise</option>`:'';
   const missions=DATA.missions.filter(m=>!m.isManagement);
   const byClient=(a,b)=>(a.client||'').localeCompare(b.client||'');
   if(!all){
     const actives=missions.filter(m=>m.statut==='cours'||isRecurringStillActive(m)).sort(byClient);
-    return mgmtOpt+actives.map(m=>`<option value="${m.id}">${sbTimerOptionLabel(m)}</option>`).join('');
+    return mgmtOpt+actives.map(m=>`<option value="${m.id}" style="${SB_TIMER_OPT_STYLE}">${sbTimerOptionLabel(m)}</option>`).join('');
   }
   const groupes=['cours','att','fact','ref'].map(st=>({st,missions:missions.filter(m=>m.statut===st).sort(byClient)})).filter(g=>g.missions.length);
-  const optgroups=groupes.map(g=>`<optgroup label="${esc(tVocabStatutPluriel(g.st))}">${g.missions.map(m=>`<option value="${m.id}">${sbTimerOptionLabel(m)}</option>`).join('')}</optgroup>`).join('');
+  const optgroups=groupes.map(g=>`<optgroup label="${esc(tVocabStatutPluriel(g.st))}" style="${SB_TIMER_OPT_STYLE}">${g.missions.map(m=>`<option value="${m.id}" style="${SB_TIMER_OPT_STYLE}">${sbTimerOptionLabel(m)}</option>`).join('')}</optgroup>`).join('');
   return mgmtOpt+optgroups;
 }
 // Rebâtit le sélecteur depuis la case "toutes mes missions" — jamais depuis le tick du chrono (voir
@@ -13590,9 +13597,10 @@ function updateSbTimer() {
     disp.className='sb-timer-disp on';
     // "Mon entreprise" et non "Temps interne" ici (Partie B, nom unifié) : ce slot affiche une
     // IDENTITÉ (qui tourne actuellement), exactement comme la branche client ci-dessus affiche
-    // client.client — pas le libellé de catégorie du widget (celui-ci reste "Temps interne"
-    // ailleurs : tête du widget à l'état idle, bandeau Missions, légende du graphique — voir
-    // CLAUDE.md, ce sont des titres de section, pas des identités).
+    // client.client — pas le libellé de catégorie du widget (celui-ci dit désormais "Suivi du
+    // temps" à l'état idle — voir plus bas — jamais "Temps interne", qui reste réservé au bandeau
+    // Missions et à la légende du graphique, seuls endroits qui parlent bien de la CATÉGORIE
+    // "temps interne" ; ce widget lance un chrono sur n'importe quelle entité, plus seulement elle).
     if(lbl) lbl.textContent='Mon entreprise';
     sub.textContent='Session en cours';
     btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
@@ -13601,7 +13609,12 @@ function updateSbTimer() {
   } else {
     disp.textContent='';
     disp.className='sb-timer-disp paused';
-    if(lbl) lbl.textContent='Temps interne';
+    // "Suivi du temps" et non "Temps interne" (retour Faustine, 2026-08-17) : depuis la Partie A,
+    // ce widget lance un chrono sur N'IMPORTE QUELLE mission, pas seulement "Mon entreprise" —
+    // garder "Temps interne" comme titre fixe laissait croire que le sélecteur ne servait qu'à ça.
+    // "Temps interne" reste inchangé partout ailleurs (bandeau Missions, légende du graphique),
+    // qui parlent bien de CETTE catégorie précise, contrairement à ce titre de widget.
+    if(lbl) lbl.textContent='Suivi du temps';
     sub.textContent='Suivre du temps sur :';
     // Sélecteur natif + bouton "Démarrer" séparé (Partie A) : reconstruit uniquement s'il n'existe
     // pas déjà — startTimerInterval() appelle updateSbTimer() CHAQUE SECONDE même à l'état idle ;
@@ -13612,10 +13625,10 @@ function updateSbTimer() {
     // sélection (deux clics distincts, choisir puis Démarrer).
     if(!document.getElementById('sb-timer-select')){
       btns.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
-        <select id="sb-timer-select" style="width:100%;font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff">${sbTimerOptionsHtml(false)}</select>
+        <select id="sb-timer-select" style="width:100%;font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:var(--sb);color:var(--sbt)">${sbTimerOptionsHtml(false)}</select>
         <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:rgba(255,255,255,.55);cursor:pointer">
           <input type="checkbox" id="sb-timer-all" onchange="sbTimerRebuildSelect()" style="width:auto">
-          Afficher toutes mes ${tVocab('items').toLowerCase()} (tous statuts)
+          Afficher ${tVocabMasculin()?'tous mes':'toutes mes'} ${tVocab('items').toLowerCase()} (tous statuts)
         </label>
         <button class="sb-timer-btn" onclick="sbTimerStartSelected()">▶ Démarrer</button>
       </div>`;
