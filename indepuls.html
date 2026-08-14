@@ -9307,6 +9307,22 @@ function goToMission(id) {
   },80);
 }
 
+// Si aucune session existante ne couvre `date`, ajoute une session PONCTUELLE {debut,fin} pour
+// que la mission apparaisse au calendrier ce jour-là (retour Faustine, 2026-08-16 : "j'ajoute du
+// temps sur un jour non programmé, la mission n'apparaît pas au calendrier"). Réutilise
+// sessionCouvreJour() telle quelle, aucun nouveau champ DATA. Jamais pour isManagement (Temps
+// interne n'a pas de sessions/calendrier). Jamais en élargissant un motif hebdomadaire "sans fin"
+// existant — une mission peut porter plusieurs sessions à la fois, la nouvelle s'ajoute à côté,
+// ne modifie jamais s.jours d'une session récurrente. Centralisée pour être appelée par TOUS les
+// points qui versent une vraie saisie de temps réel (chrono live, "+ Temps" manuel, correction
+// après inactivité) — jamais par une migration/conversion interne de données existantes
+// (applyDefaults/migrateData restent volontairement hors périmètre : une mise à jour de l'app ne
+// doit jamais modifier silencieusement le calendrier de quelqu'un).
+function ensureSessionCouvreJour(m, date) {
+  if (m.isManagement || !date) return;
+  const sessions = m.sessions || (m.sessions = []);
+  if (!sessions.some(s => sessionCouvreJour(s, date))) sessions.push({ debut: date, fin: date });
+}
 function commitTimer(x) {
   // Arrête le chrono d'une mission et verse le temps au bon endroit. Verse toujours dans
   // tempsManuel (daté, id retourné) — y compris pour le temps interne depuis le chantier
@@ -9319,6 +9335,7 @@ function commitTimer(x) {
   const entryId=uuid();
   if(!x.tempsManuel) x.tempsManuel=[];
   x.tempsManuel.push({id:entryId, date:today(), ms:elapsed});
+  ensureSessionCouvreJour(x, today());
   if(x.isManagement){
     if(!DATA.tempsInterne) DATA.tempsInterne={};
     const mk=getCurrentMk();
@@ -12529,6 +12546,7 @@ function saveAddTime() {
   if(m.isManagement) addTempsInterne(getCurrentMk(), ms);
   if(!m.tempsManuel) m.tempsManuel=[];
   m.tempsManuel.push({id:uuid(),date,ms,...(categorie?{categorie}:{})});
+  ensureSessionCouvreJour(m, date);
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
   if(catEl) catEl.value='';
@@ -13764,6 +13782,7 @@ function resolveTimerGap(choice) {
       // inliné ici, aucune UI nouvelle requise pour le corriger.
       if(!m.tempsManuel) m.tempsManuel=[];
       m.tempsManuel.push({id:uuid(), date:today(), ms:workedMs});
+      ensureSessionCouvreJour(m, today());
     }
     m.timerRunning=false; m.timerStart=null;
     saveData();

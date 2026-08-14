@@ -3192,6 +3192,25 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-16 — Temps loggé sur un jour non programmé : la mission apparaît désormais au calendrier
+
+**Constat de Faustine (usage réel)** : ajouter du temps (chrono ou "+ Temps" manuel) sur un jour où la mission n'avait initialement aucune session programmée versait bien le temps dans `tempsManuel`, mais la mission n'apparaissait pas au calendrier ce jour-là — `sessions[]` (ce qui pilote l'affichage calendrier) et `tempsManuel[]` (le temps réel) sont **volontairement découplés** dans l'architecture (voir l'en-tête de `shared/core/planning.js` : "Temps prévu ≠ Temps réel, jamais additionnés automatiquement"), et rien ne les reliait dans l'autre sens.
+
+**Fix** : `ensureSessionCouvreJour(m, date)` (indepuls.html) — si aucune session existante ne couvre `date` (réutilise `sessionCouvreJour()` telle quelle, aucune nouvelle fonction `shared/core`), ajoute une session **ponctuelle** `{debut:date, fin:date}`. Toujours à côté des sessions existantes, **jamais** en élargissant le motif hebdomadaire d'une récurrente "sans fin" (`s.jours` n'est jamais modifié) — une mission peut porter plusieurs sessions à la fois, déjà supporté par `sessionCouvreJour`.
+
+**Centralisé** et appelé par les 3 points qui versent une **vraie saisie de temps réel** par l'utilisatrice : `saveAddTime()` ("+ Temps" manuel), `commitTimer()` (arrêt d'un chrono live — couvre aussi la branche "count" de la correction après inactivité, qui route par `commitTimer`), et la branche "remove" de la correction après inactivité. **Volontairement exclu** : les 2 push dans `tempsManuel` qui vivent dans `applyDefaults`/`migrateData` (migration du temps déjà accumulé dans `timerAccumulated`, migration du temps collectif Création/Animation/Suivi) — une mise à jour de l'app ne doit jamais modifier silencieusement le calendrier de quelqu'un au chargement. Jamais pour `isManagement` (Temps interne n'a ni sessions ni calendrier).
+
+**Risque mineur signalé, accepté** : `sessions[]` sert aussi à suggérer le "Temps total estimé" d'une ponctuelle (`computeTempsTotalEstimeFromSessions` = temps planifié × nombre de semaines couvertes par les sessions). Une session auto-ajoutée peut donc légèrement élargir cette suggestion — mais uniquement si le champ est encore vide (jamais s'il a déjà été rempli/modifié).
+
+**Vérifié manuellement** (app en local, mode démo) :
+1. "+ Temps" sur un jour hors session existante (`ex-jan`, session 6→10 avril, ajout le 20 avril) → nouvelle session ponctuelle `{debut:"2026-04-20",fin:"2026-04-20"}` ajoutée, session existante inchangée, jour désormais couvert (`sessionCouvreJour` confirmé). ✅
+2. Ré-ajouter du temps le même jour déjà couvert → aucune session dupliquée. ✅
+3. Récurrente "sans fin" (motif lun-ven), temps loggé un samedi → motif hebdomadaire **inchangé**, session ponctuelle ajoutée à côté (2 sessions au total). ✅
+4. Temps interne (`isManagement`) → jamais de session ajoutée. ✅
+5. Chrono live démarré puis arrêté (`commitTimer`) sur aujourd'hui, non couvert → session ajoutée pour le jour du jour. ✅
+
+**Vérifié** : `node --check` sur les 6 chunks inline, suite Node complète inchangée (0 régression — réutilisation pure de `sessionCouvreJour`, aucun nouveau calcul financier, aucun nouveau champ DATA).
+
 ### 2026-08-16 — Point 5 bêta OBM : le widget sidebar "Temps interne" devient un vrai sélecteur
 
 **Diagnostic affiné avec Faustine** : le problème n'était pas un manque d'explication (une infobulle existait déjà) mais un **raccourci non explicite** — un clic sur "▶ Démarrer" lançait DIRECTEMENT le chrono sur "Mon entreprise" sans jamais dire, avant le clic, ce qui allait être suivi. D'où la confusion d'Orianne, qui l'a pris pour un chrono général.
