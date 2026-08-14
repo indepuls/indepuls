@@ -5601,8 +5601,8 @@ function wProvisionsSide(d) {
 
 
   return '<div class="card" style="border-left:4px solid '+urgBorder+'">'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="card-title" style="margin-bottom:0">🏦 Argent à mettre de côté</div>'+_widgetToggleBtn('provisions')+'</div>'
-    +'<div style="display:'+(_widgetReplie('provisions')?'none':'')+'">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="card-title" style="margin-bottom:0">🏦 Argent à mettre de côté</div>'+_widgetToggleBtn('provisions',true)+'</div>'
+    +'<div style="display:'+(_widgetReplie('provisions',true)?'none':'')+'">'
     +'<div style="background:rgba(201,115,22,.07);border-radius:10px;padding:14px 16px;border-left:3px solid var(--warn);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">'
       +'<div>'
         +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">À conserver sur le compte</div>'
@@ -6219,9 +6219,9 @@ function wTrajectoireAnnuelle({caBrut,caNetMoy,objNet,thR,hT,proj}) {
   }
 
   return `<div class="card">
-    <div class="card-header"><div class="card-title">📊 Ma trajectoire mensuelle et annuelle</div>${_widgetToggleBtn('trajectoire')}</div>
+    <div class="card-header"><div class="card-title">📊 Ma trajectoire mensuelle et annuelle</div>${_widgetToggleBtn('trajectoire',true)}</div>
     <div style="font-size:14px;color:var(--text);line-height:1.55;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--brd)">${phraseCombinee}</div>
-    <div style="display:${_widgetReplie('trajectoire')?'none':''}">
+    <div style="display:${_widgetReplie('trajectoire',true)?'none':''}">
     <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:8px">Sur l'année</div>
     <div class="kpi-label">CA ${p.tva?'HT ':''}annuel ${DATA.currentYear}</div>
     <div class="kpi-val" style="font-size:22px">${fmtE(caBrut)}</div>
@@ -7224,16 +7224,26 @@ function wScoreSante(d) {
     const key=label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
     const rowsHTML=rows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd)"><div style="font-size:12px;color:var(--tl)">${r.lbl}</div><div style="font-size:13px;font-weight:700;color:${r.c||'var(--text)'}">${r.val}</div></div>`).join('');
     _pilierData[key]={label,pts,pct,c,diag,adv,navPage,rowsHTML,meth};
+    // Densité perçue (retour béta OBM, 2026-08-10) : score + barre TOUJOURS visibles ; le diagnostic
+    // et "Pourquoi ce score ?" deviennent repliables. Défaut CONDITIONNEL à l'état du pilier —
+    // réutilise le signal de couleur `c` déjà calculé : replié si sain (var(--ok)), déplié si en
+    // alerte (orange/rouge), pour concentrer l'attention sur ce qui ne va pas. Même mécanisme de repli
+    // que les autres widgets (DATA.widgetsReplies via la clé `key` déjà utilisée par _pilierData).
+    const defautReplie=(c==='var(--ok)');
+    const replie=_widgetReplie(key,defautReplie);
     return `<div style="padding:16px;border-radius:10px;border:1px solid var(--brd);background:var(--card);border-top:3px solid ${c};display:flex;flex-direction:column;height:100%;box-sizing:border-box">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700">${label}</div>
         <div style="font-size:18px;font-weight:900;color:${c}">${pts}<span style="font-size:9px;font-weight:400;color:var(--tl)">/25</span></div>
       </div>
-      <div style="height:4px;background:var(--brd);border-radius:2px;margin-bottom:12px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div></div>
-      <div style="font-size:12px;color:var(--text);line-height:1.55;margin-bottom:10px;flex:1">${diag}</div>
-      ${extraHTML}
-      ${adv?`<div style="font-size:11px;color:var(--tl);line-height:1.45;padding:8px 10px;background:var(--bg);border-radius:6px;margin-bottom:12px">${adv}</div>`:''}
-      <button onclick="openPilierDetail('${key}')" style="width:100%;padding:7px;border-radius:7px;border:1px solid var(--brd);background:transparent;color:var(--acc);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">Pourquoi ce score ?</button>
+      <div style="height:4px;background:var(--brd);border-radius:2px;margin-bottom:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">${_widgetToggleBtn(key,defautReplie)}</div>
+      <div style="display:${replie?'none':'flex'};flex-direction:column;flex:1">
+        <div style="font-size:12px;color:var(--text);line-height:1.55;margin-bottom:10px;flex:1">${diag}</div>
+        ${extraHTML}
+        ${adv?`<div style="font-size:11px;color:var(--tl);line-height:1.45;padding:8px 10px;background:var(--bg);border-radius:6px;margin-bottom:12px">${adv}</div>`:''}
+        <button onclick="openPilierDetail('${key}')" style="width:100%;padding:7px;border-radius:7px;border:1px solid var(--brd);background:transparent;color:var(--acc);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">Pourquoi ce score ?</button>
+      </div>
     </div>`;
   };
 
@@ -10939,8 +10949,20 @@ function updateNoteRapide(id, el) {
 }
 function wNotesRapides() {
   const notes = DATA.notesRapides || [];
+  // Densité perçue (retour béta OBM, 2026-08-10) : l'aide-mémoire est repliée par défaut (defautReplie
+  // = true) pour alléger le premier chargement. Même mécanisme que les autres widgets
+  // (toggleWidgetReplie / DATA.widgetsReplies), seul le libellé du bouton est adapté : quand des notes
+  // existent on annonce leur nombre ("Voir mes notes (N)") pour ne pas les cacher silencieusement ;
+  // sans note, libellé neutre ("Ajouter une note") qui n'insinue aucun contenu masqué.
+  const replie = _widgetReplie('notesRapides', true);
+  const labelReplie = notes.length ? `Voir mes notes (${notes.length}) ▸` : 'Ajouter une note ▸';
+  const toggleBtn = `<button type="button" onclick="toggleWidgetReplie('notesRapides')" style="display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;padding:3px 6px;flex-shrink:0" title="${replie?'Déplier':'Replier'}">${replie?labelReplie:'Masquer ▾'}</button>`;
   return `
-    <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700;margin-bottom:10px">📌 Aide-mémoire</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700">📌 Aide-mémoire</div>
+      ${toggleBtn}
+    </div>
+    <div style="display:${replie?'none':''}">
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <input type="text" id="note-rapide-input" placeholder="Une idée qui passe…" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter'){addNoteRapide()}">
       <button class="btn btn-acc btn-sm" onclick="addNoteRapide()" style="flex-shrink:0">+</button>
@@ -10951,6 +10973,7 @@ function wNotesRapides() {
           <button type="button" class="postit-del" onclick="deleteNoteRapide('${n.id}')" title="Supprimer">✕</button>
           <div class="postit-texte" contenteditable="true" onblur="updateNoteRapide('${n.id}',this)">${esc(n.texte)}</div>
         </div>`).join('') : `<div class="postit postit-vide">Rien pour l'instant</div>`}
+    </div>
     </div>`;
 }
 // ── WIDGETS DÉPLIABLES (tableau de bord, 2026-07-30) ──────────

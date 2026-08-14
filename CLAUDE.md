@@ -3192,6 +3192,24 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-14 — Tableau de bord : réduire la densité perçue au premier chargement (retour béta OBM)
+
+Deux bétatesteurs OBM ont trouvé le tableau de bord "trop dense au premier chargement". Objectif : **replier par défaut ce qui n'a pas de valeur immédiate**, sans jamais masquer la réponse à "est-ce que ça va ?". Aucun nouveau mécanisme d'état : on étend uniquement le repli existant (`DATA.widgetsReplies` via `_widgetReplie` / `_widgetToggleBtn` / `toggleWidgetReplie`).
+
+**Blocs qui restent TOUJOURS visibles (jamais repliés)** — c'est le cœur du "est-ce que ça va ?" :
+- le **Score de Santé** (cercle + phrase "Santé de l'activité") ;
+- le **Brief** (Action recommandée + Alertes) ;
+- la carte **Chantiers en cours** ;
+- pour chaque pilier, son **score /25 + la barre de couleur** (le signal d'état lui-même) ;
+- la **phrase de diagnostic de la trajectoire** (hors du bloc repliable, comme le titre).
+
+**Ce qui devient repliable :**
+- **4 cartes piliers** (`pilierCard`) : le diagnostic + le bouton "Pourquoi ce score ?" passent dans un bloc repliable. Défaut **conditionnel à l'état du pilier**, en réutilisant exactement le signal de couleur `c` déjà calculé : **replié si sain** (`c==='var(--ok)'`), **déplié si en alerte** (orange/rouge) pour attirer l'œil sur ce qui ne va pas. Clé de repli = la même `key` (slug du label) déjà utilisée par `_pilierData`. La modale et les scores ne changent pas.
+- **Aide-mémoire** (`wNotesRapides`) : replié par défaut (`defautReplie=true`). Libellé du bouton adapté — "Voir mes notes (N) ▸" quand des notes existent (ne pas les cacher en silence), "Ajouter une note ▸" sinon (neutre, n'insinue aucun contenu masqué).
+- **"Ma trajectoire mensuelle et annuelle"** (`wTrajectoireAnnuelle`) et **"Argent à mettre de côté"** (`wProvisionsSide`) : `defautReplie` passé de `false` à `true` (titre + phrase de trajectoire restent visibles).
+
+**Contraintes respectées** : zéro nouveau mécanisme d'état ; `DATA.widgetsReplies` déjà préservé en entier au chargement démo (`loadData`, l'objet est réassigné tel quel → les nouvelles clés n'ont besoin d'aucune adaptation démo) ; aucune modif de `calculs.js`. **Vérifié** : extraction `node --check` des scripts inline (6 chunks OK) + suite Node complète (planning 120/120, unified 26/26, tous verts). Vérification navigateur à faire par Faustine (l'app requiert l'auth).
+
 ### 2026-08-09 — Devis multi-documents, étape 4 : les avenants
 
 Un devis **accepté** peut recevoir des **avenants** (type `amendment`) qui l'ajustent après coup : lignes positives = ajouts, lignes négatives = retraits. Une fois accepté, un avenant s'ajoute au montant contractuel de la mission (`_missionMontantContractuel`, déjà en place depuis le socle). Le générateur de devis existant est réutilisé tel quel, piloté par un mode.
