@@ -3192,6 +3192,38 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-15 — Garde-fou "période non validée" dans la modale mission (bug de confiance bêta)
+
+Bug reproduit indépendamment sur deux comptes bêta (Charlène, Orianne) en configurant une mission récurrente/à blocs de dates : Charlène a failli abandonner l'outil.
+
+**Mécanisme réel confirmé** (le diagnostic de Faustine était juste) : le sous-formulaire de période (Début/Fin ou "sans date de fin" + jours de la semaine, dans `#modal-mission`) n'écrit dans le tableau `editingSessions` — la seule source lue par `saveMission()` pour construire `sessions` — qu'au clic sur **"✓ Valider"** (`addSessionToEdit()`). Remplir les champs sans cliquer Valider puis cliquer "Enregistrer" ne touche jamais `editingSessions` : la période saisie n'existe nulle part au moment de la sauvegarde, silencieusement.
+
+**Garde-fou (LE fix) — `_sessionFormTouched`** : flag global, mis à `true` par `oninput`/`onchange` sur chaque champ du sous-formulaire (Début, Fin, case "sans date de fin", 7 cases "jours"), remis à `false` à l'ouverture de la modale (`initEditingSessions`) et juste après un Valider réussi (`addSessionToEdit`). **Volontairement PAS basé sur la valeur des champs** : "Jours concernés" est cochée Lun-Ven par défaut — une détection sur la valeur brute avertirait à chaque enregistrement, sans intention réelle. `editSessionInEdit()` (✏️, modifier une période existante) marque aussi le flag directement : elle retire la période de `editingSessions` pour la remettre dans le formulaire, même risque de perte si on Enregistre sans re-Valider.
+
+**Exception délibérée, trouvée en vérifiant manuellement le point d'entrée "+" du calendrier** : ce point préremplit "Début" avec le jour cliqué (`initEditingSessions(m, prefillDate)`). Une prime lecture ("préremplissage = pas d'intention") aurait laissé ce point d'entrée — probablement le plus fréquent pour ce bug — non couvert : quelqu'un clique "+", remplit client/montant sans jamais retoucher une date déjà correcte, Enregistre, perd la période exactement comme Charlène/Orianne. `initEditingSessions` met donc `_sessionFormTouched = true` quand `prefillDate` vient d'un "+" calendrier (`!m && prefillDate`), car ce préremplissage EST l'intention (clic sur ce jour précis) — contrairement au préremplissage "Jours concernés" (Lun-Ven), qui reste un vrai défaut arbitraire.
+
+**`saveMission(bypassSessionGuard)`** intercepte tout en haut, avant toute lecture des champs de la mission, si `_sessionFormTouched && !bypassSessionGuard` : ouvre `#modal-session-guard` (pattern `.modal-ov`/`.modal` existant, deux boutons explicites, jamais un `confirm()` natif) au lieu d'enregistrer. Deux choix :
+- **"Ajouter cette période avant d'enregistrer"** (`resolveSessionGuardAdd`) : appelle **exactement** `addSessionToEdit()`, la fonction du bouton Valider — même validation, mêmes messages si invalide (aujourd'hui un `alert()` natif, comportement du Valider existant, non redessiné ici). Si la validation échoue, `_sessionFormTouched` reste `true` : la modale de garde se referme, la modale mission reste ouverte avec les champs intacts, rien n'est enregistré. Si elle réussit, `saveMission(true)` relance l'enregistrement.
+- **"Enregistrer sans cette période"** (`resolveSessionGuardSkip`) : discard explicite et assumé par un clic conscient (jamais silencieux) — `saveMission(true)`.
+
+Le garde-fou s'applique **uniquement** au vrai clic "Enregistrer" : "Annuler" (`closeModal('modal-mission')`) reste un discard silencieux inchangé, c'est déjà l'intention d'Annuler (vérifié : pas de fermeture par clic hors modale non plus, `#modal-mission` n'a pas ce handler).
+
+**Confirmation positive (coût faible)** : `addSessionToEdit()` affiche `showToast('✓ Période ajoutée')` sur chaque Valider réussi (les deux branches, bornée et sans fin) — le chemin qui marche se sent confirmé, pas seulement celui qui échoue.
+
+**Vocabulaire** : texte de la modale de garde-fou généré dynamiquement (`tVocab('item')`/`tVocabMasculin()`), jamais "mission" en dur.
+
+**Vérifié manuellement** (app lancée en local via un serveur statique existant, mode démo, DOM piloté par script — voir scénarios ci-dessous, tous confirmés dans une instance réellement chargée, pas seulement en lecture de code) :
+1. Remplir le sous-formulaire sans Valider + Enregistrer → garde-fou, rien n'est enregistré. ✅ (bornée, sans fin, et point d'entrée "+" calendrier)
+2. Valider puis Enregistrer normalement → aucun avertissement, comportement inchangé. ✅
+3. Annuler avec sous-formulaire non validé → discard silencieux, comportement inchangé. ✅
+4. Deux périodes ajoutées à la suite avant Enregistrer → flux multi-période non régressé. ✅
+5. "Ajouter cette période" avec un sous-formulaire invalide (Début vide) → `alert()` natif, rien n'enregistré, modale mission reste ouverte. ✅
+6. "Enregistrer sans cette période" → discard assumé, `sessions` de la mission enregistrée ne contient pas la période abandonnée. ✅
+
+**Non fait, à trancher séparément** (demandé explicitement par Faustine) : fusionner Valider et Enregistrer pour le cas à une seule période. Piste explorée en fin de réponse à Faustine — pas implémentée ici, c'est une vraie décision de flux d'interaction, à trancher une fois le garde-fou observé en usage réel.
+
+**Vérifié** : `node --check` sur les 6 chunks inline, suite de tests Node complète (aucune touchée — logique DOM pure, rien dans `shared/core`), 0 régression.
+
 ### 2026-08-14 — Pilier Rentabilité : exclure du taux horaire les missions sans temps réel saisi (bug de confiance bêta)
 
 **Bug identifié en live** (Charlène : Score 93 % ; Orianne : TJM réel 157 €/h contre objectif 44 €/h) : le pilier Rentabilité calcule un taux horaire réel = CA ÷ heures loggées. Si une mission est **facturée** (comptée dans le CA) mais avec **très peu ou pas d'heures loggées**, le dénominateur est sous-déclaré → le taux horaire explose → score de rentabilité, et donc score global, **faussement excellents**. C'est une **fausse assurance** (pire qu'une fausse alerte), et c'est la débutante qui n'a pas encore le réflexe de tout saisir qui y est le plus exposée.

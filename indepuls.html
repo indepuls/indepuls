@@ -1870,26 +1870,26 @@ html,body{overflow-x:hidden;}
         <div id="m-sessions-list" style="margin-bottom:8px"></div>
         <div class="fgroup" id="m-sess-sansfin-wrap" style="margin:0 0 8px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-            <input type="checkbox" id="m-sess-sansfin" onchange="toggleSessSansFin()" style="width:auto">
+            <input type="checkbox" id="m-sess-sansfin" onchange="toggleSessSansFin();_markSessionFormTouched()" style="width:auto">
             Récurrente, sans date de fin <span class="info-tip" title="Pour une mission dont vous ne connaissez pas la date de fin (contrat reconduit tacitement, chantier au long cours...) : choisissez les jours concernés, la session se répète indéfiniment.">?</span>
           </label>
         </div>
         <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut"></div>
-          <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin"></div>
+          <div class="fgroup" style="flex:1;min-width:110px;margin:0"><label class="flabel">Début</label><input type="date" id="m-sess-debut" oninput="_markSessionFormTouched()"></div>
+          <div class="fgroup" id="m-sess-fin-wrap" style="flex:1;min-width:110px;margin:0"><label class="flabel">Fin</label><input type="date" id="m-sess-fin" oninput="_markSessionFormTouched()"></div>
           <button class="btn btn-acc btn-sm" onclick="addSessionToEdit()" style="flex-shrink:0;margin-bottom:1px">✓ Valider</button>
         </div>
         <div class="ts mt4" id="m-sess-help" style="color:var(--tl)">Vous pouvez ajouter plusieurs périodes si la mission a lieu en plusieurs fois (ex : un chantier repris quelques semaines plus tard).</div>
         <div class="fgroup mt10" id="m-sess-jours-wrap">
           <label class="flabel">Jours concernés</label>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked style="width:auto">Lun</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked style="width:auto">Mar</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked style="width:auto">Mer</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked style="width:auto">Jeu</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked style="width:auto">Ven</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" style="width:auto">Sam</label>
-            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" style="width:auto">Dim</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="1" checked onchange="_markSessionFormTouched()" style="width:auto">Lun</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="2" checked onchange="_markSessionFormTouched()" style="width:auto">Mar</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="3" checked onchange="_markSessionFormTouched()" style="width:auto">Mer</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="4" checked onchange="_markSessionFormTouched()" style="width:auto">Jeu</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="5" checked onchange="_markSessionFormTouched()" style="width:auto">Ven</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="6" onchange="_markSessionFormTouched()" style="width:auto">Sam</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:4px 8px;border:1px solid var(--brd);border-radius:6px;cursor:pointer"><input type="checkbox" class="m-sess-jour-cb" value="0" onchange="_markSessionFormTouched()" style="width:auto">Dim</label>
           </div>
         </div>
       </div>
@@ -2774,6 +2774,18 @@ html,body{overflow-x:hidden;}
 </div>
 
 <!-- MODAL CHOIX APPLICATION TEMPS PRÉVU (chantier "Temps prévu", Étape 3) -->
+<!-- MODAL GARDE-FOU PÉRIODE NON VALIDÉE (bug de confiance bêta Charlène/Orianne, 2026-08-15) -->
+<div class="modal-ov hidden" id="modal-session-guard">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title mb4">Période non ajoutée</div>
+    <div class="ts mb14" style="color:var(--tl)" id="modal-session-guard-txt"></div>
+    <div class="modal-foot" style="flex-direction:column;gap:8px">
+      <button class="btn btn-acc" style="width:100%;justify-content:center" onclick="resolveSessionGuardAdd()">Ajouter cette période avant d'enregistrer</button>
+      <button class="btn btn-out" style="width:100%;justify-content:center" onclick="resolveSessionGuardSkip()">Enregistrer sans cette période</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov hidden" id="modal-temps-prevu-choice">
   <div class="modal" style="max-width:460px">
     <div class="modal-title mb4">Nouveau temps prévu</div>
@@ -3215,6 +3227,22 @@ function applyVocabUI() {
 
 // ── PLANNING — SESSIONS ──────────────────────────────────────
 let editingSessions = [];
+// Garde-fou "période non validée" (bug de confiance bêta Charlène/Orianne, 2026-08-15 — les deux
+// ont rempli le sous-formulaire de période sans cliquer "Valider" puis cliqué "Enregistrer" : la
+// période était perdue silencieusement, la mission n'apparaissait pas au calendrier). true dès
+// qu'un champ du sous-formulaire est touché avec une intention réelle (oninput/onchange, ou
+// édition d'une période existante via editSessionInEdit) ; remis à false à l'ouverture de la
+// modale (initEditingSessions) et juste après un Valider réussi (addSessionToEdit). Volontairement
+// PAS basé sur la valeur des champs : "Jours concernés" est cochée Lun-Ven par défaut — une
+// détection sur la valeur brute déclencherait un avertissement à CHAQUE enregistrement, même sans
+// intention. Exception délibérée : le "+" du calendrier préremplit "Début" avec le jour cliqué —
+// ce n'est PAS un défaut arbitraire mais l'intention explicite de la personne (elle a cliqué CE
+// jour précis) ; initEditingSessions met donc le flag à true dans ce cas précis, sinon ce point
+// d'entrée — probablement le plus fréquent pour ce bug — resterait non couvert : quelqu'un qui
+// clique "+", remplit client/montant sans jamais retoucher une date déjà correcte, puis
+// Enregistre, perdrait la période exactement comme Charlène/Orianne.
+let _sessionFormTouched = false;
+function _markSessionFormTouched() { _sessionFormTouched = true; }
 
 function initEditingSessions(m, prefillDate) {
   editingSessions = m ? JSON.parse(JSON.stringify(m.sessions||[])) : [];
@@ -3222,6 +3250,8 @@ function initEditingSessions(m, prefillDate) {
   const finEl = document.getElementById('m-sess-fin');
   if (debEl) debEl.value = !m && prefillDate ? prefillDate : '';
   if (finEl) finEl.value = '';
+  // Voir commentaire ci-dessus : préremplissage "+" calendrier = intention réelle -> touché.
+  _sessionFormTouched = !!(!m && prefillDate);
   // Réinitialise le formulaire "récurrente sans fin" (case décochée) — l'état ne doit jamais
   // survivre à la fermeture/réouverture de la modale. toggleSessSansFin() remet aussi les cases
   // "Jours concernés" à leur défaut (tous cochés, mode bornée puisque décoché ici).
@@ -3312,6 +3342,8 @@ function addSessionToEdit() {
     document.getElementById('m-sess-sansfin').checked = false;
     document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = cb.value !== '0' && cb.value !== '6');
     toggleSessSansFin();
+    _sessionFormTouched = false; // Valider réussi : le garde-fou n'a plus lieu d'être tant que rien n'est retouché
+    showToast('✓ Période ajoutée');
     renderEditSessions();
     return;
   }
@@ -3323,6 +3355,8 @@ function addSessionToEdit() {
   document.getElementById('m-sess-debut').value = '';
   document.getElementById('m-sess-fin').value = '';
   document.querySelectorAll('.m-sess-jour-cb').forEach(cb => cb.checked = (cb.value !== '0' && cb.value !== '6')); // défaut lun-ven
+  _sessionFormTouched = false; // Valider réussi (voir commentaire branche "sans fin" ci-dessus)
+  showToast('✓ Période ajoutée');
   renderEditSessions();
 }
 
@@ -3332,6 +3366,11 @@ function addSessionToEdit() {
 function editSessionInEdit(idx) {
   const s = editingSessions[idx];
   if (!s) return;
+  // Retire la période du tableau validé pour la remettre dans le sous-formulaire : le même risque
+  // de perte silencieuse existe ici (Enregistrer sans re-cliquer Valider ferait disparaître cette
+  // période, déjà retirée de editingSessions) — toujours une intention réelle, jamais un préremplissage
+  // par défaut, donc marqué directement sans attendre un oninput.
+  _sessionFormTouched = true;
   const sansFinEl = document.getElementById('m-sess-sansfin');
   if (sansFinEl) sansFinEl.checked = !!s.sansFin;
   toggleSessSansFin(); // affiche/masque "Fin" et remet les jours au défaut du mode, écrasé juste après
@@ -8799,7 +8838,21 @@ function updateMontantMixteTotal() {
 }
 document.addEventListener('change', e=>{ if(e.target.id==='m-statut'){ const isRec=document.getElementById('m-type-fact').value==='mensuelle'; if(!isRec) toggleFactDate(e.target.value); } });
 
-function saveMission() {
+// bypassSessionGuard : true uniquement quand on ré-appelle saveMission() depuis
+// resolveSessionGuardAdd()/resolveSessionGuardSkip(), une fois le garde-fou déjà résolu par un
+// choix explicite — jamais passé par un onclick direct dans le HTML.
+function saveMission(bypassSessionGuard) {
+  // Garde-fou "période non validée" (voir _sessionFormTouched, déclaré près de editingSessions) —
+  // LE fix du bug de confiance bêta : le sous-formulaire de période contient une saisie jamais
+  // poussée dans editingSessions (pas de clic "Valider"). Enregistrer maintenant la perdrait
+  // silencieusement. On interrompt AVANT toute lecture des champs de la mission, avec un choix
+  // explicite à deux boutons plutôt qu'un confirm() natif ambigu.
+  if (_sessionFormTouched && !bypassSessionGuard) {
+    const txt = document.getElementById('modal-session-guard-txt');
+    if (txt) txt.innerHTML = `Vous avez rempli une période mais n'avez pas cliqué sur <strong>Valider</strong> — elle ne sera pas enregistrée avec ${tVocabMasculin() ? 'ce' : 'cette'} ${tVocab('item').toLowerCase()}.`;
+    openModal('modal-session-guard');
+    return;
+  }
   const editId=document.getElementById('mission-edit-id').value;
   const statut=document.getElementById('m-statut').value;
   const isRec=document.getElementById('m-type-fact').value==='mensuelle';
@@ -8882,6 +8935,26 @@ function saveMission() {
     return;
   }
   finalizeSaveMission(editId, obj);
+}
+
+// Choix "Enregistrer sans cette période" : discard explicite et assumé (jamais silencieux, c'est un
+// clic conscient) — le contenu du sous-formulaire est simplement ignoré, editingSessions n'est pas
+// touché. On relance saveMission en bypassant le garde-fou puisqu'il vient d'être résolu.
+function resolveSessionGuardSkip() {
+  closeModal('modal-session-guard');
+  saveMission(true);
+}
+// Choix "Ajouter cette période avant d'enregistrer" : réutilise EXACTEMENT addSessionToEdit(), la
+// même fonction que le bouton "Valider" — même validation, mêmes messages si la période est
+// invalide (aujourd'hui un alert() natif, comportement du Valider existant, pas redessiné ici).
+// Si la validation échoue, addSessionToEdit() s'arrête tôt sans réinitialiser _sessionFormTouched
+// (toujours true après l'appel) : on referme juste cette modale, la modale mission reste ouverte
+// avec les champs intacts pour correction, rien n'est enregistré. Si elle réussit (flag repassé à
+// false), la période est dans editingSessions : on peut enregistrer.
+function resolveSessionGuardAdd() {
+  addSessionToEdit();
+  closeModal('modal-session-guard');
+  if (!_sessionFormTouched) saveMission(true);
 }
 
 // ── TEMPS PRÉVU — historisation récurrentes (chantier "Temps prévu", Étape 3) ──
