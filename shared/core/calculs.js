@@ -925,6 +925,76 @@ export function getTempsPrevuCumule(DATA, m) {
   return total;
 }
 
+// ── FIABILITÉ DU PILIER RENTABILITÉ : temps réel sous-déclaré ────────────────────
+// Bug de confiance identifié en bêta (Charlène, Orianne — 2026-08-14) : le TH/TJM réel du pilier
+// Rentabilité = CA ÷ heures réellement loggées (fenêtre 12 mois glissants, voir
+// getRentabiliteRoulante côté app). Une mission facturée — donc COMPTÉE dans le CA — mais sans
+// temps réel saisi gonfle artificiellement le taux horaire → score de rentabilité, et donc score
+// global, faussement excellents. C'est une fausse ASSURANCE (pire qu'une fausse alerte), et c'est
+// la débutante qui n'a pas encore le réflexe de tout saisir qui y est le plus exposée.
+//
+// SCOPE VOLONTAIREMENT LIMITÉ à la Rentabilité (décision produit 2026-08-14) : aucune preuve
+// terrain que Remplissage / Trésorerie / Horizon souffrent du même symptôme. NE PAS généraliser
+// ceci en un système "qualité des données" appliqué à tous les piliers sans preuve — ce serait un
+// chantier séparé.
+//
+// SEUIL (choix produit validé par Faustine, 2026-08-14) : on ne flague que l'IMPLAUSIBLE, pour ne
+// jamais pénaliser un indépendant réellement rapide (temps réel < temps prévu = efficacité, pas
+// forcément un oubli). Une mission qui compte dans le CA de la fenêtre est "temps manquant" si :
+//   - elle a un temps prévu et le temps loggé est < 20 % de ce prévu (⇒ TH gonflé ≥ 5×), OU
+//   - elle n'a AUCUN temps prévu et < 0,5 h loggée (le cas "du CA mais ~0 h", le plus flagrant).
+// Entre 20 % et 100 % du prévu, on fait confiance à la donnée. Les revenus ponctuels sont hors
+// scope (ils ne prétendent consommer aucun temps, donc ne peuvent pas gonfler un taux horaire).
+export const RENT_SEUIL_RATIO = 0.20;      // temps loggé / temps prévu en-deçà duquel la donnée est jugée non fiable
+export const RENT_SEUIL_HEURES_MIN = 0.5;  // heures loggées minimales attendues quand aucun temps prévu n'est renseigné
+
+// Fenêtre 12 mois glissants (repliée sur l'ancienneté réelle si < 12 mois d'activité) — même
+// définition que getMoisRoulants12() côté app, recalculée ici pour rester dans shared/core sans
+// dépendre d'une fonction inline de indepuls.html.
+function _moisRoulants12(DATA) {
+  const now = new Date();
+  const dO = DATA.params && DATA.params.dateOuverture;
+  const debut = dO ? new Date(dO + 'T12:00:00') : null;
+  const moisDepuisDebut = debut ? (now.getFullYear() - debut.getFullYear()) * 12 + (now.getMonth() - debut.getMonth()) + 1 : null;
+  const n = (moisDepuisDebut != null && moisDepuisDebut < 12 && moisDepuisDebut > 0) ? moisDepuisDebut : 12;
+  const mks = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    mks.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return mks;
+}
+
+// Missions qui gonflent le TH réel faute de temps saisi. Retourne la liste (pour lister/lier les
+// missions concernées dans l'UI), vide si la donnée est fiable.
+export function getMissionsRentabiliteTempsManquant(DATA) {
+  const inWindow = new Set(_moisRoulants12(DATA));
+  const flagged = [];
+  (DATA.missions || []).forEach(m => {
+    if (m.isManagement) return;
+    // Contribue-t-elle RÉELLEMENT au CA de la fenêtre ? Encaissements comptés (non annulés) datés
+    // dans la fenêtre, ou mission facturée dont dateFact tombe dans la fenêtre (même repli que le
+    // moteur de CA). Les missions "en attente"/non signées avec 0 h sont normales → jamais flaguées.
+    const encs = encaissementsComptes(m).filter(e => inWindow.has((e.date || '').slice(0, 7)));
+    const caEncs = encs.reduce((s, e) => s + (parseFloat(e.montant) || 0), 0);
+    const caFact = (m.statut === 'fact' && m.dateFact && inWindow.has(m.dateFact.slice(0, 7))) ? (m.montantDevis || 0) : 0;
+    const ca = caEncs > 0 ? caEncs : caFact;
+    if (ca <= 0) return;
+    const logged = getMissionHeures(DATA, m);
+    const prevu = m.isRecurring ? getTempsPrevuCumule(DATA, m) : (m.tempsPrevu || 0);
+    const manquant = prevu > 0
+      ? logged < RENT_SEUIL_RATIO * prevu
+      : logged < RENT_SEUIL_HEURES_MIN;
+    if (manquant) flagged.push({ id: m.id, client: m.client, description: m.description, ca, loggedH: logged, prevuH: prevu });
+  });
+  return flagged;
+}
+
+// Le pilier Rentabilité repose-t-il sur des données trop incomplètes pour afficher un score fiable ?
+export function rentabiliteDonneesInsuffisantes(DATA) {
+  return getMissionsRentabiliteTempsManquant(DATA).length > 0;
+}
+
 export function getHeuresFact(DATA) {
   const hMissions = DATA.missions
     .filter(m => !m.isManagement && (m.statut === 'cours' || m.statut === 'fact'))

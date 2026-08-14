@@ -3192,6 +3192,28 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-14 — Pilier Rentabilité : état "données insuffisantes" quand le temps réel est sous-déclaré (bug de confiance bêta)
+
+**Bug identifié en live** (Charlène : Score 93 % ; Orianne : TJM réel 157 €/h contre objectif 44 €/h) : le pilier Rentabilité calcule un taux horaire réel = CA ÷ heures loggées. Si une mission est **facturée** (comptée dans le CA) mais avec **très peu ou pas d'heures loggées**, le dénominateur est sous-déclaré → le taux horaire explose → score de rentabilité, et donc score global, **faussement excellents**. C'est une **fausse assurance** (pire qu'une fausse alerte), et c'est la débutante qui n'a pas encore le réflexe de tout saisir qui y est le plus exposée.
+
+**DÉCISION DE SCOPE (à ne pas ré-élargir)** : ce chantier corrige **UNIQUEMENT** le pilier Rentabilité et son intégration au Brief. On ne construit **PAS** de système générique "qualité des données" pour tous les piliers — aucune preuve terrain que Remplissage / Trésorerie / Horizon souffrent du même symptôme, et un badge générique irait à l'inverse du chantier densité. Si le symptôme apparaît ailleurs en bêta, ce sera un chantier séparé, avec preuves.
+
+**Détection (`shared/core/calculs.js`, jamais inline)** : `getMissionsRentabiliteTempsManquant(DATA)` retourne les missions qui gonflent le TH réel faute de temps saisi ; `rentabiliteDonneesInsuffisantes(DATA)` = booléen dérivé. Scope : missions **non-management** qui contribuent **réellement** au CA de la fenêtre 12 mois glissants (encaissements comptés datés dans la fenêtre, ou facturée avec `dateFact` dans la fenêtre — mêmes replis que le moteur de CA) ; les missions "en attente"/non signées avec 0 h sont normales et **jamais** flaguées.
+
+**SEUIL (choix produit, validé par Faustine)** : on ne flague que l'**implausible**, pour ne jamais pénaliser un indépendant réellement rapide (temps réel < prévu = efficacité, pas forcément un oubli). Une mission est "temps manquant" si :
+- elle a un temps prévu et le temps loggé est **< 20 %** de ce prévu (`RENT_SEUIL_RATIO = 0.20`, ⇒ TH gonflé ≥ 5×), **ou**
+- elle **n'a aucun temps prévu** et **< 0,5 h** loggée (`RENT_SEUIL_HEURES_MIN`, le cas "du CA mais ~0 h", celui de Charlène/Orianne).
+
+Entre 20 % et 100 % du prévu, on fait confiance à la donnée. Revenus ponctuels **hors scope** (ils ne prétendent consommer aucun temps). Même principe honnête que `wTrajectoireAnnuelle()` (message explicite plutôt qu'un chiffre non fiable).
+
+**Affichage (`wScoreSante` / `pilierCard`)** : quand la détection se déclenche, la carte Rentabilité passe en **état neutre** (3ᵉ état, param `neutre` de `pilierCard`) — **ni score numérique ni barre pleine colorée** (bord gris, "—", barre hachurée), message explicite « Il manque du temps travaillé sur N [tVocab('items')] » (jamais "missions" en dur), lien direct vers la fiche si N = 1, sinon vers l'onglet Missions. Pas de bouton "Pourquoi ce score ?" (pas de score), **pas de repli** et **pas de masquage** (ça se résout tout seul dès que le temps est saisi ; un dismiss recréerait la fausse assurance).
+
+**Score global /100** : quand Rentabilité est neutre, elle est **exclue** du score (jamais comptée 25/25 par défaut) — recalcul sur les 3 piliers restants ramené sur 100 (`(sRemp+sTreso+sComm)/75*100`), Rentabilité aussi exclue du choix du "pilier le plus faible" (`worst`), et **étiquette explicite** sous le cercle : « Calculé sur 3 piliers sur 4 — la rentabilité attend que vous complétiez le temps passé ».
+
+**Brief (Action recommandée)** : nouvelle branche insérée **après** les impayés graves (`gravesArr`, qui gardent la priorité) et **avant** les branches pilier — « Il manque du temps travaillé sur N … qui compte dans votre CA … complétez le temps passé ». Non masquable.
+
+**Tests** : `shared/tests/rentabilite_temps_manquant.test.js` (14/14) — mission bien loggée non flaguée, facturée à ~0 h flaguée, seuil 20 % strict, aucun prévu + < 0,5 h flaguée, encaissement annulé hors CA, gestion interne exclue, hors fenêtre exclue, booléen d'état. Suite complète Node : 0 régression. Démo non impactée (missions d'exemple loggent 7–16 h, bien au-dessus des seuils). Vérification navigateur (rendu de la carte neutre, cercle sur 3 piliers) à faire par Faustine.
+
 ### 2026-08-14 — Tableau de bord : réduire la densité perçue au premier chargement (retour béta OBM)
 
 Deux bétatesteurs OBM ont trouvé le tableau de bord "trop dense au premier chargement". Objectif : **replier par défaut ce qui n'a pas de valeur immédiate**, sans jamais masquer la réponse à "est-ce que ça va ?". Aucun nouveau mécanisme d'état : on étend uniquement le repli existant (`DATA.widgetsReplies` via `_widgetReplie` / `_widgetToggleBtn` / `toggleWidgetReplie`).
