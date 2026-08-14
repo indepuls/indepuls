@@ -10949,12 +10949,13 @@ function updateNoteRapide(id, el) {
 }
 function wNotesRapides() {
   const notes = DATA.notesRapides || [];
-  // Densité perçue (retour béta OBM, 2026-08-10) : l'aide-mémoire est repliée par défaut (defautReplie
-  // = true) pour alléger le premier chargement. Même mécanisme que les autres widgets
+  // Densité perçue (retour béta OBM, 2026-08-10) : l'aide-mémoire garde un bouton de repli comme les
+  // autres widgets, mais reste DÉPLIÉE par défaut (defautReplie=false) — repliée, elle laissait un vide
+  // peu esthétique en bas de page (retour Faustine, 2026-08-14). Même mécanisme que les autres widgets
   // (toggleWidgetReplie / DATA.widgetsReplies), seul le libellé du bouton est adapté : quand des notes
   // existent on annonce leur nombre ("Voir mes notes (N)") pour ne pas les cacher silencieusement ;
   // sans note, libellé neutre ("Ajouter une note") qui n'insinue aucun contenu masqué.
-  const replie = _widgetReplie('notesRapides', true);
+  const replie = _widgetReplie('notesRapides', false);
   const labelReplie = notes.length ? `Voir mes notes (${notes.length}) ▸` : 'Ajouter une note ▸';
   const toggleBtn = `<button type="button" onclick="toggleWidgetReplie('notesRapides')" style="display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;padding:3px 6px;flex-shrink:0" title="${replie?'Déplier':'Replier'}">${replie?labelReplie:'Masquer ▾'}</button>`;
   return `
