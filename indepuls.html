@@ -6452,7 +6452,23 @@ function wScoreSante(d) {
       </div>
     </div>`;
   }
-  const {thR,hT,objNet,caNetMoy,caBrut,caBrutRoulant,caNetRoulant,hTRoulant,rentMks,rentFenetreMois,rentFenetrePartielle}=d;
+  const {thR,hT,objNet,caNetMoy,caBrut,caBrutRoulant:_caBrutRoulantRaw,caNetRoulant:_caNetRoulantRaw,hTRoulant:_hTRoulantRaw,rentMks,rentFenetreMois,rentFenetrePartielle}=d;
+  // Fiabilité du taux horaire (retour Faustine 2026-08-14) : on retire du TH/TJM réel les missions
+  // comptées dans le CA mais sans temps réel suffisant (anciens chantiers CA-only, dont on ne connaît
+  // plus le temps passé). Plutôt que de neutraliser tout le pilier, on l'EXCLUT du calcul et on garde
+  // le taux calculé sur les missions réellement suivies. En redéfinissant ici caBrutRoulant/
+  // caNetRoulant/hTRoulant (seules variables du TH réel dans wScoreSante), tout l'aval — score,
+  // affichage, lignes de détail — hérite automatiquement de la version fiable, sans autre changement.
+  // Cas "rien de suivi" (toutes exclues) : hTRoulant retombe à ~0 → l'état honnête "Aucune heure
+  // saisie" déjà en place prend le relais, sans neutralisation spécifique.
+  const _rentExclues=(typeof getMissionsRentabiliteTempsManquant==='function')?getMissionsRentabiliteTempsManquant():[];
+  const _rentCAExclue=_rentExclues.reduce((s,f)=>s+(f.ca||0),0);
+  const _rentHExclue=_rentExclues.reduce((s,f)=>s+(f.heuresFenetre||0),0);
+  const caBrutRoulant=Math.max(0,_caBrutRoulantRaw-_rentCAExclue);
+  const hTRoulant=Math.max(0,_hTRoulantRaw-_rentHExclue);
+  // Net proportionnel au brut retiré (les missions exclues sont CA-only, sans détail de charges par
+  // mission ; approximation transparente, n'affecte qu'une ligne d'affichage "TH net estimé").
+  const caNetRoulant=_caBrutRoulantRaw>0?_caNetRoulantRaw*(caBrutRoulant/_caBrutRoulantRaw):_caNetRoulantRaw;
   // "TH net estimé"/scoring rentabilité (branches th/tjm) : fenêtre glissante plutôt que hT/caBrut
   // (vie entière) ou caNet annuel seul — voir getRentabiliteRoulante()/getMoisRoulants12().
   const thRRoulant=hTRoulant>0?caNetRoulant/hTRoulant:0;
@@ -6554,6 +6570,17 @@ function wScoreSante(d) {
     else if(sRent>=14){diagRent=`TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos '+tVocab('items').toLowerCase()+' les moins rentables.';}
     else{diagRent=`TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+  }
+  // Transparence (retour Faustine 2026-08-14) : signaler, sans bloquer, les missions comptées dans le
+  // CA mais retirées du taux horaire faute de temps saisi — la personne sait ainsi pourquoi son taux
+  // ne couvre pas tout, et peut compléter le temps si elle le souhaite (non bloquant, "zéro boîte
+  // noire"). Formulation invariante en genre ("hors de ce taux") pour éviter tout accord chantier/
+  // mission. Lien direct vers la fiche si une seule, sinon vers l'onglet Missions.
+  if(_rentExclues.length){
+    const _nx=_rentExclues.length;
+    const _itemWx=(_nx===1?tVocab('item'):tVocab('items')).toLowerCase();
+    const _lienx=_nx===1?`openMissionModal('${_rentExclues[0].id}')`:`navigate('missions')`;
+    diagRent+=`<div style="margin-top:8px;font-size:11px;color:var(--tl);line-height:1.4">${_nx} ${_itemWx} sans temps saisi, hors de ce taux horaire. <span class="step-cta" style="cursor:pointer" onclick="${_lienx}">→ ${_nx===1?'compléter le temps':'compléter les temps'}</span></div>`;
   }
 
   // ── Comparaison mensuelle (même métrique que l'annuel, jamais mélangée) ──
@@ -6820,18 +6847,10 @@ function wScoreSante(d) {
   }
 
   // ── SCORE GLOBAL ─────────────────────────────────────────────
-  // Fiabilité de la Rentabilité (bug de confiance bêta Charlène/Orianne, 2026-08-14) : si des
-  // missions comptées dans le CA n'ont pas de temps réel saisi, le TH/TJM réel est artificiellement
-  // gonflé → sRent faussement élevé → score global faussement excellent (fausse assurance). Dans ce
-  // cas on EXCLUT la Rentabilité du score (jamais la compter 25/25 par défaut, jamais laisser le
-  // score paraître complet) et on recalcule sur les 3 piliers restants, ramené sur 100 pour garder
-  // les seuils de couleur du cercle. Étiquette explicite affichée sous le score + branche Brief
-  // dédiée (voir plus bas). Détection dans shared/core (getMissionsRentabiliteTempsManquant).
-  const _rentTempsManquant=(typeof getMissionsRentabiliteTempsManquant==='function')?getMissionsRentabiliteTempsManquant():[];
-  const _rentInsuffisant=_rentTempsManquant.length>0;
-  const score=_rentInsuffisant
-    ? Math.round((sRemp+sTreso+sComm)/75*100)
-    : sRent+sRemp+sTreso+sComm;
+  // La Rentabilité est désormais calculée sur les missions réellement suivies (voir la fiabilisation
+  // caBrutRoulant/hTRoulant au moment du destructuring plus haut) : sRent reflète un taux honnête,
+  // elle compte donc normalement dans le score global sur 4 piliers.
+  const score=sRent+sRemp+sTreso+sComm;
   const scoreColor=score>=80?'var(--ok)':score>=60?'#84cc16':score>=40?'var(--warn)':score>=20?'#f97316':'var(--err)';
 
   // Score élevé mais objectif annuel compromis : les 4 piliers ci-dessus ne mesurent aucun
@@ -6848,10 +6867,7 @@ function wScoreSante(d) {
   // vRemp, rowsRemp…) et sur worst.n==='remplissage' ci-dessous — "agenda" ne correspondait
   // à rien de stable, c'était une dérive de nommage qui rendait cette branche inatteignable.
   const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'remplissage',art:'le ',s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
-  // Rentabilité exclue du "pilier le plus faible" quand ses données sont insuffisantes : sRent est
-  // alors gonflé/non fiable, il fausserait le choix de worst (et sa propre branche Brief est
-  // remplacée par la branche "données insuffisantes" dédiée, plus prioritaire, ci-dessous).
-  const worst=(_rentInsuffisant?pilliers.filter(p=>p.n!=='rentabilité'):pilliers).reduce((a,b)=>a.s<b.s?a:b);
+  const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
 
   // Snapshot hebdomadaire (chantier "brief hebdomadaire par email", 2026-07-27) — capture le
   // score global et le pilier le plus faible DÉJÀ calculés ci-dessus, jamais recalculés une
@@ -6901,15 +6917,6 @@ function wScoreSante(d) {
   if(gravesArr.length>0){
     const g=gravesArr[0];
     priorite=`Relancer <strong>${esc(g.m.client)}</strong> — ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
-  } else if(_rentInsuffisant){
-    // Données de temps insuffisantes sur la Rentabilité : candidat prioritaire au même niveau que
-    // les branches pilier, mais placé APRÈS les impayés graves (gravesArr) qui restent au-dessus.
-    // Jamais masquable (pas de dismiss dans "Action recommandée") : ça se résout tout seul dès que
-    // le temps est saisi — un masquage recréerait exactement la fausse assurance qu'on corrige.
-    const _n=_rentTempsManquant.length;
-    const _itemW=(_n===1?tVocab('item'):tVocab('items')).toLowerCase();
-    priorite=`Il manque du temps travaillé sur <strong>${_n} ${_itemW}</strong> qui compte${_n>1?'nt':''} dans votre CA. Sans lui, votre rentabilité réelle est faussée — complétez le temps passé pour fiabiliser votre score.`;
-    prioriteNavPage='missions';
   } else if(worst.n==='trésorerie'){
     if(moyensArr.length>0){
       const m0=moyensArr[0];
@@ -7157,6 +7164,9 @@ function wScoreSante(d) {
   // Transparence sur la base de calcul (retour Faustine 2026-07-30 : "toujours transparent") —
   // affichée dans les 3 branches, puisque "TH net estimé" ci-dessus dépend de hTRoulant partout.
   if(hTRoulant>0) rowsRent.push({lbl:'Période de calcul',val:rentFenetrePartielle?`Depuis le début (${rentFenetreMois} mois)`:'12 derniers mois glissants',c:'var(--tl)'});
+  // Missions retirées du taux horaire faute de temps saisi (leur CA reste bien compté ailleurs) —
+  // transparence sur la base de calcul, cohérent avec la note sous le diagnostic.
+  if(_rentExclues.length) rowsRent.push({lbl:`Sans temps saisi (hors calcul) <span class="info-tip" title="Ces ${tVocab('items').toLowerCase()} comptent dans votre CA mais n'ont pas (ou trop peu) de temps réel saisi. Ils sont retirés du taux horaire pour ne pas le fausser. Complétez leur temps pour les réintégrer.">?</span>`,val:_rentExclues.length+' '+(_rentExclues.length===1?tVocab('item'):tVocab('items')).toLowerCase(),c:'var(--tl)'});
   if(rowRentMois) rowsRent.push(rowRentMois);
   // Libellé explicitement distingué de "(ce mois)" ci-dessus (rowRentMois) : pctObj est une
   // MOYENNE sur tous les mois actifs depuis le début de l'année/l'ouverture, jamais le seul
@@ -7241,32 +7251,10 @@ function wScoreSante(d) {
   const methComm=`<strong>Données ·</strong> ${tVocab('items')} ${_actifsWord} = ponctuelles en cours/en attente + récurrentes encore dans leur période<br><strong>Barème ·</strong> ≥ 3 ${_actifsWord} OU ≥ 2 ${_actifsWord} + 1 ${_itemLow} → 25/25 &nbsp;·&nbsp; 2 ${_actifsWord} OU 1 ${_actifWord} + 1 ${_itemLow} → 18/25<br>&nbsp;&nbsp;1 ${_actifWord} sans ${_itemLow} → 10/25 &nbsp;·&nbsp; 0 ${_actifWord} → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin de la récurrente active la plus longue`;
 
   // ── RENDU D'UN PILIER (carte compacte) ───────────────────────
-  const pilierCard=(label,pts,diag,adv,navPage,rows,meth,extraHTML='',neutre=null)=>{
+  const pilierCard=(label,pts,diag,adv,navPage,rows,meth,extraHTML='')=>{
     const pct=Math.round(pts/25*100);
     const c=pct>=80?'var(--ok)':pct>=55?'var(--warn)':'var(--err)';
     const key=label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
-    // État NEUTRE (bug de confiance bêta, 2026-08-14) : quand le pilier repose sur des données trop
-    // incomplètes pour être fiable (missions comptées dans le CA sans temps réel saisi → TH gonflé),
-    // on n'affiche NI score numérique NI barre pleine colorée — un état distinct, honnête, jamais un
-    // score à 0 ni un score inventé. Message explicite + lien vers la/les mission(s). Pas de bouton
-    // "Pourquoi ce score ?" (il n'y a pas de score), pas de repli (rien à cacher, c'est l'info utile).
-    if(neutre){
-      const _n=neutre.missions.length;
-      const _itemW=(_n===1?tVocab('item'):tVocab('items')).toLowerCase();
-      const _btnStyle="width:100%;padding:7px;border-radius:7px;border:1px solid var(--warn);background:transparent;color:var(--warn);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s";
-      const _lien=_n===1
-        ? `<button onclick="openMissionModal('${neutre.missions[0].id}')" style="${_btnStyle}" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">→ Compléter le temps passé</button>`
-        : `<button onclick="navigate('missions')" style="${_btnStyle}" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">→ Voir mes ${_itemW}</button>`;
-      return `<div style="padding:16px;border-radius:10px;border:1px solid var(--brd);background:var(--card);border-top:3px solid var(--tl);display:flex;flex-direction:column;height:100%;box-sizing:border-box">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700">${label}</div>
-          <div style="font-size:18px;font-weight:900;color:var(--tl)" title="Score en attente : données de temps incomplètes">—</div>
-        </div>
-        <div style="height:4px;background:repeating-linear-gradient(90deg,var(--brd),var(--brd) 4px,transparent 4px,transparent 8px);border-radius:2px;margin-bottom:12px"></div>
-        <div style="font-size:12px;color:var(--text);line-height:1.55;margin-bottom:10px;flex:1">⏳ Il manque du temps travaillé sur <strong>${_n} ${_itemW}</strong>. Tant qu'il n'est pas saisi, votre taux horaire réel est faussé — le score reste en attente pour ne pas vous donner une fausse assurance.</div>
-        ${_lien}
-      </div>`;
-    }
     const rowsHTML=rows.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd)"><div style="font-size:12px;color:var(--tl)">${r.lbl}</div><div style="font-size:13px;font-weight:700;color:${r.c||'var(--text)'}">${r.val}</div></div>`).join('');
     _pilierData[key]={label,pts,pct,c,diag,adv,navPage,rowsHTML,meth};
     // Densité perçue (retour béta OBM, 2026-08-10) : score + barre TOUJOURS visibles ; le diagnostic
@@ -7322,14 +7310,13 @@ function wScoreSante(d) {
         </div>
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700;margin-bottom:7px">Santé de l'activité</div>
         <div style="font-size:12px;color:var(--text);line-height:1.5">${diagGlobal}</div>
-        ${_rentInsuffisant?`<div style="font-size:10px;color:var(--warn);line-height:1.4;margin-top:7px">Calculé sur 3 piliers sur 4 — la rentabilité attend que vous complétiez le temps passé sur vos ${tVocab('items').toLowerCase()}.</div>`:''}
       </div>
       <div class="card ss-postit" style="grid-column:3;grid-row:1/3;padding:16px 18px">
         ${wNotesRapides()}
       </div>
     </div>
     <div class="g4" style="gap:10px">
-      ${pilierCard('Ma rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent,'',_rentInsuffisant?{missions:_rentTempsManquant}:null)}
+      ${pilierCard('Ma rentabilité',sRent,diagRent,advRent,'params',rowsRent,methRent)}
       ${pilierCard('Mon remplissage',sRemp,diagRemp,advRemp,'missions',rowsRemp,methRemp)}
       ${pilierCard('Ma trésorerie',sTreso,diagTreso,advTreso,'missions',rowsTreso,methTreso,extraTresoHTML)}
       ${pilierCard('Mon horizon',sComm,diagComm,advComm,'missions',rowsComm,methComm)}
@@ -15023,7 +15010,7 @@ document.addEventListener('keydown', function(e) {
   window.getMargeAffaire             = (m)   => { sync(); return Mode.getMargeAffaire(m); };
   window.getTHReelAffaire            = (m)   => { sync(); return Mode.getTHReelAffaire(m); };
   window.getMissionsRentabiliteTempsManquant = () => { sync(); return Mode.getMissionsRentabiliteTempsManquant(); };
-  window.rentabiliteDonneesInsuffisantes     = () => { sync(); return Mode.rentabiliteDonneesInsuffisantes(); };
+  window.rentabiliteADesMissionsExclues      = () => { sync(); return Mode.rentabiliteADesMissionsExclues(); };
   window.getPctCoutAffaire           = (m)   => { sync(); return Mode.getPctCoutAffaire(m); };
   window.getAffairesAvecCouts        = (ms)  => { sync(); return Mode.getAffairesAvecCouts(ms); };
   window.getMargeMoyennePortefeuille = (ms)  => { sync(); return Mode.getMargeMoyennePortefeuille(ms); };

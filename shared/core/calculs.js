@@ -965,33 +965,72 @@ function _moisRoulants12(DATA) {
   return mks;
 }
 
-// Missions qui gonflent le TH réel faute de temps saisi. Retourne la liste (pour lister/lier les
-// missions concernées dans l'UI), vide si la donnée est fiable.
+// CA d'UNE mission sur une fenêtre de mois, avec EXACTEMENT la même logique que getCaFromMissions
+// (récurrente = montantMensuel × mois actifs présents dans la fenêtre ; ponctuelle = encaissements
+// comptés datés dans la fenêtre, sinon montantDevis si facturée dans la fenêtre). Utilisé pour
+// décider si une mission contribue au CA du taux horaire ET pour l'en retirer sans jamais
+// désynchroniser avec le CA agrégé par getCaFromMissions (mêmes replis, mêmes montants).
+export function getCaMissionFenetre(DATA, m, mksSet) {
+  if (m.isManagement) return 0;
+  if (m.isRecurring) {
+    if (!m.dateDebutRec || m.statut === 'ref' || m.statut === 'att') return 0;
+    const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+    let total = 0;
+    mksSet.forEach(mk => {
+      const [ty, tmo] = mk.split('-').map(Number);
+      const diff = (ty - sy) * 12 + (tmo - sm);
+      if (diff >= 0 && diff < (m.nbMoisRec || 9999)) total += m.montantMensuel || 0;
+    });
+    return total;
+  }
+  const encs = encaissementsComptes(m).filter(e => e.date && mksSet.has(e.date.slice(0, 7)));
+  if (encs.length > 0) return encs.reduce((s, e) => s + (e.montant || 0), 0);
+  if (m.statut === 'fact' && m.dateFact && mksSet.has(m.dateFact.slice(0, 7))) return m.montantDevis || 0;
+  return 0;
+}
+
+// Heures d'UNE mission telles qu'elles pèsent dans le dénominateur du TH réel (getHeuresMoisCoherentes
+// côté app), pour pouvoir les retirer avec le CA : une ponctuelle dont le CA est reconnu dans la
+// fenêtre y apporte la TOTALITÉ de ses heures (datées + heuresSaisies), une récurrente seulement ses
+// heures datées dans la fenêtre. On reste ainsi cohérent avec la façon dont les heures sont comptées.
+function getHeuresMissionFenetre(DATA, m, mksSet) {
+  if (m.isRecurring) {
+    return (m.tempsManuel || [])
+      .filter(t => t.date && mksSet.has(t.date.slice(0, 7)))
+      .reduce((s, t) => s + (t.ms || 0), 0) / 3600000;
+  }
+  return getMissionHeures(DATA, m);
+}
+
+// Missions comptées dans le CA de la fenêtre 12 mois glissants mais dont le temps réel est trop
+// incomplet pour être fiable (sous le seuil). Leur CA gonfle le TH réel alors que leurs heures
+// manquent → on les EXCLUT du calcul du taux horaire (numérateur ET dénominateur) plutôt que de
+// neutraliser tout le pilier : le pilier reste calculé sur les missions réellement suivies (retour
+// Faustine 2026-08-14 : son mari a saisi d'anciens chantiers CA-only, dont il ne connaît plus le
+// temps passé — ils doivent être ignorés, pas bloquer la carte). Retourne, par mission exclue, son
+// CA et ses heures DANS la fenêtre (pour retrait exact) + de quoi la lister/lier dans l'UI.
 export function getMissionsRentabiliteTempsManquant(DATA) {
   const inWindow = new Set(_moisRoulants12(DATA));
   const flagged = [];
   (DATA.missions || []).forEach(m => {
     if (m.isManagement) return;
-    // Contribue-t-elle RÉELLEMENT au CA de la fenêtre ? Encaissements comptés (non annulés) datés
-    // dans la fenêtre, ou mission facturée dont dateFact tombe dans la fenêtre (même repli que le
-    // moteur de CA). Les missions "en attente"/non signées avec 0 h sont normales → jamais flaguées.
-    const encs = encaissementsComptes(m).filter(e => inWindow.has((e.date || '').slice(0, 7)));
-    const caEncs = encs.reduce((s, e) => s + (parseFloat(e.montant) || 0), 0);
-    const caFact = (m.statut === 'fact' && m.dateFact && inWindow.has(m.dateFact.slice(0, 7))) ? (m.montantDevis || 0) : 0;
-    const ca = caEncs > 0 ? caEncs : caFact;
+    // Contribue-t-elle RÉELLEMENT au CA de la fenêtre ? (mêmes montants que getCaFromMissions).
+    // Les missions "en attente"/non signées avec 0 h sont normales → jamais flaguées.
+    const ca = getCaMissionFenetre(DATA, m, inWindow);
     if (ca <= 0) return;
     const logged = getMissionHeures(DATA, m);
     const prevu = m.isRecurring ? getTempsPrevuCumule(DATA, m) : (m.tempsPrevu || 0);
     const manquant = prevu > 0
       ? logged < RENT_SEUIL_RATIO * prevu
       : logged < RENT_SEUIL_HEURES_MIN;
-    if (manquant) flagged.push({ id: m.id, client: m.client, description: m.description, ca, loggedH: logged, prevuH: prevu });
+    if (manquant) flagged.push({ id: m.id, client: m.client, description: m.description, ca, heuresFenetre: getHeuresMissionFenetre(DATA, m, inWindow), loggedH: logged, prevuH: prevu });
   });
   return flagged;
 }
 
-// Le pilier Rentabilité repose-t-il sur des données trop incomplètes pour afficher un score fiable ?
-export function rentabiliteDonneesInsuffisantes(DATA) {
+// Y a-t-il au moins une mission exclue du taux horaire faute de temps saisi ? (sert à afficher la
+// note de transparence sur la carte Rentabilité, pas à neutraliser le pilier).
+export function rentabiliteADesMissionsExclues(DATA) {
   return getMissionsRentabiliteTempsManquant(DATA).length > 0;
 }
 

@@ -113,7 +113,7 @@ export const getMissionHeuresMois     = (m, mk) => C.getMissionHeuresMois(DATA, 
 export const getTempsPrevuPourMois    = (m, mk) => C.getTempsPrevuPourMois(DATA, m, mk);
 export const getTempsPrevuCumule      = (m) => C.getTempsPrevuCumule(DATA, m);
 export const getMissionsRentabiliteTempsManquant = () => C.getMissionsRentabiliteTempsManquant(DATA);
-export const rentabiliteDonneesInsuffisantes     = () => C.rentabiliteDonneesInsuffisantes(DATA);
+export const rentabiliteADesMissionsExclues      = () => C.rentabiliteADesMissionsExclues(DATA);
 export const getHeuresFact            = () => C.getHeuresFact(DATA);
 export const getHeuresInterne         = () => C.getHeuresInterne(DATA);
 export const getTempsJour             = (ds) => C.getTempsJour(DATA, ds);
