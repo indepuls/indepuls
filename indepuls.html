@@ -13484,6 +13484,55 @@ function sbTimerToggle() {
   if(currentPage==='dashboard') renderDashboard();
 }
 
+// ── SÉLECTEUR DU WIDGET SIDEBAR (retour bêta OBM, point 5, 2026-08-16) ───────────────────────
+// Diagnostic affiné avec Faustine : le widget agissait comme un raccourci à sens unique (un clic
+// démarrait DIRECTEMENT "Mon entreprise", sans jamais dire avant le clic ce qui allait être suivi)
+// — d'où la confusion d'Orianne, qui l'a pris pour un chrono général. Décision de scope : GARDER
+// deux points d'entrée (ce sélecteur pour lancer un chrono sans quitter sa page, les boutons ▶ de
+// ligne existants — Tableau/Calendrier/Kanban — pour quand on est déjà sur la mission), tous deux
+// appellent startTimer(id) tel quel, aucune modification du modèle "un seul chrono à la fois".
+function sbTimerOptionLabel(m) {
+  return esc(m.client||tVocab('item'))+(m.description?' — '+esc(m.description):'');
+}
+// "Mon entreprise" toujours épinglée en premier (même nom que DATA — voir getMgmtMission().client
+// — Partie B de ce chantier : nom unifié à toutes les surfaces qui présentent une IDENTITÉ, jamais
+// aux titres de section "Temps interne", qui restent des libellés de catégorie, pas une identité —
+// voir CLAUDE.md). Par défaut, missions au statut actif (même filtre que "Chantiers en cours" du
+// Score de Santé : statut cours OU récurrente encore active), triées par client. "Toutes mes
+// missions" (tous statuts) : liste complète groupée par statut (optgroups, tVocabStatutPluriel) —
+// couvre le cas d'un chrono sur une mission déjà facturée (retouche) ou pas encore validée (devis,
+// appel découverte).
+function sbTimerOptionsHtml(all) {
+  const mgmt=getMgmtMission();
+  const mgmtOpt=mgmt?`<option value="${mgmt.id}">Mon entreprise</option>`:'';
+  const missions=DATA.missions.filter(m=>!m.isManagement);
+  const byClient=(a,b)=>(a.client||'').localeCompare(b.client||'');
+  if(!all){
+    const actives=missions.filter(m=>m.statut==='cours'||isRecurringStillActive(m)).sort(byClient);
+    return mgmtOpt+actives.map(m=>`<option value="${m.id}">${sbTimerOptionLabel(m)}</option>`).join('');
+  }
+  const groupes=['cours','att','fact','ref'].map(st=>({st,missions:missions.filter(m=>m.statut===st).sort(byClient)})).filter(g=>g.missions.length);
+  const optgroups=groupes.map(g=>`<optgroup label="${esc(tVocabStatutPluriel(g.st))}">${g.missions.map(m=>`<option value="${m.id}">${sbTimerOptionLabel(m)}</option>`).join('')}</optgroup>`).join('');
+  return mgmtOpt+optgroups;
+}
+// Rebâtit le sélecteur depuis la case "toutes mes missions" — jamais depuis le tick du chrono (voir
+// garde dans updateSbTimer() : rebâtir à chaque seconde effacerait la sélection en cours de
+// l'utilisatrice avant même qu'elle ait pu cliquer Démarrer).
+function sbTimerRebuildSelect() {
+  const sel=document.getElementById('sb-timer-select');
+  if(!sel) return;
+  sel.innerHTML=sbTimerOptionsHtml(!!document.getElementById('sb-timer-all')?.checked);
+}
+// Bouton "Démarrer" séparé du <select> — DEUX clics distincts (choisir, puis lancer), jamais de
+// démarrage automatique au changement de sélection (retour Faustine : risque de déclenchement
+// accidentel). Réutilise startTimer(id) tel quel, aucune logique de chrono dupliquée ici.
+function sbTimerStartSelected() {
+  const sel=document.getElementById('sb-timer-select');
+  if(!sel||!sel.value) return;
+  startTimer(sel.value);
+  if(currentPage==='dashboard') renderDashboard();
+}
+
 // Met à jour uniquement data-tip (jamais title) : le gestionnaire de clic .info-tip lit
 // data-tip en priorité, et l'absence de title garantit qu'aucun tooltip natif au survol ne
 // peut apparaître — y compris ici où le contenu est réécrit chaque seconde pendant qu'un
@@ -13521,17 +13570,38 @@ function updateSbTimer() {
     const sessionMs=mgmt.timerStart?Date.now()-mgmt.timerStart:0;
     disp.textContent=heuresMs(sessionMs);
     disp.className='sb-timer-disp on';
-    if(lbl) lbl.textContent='Temps interne';
+    // "Mon entreprise" et non "Temps interne" ici (Partie B, nom unifié) : ce slot affiche une
+    // IDENTITÉ (qui tourne actuellement), exactement comme la branche client ci-dessus affiche
+    // client.client — pas le libellé de catégorie du widget (celui-ci reste "Temps interne"
+    // ailleurs : tête du widget à l'état idle, bandeau Missions, légende du graphique — voir
+    // CLAUDE.md, ce sont des titres de section, pas des identités).
+    if(lbl) lbl.textContent='Mon entreprise';
     sub.textContent='Session en cours';
     btns.innerHTML=`<button class="sb-timer-btn active" onclick="sbTimerToggle()">⏸ Pause</button>`;
     _setInfoTip(ico, SB_TIMER_ICO_DEFAULT);
     _setInfoTip(tip, SB_TIMER_TIP_DEFAULT);
   } else {
-    disp.textContent='00:00:00';
+    disp.textContent='';
     disp.className='sb-timer-disp paused';
     if(lbl) lbl.textContent='Temps interne';
-    sub.textContent='Session : prête';
-    btns.innerHTML=`<button class="sb-timer-btn" onclick="sbTimerToggle()">▶ Démarrer</button>`;
+    sub.textContent='Suivre du temps sur :';
+    // Sélecteur natif + bouton "Démarrer" séparé (Partie A) : reconstruit uniquement s'il n'existe
+    // pas déjà — startTimerInterval() appelle updateSbTimer() CHAQUE SECONDE même à l'état idle ;
+    // le reconstruire à chaque tick effacerait la sélection en cours et décocherait "toutes mes
+    // missions" avant même que l'utilisatrice ait pu cliquer Démarrer. Le sélecteur est détruit
+    // (innerHTML remplacé par le bouton Pause) dès qu'un chrono démarre, donc il se reconstruit
+    // naturellement à chaque retour à l'idle — jamais de démarrage automatique au changement de
+    // sélection (deux clics distincts, choisir puis Démarrer).
+    if(!document.getElementById('sb-timer-select')){
+      btns.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
+        <select id="sb-timer-select" style="width:100%;font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff">${sbTimerOptionsHtml(false)}</select>
+        <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:rgba(255,255,255,.55);cursor:pointer">
+          <input type="checkbox" id="sb-timer-all" onchange="sbTimerRebuildSelect()" style="width:auto">
+          Afficher toutes mes ${tVocab('items').toLowerCase()} (tous statuts)
+        </label>
+        <button class="sb-timer-btn" onclick="sbTimerStartSelected()">▶ Démarrer</button>
+      </div>`;
+    }
     _setInfoTip(ico, SB_TIMER_ICO_DEFAULT);
     _setInfoTip(tip, SB_TIMER_TIP_DEFAULT);
   }
