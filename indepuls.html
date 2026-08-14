@@ -6592,13 +6592,17 @@ function wScoreSante(d) {
       rowRentMois={lbl:'Marge brute (ce mois)',val:_margePctMois+'%',c:okMois?'var(--ok)':'var(--err)'};
     }
   } else if(_rentIsChantier){
-    if(hMoisTotal>0){
+    // Au moins 1h de temps réel ce mois avant d'afficher un TJM mensuel : sous une fraction d'heure,
+    // (CA − coûts) ÷ heures explose (bug remonté par Faustine : TJM à plusieurs millions).
+    if(hMoisTotal>=1){
       const okMois=tjmMin>0?tjmMoisBrut>=tjmMin:null;
       diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?' — au-dessus de mon seuil minimum':' — en dessous de votre seuil minimum'}.`;
       rowRentMois={lbl:'TJM réel (ce mois)',val:fmtE(tjmMoisBrut,0)+'/j',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   } else {
-    if(hMoisTotal>0){
+    // Même garde qu'au-dessus : sous 1h de temps réel ce mois, le TH mensuel n'est pas fiable
+    // (division par un temps quasi nul), on ne l'affiche pas.
+    if(hMoisTotal>=1){
       const okMois=thMin>0?thMoisBrut>=thMin:null;
       diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?' — au-dessus de mon seuil minimum':' — en dessous de votre seuil minimum'}.`;
       rowRentMois={lbl:'TH réel (ce mois)',val:fmtE(thMoisBrut,0)+'/h',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
@@ -12475,7 +12479,7 @@ function renderObjectifsResult() {
       <div class="kpi neu"><div class="kpi-label">${_uniteLbl}</div><div class="kpi-val">${_uniteVal}</div><div class="kpi-sub">${_uniteSub}</div></div>
       <div class="kpi neu"><div class="kpi-label">Charges + impôts</div><div class="kpi-val">${fmt((getTauxChargesPresta()+getImpotsTaux())*100,1)} %</div><div class="kpi-sub">URSSAF+CFP+impôts</div></div>
     </div>
-    <div class="alert al-info mt12">${_phraseRate}${actMoisNote}</div>`;
+    <div class="alert al-info mt12"><span style="flex:1">${_phraseRate}${actMoisNote}</span></div>`;
 }
 
 // ── CATÉGORIES ───────────────────────────────────────────────
