@@ -1853,7 +1853,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="frow" id="m-charge-zone">
         <div class="fgroup">
-          <label class="flabel">Temps planifié estimatif <span class="info-tip" id="m-charge-tip" title="Temps que cette mission doit occuper, dans l'unité choisie ci-contre — c'est la seule donnée qui compte pour votre taux de remplissage (Score de Santé).">?</span></label>
+          <label class="flabel">Temps réservé <span class="ts" style="font-weight:400">(pour mon taux de remplissage)</span> <span class="info-tip" id="m-charge-tip" title="Temps que cette mission doit occuper, dans l'unité choisie ci-contre — c'est la seule donnée qui compte pour votre taux de remplissage (Score de Santé).">?</span></label>
           <input type="number" id="m-charge" step="0.5" min="0" placeholder="Ex : 5" oninput="updateTempsPrevuZone(document.getElementById('m-type-fact').value==='mensuelle')">
         </div>
         <div class="fgroup">
@@ -8436,7 +8436,7 @@ function toggleMissionType(val) {
   document.getElementById('m-montant-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'none':'');
   document.getElementById('m-montant-mixte-zone').style.display = (isCol||isRec)?'none':(isActiviteMixte()?'':'none');
   document.getElementById('m-rec-zone').style.display = isRec?'':'none';
-  // Temps planifié estimatif : visible pour toute mission, collectif compris (retour Faustine
+  // Temps réservé : visible pour toute mission, collectif compris (retour Faustine
   // 2026-07-24 : "s'aligner au reste et mettre un temps global" — les 3 champs Création/
   // Animation/Suivi dédiés au collectif ont été retirés, un seul temps planifié désormais).
   // Petit rappel textuel (pas de champ) affiché uniquement pour un collectif — voir
@@ -8444,7 +8444,7 @@ function toggleMissionType(val) {
   const colTempsZone = document.getElementById('m-temps-gestion-collectif-zone');
   if (colTempsZone) colTempsZone.style.display = isCol?'':'none';
   // Sélectionner "Programme collectif" révèle directement "Gestion du temps" — sinon le champ
-  // "Temps planifié estimatif" resterait invisible par défaut. Ne referme jamais automatiquement
+  // "Temps réservé" resterait invisible par défaut. Ne referme jamais automatiquement
   // (l'appel plus tardif dans openMissionModal(), basé sur les données réelles, a le dernier mot).
   if (isCol && typeof toggleTempsGestion === 'function') toggleTempsGestion(true);
   if(isCol) updateCollectifCA();
@@ -8695,7 +8695,7 @@ function updateTempsPrevuZone(isRec) {
     champ.value=Math.round(val*10)/10;
   }
   // Aide contextuelle sous "Temps total estimé" (retour bêta OBM, point 4, 2026-08-15) : les
-  // bêta-testeuses butaient sur la distinction avec "Temps planifié estimatif" (m-charge,
+  // bêta-testeuses butaient sur la distinction avec "Temps réservé" (m-charge,
   // ci-dessus) — comprise à l'oral une fois cette phrase donnée par Faustine. Reprise ici mot
   // pour mot (registre adapté au vouvoiement du reste de l'app). Aucune infobulle n'existait sur
   // ce champ (seulement sur m-charge) : on enrichit ce texte déjà présent sous le champ plutôt
