@@ -1900,6 +1900,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="ts mt4" id="m-charge-tempsprevu-derive" style="color:var(--tl)">La comparaison prévu/réel sera possible dès que vous aurez renseigné le temps total estimé ci-dessus.</div>
       <div id="m-trajectoire-detail"></div>
+      <div id="m-historique-mensuel"></div>
     </div>
     <button type="button" onclick="toggleMissionAdvanced()" id="m-advanced-toggle" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--tl);padding:8px 0;display:flex;align-items:center;gap:6px;width:100%;text-align:left;border-top:1px solid var(--brd);margin-top:8px;padding-top:12px">
       <span id="m-advanced-arrow">▶</span> Options avancées
@@ -8506,6 +8507,7 @@ function openMissionModal(id, prefillDate) {
   }
   updateTempsPrevuZone(isRec);
   renderTrajectoireDetail(m);
+  renderHistoriqueMensuelMission(m);
   // Type de mission
   const typeMission = m?(m.typeMission||'individuelle'):'individuelle';
   document.getElementById('m-type-mission').value = typeMission;
@@ -8692,10 +8694,20 @@ function updateTempsPrevuZone(isRec) {
     const val=isJours()?suggestionH/_hjTP:suggestionH;
     champ.value=Math.round(val*10)/10;
   }
+  // Aide contextuelle sous "Temps total estimé" (retour bêta OBM, point 4, 2026-08-15) : les
+  // bêta-testeuses butaient sur la distinction avec "Temps planifié estimatif" (m-charge,
+  // ci-dessus) — comprise à l'oral une fois cette phrase donnée par Faustine. Reprise ici mot
+  // pour mot (registre adapté au vouvoiement du reste de l'app). Aucune infobulle n'existait sur
+  // ce champ (seulement sur m-charge) : on enrichit ce texte déjà présent sous le champ plutôt
+  // que d'empiler un deuxième mécanisme d'aide. Toujours visible désormais — la confusion porte
+  // sur la DISTINCTION entre les deux champs, pas seulement sur un champ vide ; l'incitation à
+  // remplir (ancien seul contenu de ce texte) devient une phrase secondaire, ajoutée seulement
+  // tant que le champ est vide.
   if(deriveEl){
     const tpVal=parseFloat(champ?.value)||0;
-    if(tpVal>0){ deriveEl.style.display='none'; }
-    else { deriveEl.style.display=''; }
+    const _explication="Le temps planifié, c'est pour votre taux de remplissage. Le temps total estimé, c'est pour comparer prévu et réel.";
+    deriveEl.textContent = tpVal>0 ? _explication : _explication+' Vous n\'avez pas encore renseigné ce dernier — la comparaison prévu/réel sera possible une fois rempli.';
+    deriveEl.style.display='';
   }
 }
 // tempsPrevu (mensuel, en heures) pour une récurrente : dérivé de chargeEstimee/chargeUnit
@@ -8783,6 +8795,64 @@ function renderTrajectoireDetail(m) {
     <div class="ts mt8">Taux horaire${thEstime?' estimé':''} : <strong style="color:${thColor}">${thEstime?'≈':''}${fmtE(_isJours?thImplicite*_hj:thImplicite,1)}${thUnit}</strong>${thEstime?' — basé sur le temps prévu, il s\'affinera avec vos heures et dépenses réelles.':''}</div>
     ${anticipTxt}
     ${['orange','rouge'].includes(getTrajectoireTier(m))?`<div class="ts mt8"><span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="openCauseDepassementModal('${m.id}')">Pourquoi ce dépassement ?</span></div>`:''}
+  </div>`;
+}
+// ── HISTORIQUE MENSUEL (récurrentes) — retour bêta OBM, 2026-08-15 : aucune vue n'existait pour
+// consulter, sur UNE récurrente précise, le détail mois par mois (réel vs prévu) sur toute la
+// durée du contrat. Seuls existaient le mois en cours (renderTrajectoireDetail ci-dessus, écrasé
+// à chaque changement de mois) et un cumul affiché une seule fois à la clôture (modale de
+// confirmation de facturation), non re-consultable ensuite. Pure lecture (getMissionHeuresMois,
+// getTempsPrevuPourMois — déjà source unique, gère tempsPrevuHistorique) : aucune saisie, aucun
+// nouveau champ DATA. Jamais pour une ponctuelle (son "Temps total estimé" est déjà un total
+// unique sur toute sa durée, pas un concept mensuel). Toujours accessible, active ou clôturée.
+let _histMensuelOuvert = {};
+function toggleHistMensuel(id) {
+  _histMensuelOuvert[id] = !_histMensuelOuvert[id];
+  renderHistoriqueMensuelMission(DATA.missions.find(x => x.id === id));
+}
+// Mois écoulés d'une récurrente, du début du contrat jusqu'au mois en cours INCLUS — sans jamais
+// dépasser la fin réelle du contrat quand elle est bornée (nbMoisRec) : une récurrente déjà
+// clôturée s'arrête au dernier mois réellement sous contrat, pas au mois en cours (au-delà, ni
+// temps réel ni temps prévu n'ont de sens pour elle). Une récurrente "sans fin" (nbMoisRec vide)
+// est bornée par le mois en cours — jamais de mois futur, dans les deux cas.
+function getMoisRecurrenteEcoules(m) {
+  if (!m || !m.isRecurring || !m.dateDebutRec) return [];
+  const [sy, sm] = m.dateDebutRec.split('-').map(Number);
+  const now = new Date();
+  const moisJusquaMaintenant = (now.getFullYear() - sy) * 12 + (now.getMonth() - (sm - 1));
+  const dernierIdx = (m.nbMoisRec > 0) ? Math.min(m.nbMoisRec - 1, moisJusquaMaintenant) : moisJusquaMaintenant;
+  if (dernierIdx < 0) return [];
+  const mks = [];
+  for (let i = 0; i <= dernierIdx; i++) {
+    const d = new Date(sy, sm - 1 + i, 1);
+    mks.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return mks;
+}
+function renderHistoriqueMensuelMission(m) {
+  const box = document.getElementById('m-historique-mensuel');
+  if (!box) return;
+  if (!m || !m.isRecurring) { box.innerHTML = ''; return; } // jamais pour une ponctuelle
+  const mks = getMoisRecurrenteEcoules(m);
+  if (!mks.length) { box.innerHTML = ''; return; }
+  const ouvert = !!_histMensuelOuvert[m.id];
+  // Mois à 0 h réel affichés tel quel (pas de "—") : une information utile pour une review de
+  // contrat, pas du bruit à cacher. Prévu en "—" uniquement si réellement inconnu (null), jamais
+  // inventé — 0 explicite reste affiché "0 h" pour rester distinct d'une absence de donnée.
+  const trs = mks.map(mk => {
+    const label = new Date(mk + '-01T12:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const reel = getMissionHeuresMois(m, mk);
+    const prevu = getTempsPrevuPourMois(m, mk);
+    return `<tr><td style="padding:4px 8px;text-transform:capitalize">${label}</td><td style="padding:4px 8px;text-align:right">${fmt(reel,1)} h</td><td style="padding:4px 8px;text-align:right">${prevu!=null?fmt(prevu,1)+' h':'—'}</td></tr>`;
+  }).join('');
+  const table = `<div class="tbl-wrap mt8"><table style="font-size:12px"><thead><tr><th style="padding:4px 8px;text-align:left">Mois</th><th style="padding:4px 8px;text-align:right">Réel</th><th style="padding:4px 8px;text-align:right">Prévu</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  box.innerHTML = `<div style="background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--brd);margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="ts" style="font-weight:600;color:var(--text)">📅 Historique mensuel</div>
+      <button type="button" class="btn btn-out btn-xs" onclick="toggleHistMensuel('${m.id}')">${ouvert?'▾ Masquer':'▸ Voir le détail'}</button>
+    </div>
+    <div class="ts" style="color:var(--tl);margin-top:2px">Réel et prévu, mois par mois, depuis le début ${tVocabMasculin()?'de ce':'de cette'} ${tVocab('item').toLowerCase()} (${mks.length} mois écoulé${mks.length>1?'s':''}).</div>
+    ${ouvert?table:''}
   </div>`;
 }
 function toggleRecurrenceFields(val) {
