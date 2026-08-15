@@ -55,6 +55,8 @@
   header.hero{padding:70px 24px 40px; text-align:center;}
   header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(30px,4.5vw,46px); margin:0 0 16px;}
   header.hero p{max-width:560px; margin:0 auto; font-size:17px; color:#4a4a63;}
+  header.hero .slogan{font-family:'Playfair Display',serif; font-weight:700; font-style:italic; color:var(--prune); font-size:clamp(17px,2.6vw,24px); margin:26px auto 0; max-width:640px; white-space:normal;}
+  @media(max-width:600px){ header.hero .slogan{font-size:16px;} }
 
   section.feature{padding:60px 24px; border-top:1px solid #e4ddd0;}
   section.feature .wrap{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;}
@@ -193,6 +195,7 @@
 <header class="hero">
   <h1>Ce qu'Indépuls fait vraiment</h1>
   <p>Pas une liste de fonctionnalités. Quatre choses qui répondent, chacune à leur façon, à la même question : est-ce que ça va ?</p>
+  <p class="slogan">Excel, ce sont des chiffres. Indépuls, ce sont des mots.</p>
 </header>
 
 <section class="feature" data-reveal>
