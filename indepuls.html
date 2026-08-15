@@ -15306,6 +15306,12 @@ document.addEventListener('keydown', function(e) {
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpobG1kdXhwdnRwbHZpZGdhYmJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNTc2NDAsImV4cCI6MjA5NjczMzY0MH0.xdxYnOS1T6QYG6RUsmWP7C8Nle1u3BxfHraXMqQ3rvo';
   var APP_TYPE = 'indepuls';
 
+  // ── ABONNEMENT (Stripe) ─────────────────────────────────────
+  // Interrupteur général : tant que false, tout le monde entre comme avant.
+  // Ne passer à true qu'au lancement (étape 6), une fois le compte Stripe live actif.
+  var PAYWALL_ENABLED = false;
+  var STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_aFaaEQ7tcexV3dd5LP4Ja00'; // à remplacer par le lien live au lancement
+
   var sb;
   try {
     sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -15343,6 +15349,42 @@ document.addEventListener('keydown', function(e) {
     } catch(e) {}
   }
   // ────────────────────────────────────────────────────────────
+
+  // Vérifie le droit d'accès (bêta ou abonnement actif). Fail-open en cas d'erreur
+  // réseau : un souci de connexion ne doit jamais bloquer un utilisateur légitime,
+  // c'est le webhook Stripe qui reste la seule source de vérité sur la durée.
+  async function hasAccess(user) {
+    if (!PAYWALL_ENABLED) return true;
+    try {
+      var res = await sb.from('entitlements').select('access').eq('user_id', user.id).maybeSingle();
+      var access = res.data && res.data.access;
+      // 'past_due' toléré : Stripe retente le paiement automatiquement avant de
+      // couper l'accès (passage à 'canceled' seulement après plusieurs échecs).
+      return access === 'beta' || access === 'active' || access === 'past_due';
+    } catch (e) {
+      console.warn('hasAccess: vérification impossible, accès laissé ouvert par prudence:', e);
+      return true;
+    }
+  }
+
+  function showPaywallScreen(user) {
+    var overlay = document.getElementById('auth-overlay');
+    if (!overlay) return;
+    var url = STRIPE_PAYMENT_LINK
+      + '?client_reference_id=' + encodeURIComponent(user.id)
+      + '&prefilled_email=' + encodeURIComponent(user.email || '');
+    overlay.innerHTML =
+      '<div style="max-width:380px;text-align:center;font-family:\'Lato\',system-ui,sans-serif;padding:24px">' +
+        '<div style="font-family:\'Playfair Display\',serif;font-weight:800;font-size:22px;color:#141538;margin-bottom:14px">Activez votre abonnement</div>' +
+        '<p style="color:#4a4a5a;font-size:14px;line-height:1.6;margin-bottom:22px">Pour continuer à utiliser Indépuls, activez votre abonnement à 19&nbsp;€/mois. Vos données restent intactes et vous les retrouvez immédiatement après.</p>' +
+        '<a href="' + url + '" style="display:inline-block;background:#5B2C4A;color:#fff;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px">S\'abonner (19&nbsp;€/mois)</a>' +
+        '<div style="margin-top:18px"><button id="paywall-logout" style="background:none;border:none;color:#7a7a8a;font-size:13px;text-decoration:underline;cursor:pointer">Se déconnecter</button></div>' +
+      '</div>';
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+    var lb = document.getElementById('paywall-logout');
+    if (lb) lb.onclick = function() { sb.auth.signOut(); };
+  }
 
   function hideOverlay() {
     var overlay = document.getElementById('auth-overlay');
@@ -15861,8 +15903,11 @@ document.addEventListener('keydown', function(e) {
   function _enterApp(user) {
     clearTimeout(_cdnFallback);
     _authState = 'app';
-    setTimeout(addLogoutButton, 200);
-    loadFromCloud(user).then(hideOverlay);
+    hasAccess(user).then(function(ok) {
+      if (!ok) { showPaywallScreen(user); return; }
+      setTimeout(addLogoutButton, 200);
+      loadFromCloud(user).then(hideOverlay);
+    });
   }
 
   function _enterLogin() {
