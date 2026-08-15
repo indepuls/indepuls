@@ -3497,3 +3497,11 @@ Refonte de l'alerte de relance des devis en attente. **État antérieur vérifi�
 - **Signature prestataire retirée du PDF** : légalement, seul le "Bon pour accord" daté et signé du client est requis sur un devis ; la signature du prestataire n'est pas obligatoire (retour Faustine). Le bloc "Signature, prestataire" est supprimé, il ne reste que le bloc client.
 - **Nouveautés** : entrée du 2026-08-09 sur le suivi des devis (brouillon/émis/accepté), les avenants et le report automatique du montant. Sans crédit (réflexion produit).
 - **Non fait, décision produit** : numérotation automatique des devis/avenants (Faustine préfère le numéro manuel).
+
+### 2026-08-15 — Limite connue : structures à plusieurs associés (SAS 2+ associés) non gérées
+
+Contexte : réflexion sur le positionnement du site vitrine ("à qui s'adresse Indépuls"). Faustine signale qu'une bêtatesteuse est en SAS avec 2 associés.
+
+- **Confirmé dans le code** : le statut juridique (`#p-statut`, `DATA.params.statut`) ne propose que `micro-bnc`, `micro-bic`, `EURL`, `SASU` — aucune option pour une SAS à plusieurs associés. Toute la logique de rémunération (`isSASU()`, "Disponible pour l'entreprise" vs "pour moi", `remunerationNette`) suppose un dirigeant unique. Cette bêtatesteuse utilise donc Indépuls sous le statut "SASU" par approximation, sans que la répartition entre associés soit réellement modélisée.
+- **Décision pour le site vitrine** : ne jamais utiliser la forme juridique comme critère de positionnement ("à qui s'adresse Indépuls", FAQ + section "Ce qu'Indépuls refuse" de l'accueil) — le vrai critère est fonctionnel : est-ce vous qui pilotez et suivez vos propres chiffres au quotidien (pas de contrôleur de gestion ni d'équipe interne dédiée) ? Un expert-comptable externe ne disqualifie pas, c'est le cas de la quasi-totalité des indépendants.
+- **Non fait, à garder en tête pour la roadmap** : si les demandes de structures à plusieurs associés se multiplient en bêta, ce sera un vrai chantier produit (répartition rémunération/capital entre associés), pas un simple ajout de statut dans un menu déroulant.
