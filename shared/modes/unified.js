@@ -154,6 +154,9 @@ export const getTauxRemplissageMois  = (mk)  => P.getTauxRemplissageMois(DATA, m
 export const getTauxRemplissageAnnee = ()    => P.getTauxRemplissageAnnee(DATA);
 export const scorerRemplissage      = P.scorerRemplissage;
 export const getPilierRemplissage   = ()     => P.getPilierRemplissage(DATA);
+export const congeCouvreJour             = P.congeCouvreJour;
+export const congesCouvrentSemaineCourante = () => P.congesCouvrentSemaineCourante(DATA);
+export const getSemainesCongesPosees     = (year) => P.getSemainesCongesPosees(DATA, year);
 
 // ── STORAGE ──────────────────────────────────────────────────
 

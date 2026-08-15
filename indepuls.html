@@ -745,6 +745,7 @@ html,body{overflow-x:hidden;}
           <div class="card-sub" id="missions-page-sub">Toutes mes missions en cours, passées ou en attente</div>
         </div>
         <div class="flex gap6" style="flex-wrap:wrap">
+          <button class="btn btn-out" onclick="openCongesModal()" id="btn-add-conges">🏖️ Congés</button>
           <button class="btn btn-out" onclick="openBulkMissionModal()" id="btn-add-mission-bulk">+ Ajouter plusieurs missions</button>
           <button class="btn btn-acc" onclick="openMissionModal()" id="btn-add-mission-top">+ Ajouter une mission</button>
         </div>
@@ -2414,6 +2415,26 @@ html,body{overflow-x:hidden;}
     <div class="modal-foot">
       <button class="btn btn-out" onclick="closeModal('modal-temps-interne')">Fermer</button>
       <button class="btn btn-acc" onclick="saveTempsInterneManuel()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONGÉS (2026-08-17, retour Faustine) -->
+<div class="modal-ov hidden" id="modal-conges">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title">🏖️ Mes congés</div>
+    <div class="ts mb14">Vos périodes de congés — pour que le calendrier et le Score de Santé ne les confondent jamais avec du temps sous-utilisé.</div>
+    <div id="conges-suivi" class="mb14"></div>
+    <div id="conges-list"></div>
+    <div class="divider mt12"></div>
+    <div class="card-sub mb10" style="font-weight:700">Ajouter une période</div>
+    <div class="frow">
+      <div class="fgroup"><label class="flabel">Début</label><input type="date" id="conges-debut"></div>
+      <div class="fgroup"><label class="flabel">Fin</label><input type="date" id="conges-fin"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-out" onclick="closeModal('modal-conges')">Fermer</button>
+      <button class="btn btn-acc" onclick="saveConge()">Ajouter</button>
     </div>
   </div>
 </div>
@@ -4317,6 +4338,9 @@ function migrate(data) {
   // v34 : pense-bête (post-it libres, tableau de bord) — comptes existants sans la clé, tableau
   // vide par défaut, aucune perte de données possible (retour Faustine, 2026-07-29).
   if (!data.notesRapides) data.notesRapides = [];
+  // v35 : périodes de congés (2026-08-17, retour Faustine) — comptes existants sans la clé,
+  // tableau vide par défaut, aucune perte de données possible.
+  if (!data.conges) data.conges = [];
   data.schemaVersion = SCHEMA_VERSION;
   return data;
 }
@@ -6913,7 +6937,14 @@ function wScoreSante(d) {
   // vRemp, rowsRemp…) et sur worst.n==='remplissage' ci-dessous — "agenda" ne correspondait
   // à rien de stable, c'était une dérive de nommage qui rendait cette branche inatteignable.
   const pilliers=[{n:'rentabilité',art:'la ',s:sRent},{n:'remplissage',art:'le ',s:sRemp},{n:'trésorerie',art:'la ',s:sTreso},{n:'horizon',art:"l'",s:sComm}];
-  const worst=pilliers.reduce((a,b)=>a.s<b.s?a:b);
+  // Remplissage exclu du "pilier le plus faible" pendant une semaine de congés (retour Faustine,
+  // 2026-08-17) : son score neutre (12, voir getPilierRemplissage) ne reflète pas un problème à
+  // corriger — le signaler comme "point qui mérite votre attention" recréerait exactement la
+  // fausse alerte qu'on corrige. Même principe que l'exclusion de la Rentabilité quand ses
+  // données sont insuffisantes (voir plus haut) : on exclut du CHOIX du pire pilier, jamais du
+  // score global lui-même (pas de recalcul sur 3 piliers ici, contrairement à la Rentabilité —
+  // périmètre volontairement plus simple, retour Faustine).
+  const worst=(pilRemp.methode==='conges'?pilliers.filter(p=>p.n!=='remplissage'):pilliers).reduce((a,b)=>a.s<b.s?a:b);
 
   // Snapshot hebdomadaire (chantier "brief hebdomadaire par email", 2026-07-27) — capture le
   // score global et le pilier le plus faible DÉJÀ calculés ci-dessus, jamais recalculés une
@@ -12623,6 +12654,66 @@ function saveTempsInterneManuel() {
   showToast(`✅ ${h}h${min>0?' '+min+'min':''} ajouté(es) — ${monthLabelFull(mk)}`);
 }
 
+// ── CONGÉS (2026-08-17, retour Faustine) ────────────────────────────────────────────────────
+// Périodes {id, debut, fin} — DATA.conges[], jamais rattachées à une mission. Deux effets, tous
+// deux dans shared/core/planning.js : (1) le taux de remplissage du Calendrier (mois + année)
+// exclut ces jours de son dénominateur ; (2) le pilier "Mon remplissage" du Score de Santé affiche
+// un message neutre les semaines où un congé est posé, plutôt qu'un score basé sur un temps
+// planifié qui n'a pas changé. Rien d'autre n'est affecté (voir commentaires dans planning.js).
+function openCongesModal() {
+  document.getElementById('conges-debut').value='';
+  document.getElementById('conges-fin').value='';
+  renderCongesModal();
+  openModal('modal-conges');
+}
+function renderCongesModal() {
+  const listEl=document.getElementById('conges-list');
+  const suiviEl=document.getElementById('conges-suivi');
+  if(!listEl||!suiviEl) return;
+  const conges=(DATA.conges||[]).slice().sort((a,b)=>a.debut<b.debut?-1:1);
+  listEl.innerHTML = conges.length ? conges.map(c=>{
+    const range = c.debut===c.fin ? formatDateFR(c.debut) : `${formatDateFR(c.debut)} → ${formatDateFR(c.fin)}`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
+      <span style="flex:1;font-size:12px">${range}</span>
+      <button class="btn btn-del btn-xs" onclick="deleteConge('${c.id}')">🗑</button>
+    </div>`;
+  }).join('') : `<div class="ts" style="color:var(--tl);padding:4px 0 2px">Aucune période de congés pour l'instant.</div>`;
+
+  // Objectif implicite (retour Faustine : pas de nouveau champ, on réutilise ce qui existe déjà)
+  // = 52 - semainesParAn, exactement la même déduction que le curseur "Semaines de congés" de
+  // la carte "Et si je changeais mon rythme de travail ?".
+  const year=DATA.currentYear||new Date().getFullYear();
+  const posees=getSemainesCongesPosees(year);
+  const objectif=Math.max(0,52-(DATA.params.semainesParAn||44));
+  const lienEtSi=conges.length?` · <span class="step-cta" style="cursor:pointer" onclick="closeModal('modal-conges');irVersEtSi(1)">Et si ?</span>`:'';
+  suiviEl.innerHTML = `<div style="background:var(--bg);border-radius:10px;padding:12px 14px">
+    <div class="ts">Vous avez posé <strong>${fmt(posees,1)} semaine${posees>1?'s':''}</strong> de congés sur ${year}, votre objectif était de <strong>${objectif} semaine${objectif>1?'s':''}</strong>.</div>
+    <div class="ts mt4" style="color:var(--tl)">Posez des congés supplémentaires ou ajustez votre objectif pour que les calculs restent au plus juste — <span class="step-cta" style="cursor:pointer" onclick="closeModal('modal-conges');navigate('params');setTimeout(()=>switchParamTab('objectifs',document.querySelector('#page-params [onclick*=objectifs]')),100)">Mes objectifs</span>${lienEtSi}</div>
+  </div>`;
+}
+function saveConge() {
+  const debut=document.getElementById('conges-debut').value;
+  const finRaw=document.getElementById('conges-fin').value;
+  if(!debut){ markInvalid('conges-debut'); return; }
+  const fin=finRaw||debut;
+  if(fin<debut){ markInvalid('conges-fin'); return; }
+  if(!DATA.conges) DATA.conges=[];
+  DATA.conges.push({id:uuid(),debut,fin});
+  DATA.conges.sort((a,b)=>a.debut<b.debut?-1:1);
+  document.getElementById('conges-debut').value='';
+  document.getElementById('conges-fin').value='';
+  saveData(); renderCongesModal();
+  if(currentPage==='missions') renderMissions();
+  if(currentPage==='dashboard') renderDashboard();
+  showToast('✅ Période de congés ajoutée');
+}
+function deleteConge(id) {
+  DATA.conges=(DATA.conges||[]).filter(c=>c.id!==id);
+  saveData(); renderCongesModal();
+  if(currentPage==='missions') renderMissions();
+  if(currentPage==='dashboard') renderDashboard();
+}
+
 // ── OBJECTIFS ────────────────────────────────────────────────
 function recalcObjectifs() { renderObjectifsResult(); if(currentPage==='dashboard') renderDashboard(); if(currentPage==='revenus') renderRevenus(); }
 let _recalcTimer = null;
@@ -15262,6 +15353,9 @@ document.addEventListener('keydown', function(e) {
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
   window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
   window.getTauxRemplissageMois    = (mk)        => { sync(); return Mode.getTauxRemplissageMois(mk); };
+  window.congeCouvreJour               = (c, ds) => { sync(); return Mode.congeCouvreJour(c, ds); };
+  window.congesCouvrentSemaineCourante = ()      => { sync(); return Mode.congesCouvrentSemaineCourante(); };
+  window.getSemainesCongesPosees       = (year)  => { sync(); return Mode.getSemainesCongesPosees(year); };
 
   // ── AFFAIRES ────────────────────────────────────────────────
   window.getDepensesAffaire          = (id)  => { sync(); return Mode.getDepensesAffaire(id); };

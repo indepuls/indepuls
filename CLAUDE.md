@@ -3206,6 +3206,31 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-17 — Congés : ne plus confondre vacances volontaires et sous-remplissage
+
+**Retour terrain (bêta OBM)** : une bêta-testeuse a remonté "mon score de santé est bon alors que mon CA du mois est pourri" — le mois où elle avait posé des vacances. Réflexion menée avec Faustine, deux angles distincts.
+
+**Angle 1 — le malus -3pts (Rentabilité, `pctObj<50%`) était-il trop faible ?** Non : le vrai trou n'était pas un malus trop petit, c'était que le message principal sous le score (`diagGlobal`) ne mentionnait "votre CA annuel est à risque" (`annualAtRisk`) que si le score global était **≥85**. Entre 70 et 84 (le cas probable), le message ignorait ce risque et ne parlait que du pilier le plus faible — sans jamais dire que la trajectoire (annuelle ou mensuelle) est compromise. **Décision volontaire de ne PAS augmenter le malus** : le pilier Rentabilité mesure l'efficacité *par affaire* (TH réel), jamais le volume — l'augmenter aurait recréé exactement le type de fausse alerte déjà corrigé pour ce même pilier (voir chantier du 2026-08-14, "exclure du taux horaire les missions sans temps réel saisi"). *(Le fix `diagGlobal` étendu à tous les paliers de score, mentionnant trajectoire annuelle ET mensuelle, n'est pas encore implémenté à cette date — prochain chantier.)*
+
+**Angle 2 — les congés (le mari de Faustine en pose 2 semaines) : deux moteurs de "remplissage" séparés, un seul concerné par le vrai problème.**
+
+- `getPilierRemplissage` (Score de Santé, `shared/core/planning.js`) est basé **uniquement** sur le temps planifié déclaré (`chargeEstimee`, "seule source de vérité" depuis le 2026-07-25) — il ne lit **jamais** le calendrier/sessions. Les congés ne le faisaient donc *pas* chuter automatiquement (contrairement à l'intuition de départ).
+- `getTauxRemplissageMois`/`getTauxRemplissageAnnee` (le "Taux de remplissage" affiché sur la page Calendrier) sont un moteur **différent**, séparé, basé sur les jours réellement occupés par une session vs les jours ouvrables du mois — **celui-là** plonge pendant des vacances, faute de savoir qu'elles existent.
+
+**Ce qui a été fait** (`DATA.conges[] = [{id, debut, fin}]`, jamais rattachées à une mission, contrairement aux sessions) :
+
+1. **Modale "🏖️ Mes congés"** (`modal-conges`, bouton sur la page Missions à côté de "+ Ajouter une mission") : création/liste/suppression de périodes, réutilise le pattern de `modal-temps-interne`.
+2. **`getTauxRemplissageMois`** : les jours de congés du mois sont retirés du dénominateur `ouvrables` (nouveau helper `_compterJoursConges`, même style que `_compterOccurrences`). `getTauxRemplissageAnnee` en hérite automatiquement (agrégation mensuelle).
+3. **`getPilierRemplissage`** : si un congé touche la semaine ISO en cours (`congesCouvrentSemaineCourante`, nouveau), le pilier affiche un **message neutre** ("🏖️ Vous avez des congés cette semaine — votre taux de remplissage n'est pas représentatif") à la place du barème habituel — score neutre 12 (même valeur que la branche "aucune charge renseignée" déjà existante, pas un nouveau code). **`cap`/`charge` ne sont JAMAIS recalculés** — contrairement à ce qui avait été envisagé au départ (exclure les congés du calcul de capacité), Faustine a tranché pour la version la plus simple : ne changer que le **message**, jamais les nombres. Risque très réduit, comme demandé.
+4. **`worst` (pilier le plus faible)** exclut "remplissage" quand `pilRemp.methode==='conges'` — même précédent que l'exclusion de la Rentabilité (2026-08-14), pour que le Brief ("Action recommandée") ne suggère jamais de "combler du temps" pendant des vacances. Contrairement à la Rentabilité, **pas de recalcul du score global sur 3 piliers** — périmètre volontairement plus simple (le score neutre reste compté tel quel dans la somme /100).
+5. **Widget de suivi** dans la modale congés : "Vous avez posé X semaines de congés sur [année], votre objectif était de Y semaines" — Y **dérivé de `semainesParAn`** (52 - semainesParAn), **aucun nouveau champ Paramètres**. Lien vers "Mes objectifs" (pour ajuster `semainesParAn`) et vers la carte "Et si je changeais mon rythme de travail ?" (`irVersEtSi(1)`) déjà existante — elle a déjà un curseur "Semaines de congés" calé sur `semainesParAn`, aucune nouvelle carte de simulateur nécessaire (fausse piste explorée puis écartée en discussion : pas besoin de C, l'existant suffisait).
+
+**Limite mineure acceptée** : le détail "Pourquoi ce score ?" du pilier pendant une semaine de congés affiche encore "Capacité : Non configurée" (repli existant pour `cap<=0`, pas totalement exact pour ce cas précis) — jugé acceptable, le message principal explique déjà clairement la situation.
+
+**Vérifié manuellement** (app en local, mode démo) : période de congés ajoutée avec succès (liste + widget de suivi "0,7/8 semaines"), `getTauxRemplissageMois` avec réduction confirmée du dénominateur (18→13 jours ouvrables pour une période de 5 jours), pilier "Mon remplissage" affichant le message neutre (score 12) pendant la semaine en cours, "Action recommandée" du Brief ne mentionnant plus le remplissage (pointe vers un autre pilier).
+
+**Tests** : `shared/tests/planning.test.js` (139/139, +19 nouvelles assertions) — `congeCouvreJour`, `getSemainesCongesPosees` (dont période à cheval sur deux années), `congesCouvrentSemaineCourante`, réduction de `ouvrables` par les congés, court-circuit "congé cette semaine" du pilier (score/méthode/message) et non-régression du cas normal. `node --check` sur les 6 chunks inline, suite complète inchangée par ailleurs.
+
 ### 2026-08-17 — Correctifs sélecteur sidebar (retour Faustine sur le chantier point 5)
 
 Faustine a repéré 3 défauts sur le sélecteur du widget sidebar livré la veille, tous corrigés :

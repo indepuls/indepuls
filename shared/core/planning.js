@@ -70,6 +70,15 @@ export function sessionCouvreJour(s, ds) {
   return true;
 }
 
+// ── CONGÉS (2026-08-17, retour Faustine : le taux de remplissage du calendrier plonge pendant
+// des vacances volontaires, faute de savoir qu'elles existent) ─────────────────────────────
+// Simple période {debut, fin} — DATA.conges[], jamais rattachée à une mission, contrairement aux
+// sessions. Une seule forme (toujours bornée) : pas de "sans fin" pour des congés, ça n'a pas de
+// sens (retour Faustine : on ne part jamais en vacances indéfiniment).
+export function congeCouvreJour(c, ds) {
+  return ds >= c.debut && ds <= (c.fin || c.debut);
+}
+
 // Nombre de jours où la session sans fin s'applique dans la fenêtre [debut, fin] (bornée par
 // s.debut si postérieur). Sert à répartir les heures/mois (getChargeSessionJour) et au repli
 // rétrocompat sans heures renseigné (_sessionsHeuresMois) — factorisé pour ne pas dupliquer la
@@ -244,6 +253,37 @@ export function getChargeEstimeeTotal(DATA) {
 
 // ── MOTEUR CALENDRIER ─────────────────────────────────────────
 
+// Nombre de jours de la période [periodeDebut, periodeFin] couverts par au moins un congé —
+// factorisé pour être réutilisé par getTauxRemplissageMois (mensuel) sans dupliquer la boucle
+// jour par jour (même style que _compterOccurrences pour les sessions "sans fin").
+function _compterJoursConges(DATA, periodeDebut, periodeFin) {
+  const conges = DATA.conges || [];
+  if (!conges.length) return 0;
+  let n = 0;
+  const d = new Date(periodeDebut + 'T00:00:00');
+  const finD = new Date(periodeFin + 'T00:00:00');
+  while (d <= finD) {
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (conges.some(c => congeCouvreJour(c, ds))) n++;
+    d.setDate(d.getDate() + 1);
+  }
+  return n;
+}
+
+// Total de semaines de congés posées sur une année donnée (arrondi à 0,1 semaine) — sert au
+// widget de suivi "X semaines posées sur Y" (objectif implicite = 52 - semainesParAn).
+export function getSemainesCongesPosees(DATA, year) {
+  const yFirst = `${year}-01-01`, yLast = `${year}-12-31`;
+  let jours = 0;
+  (DATA.conges || []).forEach(c => {
+    const debut = c.debut < yFirst ? yFirst : c.debut;
+    const fin = (c.fin || c.debut) > yLast ? yLast : (c.fin || c.debut);
+    if (debut > fin) return;
+    jours += Math.round((new Date(fin + 'T00:00:00') - new Date(debut + 'T00:00:00')) / 86400000) + 1;
+  });
+  return Math.round(jours / 7 * 10) / 10;
+}
+
 // Retourne {occupied, ouvrables, taux, mode, occupiedH?, capaciteH?} pour un mois (YYYY-MM).
 // mode='heures' si toutes les sessions du mois ont session.heures renseigné, sinon mode='jours'.
 export function getTauxRemplissageMois(DATA, mk) {
@@ -254,7 +294,13 @@ export function getTauxRemplissageMois(DATA, mk) {
   const mLast  = `${year}-${pad(month)}-${pad(daysInMonth)}`;
   const joursParSem  = DATA.params.joursParSemaine || 5;
   const heuresParJour = DATA.params.heuresParJour  || 7;
-  const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7));
+  // Jours de congés posés ce mois-ci (2026-08-17, retour Faustine) : retirés du dénominateur —
+  // sinon une semaine de vacances volontaire se lit comme une semaine "sous-remplie", alors que
+  // c'est normal et attendu. Seul point touché par les congés dans ce fichier : le taux affiché
+  // sur la page Calendrier. Le pilier "Mon remplissage" du Score de Santé (getPilierRemplissage,
+  // plus bas) reste sur sa propre logique — voir le commentaire dédié là-bas.
+  const joursConges = _compterJoursConges(DATA, mFirst, mLast);
+  const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7) - joursConges);
 
   // Collecte des sessions qui touchent ce mois
   const sessMois = [];
@@ -349,6 +395,22 @@ export function scorerRemplissage(pct) {
 //
 // Mode 'aucun' (aucune charge estimée nulle part) → details: null, score neutre 12.
 
+// Un congé touche-t-il la semaine ISO en cours (lundi→dimanche, aujourd'hui inclus) ? Sert
+// uniquement au pilier "Mon remplissage" ci-dessous (getPilierRemplissage) — retour Faustine,
+// 2026-08-17 : afficher un score "sous-utilisé" pendant des vacances volontaires est une fausse
+// alerte, exactement le genre de signal qu'Indépuls veut éviter.
+export function congesCouvrentSemaineCourante(DATA) {
+  const conges = DATA.conges || [];
+  if (!conges.length) return false;
+  const now = new Date();
+  const isoDow = now.getDay() === 0 ? 7 : now.getDay();
+  const lundi = new Date(now); lundi.setDate(now.getDate() - (isoDow - 1));
+  const dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const semDebut = fmt(lundi), semFin = fmt(dimanche);
+  return conges.some(c => c.debut <= semFin && (c.fin || c.debut) >= semDebut);
+}
+
 // Jours travaillés restants dans la semaine ISO en cours (aujourd'hui inclus), en supposant
 // une semaine travaillée du lundi au (joursParSemaine)e jour — hypothèse nécessaire, pas une
 // vérité terrain (le pilier ne date aucune mission jour par jour).
@@ -427,6 +489,19 @@ export function getPilierRemplissage(DATA) {
       score: 12, valeur: '—', sousTitre: 'Non renseigné',
       diagnostic: '○ Renseignez un temps planifié estimatif sur vos missions pour obtenir cet indicateur.',
       conseil: '', methode: 'aucun', details: null,
+    };
+  }
+  // Congés cette semaine (2026-08-17, retour Faustine) : message neutre à la place du barème
+  // habituel — jamais un recalcul de cap/charge (qui restent la "seule source de vérité" décrite
+  // ci-dessus, volontairement intacts). Score neutre 12, même valeur que la branche "aucune
+  // charge renseignée" au-dessus (cohérent avec le reste de l'app plutôt qu'un nouveau code).
+  // N'affecte QUE ce pilier : le calcul du taux de remplissage du Calendrier (getTauxRemplissageMois)
+  // a sa propre logique de déduction des congés, séparée, voir plus haut.
+  if (congesCouvrentSemaineCourante(DATA)) {
+    return {
+      score: 12, valeur: '—', sousTitre: 'Congés cette semaine',
+      diagnostic: '🏖️ Vous avez des congés cette semaine — votre taux de remplissage n\'est pas représentatif.',
+      conseil: '', methode: 'conges', details: null,
     };
   }
   const cap    = getCapaciteHSem(DATA);

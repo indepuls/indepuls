@@ -3,7 +3,8 @@
  *
  * Couvre : toHeuresSem, getCapaciteHSem, getMissionChargeHSem,
  *          getChargeEstimeeTotal, getTauxRemplissageMois,
- *          getTauxRemplissageAnnee, scorerRemplissage, getPilierRemplissage
+ *          getTauxRemplissageAnnee, scorerRemplissage, getPilierRemplissage,
+ *          congeCouvreJour, getSemainesCongesPosees, congesCouvrentSemaineCourante
  *
  * Exécution : node shared/tests/planning.test.js
  */
@@ -558,6 +559,67 @@ function makeData(overrides = {}) {
   const mChargeEstimeeEtHeuresSession = { id: 'm8', client: 'Client Test', isManagement: false, chargeEstimee: 20, chargeUnit: 'h_sem', sessions: [{ debut: hier, fin: hier, heures: 3 }], tempsManuel: [] };
   const r10 = P.getSessionsSansTempsRecent(makeData({ missions: [mChargeEstimeeEtHeuresSession] }), MAINTENANT);
   assertEq('heures de session (3h) prioritaires sur chargeEstimee dérivé (5h) quand les deux existent', r10[0]?.heures, 3);
+}
+
+// ── CONGÉS (2026-08-17, retour Faustine) ────────────────────────────────────────────────────
+
+// ── congeCouvreJour ───────────────────────────────────────────
+{
+  assertEq('congeCouvreJour jour dans la période', P.congeCouvreJour({ debut: '2026-08-10', fin: '2026-08-20' }, '2026-08-15'), true);
+  assertEq('congeCouvreJour jour avant', P.congeCouvreJour({ debut: '2026-08-10', fin: '2026-08-20' }, '2026-08-09'), false);
+  assertEq('congeCouvreJour jour après', P.congeCouvreJour({ debut: '2026-08-10', fin: '2026-08-20' }, '2026-08-21'), false);
+  assertEq('congeCouvreJour bornes incluses (début)', P.congeCouvreJour({ debut: '2026-08-10', fin: '2026-08-20' }, '2026-08-10'), true);
+  assertEq('congeCouvreJour bornes incluses (fin)', P.congeCouvreJour({ debut: '2026-08-10', fin: '2026-08-20' }, '2026-08-20'), true);
+  assertEq('congeCouvreJour fin absente = 1 seul jour', P.congeCouvreJour({ debut: '2026-08-10' }, '2026-08-10'), true);
+  assertEq('congeCouvreJour fin absente, jour suivant exclu', P.congeCouvreJour({ debut: '2026-08-10' }, '2026-08-11'), false);
+}
+
+// ── getSemainesCongesPosees ────────────────────────────────────
+{
+  const D = { conges: [{ debut: '2026-07-01', fin: '2026-07-14' }, { debut: '2026-08-01', fin: '2026-08-07' }] }; // 14+7=21j = 3 sem
+  assertEq('getSemainesCongesPosees additionne les périodes de l\'année (21j = 3 sem)', P.getSemainesCongesPosees(D, 2026), 3);
+  assertEq('getSemainesCongesPosees année sans congés → 0', P.getSemainesCongesPosees(D, 2025), 0);
+  assertEq('getSemainesCongesPosees DATA.conges absent → 0', P.getSemainesCongesPosees({}, 2026), 0);
+  // Période à cheval sur deux années : seule la part dans l'année demandée compte (2026-01-01 → 01-05 = 5j)
+  const D2 = { conges: [{ debut: '2025-12-25', fin: '2026-01-05' }] };
+  assertEq('getSemainesCongesPosees clippe une période à cheval sur l\'année demandée (5j = 0,7 sem)', P.getSemainesCongesPosees(D2, 2026), 0.7);
+}
+
+// ── congesCouvrentSemaineCourante ──────────────────────────────
+{
+  const fmt2 = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = fmt2(new Date());
+  const dansLoin = fmt2(new Date(Date.now() + 60 * 86400000)); // 60 jours dans le futur, hors semaine courante à coup sûr
+  assertEq('congesCouvrentSemaineCourante aucun congé → false', P.congesCouvrentSemaineCourante({ conges: [] }), false);
+  assertEq('congesCouvrentSemaineCourante congé couvrant aujourd\'hui → true', P.congesCouvrentSemaineCourante({ conges: [{ debut: today, fin: today }] }), true);
+  assertEq('congesCouvrentSemaineCourante congé loin dans le futur → false', P.congesCouvrentSemaineCourante({ conges: [{ debut: dansLoin, fin: dansLoin }] }), false);
+}
+
+// ── getTauxRemplissageMois — déduction des congés ──────────────
+{
+  const D = makeData({ params: { joursParSemaine: 5, heuresParJour: 7 } });
+  const sansConges = P.getTauxRemplissageMois(D, '2026-08');
+  const DavecConges = { ...D, conges: [{ debut: '2026-08-01', fin: '2026-08-10' }] }; // 10 jours de congés en août
+  const avecConges = P.getTauxRemplissageMois(DavecConges, '2026-08');
+  assert('getTauxRemplissageMois : les congés réduisent le dénominateur "ouvrables"', avecConges.ouvrables < sansConges.ouvrables);
+}
+
+// ── getPilierRemplissage — congé cette semaine (message neutre, pas de recalcul cap/charge) ──
+{
+  const fmt3 = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = fmt3(new Date());
+  const mission = { id: 'm1', isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 20, chargeUnit: 'h_sem' };
+  const base = { params: { joursParSemaine: 5, heuresParJour: 7, modePlanning: 'aucun' }, missions: [mission] };
+
+  const Dconge = { ...base, currentYear: 2026, conges: [{ debut: today, fin: today }] };
+  const r = P.getPilierRemplissage(Dconge);
+  assertEq('getPilierRemplissage congé cette semaine → score neutre 12', r.score, 12);
+  assertEq('getPilierRemplissage congé cette semaine → methode "conges"', r.methode, 'conges');
+  assert('getPilierRemplissage congé cette semaine → message explicite mentionnant les congés', r.diagnostic.includes('congés'));
+
+  const Dsansconge = makeData(base);
+  const r2 = P.getPilierRemplissage(Dsansconge);
+  assertEq('getPilierRemplissage sans congé → methode "estime" (comportement normal inchangé)', r2.methode, 'estime');
 }
 
 // ── Rapport ───────────────────────────────────────────────────
