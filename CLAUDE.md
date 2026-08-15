@@ -3206,6 +3206,18 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-17 — Congés, correctif : les rendre visibles sur le calendrier lui-même
+
+Retour Faustine juste après le chantier congés ci-dessous : *"J'ai posé des congés du 17 au 30, mais ce n'est visuellement visible nulle part sur le calendrier."* Exact — le chantier initial n'avait câblé que le **calcul** (dénominateur du taux de remplissage, message neutre du pilier) mais jamais l'**affichage** sur les cases du calendrier elles-mêmes ("Option A" évoquée au départ, oubliée en cours de route au profit du calcul seul).
+
+**Ajouté dans `renderPlanning()`** (indepuls.html, page Calendrier) :
+- Chaque case d'un jour de congé reçoit un fond distinct (`rgba(187,158,129,.28)`, une teinte beige/sable — couleur secondaire du thème, jamais utilisée ailleurs sur le calendrier) et un badge 🏖️ en coin. Priorité sur le fond "aujourd'hui" (qui passe en simple contour plutôt que fond plein) pour ne perdre aucune des deux informations si le jour courant est aussi un jour de congé.
+- Petite note sous les statistiques du mois ("🏖️ N jours de congés déduits de ce mois") — sans elle, le "Taux de remplissage" pouvait passer de 22 à 10 jours ouvrables sans explication visible, strictement par transparence ("zéro boîte noire").
+
+**Bug secondaire repéré au passage** : sur un mois où des sessions existantes chevauchent une période de congés déclarée après coup (cas du compte de test), `occupied` (jours avec une session) peut dépasser `ouvrables` (réduit par les congés) — l'affichage "11/10j" a l'air incohérent au premier coup d'œil. `taux` reste correctement plafonné à 100 % (`Math.min(100,...)` déjà en place), donc le chiffre affiché n'est pas faux, juste déroutant sur les deux nombres bruts juxtaposés. **Non corrigé à ce stade** — cas marginal (sessions non retirées après avoir posé des congés a posteriori), la note de transparence ajoutée ci-dessus explique déjà partiellement l'écart ; à revoir si le signal revient en bêta.
+
+**Vérifié manuellement** (app en local, mode démo, congés du 17 au 30 août reproduits) : 14 cases correctement marquées (fond + badge 🏖️), note "14 jours de congés déduits" affichée, style du fond confirmé sur le DOM. `node --check` + suite Node complète inchangée (pur ajout d'affichage, aucun calcul touché).
+
 ### 2026-08-17 — Congés : ne plus confondre vacances volontaires et sous-remplissage
 
 **Retour terrain (bêta OBM)** : une bêta-testeuse a remonté "mon score de santé est bon alors que mon CA du mois est pourri" — le mois où elle avait posé des vacances. Réflexion menée avec Faustine, deux angles distincts.

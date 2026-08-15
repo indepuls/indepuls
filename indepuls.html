@@ -3507,14 +3507,25 @@ function renderPlanning() {
   while (calDays.length % 7 !== 0) calDays.push(null);
 
   const today = new Date(); const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  let joursCongesMoisAffiche = 0; // compté au fil du rendu ci-dessous, pour la note de transparence sur les stats
   const calGrid = calDays.map(d => {
     if (!d) return `<div></div>`;
     const ds = mkStr(d);
     const missions = getMissionsDay(ds);
     const isToday = ds === todayStr;
+    // Congés (2026-08-17, retour Faustine : "posé des congés mais ce n'est visuellement visible
+    // nulle part sur le calendrier") — marquage visuel dédié, distinct des missions. Purement
+    // visuel ici (aucun impact sur les calculs, déjà gérés côté planning.js). Priorité sur le
+    // fond "aujourd'hui" — un jour de congé reste identifiable même si c'est aujourd'hui, avec
+    // le contour à la place du fond plein pour ne perdre aucune des deux informations.
+    const isConge = (DATA.conges||[]).some(c=>congeCouvreJour(c,ds));
+    if (isConge) joursCongesMoisAffiche++;
     const isWe = (new Date(year,month-1,d).getDay()+6)%7 >= 5;
-    const bgToday = isToday ? 'background:var(--acc);color:#fff;font-weight:700;' : '';
-    const opWe = isWe && !missions.length ? 'opacity:.7;' : '';
+    const bgToday = isConge
+      ? `background:rgba(187,158,129,.28);${isToday?'box-shadow:inset 0 0 0 2px var(--acc);font-weight:700;':''}`
+      : (isToday ? 'background:var(--acc);color:#fff;font-weight:700;' : '');
+    const opWe = isWe && !missions.length && !isConge ? 'opacity:.7;' : '';
+    const congeBadge = isConge ? `<span title="Congés" style="position:absolute;bottom:2px;left:2px;font-size:11px;line-height:1">🏖️</span>` : '';
     const bars = missions.map(m => {
       const c = colorMap[m.id];
       // Le texte utilise var(--text) (contraste garanti par le thème actif) — la couleur de la
@@ -3533,6 +3544,7 @@ function renderPlanning() {
       <div class="pcal-daynum" style="font-size:11px;font-weight:${isToday?'700':'400'};margin-bottom:2px">${d}</div>
       <div class="pcal-bars">${bars}</div>
       ${missions.length?`<div class="pcal-dots" style="display:none;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;margin-top:2px">${dots}</div>`:''}
+      ${congeBadge}
       <button type="button" class="pcal-addbtn" onclick="event.stopPropagation();openMissionModal(null,'${ds}')" title="Ajouter une mission le ${formatDateFR(ds)}" style="position:absolute;top:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:13px;font-weight:700;cursor:pointer">+</button>
       <button type="button" class="pcal-timebtn" onclick="event.stopPropagation();openAddTimeModalFromPlanning('${ds}')" title="Ajouter du temps le ${formatDateFR(ds)}" style="position:absolute;bottom:2px;right:2px;width:16px;height:16px;line-height:15px;padding:0;border:none;border-radius:4px;background:transparent;color:inherit;opacity:.55;font-size:11px;cursor:pointer">⏱</button>
     </div>`;
@@ -3625,7 +3637,8 @@ function renderPlanning() {
       <div class="kpi-label">Taux de remplissage</div>
       <div class="kpi-val" style="font-size:20px">${rm.taux} %</div>
     </div>
-  </div>`:''}
+  </div>
+  ${joursCongesMoisAffiche>0?`<div class="ts" style="color:var(--tl);margin:-8px 0 14px;text-align:center">🏖️ ${joursCongesMoisAffiche} jour${joursCongesMoisAffiche>1?'s':''} de congés déduit${joursCongesMoisAffiche>1?'s':''} de ce mois (jours ouvrables et taux de remplissage ci-dessus).</div>`:''}`:''}
   <div class="planning-row" style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px">
     <div class="card" style="flex:1;min-width:0">
       <div class="planning-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
