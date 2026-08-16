@@ -6944,6 +6944,25 @@ function wScoreSante(d) {
   // le score global et le widget passent au orange/rouge exactement au même moment.
   const {annualTarget:trajTarget,pctAtPace,atteignable:trajAtteignable,bestMonth:trajBestMonth,moisRestants:trajMoisRestants}=trajInfo;
   const annualAtRisk=trajTarget>0&&!!trajBestMonth&&pctAtPace!=null&&pctAtPace<0.85;
+  // Même garde-fou, version MENSUELLE (retour Faustine, 2026-08-17) : "le score de santé est bon
+  // alors que mon CA du mois est pourri" — le vrai trou n'était pas la taille du malus rentabilité
+  // (pctObj<50%, -3 pts), mais le fait que cette vérification annualAtRisk n'était utilisée QUE si
+  // le score ≥85 (voir diagGlobal plus bas) — entre 70 et 84, rien ne relayait jamais un CA (annuel
+  // OU mensuel) en retard, alors que "Ma trajectoire mensuelle et annuelle" l'affichait déjà en
+  // rouge plus bas sur le tableau de bord. Réutilise EXACTEMENT la même formule que le KPI "Revenu
+  // net du mois" de wTrajectoireAnnuelle (caNetMois/objNet, seuil rouge <50% déjà en place là-bas)
+  // — aucun nouveau calcul, juste relié à la phrase principale.
+  const caNetMoisActuel=getRevenuNetMois(curMk);
+  const estMoisNegatifActuel=objNet>0&&caNetMoisActuel<0;
+  const pctObjMoisActuel=objNet>0?Math.round(caNetMoisActuel/objNet*100):null;
+  const moisAtRisk=objNet>0&&(estMoisNegatifActuel||(pctObjMoisActuel!=null&&pctObjMoisActuel<50));
+  // Phrase courte à ajouter à diagGlobal, à TOUS les paliers de score désormais (pas seulement
+  // ≥85) — vide si ni l'année ni le mois ne sont à risque, pour ne rien changer aux messages
+  // existants dans le cas normal.
+  let _trajCaveat='';
+  if(annualAtRisk&&moisAtRisk) _trajCaveat=' Votre CA annuel et votre CA de ce mois sont tous les deux en retard sur vos objectifs.';
+  else if(annualAtRisk) _trajCaveat=' Votre CA annuel est à risque.';
+  else if(moisAtRisk) _trajCaveat=' Votre CA de ce mois est en retard sur votre objectif.';
 
   // ── DIAGNOSTIC GLOBAL ────────────────────────────────────────
   // 'remplissage' aligné sur la clé déjà utilisée pour ce pilier partout ailleurs (sRemp,
@@ -6990,13 +7009,13 @@ function wScoreSante(d) {
   // "Action recommandée" (priorite, juste en dessous). Rester court et factuel ici pour éviter
   // de répéter en substance ce que priorite développe déjà (doublon repéré en retour bêta sur
   // la branche score>=85+annualAtRisk, où les deux textes disaient presque la même chose).
-  if(score>=85) diagGlobal=annualAtRisk
-    ?'Votre activité tourne très bien aujourd\'hui. Votre CA annuel est à risque.'
+  if(score>=85) diagGlobal=(annualAtRisk||moisAtRisk)
+    ?`Votre activité tourne très bien aujourd'hui.${_trajCaveat}`
     :'Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
-  else if(score>=70) diagGlobal=`Mon activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.`;
-  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.`;
-  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art}${worst.n}.`;
-  else diagGlobal=`Votre activité demande une attention immédiate — le point faible : ${worst.art}${worst.n}.`;
+  else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.${_trajCaveat}`;
+  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.${_trajCaveat}`;
+  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art}${worst.n}.${_trajCaveat}`;
+  else diagGlobal=`Votre activité demande une attention immédiate — le point faible : ${worst.art}${worst.n}.${_trajCaveat}`;
 
   // ── PRIORITÉ DU MOMENT ───────────────────────────────────────
   // prioriteNavPage : bouton d'action sous "Action recommandée" — uniquement défini sur les

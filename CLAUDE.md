@@ -3206,6 +3206,14 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-18 — Score de Santé : relayer un CA (annuel ou mensuel) en retard à tous les paliers de score
+
+Retour bêta OBM : "mon score de santé est bon alors que mon CA du mois est pourri". Diagnostic : ce n'était pas la pénalité rentabilité qui était trop faible, mais le fait que la phrase sous le score (`diagGlobal`, `wScoreSante`) ne relayait le risque sur le CA annuel (`annualAtRisk`) que si le score était ≥85 — entre 70 et 84 (le palier de la bêta-testeuse), aucune mention n'était faite d'un CA en retard, alors que le widget "Ma trajectoire mensuelle et annuelle" plus bas l'affichait déjà en rouge.
+
+**Fix** : ajout d'un équivalent `moisAtRisk`, calculé avec la même formule déjà utilisée par le KPI "Revenu net du mois" de `wTrajectoireAnnuelle` (`caNetMois/objNet`, seuil rouge <50 % ou mois négatif) — aucun nouveau calcul, juste relié à la phrase principale. `_trajCaveat` (annuel, mensuel, ou les deux) est désormais ajouté à **tous** les paliers de `diagGlobal` (85+, 70-84, 50-69, 30-49, <30), pas seulement le premier. Au passage, corrigé une incohérence "Mon activité" (au lieu de "Votre activité") restée sur la branche 70-84.
+
+**Vérifié** : suite Node complète inchangée (0 régression, ces fonctions ne touchent que `indepuls.html`). Vérification navigateur en mode démo : score à 80/100 (palier 70-84) affiche désormais bien "Un point mérite votre attention cette semaine : le remplissage. Votre CA annuel est à risque." sous le score, cohérent avec le bandeau rouge du widget trajectoire plus bas.
+
 ### 2026-08-17 — Congés, correctif 2 : le bug "11j/10" identifié et corrigé
 
 Le "bug secondaire" noté comme accepté dans l'entrée précédente (occupied > ouvrables) **n'était pas dû à un chevauchement de sessions** comme supposé sur le moment — diagnostic revu après question précise de Faustine ("il y a bien 11 jours ouvrés hors vacances, pourquoi le calcul ne se fait pas correctement ?").
