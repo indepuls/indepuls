@@ -3214,6 +3214,18 @@ Retour bêta OBM : "mon score de santé est bon alors que mon CA du mois est pou
 
 **Vérifié** : suite Node complète inchangée (0 régression, ces fonctions ne touchent que `indepuls.html`). Vérification navigateur en mode démo : score à 80/100 (palier 70-84) affiche désormais bien "Un point mérite votre attention cette semaine : le remplissage. Votre CA annuel est à risque." sous le score, cohérent avec le bandeau rouge du widget trajectoire plus bas.
 
+### 2026-08-18 — Congés : avertir si des sessions planifiées chevauchent la période posée
+
+Suite au chantier congés : Faustine — "s'il y avait des jours planifiés sur des jours finalement en congés, est-ce qu'une modale peut prévenir : maintenir ou supprimer ?" Scope volontairement réduit à la détection + avertissement (le fractionnement automatique d'une session récurrente sans fin autour d'un congé est une idée à part, plus complexe, mise de côté).
+
+**Fonction core** : `getMissionsAvecSessionSurPeriode(DATA, debut, fin)` (`shared/core/planning.js`) — boucle jour par jour sur la période saisie, retourne les missions (hors "Mon entreprise") dont au moins une session (bornée ou sans fin) couvre un de ces jours, dédoublonnées. Bridgée dans `unified.js` et le bloc `window.*`.
+
+**UI** : `saveConge()` enregistre le congé comme avant (aucun changement de comportement dans le cas normal), puis appelle cette fonction — s'il y a chevauchement, ouvre une nouvelle modale `modal-conges-overlap` listant les missions concernées avec un bouton "Ouvrir" par mission (ferme les modales congés et rappelle `openMissionModal(id)`, l'outil d'édition de sessions déjà existant — pas d'auto-split) et un bouton global "Laisser tel quel".
+
+**Bug trouvé et corrigé pendant l'implémentation** : la boucle jour par jour utilisait `toISOString().slice(0,10)` pour convertir chaque `Date` en chaîne — mais `toISOString()` convertit en UTC, alors que le `Date` était construit en heure locale (`new Date(debut+'T00:00:00')`). Dans un fuseau horaire décalé par rapport à UTC, ça décale la date d'un jour et fait rater des chevauchements réels (ou en signale de faux). Corrigé en réutilisant le format local déjà établi ailleurs dans le fichier (`_compterJoursConges`) : `getFullYear/getMonth/getDate`, jamais `toISOString`.
+
+**Vérifié** : 8 nouvelles assertions dans `shared/tests/planning.test.js` (150/150 au total, bornée + sans fin + dédoublonnage + exclusion "Mon entreprise" + périodes sans chevauchement). Vérification navigateur (mode démo) : ajout d'un congé chevauchant deux missions (Groupe Horizon + Lundi Agency) → modale d'avertissement liste bien les deux, clic "Ouvrir" ferme les deux modales congés et ouvre la fiche de la mission ; ajout d'un congé sans chevauchement → aucune modale.
+
 ### 2026-08-17 — Congés, correctif 2 : le bug "11j/10" identifié et corrigé
 
 Le "bug secondaire" noté comme accepté dans l'entrée précédente (occupied > ouvrables) **n'était pas dû à un chevauchement de sessions** comme supposé sur le moment — diagnostic revu après question précise de Faustine ("il y a bien 11 jours ouvrés hors vacances, pourquoi le calcul ne se fait pas correctement ?").

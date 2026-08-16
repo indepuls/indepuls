@@ -595,6 +595,38 @@ function makeData(overrides = {}) {
   assertEq('congesCouvrentSemaineCourante congé loin dans le futur → false', P.congesCouvrentSemaineCourante({ conges: [{ debut: dansLoin, fin: dansLoin }] }), false);
 }
 
+// ── getMissionsAvecSessionSurPeriode — alerte chevauchement congé/mission (2026-08-18) ──
+{
+  // 2026-08-10/11 = lundi/mardi ; 2026-08-01 = samedi (sert de point de départ à la sans-fin).
+  const mBornee = { id: 'm1', client: 'Client A', isManagement: false,
+    sessions: [{ debut: '2026-08-10', fin: '2026-08-11' }] };
+  const mSansFin = { id: 'm2', client: 'Client B', isManagement: false,
+    sessions: [{ debut: '2026-08-01', sansFin: true, jours: [3] }] }; // tous les mercredis, sans fin
+  const mHorsPeriode = { id: 'm3', client: 'Client C', isManagement: false,
+    sessions: [{ debut: '2026-09-01', fin: '2026-09-05' }] };
+  const mMgmt = { id: 'm4', client: 'Mon entreprise', isManagement: true,
+    sessions: [{ debut: '2026-08-10', fin: '2026-08-14' }] };
+  const D = { missions: [mBornee, mSansFin, mHorsPeriode, mMgmt] };
+
+  const r1 = P.getMissionsAvecSessionSurPeriode(D, '2026-08-10', '2026-08-11');
+  assertEq('getMissionsAvecSessionSurPeriode : session bornée en chevauchement → 1 mission', r1.length, 1);
+  assertEq('getMissionsAvecSessionSurPeriode : mission bornée trouvée', r1[0].id, 'm1');
+
+  const r2 = P.getMissionsAvecSessionSurPeriode(D, '2026-08-12', '2026-08-12'); // mercredi
+  assertEq('getMissionsAvecSessionSurPeriode : session sans fin en chevauchement → 1 mission', r2.length, 1);
+  assertEq('getMissionsAvecSessionSurPeriode : mission sans fin trouvée', r2[0].id, 'm2');
+
+  const r3 = P.getMissionsAvecSessionSurPeriode(D, '2026-08-15', '2026-08-16'); // samedi-dimanche : ni la bornée (finit le 11), ni un mercredi
+  assertEq('getMissionsAvecSessionSurPeriode : aucune session couvrant ce week-end → 0', r3.length, 0);
+
+  const r4 = P.getMissionsAvecSessionSurPeriode(D, '2027-01-01', '2027-01-03'); // vendredi-samedi-dimanche, aucun mercredi
+  assertEq('getMissionsAvecSessionSurPeriode : aucune session sur la période → 0', r4.length, 0);
+
+  const r5 = P.getMissionsAvecSessionSurPeriode(D, '2026-08-01', '2026-08-31'); // couvre plusieurs mercredis
+  assertEq('getMissionsAvecSessionSurPeriode : mission management (temps interne) toujours exclue', r5.some(m => m.id === 'm4'), false);
+  assertEq('getMissionsAvecSessionSurPeriode : dédoublonnage — chaque mission au plus une fois malgré plusieurs mercredis', r5.filter(m => m.id === 'm2').length, 1);
+}
+
 // ── getTauxRemplissageMois — déduction des congés ──────────────
 {
   const D = makeData({ params: { joursParSemaine: 5, heuresParJour: 7 } });

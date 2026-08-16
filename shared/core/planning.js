@@ -79,6 +79,31 @@ export function congeCouvreJour(c, ds) {
   return ds >= c.debut && ds <= (c.fin || c.debut);
 }
 
+// Missions dont au moins une session (bornée ou sans fin) couvre un jour de [debut, fin] — sert
+// d'alerte au moment de poser un congé (2026-08-18, retour Faustine : "si la personne a une
+// mission planifiée sur cette période, prévenir plutôt que la laisser découvrir un calendrier
+// incohérent"). Volontairement day-by-day (borne par une saisie manuelle de dates, jamais un an
+// entier) — même style que _compterJoursConges. Ne modifie ni ne scinde aucune session : signale
+// seulement, la personne édite ses sessions elle-même via la fiche mission si elle le souhaite.
+export function getMissionsAvecSessionSurPeriode(DATA, debut, fin) {
+  const trouvees = [];
+  const vus = new Set();
+  const d = new Date(debut + 'T00:00:00');
+  const finD = new Date((fin || debut) + 'T00:00:00');
+  while (d <= finD) {
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    DATA.missions.forEach(m => {
+      if (m.isManagement || vus.has(m.id)) return;
+      if ((m.sessions || []).some(s => sessionCouvreJour(s, ds))) {
+        vus.add(m.id);
+        trouvees.push(m);
+      }
+    });
+    d.setDate(d.getDate() + 1);
+  }
+  return trouvees;
+}
+
 // Nombre de jours où la session sans fin s'applique dans la fenêtre [debut, fin] (bornée par
 // s.debut si postérieur). Sert à répartir les heures/mois (getChargeSessionJour) et au repli
 // rétrocompat sans heures renseigné (_sessionsHeuresMois) — factorisé pour ne pas dupliquer la

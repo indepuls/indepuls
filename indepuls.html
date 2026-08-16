@@ -2439,6 +2439,18 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL AVERTISSEMENT MISSIONS PLANIFIÉES SUR UN CONGÉ (2026-08-18, retour Faustine) -->
+<div class="modal-ov hidden" id="modal-conges-overlap">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title mb4">⚠️ Missions planifiées sur cette période</div>
+    <div class="ts mb14" style="color:var(--tl)">Ces missions ont des périodes planifiées qui chevauchent le congé que vous venez d'ajouter. Vous pouvez les laisser telles quelles, ou ouvrir chaque mission pour ajuster ses périodes vous-même.</div>
+    <div id="conges-overlap-list" class="mb14"></div>
+    <div class="modal-foot" style="flex-direction:column;gap:8px">
+      <button class="btn btn-out" style="width:100%;justify-content:center" onclick="closeModal('modal-conges-overlap')">Laisser tel quel</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ARCHIVE -->
 <div class="modal-ov hidden" id="modal-archive">
   <div class="modal">
@@ -12738,6 +12750,19 @@ function saveConge() {
   if(currentPage==='missions') renderMissions();
   if(currentPage==='dashboard') renderDashboard();
   showToast('✅ Période de congés ajoutée');
+  // Avertissement missions déjà planifiées sur cette période (2026-08-18) — n'empêche pas
+  // l'ajout du congé (déjà fait ci-dessus), signale juste, la personne édite si elle le souhaite.
+  const missionsChevauche=getMissionsAvecSessionSurPeriode(debut,fin);
+  if(missionsChevauche.length) openCongesOverlapWarning(missionsChevauche);
+}
+function openCongesOverlapWarning(missions) {
+  document.getElementById('conges-overlap-list').innerHTML=missions.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:4px">
+      <span style="flex:1;font-size:12px"><strong>${esc(m.client)}</strong>${m.description?` <span style="color:var(--tl)">${esc(m.description)}</span>`:''}</span>
+      <button class="btn btn-out btn-xs" onclick="closeModal('modal-conges-overlap');closeModal('modal-conges');openMissionModal('${m.id}')">Ouvrir</button>
+    </div>
+  `).join('');
+  openModal('modal-conges-overlap');
 }
 function deleteConge(id) {
   DATA.conges=(DATA.conges||[]).filter(c=>c.id!==id);
@@ -15388,6 +15413,7 @@ document.addEventListener('keydown', function(e) {
   window.congeCouvreJour               = (c, ds) => { sync(); return Mode.congeCouvreJour(c, ds); };
   window.congesCouvrentSemaineCourante = ()      => { sync(); return Mode.congesCouvrentSemaineCourante(); };
   window.getSemainesCongesPosees       = (year)  => { sync(); return Mode.getSemainesCongesPosees(year); };
+  window.getMissionsAvecSessionSurPeriode = (debut, fin) => { sync(); return Mode.getMissionsAvecSessionSurPeriode(debut, fin); };
 
   // ── AFFAIRES ────────────────────────────────────────────────
   window.getDepensesAffaire          = (id)  => { sync(); return Mode.getDepensesAffaire(id); };

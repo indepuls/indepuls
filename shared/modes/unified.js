@@ -157,6 +157,7 @@ export const getPilierRemplissage   = ()     => P.getPilierRemplissage(DATA);
 export const congeCouvreJour             = P.congeCouvreJour;
 export const congesCouvrentSemaineCourante = () => P.congesCouvrentSemaineCourante(DATA);
 export const getSemainesCongesPosees     = (year) => P.getSemainesCongesPosees(DATA, year);
+export const getMissionsAvecSessionSurPeriode = (debut, fin) => P.getMissionsAvecSessionSurPeriode(DATA, debut, fin);
 
 // ── STORAGE ──────────────────────────────────────────────────
 
