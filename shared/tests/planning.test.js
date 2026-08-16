@@ -602,6 +602,25 @@ function makeData(overrides = {}) {
   const DavecConges = { ...D, conges: [{ debut: '2026-08-01', fin: '2026-08-10' }] }; // 10 jours de congés en août
   const avecConges = P.getTauxRemplissageMois(DavecConges, '2026-08');
   assert('getTauxRemplissageMois : les congés réduisent le dénominateur "ouvrables"', avecConges.ouvrables < sansConges.ouvrables);
+
+  // Correctif (2026-08-17, retour Faustine : "11j/10 incohérent") : une période de congés incluant
+  // des week-ends (déjà hors de "ouvrables" au départ) ne doit retirer que l'équivalent
+  // PROPORTIONNEL, jamais le nombre brut de jours calendaires — sinon ouvrables peut tomber sous
+  // le nombre de jours réellement occupés. Repro exacte : août 2026 (31j, 1er = samedi),
+  // joursParSemaine=5 → ouvrablesBrut=round(31×5/7)=22. Congés 17→28 août = 12 jours calendaires
+  // dont 2 week-ends (22,23) → équivalent proportionnel retiré = round(12×5/7)=9 → ouvrables=13,
+  // jamais 10 (22-12, le bug d'origine).
+  const mAout = { id: 'mA', isManagement: false, isRecurring: false, statut: 'cours',
+    sessions: [
+      { debut: '2026-08-03', fin: '2026-08-07' }, { debut: '2026-08-10', fin: '2026-08-14' },
+      { debut: '2026-08-31', fin: '2026-08-31' },
+    ] }; // 11 jours ouvrés occupés, tous hors de la période de congés
+  const Drepro = makeData({ params: { joursParSemaine: 5, heuresParJour: 7 }, missions: [mAout] });
+  const DreproConges = { ...Drepro, conges: [{ debut: '2026-08-17', fin: '2026-08-28' }] };
+  const r = P.getTauxRemplissageMois(DreproConges, '2026-08');
+  assertEq('getTauxRemplissageMois repro Faustine : ouvrables = 13 (proratisé), jamais 10', r.ouvrables, 13);
+  assertEq('getTauxRemplissageMois repro Faustine : occupied = 11 (sessions hors congés)', r.occupied, 11);
+  assert('getTauxRemplissageMois repro Faustine : occupied ≤ ouvrables (plus de "11/10" incohérent)', r.occupied <= r.ouvrables);
 }
 
 // ── getPilierRemplissage — congé cette semaine (message neutre, pas de recalcul cap/charge) ──

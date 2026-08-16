@@ -3206,6 +3206,16 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-17 — Congés, correctif 2 : le bug "11j/10" identifié et corrigé
+
+Le "bug secondaire" noté comme accepté dans l'entrée précédente (occupied > ouvrables) **n'était pas dû à un chevauchement de sessions** comme supposé sur le moment — diagnostic revu après question précise de Faustine ("il y a bien 11 jours ouvrés hors vacances, pourquoi le calcul ne se fait pas correctement ?").
+
+**Cause réelle** : `ouvrables` n'a jamais été un compte exact des jours ouvrés du mois, seulement une proportion (`daysInMonth × joursParSem/7`, arrondie — "comportement historique"). Le correctif du 2026-08-17 (chantier congés) retirait le nombre **brut** de jours de congés au calendrier — mais une période de congés inclut souvent des week-ends, déjà hors de cette proportion de départ. Résultat : les week-ends de la période de congés étaient soustraits deux fois, faisant tomber `ouvrables` sous `occupied` (repro exacte : août 2026, congés 17→28 (12 jours calendaires dont 2 week-ends), `ouvrablesBrut=22` → 22-12=10, alors que 11 jours étaient réellement occupés, tous hors congés).
+
+**Fix** : retirer l'**équivalent proportionnel** des congés (`joursCongesBruts × joursParSem/7`, arrondi), jamais le nombre de jours calendaires brut — cohérente avec l'approximation déjà en place pour `ouvrablesBrut`. Sur le cas Faustine : ouvrables passe de 10 (faux) à **13** (22 - round(12×5/7)=9), cohérent avec les 11 jours occupés.
+
+**Vérifié** : nouveau test reproduisant exactement le cas signalé (`shared/tests/planning.test.js`, +5 assertions, 142/142 au total) — `ouvrables=13`, `occupied=11`, `occupied<=ouvrables` toujours vrai. `node --check` + suite complète inchangée par ailleurs.
+
 ### 2026-08-17 — Congés, correctif : les rendre visibles sur le calendrier lui-même
 
 Retour Faustine juste après le chantier congés ci-dessous : *"J'ai posé des congés du 17 au 30, mais ce n'est visuellement visible nulle part sur le calendrier."* Exact — le chantier initial n'avait câblé que le **calcul** (dénominateur du taux de remplissage, message neutre du pilier) mais jamais l'**affichage** sur les cases du calendrier elles-mêmes ("Option A" évoquée au départ, oubliée en cours de route au profit du calcul seul).

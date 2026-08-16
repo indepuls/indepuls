@@ -299,7 +299,16 @@ export function getTauxRemplissageMois(DATA, mk) {
   // c'est normal et attendu. Seul point touché par les congés dans ce fichier : le taux affiché
   // sur la page Calendrier. Le pilier "Mon remplissage" du Score de Santé (getPilierRemplissage,
   // plus bas) reste sur sa propre logique — voir le commentaire dédié là-bas.
-  const joursConges = _compterJoursConges(DATA, mFirst, mLast);
+  //
+  // Correctif (2026-08-17, retour Faustine : "11j/10 incohérent") : `ouvrables` n'est JAMAIS un
+  // compte exact des jours ouvrés du mois, seulement une proportion (daysInMonth×joursParSem/7,
+  // "comportement historique" — voir plus bas). Retirer le nombre BRUT de jours de congés au
+  // calendrier (week-ends inclus) double-comptait les week-ends compris dans la période de congés
+  // (déjà exclus de la proportion de départ) — `ouvrables` tombait alors sous `occupied`,
+  // affichage absurde. On retire donc l'équivalent PROPORTIONNEL des congés (même logique que le
+  // calcul de départ), jamais le nombre de jours calendaires brut.
+  const joursCongesBruts = _compterJoursConges(DATA, mFirst, mLast);
+  const joursConges = Math.round(joursCongesBruts * joursParSem / 7);
   const ouvrables = Math.max(1, Math.round(daysInMonth * joursParSem / 7) - joursConges);
 
   // Collecte des sessions qui touchent ce mois
