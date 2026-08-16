@@ -77,14 +77,24 @@ export default async function handler(req, res) {
 
   const resultats = [];
 
+  // DEBUG TEMPORAIRE (2026-08-16, retour Faustine : "le brief ne part jamais") — resultats ne
+  // contient normalement AUCUNE trace des comptes filtrés par emailHebdoActif/emailHebdoJour (les
+  // deux `continue` ci-dessous), donc impossible de distinguer "pas opt-in" de "mauvais jour" ou
+  // de "réellement bien filtré" depuis les logs Vercel seuls (pas d'accès au corps de la réponse
+  // sur ce plan). Log une ligne par compte, retiré une fois le diagnostic posé (même pratique que
+  // le debug Brevo/Supabase du 28 juillet, voir CLAUDE.md).
+  console.log(`[brief-hebdo] ${rows.length} comptes lus, jourAujourdhui=${jourAujourdhui}`);
+
   for (const { user_id, data } of rows) {
-    // Case à cocher pas encore exposée dans Paramètres (voir CLAUDE.md) — tant qu'elle n'existe
-    // pas, emailHebdoActif reste à false pour tout le monde, cette route ne fait donc rien.
-    if (!data?.params?.emailHebdoActif) { continue; }
-    if ((data.params.emailHebdoJour || 'lundi') !== jourAujourdhui) { continue; }
+    const actif = !!data?.params?.emailHebdoActif;
+    const jour = data?.params?.emailHebdoJour || 'lundi';
+    console.log(`[brief-hebdo] user=${user_id} emailHebdoActif=${actif} emailHebdoJour=${jour}`);
+    if (!actif) { continue; }
+    if (jour !== jourAujourdhui) { continue; }
 
     const decision = getDecisionBriefHebdo(data, maintenant);
     const signaux = await calculerSignaux(data, user_id, maintenant, { supabaseUrl, secretKey });
+    console.log(`[brief-hebdo] user=${user_id} decision=${JSON.stringify(decision)} signaux=${JSON.stringify(signaux)}`);
 
     if (!doitEnvoyerBriefHebdo(decision, signaux)) {
       resultats.push({ user_id, envoye: false, raison: 'materialite' });
