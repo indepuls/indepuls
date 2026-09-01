@@ -74,6 +74,11 @@ export function migrate(data, schemaVersion, deps = {}) {
   // v34 : pense-bête (post-it libres, tableau de bord) — comptes existants sans la clé, tableau
   // vide par défaut, aucune perte de données possible (retour Faustine, 2026-07-29).
   if (!data.notesRapides) data.notesRapides = [];
+  // v35 : périodes de congés (2026-08-17, retour Faustine) — comptes existants sans la clé,
+  // tableau vide par défaut, aucune perte de données possible. Ajoutée ici avec 9 jours de
+  // retard sur la copie réelle d'indepuls.html (écart repéré par le mode ombre en production,
+  // 2026-08-23/31 — voir CLAUDE.md) : la copie miroir avait été oubliée lors du chantier congés.
+  if (!data.conges) data.conges = [];
 
   data.schemaVersion = schemaVersion;
   return data;

@@ -3206,6 +3206,12 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-08-31 — Correctif écart mode ombre : conges[] manquant dans la copie miroir (storage.js)
+
+Alerte Sentry remontée par Faustine (`_shadowCheckStorageMigration`, "Écarts (chemins uniquement) : conges", 1 événement, aucun utilisateur impacté — le mode ombre ne touche jamais aux vraies données, voir le commentaire `MUTATION_DETECTED` dans indepuls.html). Pas un bug de béta-testeuse qui se reconnecte, ni un vrai bug production : le chantier congés du 2026-08-17 avait ajouté `if (!data.conges) data.conges = [];` dans la copie réelle (`indepuls.html`), mais avait oublié de répliquer la même ligne dans la copie miroir `shared/core/storage.js` (discipline "shadow-mode" déjà en place depuis l'audit du 2026-07-26, cf. duplication B). Corrigé en ajoutant le v35 manquant, exactement au même endroit que v32/v33/v34.
+
+**Vérifié** : `shared/tests/storage_migrations.test.js` +2 assertions (conges=[] par défaut, conges existant préservé), 44/44 sur ce fichier. Suite complète (18 fichiers) : 0 régression.
+
 ### 2026-08-18 — ACRE + rappels fiscaux génériques (CFE, déclaration de revenus)
 
 Discussion produit (Faustine, via le skill indepuls-copilote) partie d'une question sur la CFE : faut-il l'intégrer quelque part ? Réponse : non, elle n'est pas calculable (barème communal, souvent exonérée), le mécanisme "dépense annuelle" existant suffit — pas de champ dédié. Même raisonnement écarté pour l'ACRE dans un premier temps... jusqu'à identifier le vrai risque : l'ACRE réduit le taux URSSAF **temporairement** (le taux est déjà librement modifiable), et un utilisateur qui oublie de le remettre à son niveau normal sous-provisionne silencieusement pendant des mois. Faustine a proposé la bonne architecture : une case à cocher + 2 dates, réutilisant le champ de taux existant plutôt que d'en dupliquer un — validée telle quelle. Un second point (alertes CFE décembre / déclaration de revenus mai) a été ajouté à la même itération, dans le même esprit "pense-bête textuel", pas de calcul.

@@ -113,6 +113,17 @@ section('migrate — v34 : notesRapides[] existant préservé');
   test('notesRapides préservé', out.notesRapides, [{ id: 'n1', texte: 'test' }]);
 }
 
+section('migrate — v35 : conges[] par défaut si absent (2026-08-17, écart mode ombre corrigé le 2026-08-31)');
+{
+  const out = migrate({ params: {}, missions: [] }, 31, { getDefaultModules, uuid, today });
+  test('conges=[]', out.conges, []);
+}
+section('migrate — v35 : conges[] existant préservé');
+{
+  const out = migrate({ params: {}, missions: [], conges: [{ id: 'c1', debut: '2026-08-17', fin: '2026-08-28' }] }, 31, { getDefaultModules, uuid, today });
+  test('conges préservé', out.conges, [{ id: 'c1', debut: '2026-08-17', fin: '2026-08-28' }]);
+}
+
 section('applyDefaults — modules manquants entièrement complétés via getDefaultModules');
 {
   const data = { params: {}, missions: [] };
