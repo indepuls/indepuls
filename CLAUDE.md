@@ -3210,6 +3210,12 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-01 — Feature 4 : lien vers le simulateur officiel de coût salarié
+
+Même esprit que la feature 3 (aucun calcul, aucun appel réseau) : texte d'aide + lien vers `https://mon-entreprise.urssaf.fr/simulateurs/salaire-brut-net` sous le champ "Coût employeur mensuel total (€)" (switch "J'emploie des salariés", Paramètres → Mon activité). Statique (pas de branche SASU/EURL comme la feature 3 — ce champ existe indépendamment du statut juridique).
+
+**Vérifié** : suite complète (20 fichiers) : 0 régression (aucune fonction de calcul touchée). Navigateur (mode démo) : switch activé → champ + texte d'aide visibles, lien présent avec la bonne URL, aucune erreur console.
+
 ### 2026-09-01 — 3 features indépendantes : SIRET dans les devis, liens vers les simulateurs officiels Urssaf
 
 Trois demandes groupées, aucun calcul métier touché (garde-fou explicite respecté : `getSasuCoutMensuelDepuisNet`/`getComparateurStatuts` inchangés — les features 2 et 3 aident juste à choisir un meilleur % à la main).
