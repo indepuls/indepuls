@@ -106,6 +106,8 @@ export const estMissionPayee          = C.estMissionPayee;
 export const getMissionsImpayees      = () => C.getMissionsImpayees(DATA);
 export const getProchaineEcheanceUrssafDaysLeft = (maintenant) => C.getProchaineEcheanceUrssafDaysLeft(DATA, maintenant);
 export const getProchaineEcheanceTvaDaysLeft    = (maintenant) => C.getProchaineEcheanceTvaDaysLeft(DATA, maintenant);
+export const getAlerteAcre                      = (maintenant) => C.getAlerteAcre(DATA, maintenant);
+export const getEcheancesFiscalesGeneriques     = (maintenant) => C.getEcheancesFiscalesGeneriques(maintenant);
 
 export const getMissionTotalMs        = (m) => C.getMissionTotalMs(DATA, m);
 export const getMissionHeures         = (m) => C.getMissionHeures(DATA, m);

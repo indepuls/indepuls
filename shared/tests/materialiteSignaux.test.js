@@ -4,7 +4,7 @@
 // d'échéance fiscale (date uniquement, jamais le montant — pas besoin du montant pour la
 // décision d'envoi "matérialité", qui ne demande qu'un booléen "proche ou non").
 
-import { getMissionsImpayees, getProchaineEcheanceUrssafDaysLeft, getProchaineEcheanceTvaDaysLeft } from '../core/calculs.js';
+import { getMissionsImpayees, getProchaineEcheanceUrssafDaysLeft, getProchaineEcheanceTvaDaysLeft, getAlerteAcre, getEcheancesFiscalesGeneriques } from '../core/calculs.js';
 
 let passed = 0, failed = 0;
 function eq(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
@@ -70,6 +70,48 @@ section('getProchaineEcheanceTvaDaysLeft — franchise en base → aucune éché
   const D = { params: { tva: false } };
   // getTvaRegime(D) doit renvoyer 'franchise' quand tva est désactivée — voir calculs.js.
   test('null (pas de TVA à déclarer)', getProchaineEcheanceTvaDaysLeft(D, new Date(2026, 6, 15)), null);
+}
+
+section('getAlerteAcre — pas activé ou pas de date de fin → null');
+{
+  test('acreActif absent → null', getAlerteAcre({ params: {} }), null);
+  test('acreActif=false → null', getAlerteAcre({ params: { acreActif: false, acreDateFin: '2026-09-01' } }), null);
+  test('acreActif=true mais pas de date de fin → null', getAlerteAcre({ params: { acreActif: true, acreDateFin: '' } }), null);
+}
+
+section('getAlerteAcre — fenêtre d\'alerte (dernier trimestre avant la fin)');
+{
+  const D = { params: { acreActif: true, acreDateFin: '2026-09-01' } };
+  test('95 j avant la fin → hors fenêtre (null)', getAlerteAcre(D, new Date(2026, 4, 28)), null); // 28 mai
+  const r90 = getAlerteAcre(D, new Date(2026, 5, 3)); // ~90 j avant
+  ok('90 j avant la fin → alerte déclenchée', r90 !== null && r90.daysLeft <= 90);
+  const r5 = getAlerteAcre(D, new Date(2026, 7, 27)); // 5 j avant
+  test('5 j avant la fin → daysLeft=5', r5.daysLeft, 5);
+  test('date de fin correcte transmise', r5.dateFin, '2026-09-01');
+  test('après la date de fin → null (rappel tardif inutile)', getAlerteAcre(D, new Date(2026, 8, 5)), null);
+}
+
+section('getEcheancesFiscalesGeneriques — CFE (15 décembre, date stable)');
+{
+  const loin = getEcheancesFiscalesGeneriques(new Date(2026, 7, 1)); // 1er août : hors fenêtre
+  ok('hors fenêtre CFE → aucune entrée cfe', !loin.some(e => e.type === 'cfe'));
+  const proche = getEcheancesFiscalesGeneriques(new Date(2026, 11, 10)); // 10 décembre : dans la fenêtre
+  const cfe = proche.find(e => e.type === 'cfe');
+  ok('CFE apparaît quand on approche du 15 décembre', !!cfe);
+  test('daysLeft CFE cohérent (10 déc → 15 déc = 5 j)', cfe.daysLeft, 5);
+  test('dateKey CFE = année courante', cfe.dateKey, '2026-12-15');
+}
+
+section('getEcheancesFiscalesGeneriques — déclaration de revenus (mois de mai uniquement, jamais de date précise)');
+{
+  const avril = getEcheancesFiscalesGeneriques(new Date(2026, 3, 30));
+  ok('avril → pas encore de rappel déclaration', !avril.some(e => e.type === 'declaration_revenus'));
+  const mai = getEcheancesFiscalesGeneriques(new Date(2026, 4, 15));
+  const decl = mai.find(e => e.type === 'declaration_revenus');
+  ok('mai → rappel déclaration présent', !!decl);
+  test('pas de compte à rebours (daysLeft null, volontairement vague)', decl.daysLeft, null);
+  const juin = getEcheancesFiscalesGeneriques(new Date(2026, 5, 1));
+  ok('juin → rappel déclaration disparu', !juin.some(e => e.type === 'declaration_revenus'));
 }
 
 console.log(`\n${'─'.repeat(50)}`);

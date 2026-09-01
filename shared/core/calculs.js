@@ -840,6 +840,58 @@ export function getProchaineEcheanceTvaDaysLeft(DATA, maintenant = new Date()) {
   return m < 7 ? daysLeft(new Date(y, 6, 31)) : daysLeft(new Date(y, 11, 31));
 }
 
+// ── ACRE (2026-08-16, retour Faustine) ──────────────────────────────────────────────────────
+// L'ACRE réduit le taux URSSAF/CFP pendant une période limitée — un champ DÉJÀ librement
+// modifiable (voir infobulle sur tauxURSSAF dans indepuls.html). Le vrai risque n'est pas
+// l'absence de ce réglage, c'est l'OUBLI de le remettre à son niveau normal une fois la période
+// terminée : ça sous-provisionnerait l'URSSAF en silence pendant des mois. Cette fonction ne
+// calcule donc aucun barème ACRE (variable et pas notre rôle) — elle dérive juste une alerte
+// depuis la date de fin que la personne a elle-même renseignée.
+export function getAlerteAcre(DATA, maintenant = new Date()) {
+  const p = DATA.params || {};
+  if (!p.acreActif || !p.acreDateFin) return null;
+  const dateFin = new Date(p.acreDateFin + 'T00:00:00');
+  const daysLeft = Math.ceil((dateFin - maintenant) / 86400000);
+  // Fenêtre d'alerte : dès le dernier trimestre avant la fin (~90 j), jamais après (une fois la
+  // période dépassée, rappeler ne sert plus à rien — soit la personne a déjà ajusté, soit elle a
+  // laissé filer et un rappel tardif n'aiderait pas plus).
+  if (daysLeft < 0 || daysLeft > 90) return null;
+  return { daysLeft, dateFin: p.acreDateFin };
+}
+
+// ── ÉCHÉANCES FISCALES GÉNÉRIQUES (2026-08-16, retour Faustine) ─────────────────────────────
+// Contrairement à l'URSSAF/TVA (calculées depuis le CA réel), la CFE et la déclaration de
+// revenus ne sont pas calculables par Indépuls (barème communal pour l'une, dates officielles
+// variables pour l'autre) — ce sont de simples pense-bêtes, jamais des calculs personnalisés,
+// donc aucune dépendance à DATA ici (fonction pure de la date du jour uniquement).
+// - CFE : date fixée par la loi (15 décembre), stable d'une année à l'autre → un vrai
+//   compte à rebours, comme les échéances URSSAF/TVA.
+// - Déclaration de revenus : la date exacte change chaque année (annoncée par tranches de
+//   département au printemps) — afficher un jour précis mentirait une année sur deux.
+//   Volontairement vague ("courant du mois de mai"), sans compte à rebours ni fausse précision
+//   (cohérent avec le principe d'incertitude honnête de la vision produit).
+export function getEcheancesFiscalesGeneriques(maintenant = new Date()) {
+  const y = maintenant.getFullYear();
+  const echeances = [];
+  const dueCfe = new Date(y, 11, 15);
+  const daysLeftCfe = Math.ceil((dueCfe - maintenant) / 86400000);
+  if (daysLeftCfe >= -10 && daysLeftCfe <= 30) {
+    echeances.push({
+      type: 'cfe', dateKey: `${y}-12-15`, daysLeft: daysLeftCfe,
+      texte: "Si vous êtes redevable de la CFE (Cotisation Foncière des Entreprises), pensez à la régler avant le 15 décembre sur impots.gouv.fr.",
+      boutonLabel: "✅ J'ai payé",
+    });
+  }
+  if (maintenant.getMonth() === 4) { // mai (0-indexé)
+    echeances.push({
+      type: 'declaration_revenus', dateKey: `${y}-05`, daysLeft: null,
+      texte: "La déclaration annuelle de revenus s'ouvre généralement en mai — vérifiez la date exacte de votre tranche sur impots.gouv.fr.",
+      boutonLabel: "✅ J'ai déclaré",
+    });
+  }
+  return echeances;
+}
+
 // Statut "Payé" dérivé — jamais stocké, jamais un champ séparé de m.statut ('fact' reste la
 // seule valeur interne). Réutilise getResteAEncaisser (donc getTotalEncaisse) plutôt que de
 // dupliquer la comparaison montant facturé/encaissé déjà utilisée par l'alerte "facture non

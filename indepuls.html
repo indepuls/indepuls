@@ -1079,6 +1079,18 @@ html,body{overflow-x:hidden;}
             <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Le taux proposé correspond au cas le plus courant pour votre activité. Certaines professions (ex. CIPAV ou situations particulières) peuvent avoir un taux différent. Si votre URSSAF ou votre expert-comptable vous a communiqué un autre taux, vous pouvez simplement le remplacer.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
             <div class="fgroup"><label class="flabel">Taux CFP (%) <span class="info-tip" title="Contribution à la Formation Professionnelle. Obligatoire pour les micro-entrepreneurs (0,1% en BNC, 0,2% en BIC prestation). Pré-rempli automatiquement selon votre statut.">?</span></label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
           </div>
+          <div class="sw-wrap" style="margin-top:12px">
+            <label class="sw"><input type="checkbox" id="p-acre-sw" onchange="toggleAcre(this.checked)"><span class="sw-sl"></span></label>
+            <span style="font-weight:600">Je bénéficie de l'ACRE</span>
+            <span class="info-tip" title="L'ACRE réduit vos cotisations sociales pendant une période limitée. Renseignez vos dates ci-dessous et ajustez le taux URSSAF au-dessus pour refléter la réduction — Indépuls vous rappellera de le remettre à son niveau normal avant la fin de la période.">?</span>
+          </div>
+          <div id="acre-detail" style="display:none;margin-top:12px">
+            <div class="frow">
+              <div class="fgroup"><label class="flabel">Début de l'ACRE</label><input type="date" id="p-acre-debut" onchange="saveParam('acreDateDebut',this.value)"></div>
+              <div class="fgroup"><label class="flabel">Fin de l'ACRE</label><input type="date" id="p-acre-fin" onchange="saveParam('acreDateFin',this.value)"></div>
+            </div>
+            <div class="ts mt4" style="color:var(--tl)">Pensez à baisser le taux URSSAF ci-dessus pour refléter votre réduction ACRE. Vous serez alerté·e avant la fin de la période pour penser à le remettre à son niveau normal.</div>
+          </div>
           <div class="fgroup" style="margin-top:12px">
             <label class="flabel">Je déclare mon CA à l'URSSAF <span class="info-tip" title="Choisissez la fréquence indiquée sur votre espace URSSAF (autoentrepreneur.urssaf.fr). En mensuel, la provision affichée correspond au CA du mois. En trimestriel, elle est lissée sur l'année pour une mise de côté régulière.">?</span></label>
             <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -4286,6 +4298,11 @@ function getDefaultData() {
       // CLAUDE.md). applyDefaults() empêche explicitement ce défaut de s'appliquer
       // rétroactivement aux comptes déjà existants qui n'ont jamais donné leur consentement.
       emailHebdoActif:true, emailHebdoJour:'lundi',
+      // ACRE (2026-08-16) : false/vide par défaut pour tous les comptes, nouveaux ou existants —
+      // contrairement à emailHebdoActif, aucun garde-fou anti-rétroactivité nécessaire dans
+      // applyDefaults() (voir CLAUDE.md), un défaut désactivé ne change jamais le comportement
+      // de quelqu'un qui n'a jamais coché la case.
+      acreActif:false, acreDateDebut:'', acreDateFin:'',
       // Devis (chantier 2026-07-30) : optionnel, jamais requis, sert uniquement à pré-remplir
       // un devis généré depuis le Simulateur ou une fiche mission — voir CLAUDE.md.
       siret:'', logoDataUrl:'', devisConditionsDefaut:'', devisModalitesDefaut:''
@@ -7203,6 +7220,32 @@ function wScoreSante(d) {
       alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
+  // Rappel ACRE (retour Faustine 2026-08-16) : contrairement à l'URSSAF/TVA ci-dessus, pas de
+  // montant calculable — juste un rappel dérivé de la date de fin déclarée par la personne
+  // (getAlerteAcre), pour ne jamais oublier de remonter le taux URSSAF une fois la période
+  // terminée (sinon sous-provisionnement silencieux, voir shared/core/calculs.js).
+  try {
+    const alerteAcre=getAlerteAcre(new Date());
+    if(alerteAcre){
+      const payeeKey=`acre_${DATA.params.acreDateFin}`;
+      if(!DATA.echeancesPayees?.[payeeKey]){
+        const cl=alerteAcre.daysLeft<=7?'al-err':'al-info';
+        const ico=alerteAcre.daysLeft<=7?'🚨':'📅';
+        alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} Votre période ACRE se termine le <strong>${formatDateFR(DATA.params.acreDateFin)}</strong> (dans ${alerteAcre.daysLeft} j) — pensez à remettre votre taux URSSAF à son niveau normal ensuite.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Ajuster mon taux</span></span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine fois">✅ C'est fait</button></div>`);
+      }
+    }
+  } catch(e){reportError('alerteAcre',e);}
+  // Rappels fiscaux génériques (CFE, déclaration de revenus — retour Faustine 2026-08-16) : pas
+  // de calcul personnalisé possible (voir shared/core/calculs.js), simples pense-bêtes saisonniers.
+  try {
+    getEcheancesFiscalesGeneriques(new Date()).forEach(ech=>{
+      const payeeKey=`${ech.type}_${ech.dateKey}`;
+      if(DATA.echeancesPayees?.[payeeKey]) return;
+      const cl=ech.daysLeft!=null&&ech.daysLeft<=7?'al-err':'al-info';
+      const ico=ech.daysLeft!=null&&ech.daysLeft<=7?'🚨':'📅';
+      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} ${ech.texte}</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à l'année prochaine">${ech.boutonLabel}</button></div>`);
+    });
+  } catch(e){reportError('echeancesFiscalesGeneriques',e);}
   // Pattern (catégorie ou tranche de montant, retour Faustine 2026-08-01, doc de vision "Couche
   // 4 — Patterns") : Statistiques affiche les 2 axes s'ils existent (patternsInsightHtml), mais
   // le Brief ne remonte que le plus marquant des deux (getMeilleurPatternPhrase) pour ne jamais
@@ -11290,6 +11333,17 @@ function toggleEmailHebdo(val) {
   const det=document.getElementById('email-hebdo-detail');
   if(det) det.style.display=val?'':'none';
 }
+// ── ACRE (2026-08-16, retour Faustine) ──────────────────────────────────────────────────────
+// Le taux URSSAF/CFP est déjà un champ librement modifiable (voir infobulle "pré-remplies selon
+// votre statut, ajustez si différent") — l'ACRE ne réutilise donc AUCUN nouveau champ de taux,
+// juste une case + 2 dates pour savoir QUAND rappeler à la personne de remettre son taux normal
+// (l'ACRE est dégressive/temporaire, contrairement à une exonération permanente). Voir
+// getAlerteAcre() plus bas pour les alertes J-90/J-7 dérivées de acreDateFin.
+function toggleAcre(val) {
+  saveParam('acreActif', val);
+  const det=document.getElementById('acre-detail');
+  if(det) det.style.display=val?'':'none';
+}
 // ── LOGO DEVIS (chantier 2026-07-30) ───────────────────────────
 // Redimensionné et compressé côté navigateur avant stockage (canvas, aucune nouvelle dépendance)
 // — tout le reste de DATA est synchronisé en JSON à chaque sauvegarde ; un fichier image non
@@ -12093,6 +12147,13 @@ function renderParams() {
   updateMixteChargesInfo();
   document.getElementById('p-urssaf').value=p.tauxURSSAF;
   document.getElementById('p-cfp').value=p.tauxCFP;
+  const acreSw=document.getElementById('p-acre-sw');
+  if(acreSw) acreSw.checked=!!(p.acreActif);
+  const acreDet=document.getElementById('acre-detail');
+  if(acreDet) acreDet.style.display=p.acreActif?'':'none';
+  const acreDebut=document.getElementById('p-acre-debut'), acreFin=document.getElementById('p-acre-fin');
+  if(acreDebut) acreDebut.value=p.acreDateDebut||'';
+  if(acreFin) acreFin.value=p.acreDateFin||'';
   const urssafReg=getUrssafRegime();
   ['mensuel','trimestriel'].forEach(r=>{
     const lbl=document.getElementById('urssaf-r-'+r);
@@ -15370,6 +15431,8 @@ document.addEventListener('keydown', function(e) {
   window.getMissionsImpayees    = ()   => { sync(); return Mode.getMissionsImpayees(); };
   window.getProchaineEcheanceUrssafDaysLeft = (maintenant) => { sync(); return Mode.getProchaineEcheanceUrssafDaysLeft(maintenant); };
   window.getProchaineEcheanceTvaDaysLeft    = (maintenant) => { sync(); return Mode.getProchaineEcheanceTvaDaysLeft(maintenant); };
+  window.getAlerteAcre                      = (maintenant) => { sync(); return Mode.getAlerteAcre(maintenant); };
+  window.getEcheancesFiscalesGeneriques     = (maintenant) => { sync(); return Mode.getEcheancesFiscalesGeneriques(maintenant); };
   window.getMoisActifsAnnee     = ()   => { sync(); return Mode.getMoisActifsAnnee(); };
   window.getMissionHeures       = (m)  => { sync(); return Mode.getMissionHeures(m); };
   window.getMissionHeuresMois   = (m, mk) => { sync(); return Mode.getMissionHeuresMois(m, mk); };
