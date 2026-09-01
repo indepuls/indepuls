@@ -3210,6 +3210,14 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-01 — Fix : lien Urssaf mal positionné sur la carte "Et si je changeais de statut ?"
+
+Retour Faustine (capture) : le lien "simulateur officiel Urssaf" ajouté à la feature 2 s'affichait détaché du texte, flottant en haut à droite du bandeau plutôt qu'à la suite de la phrase. Cause : `.alert` est en `display:flex` — le `<a>`, laissé en enfant direct de la div à côté du texte brut, devenait son propre item flex au lieu de rester dans le flux du texte (exactement le même risque que le pattern déjà en place ailleurs dans le fichier, `<span style="flex:1">texte</span><button>...</button>`, qui lui fonctionne parce que CHAQUE morceau voulu comme bloc séparé est explicitement un enfant direct — ici un seul bloc était voulu, mais le texte et le lien étaient tout de même deux enfants distincts du flex container).
+
+**Corrigé** : tout le contenu du bandeau (texte + `<br>` + lien) enveloppé dans un unique `<span>`, ne laissant qu'un seul enfant direct au conteneur flex — plus aucun risque d'éclatement visuel. Les ajouts des features 3 et 4 n'étaient pas concernés (`.ts`, pas `.alert` — pas de `display:flex`).
+
+**Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur : le bandeau n'a plus qu'un seul enfant direct (`childCount:1`), confirmé par inspection DOM.
+
 ### 2026-09-01 — Feature 4 : lien vers le simulateur officiel de coût salarié
 
 Même esprit que la feature 3 (aucun calcul, aucun appel réseau) : texte d'aide + lien vers `https://mon-entreprise.urssaf.fr/simulateurs/salaire-brut-net` sous le champ "Coût employeur mensuel total (€)" (switch "J'emploie des salariés", Paramètres → Mon activité). Statique (pas de branche SASU/EURL comme la feature 3 — ce champ existe indépendamment du statut juridique).
