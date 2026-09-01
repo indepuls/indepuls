@@ -11801,6 +11801,15 @@ function ouvrirGenerateurDevisMission() {
       doc.objet = document.getElementById('m-desc')?.value || '';
       const montantHT = parseFloat(document.getElementById('m-montant')?.value) || 0;
       if (montantHT > 0) doc.lignes = [{ designation: doc.objet || '', detail: '', montantHT }];
+      // Reprend adresse/SIRET du dernier document déjà rempli sur CETTE mission (retour Faustine,
+      // 2026-09-01) : évite de re-rechercher un SIRET déjà connu pour un second devis/avenant sur
+      // le même client. Ne remonte jamais au-delà de la mission courante — pas de fichier client
+      // transverse (idée volontairement écartée, voir CLAUDE.md).
+      const docPrecedent = (mission.documents || []).slice().reverse().find(d => d.id !== doc.id && (d.clientSiret || d.clientAdresse));
+      if (docPrecedent) {
+        doc.clientAdresse = docPrecedent.clientAdresse || '';
+        doc.clientSiret = docPrecedent.clientSiret || '';
+      }
     }
     ouvrirGenerateurDevis({}, _docToBrouillon(doc));
     return;

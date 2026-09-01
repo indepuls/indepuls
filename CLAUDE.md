@@ -3210,6 +3210,14 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-01 — Devis : reprendre adresse/SIRET du dernier document de la même mission
+
+Retour Faustine après avoir testé la feature SIRET : un second devis (avenant, nouvelle facture) créé sur une mission qui en a déjà un ne reprenait le nom du client que depuis la mission — adresse et SIRET repartaient à vide, obligeant à refaire la recherche. Discussion produit avant de coder : fallait-il un vrai "fichier client" pour ne plus jamais retaper ces infos ? **Refusé explicitement** — "CRM complexe" est dans la liste des idées volontairement exclues, et une fiche client (même minimaliste) en est la brique de base ; `mission.client` reste un texte libre, pas un identifiant vers une entité, et le changer serait un chantier de migration disproportionné pour un gain de quelques secondes de saisie occasionnelle.
+
+**Fix ciblé retenu** : dans `ouvrirGenerateurDevisMission()`, quand un nouveau document vide est créé pour une mission qui a déjà au moins un document avec `clientSiret`/`clientAdresse` rempli, ces deux champs sont repris du document le plus récent de **cette mission uniquement** — jamais d'une autre mission, jamais de recherche transverse. Ne touche jamais un document déjà rempli (condition `estVide` déjà existante, inchangée).
+
+**Vérifié** : suite complète (20 fichiers), 0 régression (fonction UI pure, hors `shared/core/`). Navigateur : mission avec un devis déjà émis (adresse + SIRET remplis) → un second devis généré sur la même mission reprend bien nom + adresse + SIRET automatiquement ; le premier document reste intact.
+
 ### 2026-09-01 — Fix : lien Urssaf mal positionné sur la carte "Et si je changeais de statut ?"
 
 Retour Faustine (capture) : le lien "simulateur officiel Urssaf" ajouté à la feature 2 s'affichait détaché du texte, flottant en haut à droite du bandeau plutôt qu'à la suite de la phrase. Cause : `.alert` est en `display:flex` — le `<a>`, laissé en enfant direct de la div à côté du texte brut, devenait son propre item flex au lieu de rester dans le flux du texte (exactement le même risque que le pattern déjà en place ailleurs dans le fichier, `<span style="flex:1">texte</span><button>...</button>`, qui lui fonctionne parce que CHAQUE morceau voulu comme bloc séparé est explicitement un enfant direct — ici un seul bloc était voulu, mais le texte et le lien étaient tout de même deux enfants distincts du flex container).
