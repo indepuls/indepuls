@@ -1068,6 +1068,7 @@ html,body{overflow-x:hidden;}
             <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" id="sasu-charges-tip" title="Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.">?</span></label>
             <input type="number" id="p-cout-remu-pct" step="5" min="0" max="200" placeholder="Ex : 82" oninput="saveSasuParam('coutRemunerationPct',+this.value);updateSasuPreview()">
             <div class="ts mt4" id="sasu-remu-preview" style="color:var(--tl)"></div>
+            <div class="ts mt4" style="color:var(--tl)">Pas sûr du bon pourcentage ? Simulez votre rémunération sur <a id="sasu-charges-simu-link" href="#" target="_blank" rel="noopener">l'outil officiel Urssaf</a>, puis reportez ici le taux de cotisations qu'il affiche (ex. 46 %). Ce taux est calibré sur le montant simulé — il peut varier légèrement si votre objectif de rémunération change beaucoup ensuite.</div>
           </div>
           <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimations simplifiées — IS, dividendes, DSN et amortissements non inclus. Ne remplace pas un expert-comptable.</div>
         </div>
@@ -1955,6 +1956,11 @@ html,body{overflow-x:hidden;}
     <div class="modal-title" id="dv-modal-title">📄 Générer un devis</div>
     <div class="ts mb16" style="color:var(--tl)" id="dv-modal-sub">Document non suivi par Indépuls, une fois généré, à vous de l'envoyer et d'en assurer le suivi.</div>
     <div class="card-title mb8" style="font-size:13px">Client</div>
+    <div class="fgroup">
+      <label class="flabel">SIRET (optionnel) <span class="info-tip" title="Saisissez le SIRET de votre client (14 chiffres) pour pré-remplir automatiquement sa raison sociale et son adresse depuis l'annuaire public des entreprises. Facultatif, et modifiable ensuite comme les autres champs.">?</span></label>
+      <input type="text" id="dv-client-siret" inputmode="numeric" maxlength="14" placeholder="Ex : 55210055400054" oninput="onSiretInput(this.value)">
+      <div class="ts mt4" id="dv-siret-status" style="color:var(--tl)"></div>
+    </div>
     <div class="frow">
       <div class="fgroup"><label class="flabel">Nom / Entreprise</label><input type="text" id="dv-client-nom"></div>
       <div class="fgroup"><label class="flabel">Email</label><input type="email" id="dv-client-email"></div>
@@ -11631,11 +11637,51 @@ function _nouveauDocDevis() {
 // ouvrirGenerateurDevis (client imbriqué), pour ne pas avoir à réécrire le chargement du formulaire.
 function _docToBrouillon(doc) {
   return {
-    client: { nom: doc.clientNom || '', email: doc.clientEmail || '', adresse: doc.clientAdresse || '', tel: doc.clientTel || '' },
+    client: { nom: doc.clientNom || '', email: doc.clientEmail || '', adresse: doc.clientAdresse || '', tel: doc.clientTel || '', siret: doc.clientSiret || '' },
     numero: doc.numero || '', date: doc.dateDevis || '', validite: doc.validiteJours || 30,
     objet: doc.objet || '', lignes: (doc.lignes || []).map(l => ({ ...l })),
     conditions: doc.conditions || '', modalites: doc.modalites || '',
   };
+}
+// ── PRÉ-REMPLISSAGE CLIENT PAR SIRET (2026-09-01) ────────────────────────────────────────────
+// API recherche-entreprises.api.gouv.fr : publique, gratuite, sans authentification, CORS ouvert
+// (vérifié avant implémentation — access-control-allow-origin: * — donc appel direct navigateur,
+// aucun proxy serverless nécessaire). `q=<siret>` fait une recherche floue, pas une recherche
+// exacte par SIRET — on ne fait donc confiance qu'à un établissement dont le siret CORRESPOND
+// EXACTEMENT à la saisie (matching_etablissements, ou le siège si c'est lui qui correspond),
+// jamais au premier résultat brut. Jamais bloquant : simple confort, la saisie manuelle marche
+// toujours si l'API échoue ou ne trouve rien — aucune dépendance de l'enregistrement du devis à
+// cet appel (voir onSiretInput/rechercherEntrepriseParSiret, jamais appelés depuis genererDevisPDF).
+let _siretDebounceTimer = null;
+function onSiretInput(raw) {
+  clearTimeout(_siretDebounceTimer);
+  const statusEl = document.getElementById('dv-siret-status');
+  const siret = raw.replace(/\D/g, '');
+  if (!statusEl) return;
+  if (siret.length !== 14) { statusEl.textContent = ''; return; }
+  statusEl.textContent = '🔍 Recherche en cours…';
+  _siretDebounceTimer = setTimeout(() => rechercherEntrepriseParSiret(siret), 500);
+}
+async function rechercherEntrepriseParSiret(siret) {
+  const statusEl = document.getElementById('dv-siret-status');
+  try {
+    const resp = await fetch(`https://recherche-entreprises.api.gouv.fr/search?q=${siret}`);
+    if (!resp.ok) { if (statusEl) statusEl.textContent = 'Recherche indisponible pour le moment — saisie manuelle possible.'; return; }
+    const data = await resp.json();
+    const result = (data.results || [])[0];
+    const etab = result?.matching_etablissements?.find(e => e.siret === siret)
+      || (result?.siege?.siret === siret ? result.siege : null);
+    if (!result || !etab) {
+      if (statusEl) statusEl.textContent = '❓ Aucune entreprise trouvée pour ce SIRET — saisie manuelle possible.';
+      return;
+    }
+    const nom = result.nom_complet || result.nom_raison_sociale || '';
+    document.getElementById('dv-client-nom').value = nom;
+    document.getElementById('dv-client-adresse').value = etab.adresse || '';
+    if (statusEl) statusEl.textContent = `✅ ${nom} — nom et adresse pré-remplis, modifiables si besoin.`;
+  } catch (e) {
+    if (statusEl) statusEl.textContent = 'Recherche indisponible pour le moment — saisie manuelle possible.';
+  }
 }
 // Lit le formulaire du générateur vers un objet document. Reprend id/type/statut/parentId du
 // document en cours d'édition s'il existe (pour ne pas régénérer un id ni perdre le type/avenant),
@@ -11653,6 +11699,7 @@ function _devisFormToDoc() {
     dateEmission: base?.dateEmission ?? null, dateAcceptation: base?.dateAcceptation ?? null,
     clientNom: val('dv-client-nom'), clientEmail: val('dv-client-email'),
     clientAdresse: val('dv-client-adresse'), clientTel: val('dv-client-tel'),
+    clientSiret: val('dv-client-siret'),
     objet: val('dv-objet'), conditions: val('dv-conditions'), modalites: val('dv-modalites'),
     lignes: _devisLignes.map(l => ({ ...l })),
   };
@@ -11681,11 +11728,13 @@ function ouvrirGenerateurDevis(prefill = {}, brouillon = null, opts = {}) {
           ? `Enregistré sur la mission avec son statut. À vous de l'envoyer au client, Indépuls garde la trace du document.`
           : `Document non suivi par Indépuls, une fois généré, à vous de l'envoyer et d'en assurer le suivi.`);
   }
+  document.getElementById('dv-siret-status').textContent = '';
   if (brouillon) {
     document.getElementById('dv-client-nom').value = brouillon.client?.nom || '';
     document.getElementById('dv-client-email').value = brouillon.client?.email || '';
     document.getElementById('dv-client-adresse').value = brouillon.client?.adresse || '';
     document.getElementById('dv-client-tel').value = brouillon.client?.tel || '';
+    document.getElementById('dv-client-siret').value = brouillon.client?.siret || '';
     document.getElementById('dv-numero').value = brouillon.numero || '';
     document.getElementById('dv-date').value = brouillon.date || today();
     document.getElementById('dv-validite').value = brouillon.validite || 30;
@@ -11698,6 +11747,7 @@ function ouvrirGenerateurDevis(prefill = {}, brouillon = null, opts = {}) {
     document.getElementById('dv-client-email').value = '';
     document.getElementById('dv-client-adresse').value = '';
     document.getElementById('dv-client-tel').value = '';
+    document.getElementById('dv-client-siret').value = '';
     document.getElementById('dv-numero').value = '';
     document.getElementById('dv-date').value = today();
     document.getElementById('dv-validite').value = 30;
@@ -11967,6 +12017,7 @@ function fermerGenerateurDevis() {
       doc.objet = val('dv-objet');
       doc.clientNom = val('dv-client-nom'); doc.clientEmail = val('dv-client-email');
       doc.clientAdresse = val('dv-client-adresse'); doc.clientTel = val('dv-client-tel');
+      doc.clientSiret = val('dv-client-siret');
       doc.lignes = _devisLignes.map(l => ({ ...l }));
       doc.conditions = val('dv-conditions'); doc.modalites = val('dv-modalites');
       saveData();
@@ -12186,6 +12237,8 @@ function renderParams() {
     document.getElementById('sasu-charges-tip').title=isEurl
       ?`Cotisations TNS du gérant majoritaire. Exemple : 45 % → 3 000 € nets = 4 350 € coût réel société.`
       :`Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.`;
+    const _simuLink=document.getElementById('sasu-charges-simu-link');
+    if(_simuLink) _simuLink.href=isEurl?'https://mon-entreprise.urssaf.fr/simulateurs/eurl':'https://mon-entreprise.urssaf.fr/simulateurs/sasu';
     document.getElementById('eurl-fiscal-block').style.display=isEurl?'':'none';
     if(isEurl){
       const fiscal=DATA.params.eurlFiscal||'is';
@@ -14854,7 +14907,7 @@ function etsiCard4Html() {
         return `<div class="ts mt8" style="line-height:1.5">→ Parmi ces options, <strong>${meilleure.label}</strong> vous laisserait ${delta>0?'plus':'moins'} dans la poche que votre situation actuelle (${delta>0?'+':''}${fmtE(Math.round(delta))}/mois).</div>`;
       })()}
       <div class="ts mt8" style="color:var(--tl)">EURL/SASU : salaire maximum possible, 0€ laissé en trésorerie dans la société (aucun dividende).</div>
-      <div class="alert al-info mt8" style="font-size:11px">💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste pour une estimation précise adaptée à votre situation.</div>
+      <div class="alert al-info mt8" style="font-size:11px">💡 Avant de changer de statut, rapprochez-vous d'un expert-comptable ou d'un fiscaliste pour une estimation précise adaptée à votre situation.<br>Pour aller plus loin (cotisations détaillées, tous les avantages/inconvénients) → <a href="https://mon-entreprise.urssaf.fr/simulateurs/comparaison-regimes-sociaux" target="_blank" rel="noopener">simulateur officiel Urssaf</a>.</div>
     </div>
   </div>`;
 }
