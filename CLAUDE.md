@@ -3210,6 +3210,22 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
+
+Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
+
+**Discussion produit avant de coder** (3 options posées) : (1) corriger juste le texte, (2) ajouter le mois en cours comme second déclencheur mais proratisé aux jours écoulés (évite le faux positif de début de mois), (3) ajouter le mois en cours tel quel (risque de bruit les 10 premiers jours de chaque mois). Faustine a tranché pour l'option (1), la plus sûre — le garde-fou équivalent existe déjà ailleurs (phrase globale "Santé de l'activité", `moisAtRisk`, 2026-08-18) pour signaler un CA mensuel en retard, sans faire bouger le score du pilier lui-même.
+
+**Corrigé** : "Ajust. · Si revenu net mensuel < 50 % de l'objectif → −3 pts" devient "Ajust. · Si revenu net moyen < 50 % de l'objectif sur l'année (pas le seul mois en cours) → −3 pts", dans les 3 branches (marge/TJM/TH) de `methRent`. Texte uniquement, aucun calcul touché.
+
+**Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur (mode démo) : modale du pilier affiche le nouveau texte correctement.
+
+### 2026-09-08 — Nettoyage tirets cadratins dans le Score de Santé
+
+Retour Faustine ([[feedback_indepuls_eviter_tirets_cadratins]]) : plusieurs tirets cadratins ("—") repérés dans les textes visibles du Score de Santé (diagnostics piliers, "Action recommandée", alertes, méthodologies). Nettoyage opportuniste (pas de grande passe fichier entier) : ~30 occurrences remplacées par la ponctuation naturelle (virgule, deux-points, point) dans `wScoreSante()` — diagRent/advRent (marge/TJM/TH), diagRentMois, diagTreso/_tresoLigne (SASU/EURL), diagGlobal, priorite, alertLines (client dominant, objectif mensuel, échéances, ACRE), méthodologies (methRent/methTreso), et le séparateur client/description d'une ligne de missions (`join(' — ')` → `join(' · ')`, cohérent avec le séparateur déjà utilisé partout ailleurs dans l'app). Les `val:'—'` (placeholder "aucune donnée", convention UI standard) volontairement laissés tels quels — différent des tirets utilisés comme connecteur de phrase.
+
+**Vérifié** : suite complète (20 fichiers), 0 régression (changement de texte uniquement). Navigateur (mode démo) : les 4 modales de pilier (rentabilité, remplissage, trésorerie, horizon) confirmées sans tiret cadratin, ainsi que "Santé de l'activité" et "Action recommandée". Tirets restants sur la page = données de démo (descriptions de missions) et bandeau mode démo, hors périmètre de cette demande.
+
 ### 2026-09-08 — FIX : missions séquentielles additionnées comme si elles étaient concurrentes (222-311 % fantôme)
 
 Retour Faustine (capture calendrier octobre) : 3 missions confirmées et payées, mais programmées à des **semaines différentes** du mois (jamais en même temps) — impossible de les repasser "en attente" (acompte versé, planning posé). Le pilier "Mon remplissage" affichait pourtant 222-300 % de surcharge.

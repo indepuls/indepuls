@@ -6686,30 +6686,30 @@ function wScoreSante(d) {
   if(_rentIsMarge){
     vRent=_margePct!==null?_margePct+'%':'—';
     subRent=`seuil recommandé ≥${_seuilMargePct}%`;
-    if(_margePct===null){diagRent='○ Aucun coût direct saisi — ajoutez vos coûts sur vos affaires.';advRent='';}
-    else if(sRent>=20){diagRent=`Marge brute de ${_margePct}% — au-dessus du seuil recommandé (${_seuilMargePct}%).`;advRent='Votre structure de coûts est saine. Continuez à suivre vos coûts directs.';}
-    else if(sRent>=14){diagRent=`Marge brute de ${_margePct}% — proche du seuil (${_seuilMargePct}%).`;advRent='Optimisez vos coûts d\'achat ou augmentez légèrement vos prix de vente.';}
-    else if(sRent>=7){diagRent=`Marge brute de ${_margePct}% — en dessous du seuil recommandé (${_seuilMargePct}%).`;advRent='Revoyez votre politique de prix ou réduisez vos coûts directs.';}
-    else{diagRent=`Marge brute très faible (${_margePct}%) — risque sur la viabilité de l'activité.`;advRent='Action urgente : analysez les affaires les moins rentables et réévaluez vos prix.';}
+    if(_margePct===null){diagRent='○ Aucun coût direct saisi. Ajoutez vos coûts sur vos affaires.';advRent='';}
+    else if(sRent>=20){diagRent=`Marge brute de ${_margePct}%, au-dessus du seuil recommandé (${_seuilMargePct}%).`;advRent='Votre structure de coûts est saine. Continuez à suivre vos coûts directs.';}
+    else if(sRent>=14){diagRent=`Marge brute de ${_margePct}%, proche du seuil (${_seuilMargePct}%).`;advRent='Optimisez vos coûts d\'achat ou augmentez légèrement vos prix de vente.';}
+    else if(sRent>=7){diagRent=`Marge brute de ${_margePct}%, en dessous du seuil recommandé (${_seuilMargePct}%).`;advRent='Revoyez votre politique de prix ou réduisez vos coûts directs.';}
+    else{diagRent=`Marge brute très faible (${_margePct}%) : risque sur la viabilité de l'activité.`;advRent='Action urgente : analysez les affaires les moins rentables et réévaluez vos prix.';}
   } else if(_rentIsChantier){
     vRent=hTRoulant>0?fmtE(tjmBrut,0)+'/j':'—';
     subRent=tjmMin>0?`obj. min. ${fmtE(tjmMin,0)}/j`:'Cible non définie';
-    if(!hTRoulant){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
-    else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j — définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
+    if(!hTRoulant){diagRent='○ Aucune heure saisie. Renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
+    else if(!tjmMin){diagRent=`○ TJM réel : ${fmtE(tjmBrut,0)}/j. Définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`TJM réel supérieur de ${fmtE(-gapTjm,0)}/j à mon seuil minimum.`;advRent='Vos '+tVocab('items').toLowerCase()+' sont rentables. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`TJM réel proche de la cible — il reste ${fmtE(gapTjm,0)}/j à trouver.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=14){diagRent=`TJM réel proche de la cible : il reste ${fmtE(gapTjm,0)}/j à trouver.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`TJM réel inférieur de ${fmtE(gapTjm,0)}/j à votre seuil minimum.`;advRent='Réévaluez vos tarifs à la journée ou optimisez la durée de vos '+tVocab('items').toLowerCase()+'.';}
-    else{diagRent=`TJM réel très faible — objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les '+tVocab('items').toLowerCase()+' les moins rentables.';}
+    else{diagRent=`TJM réel très faible : objectif minimum ${fmtE(tjmMin,0)}/j. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et les '+tVocab('items').toLowerCase()+' les moins rentables.';}
   } else {
     vRent=hTRoulant>0?fmtE(thBrut,0)+'/h':'—';
     subRent=thMin>0?`obj. min. ${fmtE(thMin,0)}/h`:'Cible non définie';
     const gapTh=thMin-thBrut;
-    if(!hTRoulant){diagRent='○ Aucune heure saisie — renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
-    else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h — définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
+    if(!hTRoulant){diagRent='○ Aucune heure saisie. Renseignez vos '+tVocab('items').toLowerCase()+'.';advRent='';}
+    else if(!thMin){diagRent=`○ TH réel : ${fmtE(thBrut,0)}/h. Définissez un objectif pour activer le score.`;advRent=isSASU()?'Renseignez votre rémunération nette mensuelle dans Paramètres → Fiscalité & charges.':'Renseignez votre revenu net mensuel souhaité dans Paramètres → Mes objectifs.';}
     else if(sRent>=20){diagRent=`TH réel supérieur de ${fmtE(-gapTh,0)}/h à mon seuil minimum.`;advRent='Votre rentabilité est saine. Continuez ainsi.';}
-    else if(sRent>=14){diagRent=`TH réel proche de la cible — il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
+    else if(sRent>=14){diagRent=`TH réel proche de la cible : il reste ${fmtE(gapTh,0)}/h à combler.`;advRent='Une légère hausse tarifaire suffirait à sécuriser votre rentabilité.';}
     else if(sRent>=7){diagRent=`TH réel inférieur de ${fmtE(gapTh,0)}/h à votre seuil minimum.`;advRent='Réévaluez vos tarifs ou réduisez le temps passé sur vos '+tVocab('items').toLowerCase()+' les moins rentables.';}
-    else{diagRent=`TH réel très faible — objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
+    else{diagRent=`TH réel très faible : objectif minimum ${fmtE(thMin,0)}/h. Action urgente.`;advRent='Revoyez votre positionnement tarifaire et la composition de votre activité.';}
   }
   // Transparence (retour Faustine 2026-08-14) : signaler, sans bloquer, les missions comptées dans le
   // CA mais retirées du taux horaire faute de temps saisi — la personne sait ainsi pourquoi son taux
@@ -6731,7 +6731,7 @@ function wScoreSante(d) {
   if(_rentIsMarge){
     if(_margePctMois!==null){
       const okMois=_margePctMois>=_seuilMargePct;
-      diagRentMois=`Ce mois-ci : marge de <strong>${_margePctMois}%</strong>${okMois?' — au-dessus du seuil recommandé':' — en dessous du seuil recommandé'}.`;
+      diagRentMois=`Ce mois-ci : marge de <strong>${_margePctMois}%</strong>${okMois?', au-dessus du seuil recommandé':', en dessous du seuil recommandé'}.`;
       rowRentMois={lbl:'Marge brute (ce mois)',val:_margePctMois+'%',c:okMois?'var(--ok)':'var(--err)'};
     }
   } else if(_rentIsChantier){
@@ -6739,7 +6739,7 @@ function wScoreSante(d) {
     // (CA − coûts) ÷ heures explose (bug remonté par Faustine : TJM à plusieurs millions).
     if(hMoisTotal>=1){
       const okMois=tjmMin>0?tjmMoisBrut>=tjmMin:null;
-      diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?' — au-dessus de mon seuil minimum':' — en dessous de votre seuil minimum'}.`;
+      diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?', au-dessus de mon seuil minimum':', en dessous de votre seuil minimum'}.`;
       rowRentMois={lbl:'TJM réel (ce mois)',val:fmtE(tjmMoisBrut,0)+'/j',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   } else {
@@ -6747,7 +6747,7 @@ function wScoreSante(d) {
     // (division par un temps quasi nul), on ne l'affiche pas.
     if(hMoisTotal>=1){
       const okMois=thMin>0?thMoisBrut>=thMin:null;
-      diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?' — au-dessus de mon seuil minimum':' — en dessous de votre seuil minimum'}.`;
+      diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?', au-dessus de mon seuil minimum':', en dessous de votre seuil minimum'}.`;
       rowRentMois={lbl:'TH réel (ce mois)',val:fmtE(thMoisBrut,0)+'/h',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   }
@@ -6817,7 +6817,7 @@ function wScoreSante(d) {
   } else if(sTreso>=10){
     const ol=impayees[0];
     vTreso=fmtE(mtTotalNonEnc);subTreso=`${impayees.length} facture${impayees.length>1?'s':''} en retard`;
-    diagTreso=`${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} en retard — facture la plus ancienne : ${ol.days} j (${esc(ol.m.client)}).`;
+    diagTreso=`${fmtE(mtTotalNonEnc)} en attente d'encaissement.<br>${fmtE(mtImpaye)} en retard, facture la plus ancienne : ${ol.days} j (${esc(ol.m.client)}).`;
     advTreso=`Relancez ${esc(ol.m.client)} en priorité (${fmtE(ol.reste)} en attente).`;
   } else {
     vTreso=fmtE(mtTotalNonEnc);subTreso='Risque de tension';
@@ -6836,14 +6836,14 @@ function wScoreSante(d) {
     let _tresoLigne;
     if(_proj<0){
       sTreso=Math.min(sTreso,8);
-      _tresoLigne=`▼ Déficit projeté — trésorerie prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. À ce rythme, la trésorerie sera déficitaire. Augmentez votre activité ou réduisez vos charges.`;
+      _tresoLigne=`▼ Déficit projeté, trésorerie prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. À ce rythme, la trésorerie sera déficitaire. Augmentez votre activité ou réduisez vos charges.`;
       diagTreso=`${_tresoLigne}<br>${diagTreso}`;
     } else if(_proj<_depMoy){
       sTreso=Math.min(sTreso,16);
-      _tresoLigne=`◐ Trésorerie fragile — prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. La trésorerie reste positive mais la marge est faible — surveillez vos entrées.`;
+      _tresoLigne=`◐ Trésorerie fragile, prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. La trésorerie reste positive mais la marge est faible, surveillez vos entrées.`;
       diagTreso=`${_tresoLigne}<br>${diagTreso}`;
     } else {
-      _tresoLigne=`▲ Trésorerie solide — prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. À ce rythme, ma société terminera l'année avec une trésorerie confortable.`;
+      _tresoLigne=`▲ Trésorerie solide, prévisionnelle fin ${DATA.currentYear} : <strong>${fmtE(_proj,0)}</strong>. À ce rythme, ma société terminera l'année avec une trésorerie confortable.`;
       diagTreso=`${diagTreso}<br>${_tresoLigne}`;
     }
     const _anchor=DATA.params.soldeReel!=null;
@@ -6859,7 +6859,7 @@ function wScoreSante(d) {
       <span>${_soldeLabel}</span>
       <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--tl);flex-shrink:0" title="Saisir mon solde bancaire actuel">✏️</button>
     </div>
-    <div style="font-size:10px;color:var(--tl);opacity:.85;margin-bottom:10px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>`;
+    <div style="font-size:10px;color:var(--tl);opacity:.85;margin-bottom:10px">Calculée sur les mois déjà complets, le mois en cours s'intègre automatiquement une fois terminé.</div>`;
     _tresoExtraRows=[
       ...(!_anchor?[{lbl:'Solde au 1er janvier (départ)', val:fmtE(_depart,0), c:'var(--tl)'}]:[]),
       {lbl:'Trésorerie prévisionnelle fin '+DATA.currentYear, val:fmtE(_proj,0), c:_proj<0?'var(--err)':_proj<_depMoy?'var(--warn)':'var(--ok)'},
@@ -6876,7 +6876,7 @@ function wScoreSante(d) {
     if(_ech.total>0){
       const _couvert=mtTotalNonEnc>=_ech.total;
       let _ligne=`<strong>${fmtE(_ech.total)}</strong> à provisionner${_dateProchaine?` d'ici le ${_dateProchaine}`:''}. J'ai <strong>${fmtE(mtTotalNonEnc)}</strong> dû (facturé, en attente de paiement)`;
-      _ligne+=mtTotalNonEnc>0?(_couvert?' — largement couvert.':` — il reste ${fmtE(_ech.total-mtTotalNonEnc)} à trouver pour couvrir cette échéance.`):'.';
+      _ligne+=mtTotalNonEnc>0?(_couvert?', largement couvert.':`, il reste ${fmtE(_ech.total-mtTotalNonEnc)} à trouver pour couvrir cette échéance.`):'.';
       if(_argentProbable>0) _ligne+=` + <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur mes ${tVocab('items').toLowerCase()} en cours (non garantis).`;
       diagTreso+=`<br>${_ligne}`;
       _tresoExtraRows.push({lbl:'Prochaines échéances'+(_dateProchaine?` (d'ici le ${_dateProchaine})`:''), val:fmtE(_ech.total), c:_couvert?'var(--ok)':'var(--err)'});
@@ -6922,7 +6922,7 @@ function wScoreSante(d) {
   if(sRemp<=12&&sComm>=18&&advRemp&&advRemp.toLowerCase().includes('prospection')){
     const _itemsFix=tVocab('items').toLowerCase();
     advRemp=nbActives>=3
-      ?`Vos ${_itemsFix} n'utilisent pas encore toute votre capacité — négociez une charge plus importante ou ajoutez des ${_itemsFix} complémentaires.`
+      ?`Vos ${_itemsFix} n'utilisent pas encore toute votre capacité, négociez une charge plus importante ou ajoutez des ${_itemsFix} complémentaires.`
       :`Vous avez de la visibilité client, mais vos ${_itemsFix} actuels ne remplissent pas assez votre capacité disponible. Cherchez à augmenter leur scope ou à en ajouter.`;
   }
   // Explique pourquoi le taux de remplissage peut sembler bas malgré une capacité restante
@@ -6935,8 +6935,8 @@ function wScoreSante(d) {
     const _pu=pilRemp.details.unite;
     const _pPeriode=_pu==='h/sem'?'cette semaine':'ce mois-ci';
     const _pTxt=_pu==='j'
-      ?`Déjà ${fmt(pilRemp.details.perdu,0)} jour${pilRemp.details.perdu>1?'s':''} écoulé${pilRemp.details.perdu>1?'s':''} ${_pPeriode} sans ${tVocab('item').toLowerCase()} planifié${tVocabMasculin()?'':'e'} — non rattrapable${pilRemp.details.perdu>1?'s':''}, ce qui pèse sur votre taux de remplissage.`
-      :`Déjà ${fmt(pilRemp.details.perdu,1)} h écoulées ${_pPeriode} sans ${tVocab('item').toLowerCase()} planifié${tVocabMasculin()?'':'e'} — non rattrapables, ce qui pèse sur votre taux de remplissage.`;
+      ?`Déjà ${fmt(pilRemp.details.perdu,0)} jour${pilRemp.details.perdu>1?'s':''} écoulé${pilRemp.details.perdu>1?'s':''} ${_pPeriode} sans ${tVocab('item').toLowerCase()} planifié${tVocabMasculin()?'':'e'}, non rattrapable${pilRemp.details.perdu>1?'s':''}, ce qui pèse sur votre taux de remplissage.`
+      :`Déjà ${fmt(pilRemp.details.perdu,1)} h écoulées ${_pPeriode} sans ${tVocab('item').toLowerCase()} planifié${tVocabMasculin()?'':'e'}, non rattrapables, ce qui pèse sur votre taux de remplissage.`;
     advRemp=(advRemp?advRemp+' ':'')+_pTxt;
   }
   const vComm=nbActives>0?`${nbActives} active${nbActives>1?'s':''}`:'Aucune';
@@ -6946,12 +6946,12 @@ function wScoreSante(d) {
   let diagComm,advComm;
   if(sComm>=25){
     diagComm='Mon activité dispose d\'une visibilité commerciale confortable.';
-    advComm=nbDevis>0?`${nbDevis} ${_itemWord} en attente (${fmtE(pipelineVal)}) — relancez-${nbDevis===1?(_masc?'le':'la'):'les'} avant qu${nbDevis===1?(_masc?'\'il':'\'elle'):'\'ils'} refroidiss${nbDevis===1?'e':'ent'}.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
+    advComm=nbDevis>0?`${nbDevis} ${_itemWord} en attente (${fmtE(pipelineVal)}), relancez-${nbDevis===1?(_masc?'le':'la'):'les'} avant qu${nbDevis===1?(_masc?'\'il':'\'elle'):'\'ils'} refroidiss${nbDevis===1?'e':'ent'}.`:'Visez à toujours avoir 2 à 3 propositions en attente pour maintenir ce niveau.';
   } else if(sComm>=18){
     diagComm='Votre activité reste sécurisée mais il est temps d\'alimenter votre prospection.';
     advComm=nbDevis>0?`Relancez ${nbDevis===1?'votre':'vos'} ${nbDevis} ${_itemWord} en attente et cherchez de nouvelles opportunités.`:`Créez de nouve${_masc?'aux':'lles'} ${_itemsLow} pour renforcer votre visibilité commerciale.`;
   } else if(sComm>=10){
-    diagComm=`Visibilité commerciale limitée — ${_masc?'un seul':'une seule'} ${_itemLow} ${_masc?'actif':'active'}, aucun${_masc?'':'e'} ${_itemLow} en attente.`;
+    diagComm=`Visibilité commerciale limitée : ${_masc?'un seul':'une seule'} ${_itemLow} ${_masc?'actif':'active'}, aucun${_masc?'':'e'} ${_itemLow} en attente.`;
     advComm='Priorité à la prospection pour sécuriser les prochaines semaines.';
   } else {
     diagComm='Aucune activité future identifiée. Priorité à la prospection.';
@@ -7051,9 +7051,9 @@ function wScoreSante(d) {
     ?`Votre activité tourne très bien aujourd'hui.${_trajCaveat}`
     :'Votre activité est sur une excellente trajectoire. Continuez sur cette lancée.';
   else if(score>=70) diagGlobal=`Votre activité est globalement saine. Un point mérite votre attention cette semaine : ${worst.art}${worst.n}.${_trajCaveat}`;
-  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité — ${worst.art}${worst.n}.${_trajCaveat}`;
-  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir — ${worst.art}${worst.n}.${_trajCaveat}`;
-  else diagGlobal=`Votre activité demande une attention immédiate — le point faible : ${worst.art}${worst.n}.${_trajCaveat}`;
+  else if(score>=50) diagGlobal=`Votre activité demande quelques ajustements. Bonne nouvelle : vous savez où agir en priorité, ${worst.art}${worst.n}.${_trajCaveat}`;
+  else if(score>=30) diagGlobal=`Votre activité traverse une période difficile. Bonne nouvelle : vous savez exactement sur quoi agir, ${worst.art}${worst.n}.${_trajCaveat}`;
+  else diagGlobal=`Votre activité demande une attention immédiate. Le point faible : ${worst.art}${worst.n}.${_trajCaveat}`;
 
   // ── PRIORITÉ DU MOMENT ───────────────────────────────────────
   // prioriteNavPage : bouton d'action sous "Action recommandée" — uniquement défini sur les
@@ -7063,11 +7063,11 @@ function wScoreSante(d) {
   let priorite='', prioriteNavPage=null;
   if(gravesArr.length>0){
     const g=gravesArr[0];
-    priorite=`Relancer <strong>${esc(g.m.client)}</strong> — ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
+    priorite=`Relancer <strong>${esc(g.m.client)}</strong> : ${fmtE(g.reste)} à encaisser depuis <strong>${g.days} jours</strong>.`;
   } else if(worst.n==='trésorerie'){
     if(moyensArr.length>0){
       const m0=moyensArr[0];
-      priorite=`Relancer <strong>${esc(m0.m.client)}</strong> — ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
+      priorite=`Relancer <strong>${esc(m0.m.client)}</strong> : ${fmtE(m0.reste)} en attente depuis <strong>${m0.days} jours</strong>.`;
     } else if(isSASU()){
       priorite=`Votre trésorerie prévisionnelle est fragile. Revoyez vos charges ou augmentez votre activité pour la renforcer.`;
     } else {
@@ -7076,7 +7076,7 @@ function wScoreSante(d) {
   } else if(worst.n==='horizon'){
     if(attM.length>0){
       const oldest=[...attM].sort((a,b)=>(a.dateFact||'z')<(b.dateFact||'z')?-1:1)[0];
-      priorite=`Relancer ${tVocabMasculin()?'le':'la'} ${tVocab('item').toLowerCase()} <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?` — ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
+      priorite=`Relancer ${tVocabMasculin()?'le':'la'} ${tVocab('item').toLowerCase()} <strong>${esc(oldest.client||'en attente')}</strong>${pipelineVal>0?`, ${fmtE(pipelineVal)} de CA potentiel`:''}.`;
     } else {
       priorite=`Créer <strong>au moins ${tVocabMasculin()?'un nouveau':'une nouvelle'} ${tVocab('item').toLowerCase()} cette semaine</strong> pour sécuriser vos prochaines semaines.`;
     }
@@ -7114,16 +7114,16 @@ function wScoreSante(d) {
     prioriteNavPage=cap>0?_navPageByPilier.remplissage:'params';
   } else if(worst.n==='rentabilité'&&hTRoulant>0){
     if(_rentIsMarge&&_margePct!==null&&_margePct<_seuilMargePct){
-      priorite=`Améliorer la marge brute — actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
+      priorite=`Améliorer la marge brute : actuellement <strong>${_margePct}%</strong>, seuil recommandé <strong>≥${_seuilMargePct}%</strong>.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(_rentIsChantier&&tjmMin>0&&gapTjm>0){
       // Second lien, en plus du "→ Onglet Paramètres" du _prioriteBtn ci-dessous (retour Faustine
       // 2026-08-01) : le diagnostic dit "augmentez vos tarifs", ce lien permet d'en voir l'effet
       // avant de changer quoi que ce soit dans Paramètres.
-      priorite=`Augmenter vos tarifs — votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.<br><span class="step-cta" style="cursor:pointer" onclick="irVersEtSi(2)">→ Simuler l'effet d'une hausse (Et si ?)</span>`;
+      priorite=`Augmenter vos tarifs : votre TJM est inférieur de <strong>${fmtE(gapTjm,0)}/j</strong> à votre seuil minimum.<br><span class="step-cta" style="cursor:pointer" onclick="irVersEtSi(2)">→ Simuler l'effet d'une hausse (Et si ?)</span>`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(!_rentIsMarge&&!_rentIsChantier&&thMin>0&&hTRoulant>0&&thBrut<thMin){
-      priorite=`Augmenter vos tarifs — votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.<br><span class="step-cta" style="cursor:pointer" onclick="irVersEtSi(2)">→ Simuler l'effet d'une hausse (Et si ?)</span>`;
+      priorite=`Augmenter vos tarifs : votre TH réel est inférieur de <strong>${fmtE(thMin-thBrut,0)}/h</strong> à votre seuil minimum.<br><span class="step-cta" style="cursor:pointer" onclick="irVersEtSi(2)">→ Simuler l'effet d'une hausse (Et si ?)</span>`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     } else if(_rentIsMarge&&_margePct===null){
       priorite=`Ajoutez vos coûts directs sur vos ${tVocab('items').toLowerCase()} pour calculer votre marge et activer les recommandations de rentabilité.`;
@@ -7136,7 +7136,7 @@ function wScoreSante(d) {
       // rien à voir — message trompeur pour une activité par ailleurs saine (retour Faustine,
       // 2026-07-25, compte de son mari : Score 97/100, TJM largement au-dessus du seuil).
       const _rentLbl=_rentIsMarge?'marge':_rentIsChantier?'TJM':'TH';
-      priorite=`Votre ${_rentLbl} réel est déjà bon — c'est le rythme annuel qui reste en retrait par rapport à votre objectif de revenu, probablement lié au nombre de ${tVocab('items').toLowerCase()} plutôt qu'à vos tarifs.`;
+      priorite=`Votre ${_rentLbl} réel est déjà bon : c'est le rythme annuel qui reste en retrait par rapport à votre objectif de revenu, probablement lié au nombre de ${tVocab('items').toLowerCase()} plutôt qu'à vos tarifs.`;
       prioriteNavPage='missions';
     } else if(isSASU()&&!(objNet>0)){
       // En SASU/EURL, objectifNetMensuel n'est qu'un champ de simulation isolé (page "Mes
@@ -7158,16 +7158,16 @@ function wScoreSante(d) {
       // de malus de rythme identifié — cas résiduel, ex. marge entre le seuil recommandé et le
       // palier de score maximal). Message honnête plutôt que de retomber sur "définissez votre
       // objectif", qui serait faux ici.
-      priorite=`Votre rentabilité mérite un coup d'œil — consultez le détail du pilier ci-dessous pour voir précisément ce qui joue.`;
+      priorite=`Votre rentabilité mérite un coup d'œil : consultez le détail du pilier ci-dessous pour voir précisément ce qui joue.`;
       prioriteNavPage=_navPageByPilier.rentabilité;
     }
   } else if(score>=85){
     if(annualAtRisk){
       priorite=trajAtteignable
         ?`Votre activité est en excellente santé aujourd'hui, mais votre CA annuel risque de ne pas être atteint au rythme actuel. L'objectif reste atteignable : il faudrait maintenir un rythme proche de votre meilleur mois sur les <strong>${trajMoisRestants} mois restants</strong>.`
-        :`Votre activité est en excellente santé aujourd'hui, mais votre CA annuel ne sera probablement pas atteint — même en reproduisant votre meilleur mois sur le reste de l'année, l'écart ne peut plus être comblé. Mieux vaut ajuster votre objectif que courir après un chiffre hors de portée.`;
+        :`Votre activité est en excellente santé aujourd'hui, mais votre CA annuel ne sera probablement pas atteint : même en reproduisant votre meilleur mois sur le reste de l'année, l'écart ne peut plus être comblé. Mieux vaut ajuster votre objectif que courir après un chiffre hors de portée.`;
     } else {
-      priorite='Continuez sur cette lancée — votre activité est en excellente santé. 🎉';
+      priorite='Continuez sur cette lancée : votre activité est en excellente santé. 🎉';
     }
   } else {
     priorite=`Concentrer vos efforts sur <strong>${worst.art}${worst.n}</strong> pour améliorer votre score global.`;
@@ -7212,14 +7212,14 @@ function wScoreSante(d) {
       // bien être un client "one-shot" au montant élevé, absent de cette liste. Dans ce cas
       // topMissionRecur est null et irVersEtSi se contente d'amener sur la carte, sans présélection.
       const topMissionRecur=getEtSiClientsRecurrents().find(m=>m.client===topCl);
-      if(!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA — votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span> · <span class="step-cta" onclick="irVersEtSi(3,'${topMissionRecur?topMissionRecur.id:''}')">Simuler la perte de ce client</span></span>${_dismissBtn('clientDominant')}</div>`);
-    } else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA — une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
+      if(!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA, votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span> · <span class="step-cta" onclick="irVersEtSi(3,'${topMissionRecur?topMissionRecur.id:''}')">Simuler la perte de ce client</span></span>${_dismissBtn('clientDominant')}</div>`);
+    } else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA, une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
   }
   // Objectif mensuel en cours
   if(objNet>0){
     const caNetMois=getRevenuNetMois(curMk);
     const pctOM=Math.round(caNetMois/objNet*100);
-    if(pctOM<80&&!_alertDismissed('objectifMensuel')){const _now=new Date(),_finMois=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_joursR=_finMois-_now.getDate()+1;alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong> — il reste ${fmtE(objNet-caNetMois)} à trouver · encore <strong>${_joursR} jour${_joursR>1?'s':''}</strong> ce mois-ci.</span>${_dismissBtn('objectifMensuel')}</div>`);}
+    if(pctOM<80&&!_alertDismissed('objectifMensuel')){const _now=new Date(),_finMois=new Date(_now.getFullYear(),_now.getMonth()+1,0).getDate(),_joursR=_finMois-_now.getDate()+1;alertLines.push(`<div class="alert ${pctOM<50?'al-warn':'al-info'}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${pctOM<50?'⚠️':'👀'} Objectif mensuel atteint à <strong>${pctOM} %</strong>, il reste ${fmtE(objNet-caNetMois)} à trouver · encore <strong>${_joursR} jour${_joursR>1?'s':''}</strong> ce mois-ci.</span>${_dismissBtn('objectifMensuel')}</div>`);}
   }
   // Prochaines échéances fiscales — "Marquer payé" (retour Faustine 2026-07-29) masque le
   // rappel jusqu'à ce que la période change naturellement (dateKey change dès que la date limite
@@ -7235,7 +7235,7 @@ function wScoreSante(d) {
       if(DATA.echeancesPayees?.[payeeKey]) return;
       const cl=ech.daysLeft<=7?'al-err':ech.daysLeft<=21?'al-warn':'al-info';
       const ico=ech.daysLeft<=7?'🚨':ech.daysLeft<=21?'⏰':'📅';
-      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> — ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
+      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> : ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
   // Rappel ACRE (retour Faustine 2026-08-16) : contrairement à l'URSSAF/TVA ci-dessus, pas de
@@ -7249,7 +7249,7 @@ function wScoreSante(d) {
       if(!DATA.echeancesPayees?.[payeeKey]){
         const cl=alerteAcre.daysLeft<=7?'al-err':'al-info';
         const ico=alerteAcre.daysLeft<=7?'🚨':'📅';
-        alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} Votre période ACRE se termine le <strong>${formatDateFR(DATA.params.acreDateFin)}</strong> (dans ${alerteAcre.daysLeft} j) — pensez à remettre votre taux URSSAF à son niveau normal ensuite.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Ajuster mon taux</span></span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine fois">✅ C'est fait</button></div>`);
+        alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} Votre période ACRE se termine le <strong>${formatDateFR(DATA.params.acreDateFin)}</strong> (dans ${alerteAcre.daysLeft} j), pensez à remettre votre taux URSSAF à son niveau normal ensuite.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Ajuster mon taux</span></span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine fois">✅ C'est fait</button></div>`);
       }
     }
   } catch(e){reportError('alerteAcre',e);}
@@ -7357,7 +7357,7 @@ function wScoreSante(d) {
   // comme une contradiction, alors que ce sont deux mesures différentes (retour Faustine,
   // 2026-07-25 : un excellent mois de juillet peut coexister avec une moyenne annuelle encore
   // basse si les mois précédents étaient plus faibles).
-  if(pctObj!==null) rowsRent.push({lbl:'Objectif net — moyenne annuelle <span class="info-tip" title="Revenu net moyen par mois actif depuis le début de l\'année (ou l\'ouverture), pas le seul mois en cours — voir Ma trajectoire annuelle pour le chiffre du mois en cours.">?</span>',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
+  if(pctObj!==null) rowsRent.push({lbl:'Objectif net, moyenne annuelle <span class="info-tip" title="Revenu net moyen par mois actif depuis le début de l\'année (ou l\'ouverture), pas le seul mois en cours. Voir Ma trajectoire annuelle pour le chiffre du mois en cours.">?</span>',val:Math.round(pctObj)+' %',c:pctObj>=100?'var(--ok)':pctObj>=75?'var(--warn)':'var(--err)'});
 
   // Remplissage — libellés adaptés à l'unité réelle retournée par getPilierRemplissage
   // (h/sem en estime/additif, h ou j en calendrier pur) : ne pas supposer h/sem partout.
@@ -7375,8 +7375,8 @@ function wScoreSante(d) {
   // réelle, et ne serait plus comparable d'une période à l'autre (philosophie "jamais de boîte
   // noire" : toujours expliquer d'où vient un chiffre, demande Faustine 2026-07).
   const _occTip=rempUnite==='h/sem'
-    ?'Calculé sur la semaine complète, pas seulement les jours restants — pour rester comparable d\'une semaine à l\'autre.'
-    :'Calculé sur le mois complet, pas seulement les jours restants — pour rester comparable d\'un mois à l\'autre.';
+    ?'Calculé sur la semaine complète, pas seulement les jours restants, pour rester comparable d\'une semaine à l\'autre.'
+    :'Calculé sur le mois complet, pas seulement les jours restants, pour rester comparable d\'un mois à l\'autre.';
   const _occLbl=`Taux d'occupation <span class="info-tip" title="${_occTip}">?</span>`;
   const rowsRemp=cap<=0?[{lbl:'Capacité',val:'Non configurée',c:'var(--tl)'}]
     :rempUnite==='j'?[
@@ -7419,16 +7419,16 @@ function wScoreSante(d) {
 
   // ── MÉTHODOLOGIE PAR PILIER ───────────────────────────────────
   const methRent=_rentIsMarge
-    ?`<strong>Données ·</strong> Marge brute % = (CA encaissé − coûts directs) ÷ CA encaissé<br><strong>Comparaison ·</strong> Marge brute vs seuil recommandé (${_seuilMargePct}% pour ${_rentFamily==='achat_revente'?'achat/revente':'fabrication'})<br><strong>Barème ·</strong> ≥ 40 % → 25/25 &nbsp;·&nbsp; ≥ 25 % → 19/25 &nbsp;·&nbsp; ≥ 15 % → 11/25 &nbsp;·&nbsp; &lt; 15 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
+    ?`<strong>Données ·</strong> Marge brute % = (CA encaissé − coûts directs) ÷ CA encaissé<br><strong>Comparaison ·</strong> Marge brute vs seuil recommandé (${_seuilMargePct}% pour ${_rentFamily==='achat_revente'?'achat/revente':'fabrication'})<br><strong>Barème ·</strong> ≥ 40 % → 25/25 &nbsp;·&nbsp; ≥ 25 % → 19/25 &nbsp;·&nbsp; ≥ 15 % → 11/25 &nbsp;·&nbsp; &lt; 15 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net moyen &lt; 50 % de l'objectif sur l'année (pas le seul mois en cours) → −3 pts`
     :_rentIsChantier
-      ?`<strong>Données ·</strong> TJM réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne) × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`
-      :`<strong>Données ·</strong> TH réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne)<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net mensuel &lt; 50 % de l'objectif → −3 pts`;
+      ?`<strong>Données ·</strong> TJM réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne) × ${hj} h/j<br><strong>Comparaison ·</strong> TJM réel vs TJM minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net moyen &lt; 50 % de l'objectif sur l'année (pas le seul mois en cours) → −3 pts`
+      :`<strong>Données ·</strong> TH réel (brut) = (CA brut annuel − dépenses liées aux affaires) ÷ heures travaillées (facturables + temps interne)<br><strong>Comparaison ·</strong> TH réel vs TH minimum cible (brut à facturer, calculé depuis l'objectif net)<br><strong>Barème ·</strong> ≥ 100 % de la cible → 25/25 &nbsp;·&nbsp; ≥ 85 % → 19/25 &nbsp;·&nbsp; ≥ 65 % → 11/25 &nbsp;·&nbsp; &lt; 65 % → 4/25<br><strong>Ajust. ·</strong> Si revenu net moyen &lt; 50 % de l'objectif sur l'année (pas le seul mois en cours) → −3 pts`;
   const methRempBareme=`<strong>Barème ·</strong> 80–100 % → 25/25 (zone idéale) &nbsp;·&nbsp; 60–80 % ou &gt; 100 % → 18/25<br>&nbsp;&nbsp;40–60 % → 12/25 &nbsp;·&nbsp; &lt; 40 % → 5/25`;
   // Une seule méthode possible depuis la simplification radicale du chantier "vue calendrier"
   // (2026-07-24) : getPilierRemplissage() ne retourne plus jamais 'calendrier'/'additif', voir
   // shared/core/planning.js — les branches correspondantes ici étaient devenues du code mort.
   const methRemp=`<strong>Données ·</strong> Charge estimée des missions vs capacité hebdomadaire configurée<br><strong>Calcul ·</strong> Heures estimées ÷ capacité max × 100<br>${methRempBareme}`;
-  const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €${isSASU()?`<br><strong>SASU/EURL ·</strong> Score plafonné à 8/25 si trésorerie projetée fin d'année négative, à 16/25 si positive mais inférieure aux dépenses + rémunération moyennes mensuelles — sinon le score impayés ci-dessus s'applique sans plafond`:''}`;
+  const methTreso=`<strong>Données ·</strong> Factures avec reste à encaisser depuis ≥ 14 jours (base du score)<br><strong>Affichage ·</strong> Total facturé non encaissé visible quel que soit l'âge de la facture<br><strong>Barème ·</strong> Déductions à partir de 25 pts :<br>&nbsp;&nbsp;−10 pts par facture &gt; 60 j &nbsp;·&nbsp; −5 pts par facture 30–60 j &nbsp;·&nbsp; −3 pts si total &gt; 3 000 €${isSASU()?`<br><strong>SASU/EURL ·</strong> Score plafonné à 8/25 si trésorerie projetée fin d'année négative, à 16/25 si positive mais inférieure aux dépenses + rémunération moyennes mensuelles, sinon le score impayés ci-dessus s'applique sans plafond`:''}`;
   const _actifsWord=_masc?'actifs':'actives', _actifWord=_masc?'actif':'active';
   const methComm=`<strong>Données ·</strong> ${tVocab('items')} ${_actifsWord} = ponctuelles en cours/en attente + récurrentes encore dans leur période<br><strong>Barème ·</strong> ≥ 3 ${_actifsWord} OU ≥ 2 ${_actifsWord} + 1 ${_itemLow} → 25/25 &nbsp;·&nbsp; 2 ${_actifsWord} OU 1 ${_actifWord} + 1 ${_itemLow} → 18/25<br>&nbsp;&nbsp;1 ${_actifWord} sans ${_itemLow} → 10/25 &nbsp;·&nbsp; 0 ${_actifWord} → 3/25<br><strong>Visibilité ·</strong> Mois restants jusqu'à la fin de la récurrente active la plus longue`;
 
@@ -7464,7 +7464,7 @@ function wScoreSante(d) {
 
   const _actives=DATA.missions.filter(m=>!m.isManagement&&(m.statut==='cours'||isRecurringStillActive(m)));
   const _activeRows=_actives.map(m=>{
-    const lbl=esc([m.client,m.description].filter(Boolean).join(' — ')||tVocab('item')+' sans nom');
+    const lbl=esc([m.client,m.description].filter(Boolean).join(' · ')||tVocab('item')+' sans nom');
     const mt=m.isRecurring&&m.montantMensuel>0?` · ${fmtE(m.montantMensuel)}/mois`:m.montantDevis>0?` · ${fmtE(m.montantDevis)}`:'';
     return `<div onclick="goToMission('${m.id}')" style="display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:5px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok);flex-shrink:0;display:inline-block"></span><span style="font-size:12px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lbl}</span><span style="font-size:11px;color:var(--tl);white-space:nowrap">${mt}</span></div>`;
   }).join('');
@@ -12583,7 +12583,7 @@ function renderSasuCard(d) {
       <div style="font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px" onclick="var p=document.getElementById('${detailId}');var open=p.style.display!=='none';p.style.display=open?'none':'block';this.querySelector('span').textContent=open?'Voir le détail du calcul →':'Masquer le détail ↑'">
         <span>Voir le détail du calcul →</span>
       </div>
-      <div style="font-size:10px;color:var(--tl);opacity:.8;margin-top:5px">Calculée sur les mois déjà complets — le mois en cours s'intègre automatiquement une fois terminé.</div>
+      <div style="font-size:10px;color:var(--tl);opacity:.8;margin-top:5px">Calculée sur les mois déjà complets, le mois en cours s'intègre automatiquement une fois terminé.</div>
       <div id="${detailId}" style="display:none;margin-top:10px;border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
         ${!anchor?row('Solde au 1er janvier (départ)',fmtE(depart,0),''):''}
         ${row(soldeLabel,fmtE(soldeBase),'')}
