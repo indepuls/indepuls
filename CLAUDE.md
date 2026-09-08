@@ -3210,6 +3210,16 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-08 — FIX : "Action recommandée" disait "a de la place" alors que le remplissage était en surcharge à 222/336 %
+
+Retour Faustine (capture) : le pilier "Mon remplissage" affichait bien "Votre capacité facturable est dépassée (222 %). Attention à ne pas vous surcharger.", mais juste au-dessus, "Action recommandée" disait "Mon remplissage a de la place. Combler 1 h supplémentaire..." — deux messages contradictoires basés sur la **même donnée** (`pilRemp`).
+
+**Cause** : le barème de remplissage est en cloche (`scorerRemplissage`, voir `shared/core/planning.js`) — un score bas peut venir d'un manque OU d'un dépassement de capacité. La branche `worst.n==='remplissage'` dans `wScoreSante()` (indepuls.html) ne gérait qu'un seul cas : elle supposait toujours un manque, calculait `hManq` depuis `pilRemp.details.libre`. Or `details.libre` est cappé à 0 minimum dans `resultatHSemaine` (jamais négatif, même en surcharge) — donc en cas de dépassement, `hManq` retombait sur son plancher artificiel de `Math.max(1, ...)`, produisant "Combler 1h" alors que la personne était à 336 % de sa capacité dans le repro (222 % dans la capture de Faustine).
+
+**Fix** : nouvelle branche `if(cap>0 && (pilRemp.details?.taux??0)>100)` **avant** la logique de manque existante — réutilise directement `pilRemp.conseil` (celui déjà affiché sur la carte du pilier, "envisagez de déléguer, d'augmenter vos tarifs ou d'espacer...") pour ne jamais dire deux choses différentes sur la même donnée. Le cas normal (sous-capacité) est inchangé.
+
+**Vérifié** : suite complète (20 fichiers), 0 régression (fonction UI pure). Navigateur (mode démo) : mission forcée à 90h/sem (336 % de la capacité) → "Action recommandée" affiche bien le message de surcharge, cohérent avec la carte du pilier juste en dessous ; remise à une charge normale (5h/sem, sous-capacité) → message "a de la place" original inchangé, comportement non régressé.
+
 ### 2026-09-01 — Devis : reprendre adresse/SIRET du dernier document de la même mission
 
 Retour Faustine après avoir testé la feature SIRET : un second devis (avenant, nouvelle facture) créé sur une mission qui en a déjà un ne reprenait le nom du client que depuis la mission — adresse et SIRET repartaient à vide, obligeant à refaire la recherche. Discussion produit avant de coder : fallait-il un vrai "fichier client" pour ne plus jamais retaper ces infos ? **Refusé explicitement** — "CRM complexe" est dans la liste des idées volontairement exclues, et une fiche client (même minimaliste) en est la brique de base ; `mission.client` reste un texte libre, pas un identifiant vers une entité, et le changer serait un chantier de migration disproportionné pour un gain de quelques secondes de saisie occasionnelle.

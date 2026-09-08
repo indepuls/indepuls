@@ -7079,7 +7079,16 @@ function wScoreSante(d) {
       priorite=`Créer <strong>au moins ${tVocabMasculin()?'un nouveau':'une nouvelle'} ${tVocab('item').toLowerCase()} cette semaine</strong> pour sécuriser vos prochaines semaines.`;
     }
   } else if(worst.n==='remplissage'){
-    if(cap>0){
+    if(cap>0&&(pilRemp.details?.taux??0)>100){
+      // Surcharge, pas manque (2026-09-08, retour Faustine) : le barème de remplissage est en
+      // cloche (scorerRemplissage) — un score bas peut venir d'un DÉPASSEMENT de capacité, pas
+      // seulement d'un manque. La branche ci-dessous supposait toujours un manque : details.libre
+      // est cappé à 0 minimum (jamais négatif, voir resultatHSemaine), donc hManq retombait sur
+      // son plancher artificiel de 1h via Math.max — "Combler 1h" alors que la personne est en
+      // réalité à 222% de sa capacité. Réutilise le diagnostic/conseil du pilier lui-même
+      // (pilRemp.conseil) pour ne jamais dire deux choses différentes sur la même donnée.
+      priorite=`Mon remplissage est en surcharge (<strong>${pilRemp.details.taux} %</strong> de votre capacité facturable). ${pilRemp.conseil||"Envisagez de déléguer, d'augmenter vos tarifs ou d'espacer les prochaines missions."}`;
+    } else if(cap>0){
       // pilRemp.details.libre = capacité restante à partir d'AUJOURD'HUI jusqu'à la fin de la
       // période (mois en calendrier, semaine en estimation) — pas cap-charge sur la période
       // entière : un jour déjà passé sans mission ne peut plus être rempli a posteriori
