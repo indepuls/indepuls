@@ -3210,6 +3210,22 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-08 — FIX : missions séquentielles additionnées comme si elles étaient concurrentes (222-311 % fantôme)
+
+Retour Faustine (capture calendrier octobre) : 3 missions confirmées et payées, mais programmées à des **semaines différentes** du mois (jamais en même temps) — impossible de les repasser "en attente" (acompte versé, planning posé). Le pilier "Mon remplissage" affichait pourtant 222-300 % de surcharge.
+
+**Cause** : `getChargeEstimeeTotal` additionnait le "Temps réservé" (h/semaine) de **toutes** les missions au statut "En cours", sans jamais regarder si leurs sessions se chevauchaient réellement — 3 missions à 35h/sem chacune, jamais concurrentes sur le calendrier, comptaient comme 105h/sem simultanées.
+
+**Discussion produit avant de coder** (3 options posées) : basculer entièrement le pilier sur le moteur calendrier (`getTauxRemplissageMois`) était jugé trop risqué — retomberait dans la complexité déjà écartée en juillet 2026 (missions sans session pas encore programmée, contrat signé mais planning pas posé, disparaîtraient du calcul). Faustine a tranché pour l'option ciblée : *"si il y a des sessions dans le calendrier, basculer, mais si la personne n'utilise pas le calendrier, on reste sur le temps estimé."*
+
+**Fix implémenté (`shared/core/planning.js`, `getChargeEstimeeTotal`)** : pas besoin de dériver un taux horaire depuis les sessions (la vraie complexité déjà rejetée) — un simple filtre par mission, réutilisant `getMissionsAvecSessionSurPeriode` déjà existante (chantier congés, 2026-08-18) sur la semaine ISO en cours :
+- Mission **sans aucune session** (estimation pure) → comptée sans condition, comportement historique inchangé.
+- Mission **avec des sessions** → comptée seulement si l'une d'elles couvre la semaine en cours ; sinon exclue (elle n'est simplement pas active cette semaine précise, peu importe son statut administratif global).
+
+**Nettoyage au passage** : `getChargeEstimeeTotal()` avait une copie locale morte dans `indepuls.html` (zéro appelant, vérifié par recherche exhaustive du nom dans le fichier) — supprimée. Seule la version `shared/core/planning.js`, déjà bridgée via `getPilierRemplissage()`, était réellement utilisée.
+
+**Vérifié** : `shared/tests/planning.test.js` +4 assertions (mission avec sessions hors semaine courante exclue, session cette semaine comptée, `sessions:[]` traité comme "pas de calendrier", repro exacte du scénario 3-missions-séquentielles → 35, jamais 105), 154/154 sur ce fichier. Suite complète (20 fichiers) : 0 régression. Navigateur (mode démo) : 3 missions à 35h/sem chacune, une seule avec session cette semaine → `utilise` passe de 4h (baseline) à 39h (4+35, jamais 4+105) — confirmé précisément avant/après.
+
 ### 2026-09-08 — Historique ("Évolution mensuelle") : recalcul en direct au lieu d'un instantané figé
 
 Retour Faustine : un encaissement d'août saisi début septembre (mais daté du bon jour d'août) se reflétait bien dans Revenus, mais pas dans l'Historique — et la rentabilité d'août affichée était aberrante (-112 788 177 €/j). Diagnostic en deux temps :

@@ -135,6 +135,38 @@ function makeData(overrides = {}) {
     P.getChargeEstimeeTotal(makeData({ missions: [mBase, m2] })), 8);
 }
 
+// ── getChargeEstimeeTotal — missions séquentielles avec sessions (2026-09-08, retour Faustine :
+// 3 missions confirmées/payées mais programmées à des semaines DIFFÉRENTES du mois s'additionnaient
+// comme si elles se déroulaient toutes en même temps — 300% de "surcharge" fantôme) ──
+{
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const today = new Date();
+  const isoDow = today.getDay() === 0 ? 7 : today.getDay();
+  const lundi = new Date(today); lundi.setDate(today.getDate() - (isoDow - 1));
+  const dsCetteSemaine = fmt(lundi);
+  const loin = new Date(today); loin.setDate(loin.getDate() + 60); // largement hors de la semaine courante
+  const dsLoin = fmt(loin);
+
+  const mBase = { isManagement: false, isRecurring: false, statut: 'cours', chargeEstimee: 35, chargeUnit: 'h_sem' };
+
+  assertEq('getChargeEstimeeTotal : mission avec sessions, aucune cette semaine → exclue',
+    P.getChargeEstimeeTotal(makeData({ missions: [{ ...mBase, sessions: [{ debut: dsLoin, fin: dsLoin }] }] })), 0);
+
+  assertEq('getChargeEstimeeTotal : mission avec sessions, une couvre cette semaine → comptée',
+    P.getChargeEstimeeTotal(makeData({ missions: [{ ...mBase, sessions: [{ debut: dsCetteSemaine, fin: dsCetteSemaine }] }] })), 35);
+
+  assertEq('getChargeEstimeeTotal : sessions vides ([]) → traité comme "pas de calendrier", comportement historique',
+    P.getChargeEstimeeTotal(makeData({ missions: [{ ...mBase, sessions: [] }] })), 35);
+
+  // Repro exacte du scénario Faustine : 3 missions "cours" séquentielles sur le mois, chacune
+  // 35h/sem, une seule active la semaine courante (loin) → total = 35, jamais 105.
+  const mA = { ...mBase, id: 'mA', sessions: [{ debut: dsCetteSemaine, fin: dsCetteSemaine }] };
+  const mB = { ...mBase, id: 'mB', sessions: [{ debut: dsLoin, fin: dsLoin }] };
+  const mC = { ...mBase, id: 'mC', sessions: [{ debut: dsLoin, fin: dsLoin }] };
+  assertEq('getChargeEstimeeTotal : 3 missions séquentielles → seule celle active cette semaine compte (35, pas 105)',
+    P.getChargeEstimeeTotal(makeData({ missions: [mA, mB, mC] })), 35);
+}
+
 // ── isRecurringStillActive — test direct (audit externe 2026-07-26, "duplication A") ──
 // Fonction désormais publique et bridgée (window.isRecurringStillActive) — remplace la copie
 // locale d'indepuls.html, qui avait déjà divergé une fois de celle-ci (statut 'ref' exclu ici,

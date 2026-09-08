@@ -270,9 +270,28 @@ export function getMissionChargeHSem(DATA, m) {
   return toHeuresSem(DATA.params, m.chargeEstimee || 0, m.chargeUnit || 'h_sem');
 }
 
+// Missions "en cours" séquentielles dans le temps (retour Faustine, 2026-09-08) : sans le filtre
+// ci-dessous, 3 missions confirmées/payées mais programmées à des semaines DIFFÉRENTES du mois
+// (jamais en même temps) étaient additionnées comme si elles se déroulaient toutes les 3 EN
+// MÊME TEMPS (35h/sem chacune → 105h/sem, largement au-dessus d'une capacité de 35h/sem — 300%
+// de "surcharge" fantôme). Fix ciblé plutôt qu'un moteur calendrier complet pour ce pilier (déjà
+// écarté en juillet 2026 pour excès de complexité, voir getPilierRemplissage plus bas) : une
+// mission qui n'a JAMAIS de session (estimation pure, calendrier non utilisé) continue de compter
+// sans condition, comportement historique inchangé. Une mission qui A des sessions ne compte que
+// si l'une d'elles couvre la semaine ISO en cours — sinon elle n'est simplement pas active cette
+// semaine précise, peu importe son statut administratif "cours" sur l'ensemble de sa durée.
 export function getChargeEstimeeTotal(DATA) {
+  const now = new Date();
+  const isoDow = now.getDay() === 0 ? 7 : now.getDay();
+  const lundi = new Date(now); lundi.setDate(now.getDate() - (isoDow - 1));
+  const dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const idsActifsCetteSemaine = new Set(
+    getMissionsAvecSessionSurPeriode(DATA, fmt(lundi), fmt(dimanche)).map(m => m.id)
+  );
   return DATA.missions
     .filter(m => !m.isManagement && (m.statut === 'cours' || isRecurringStillActive(m)) && m.chargeEstimee > 0)
+    .filter(m => !(m.sessions && m.sessions.length) || idsActifsCetteSemaine.has(m.id))
     .reduce((s, m) => s + getMissionChargeHSem(DATA, m), 0);
 }
 

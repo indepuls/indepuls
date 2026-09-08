@@ -4891,11 +4891,6 @@ function getRecurringPeriodLabel(m) {
   const endLbl = new Date(sy, sm - 1 + m.nbMoisRec - 1, 1).toLocaleString('fr-FR', opts);
   return startLbl + ' → ' + endLbl;
 }
-function getChargeEstimeeTotal() {
-  return DATA.missions
-    .filter(m=>!m.isManagement&&(m.statut==='cours'||isRecurringStillActive(m))&&m.chargeEstimee>0)
-    .reduce((s,m)=>s+getMissionChargeHSem(m),0);
-}
 // Une dépense "mensuelle" est-elle active pour le mois {y,mo} ?
 // Ancre de départ : dateDebut si renseigné ('always' = aucune borne basse —
 // au-delà du garde-fou isMonthBeforeOpening déjà appliqué par l'appelant —
