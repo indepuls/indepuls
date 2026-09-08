@@ -5340,6 +5340,32 @@ function getHeuresMoisCoherentes(mk) {
   ,0);
   return hNonRec+hRecDatees;
 }
+// ── RENTABILITÉ D'UN MOIS DONNÉ (extrait de wScoreSante, 2026-09-08) ──────────────────────────
+// Isolée pour être réutilisable par "Évolution mensuelle" (Historique), qui doit pouvoir
+// recalculer n'importe quel mois passé en direct — retour Faustine : un encaissement saisi en
+// retard (daté du mois concerné) doit se refléter partout, pas seulement sur la page Revenus, un
+// historique figé pénalise injustement une saisie tardive. Comportement strictement identique à
+// l'ancien calcul inline pour curMk — pur découpage, aucune nouvelle logique de calcul.
+function getRentabiliteMois(mk) {
+  const hMoisTotal=getHeuresMoisCoherentes(mk)+((DATA.tempsInterne&&DATA.tempsInterne[mk])||0)/3600000;
+  const caMoisCourant=getCaFromMissions(mk)+getPonctuelsCA(mk);
+  const _rentIsMargeMois=(DATA.params.modules?.objectif||'th')==='marge_commande';
+  const _rentCoutsMois=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
+    const co=(DATA.depenses||[]).filter(dep=>dep.chantierId===m.id&&dep.date&&dep.date.slice(0,7)===mk).reduce((a,dep)=>a+(dep.montant||0),0);
+    const encs=encaissementsComptes(m);
+    // Repli sur dateFact quand la mission n'a pas d'encaissements détaillés (chantier saisi a
+    // posteriori) — voir commentaire équivalent, historique de cette fonction.
+    const en=encs.length>0
+      ? encs.filter(e=>(e.date||'').slice(0,7)===mk).reduce((a,e)=>a+(parseFloat(e.montant)||0),0)
+      : (m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===mk?(m.montantDevis||0):0);
+    return {ca:s.ca+en,couts:s.couts+co};
+  },{ca:0,couts:0});
+  const _rentCaMoisNetRetours=_rentIsMargeMois?Math.max(0,_rentCoutsMois.ca-getMontantRembourseMois(mk)):_rentCoutsMois.ca;
+  const margePctMois=_rentCaMoisNetRetours>0?Math.round((_rentCaMoisNetRetours-_rentCoutsMois.couts)/_rentCaMoisNetRetours*100):null;
+  const thMoisBrut=getTHBrutMois(mk,caMoisCourant,hMoisTotal);
+  const tjmMoisBrut=getTJMBrut(thMoisBrut);
+  return {hMoisTotal,caMoisCourant,margePctMois,thMoisBrut,tjmMoisBrut};
+}
 // Fenêtre glissante pour "Ma rentabilité" (TH/TJM réel) — retour Faustine 2026-07-30. Les 12
 // derniers mois glissants une fois qu'on a assez de recul ; sinon tout l'historique disponible
 // depuis l'ouverture (identique au comportement d'avant tant qu'il n'y a pas encore un an
@@ -6703,33 +6729,9 @@ function wScoreSante(d) {
   }
 
   // ── Comparaison mensuelle (même métrique que l'annuel, jamais mélangée) ──
-  // Heures du mois : voir getHeuresMoisCoherentes() — corrige le CA du mois divisé par les
-  // heures d'un tout autre sous-ensemble de missions (celles qui, par hasard, ont du temps
-  // daté ce mois précis), qui produisait un TJM/TH "du mois" incohérent, voire absurde
-  // (repéré via retour de Faustine).
-  const hMoisTotal=getHeuresMoisCoherentes(curMk)+((DATA.tempsInterne&&DATA.tempsInterne[curMk])||0)/3600000;
-  const caMoisCourant=getCaFromMissions(curMk)+getPonctuelsCA(curMk);
-  const _rentCoutsMois=DATA.missions.filter(m=>!m.isManagement).reduce((s,m)=>{
-    const co=(DATA.depenses||[]).filter(dep=>dep.chantierId===m.id&&dep.date&&dep.date.slice(0,7)===curMk).reduce((a,dep)=>a+(dep.montant||0),0);
-    const encs=encaissementsComptes(m);
-    // Repli sur dateFact quand la mission n'a pas d'encaissements détaillés (chantier saisi a
-    // posteriori) — sinon son CA n'est jamais compté ici (toujours 0), contrairement à
-    // caMoisCourant/getCaFromMissions qui gèrent déjà ce repli. Même angle mort que celui
-    // corrigé dans getCaMissionsADate() (démo vs réel), repéré à l'audit demandé par Faustine.
-    const en=encs.length>0
-      ? encs.filter(e=>(e.date||'').slice(0,7)===curMk).reduce((a,e)=>a+(parseFloat(e.montant)||0),0)
-      : (m.statut==='fact'&&m.dateFact&&m.dateFact.slice(0,7)===curMk?(m.montantDevis||0):0);
-    return {ca:s.ca+en,couts:s.couts+co};
-  },{ca:0,couts:0});
-  // Même logique que _margePct (annuel, plus haut) : déduire les remboursements du mois avant
-  // de calculer la marge du mois en cours.
-  const _rentCaMoisNetRetours=_rentIsMarge?Math.max(0,_rentCoutsMois.ca-getMontantRembourseMois(curMk)):_rentCoutsMois.ca;
-  const _margePctMois=_rentCaMoisNetRetours>0?Math.round((_rentCaMoisNetRetours-_rentCoutsMois.couts)/_rentCaMoisNetRetours*100):null;
-  // getTHBrutMois/getTJMBrut (shared/core/calculs.js, 2026-07-25) — même extraction que thBrut/
-  // tjmBrut (annuel, plus haut), variante mensuelle. Même déduction des dépenses liées que
-  // _rentCoutsMois.couts (recalculée en interne par la fonction, voir commentaire annuel).
-  const thMoisBrut=getTHBrutMois(curMk,caMoisCourant,hMoisTotal);
-  const tjmMoisBrut=getTJMBrut(thMoisBrut);
+  // Calcul extrait dans getRentabiliteMois(mk) (2026-09-08) — réutilisé tel quel par l'historique
+  // ("Évolution mensuelle") pour recalculer n'importe quel mois passé en direct.
+  const {hMoisTotal,caMoisCourant,margePctMois:_margePctMois,thMoisBrut,tjmMoisBrut}=getRentabiliteMois(curMk);
   let diagRentMois=null, rowRentMois=null;
   if(_rentIsMarge){
     if(_margePctMois!==null){
@@ -6775,7 +6777,12 @@ function wScoreSante(d) {
   if(!DATA.isExample){
     if(!DATA.snapshotsMensuels) DATA.snapshotsMensuels={};
     const _snapKpiType=_rentIsMarge?'marge':_rentIsChantier?'tjm':'th';
-    const _snapKpiValeur=_rentIsMarge?_margePctMois:hMoisTotal>0?(_rentIsChantier?tjmMoisBrut:Math.round(thMoisBrut)):null;
+    // hMoisTotal>=1 (pas >0) : même garde que l'affichage "Ce mois-ci" plus haut — un temps quasi
+    // nul fait exploser (CA − coûts) ÷ heures (bug remonté par Faustine, TH à plusieurs millions
+    // figé dans l'historique). Depuis le 2026-09-08, ces champs ne servent plus que de repère
+    // "quels mois afficher" — Évolution mensuelle recalcule tout en direct via getRentabiliteMois
+    // (voir plus bas) — mais autant ne jamais stocker une valeur aberrante ici non plus.
+    const _snapKpiValeur=_rentIsMarge?_margePctMois:hMoisTotal>=1?(_rentIsChantier?tjmMoisBrut:Math.round(thMoisBrut)):null;
     const _snapNew={caBrut:caMoisCourant,caNet:getRevenuNetMois(curMk),tauxRemplissage:pilRemp.details?.taux??null,kpiType:_snapKpiType,kpiValeur:_snapKpiValeur};
     const _snapOld=DATA.snapshotsMensuels[curMk];
     if(!_snapOld||JSON.stringify(_snapOld)!==JSON.stringify(_snapNew)){
@@ -13267,12 +13274,18 @@ function renderArchives() {
   requestAnimationFrame(()=>{ drawBarChart('chart-th-reel',years.map(String),[{label:`${_archKpiLbl} (€${_archKpiUnit})`,data:kpiD,color:themeColor('--acc')||'#5B2C4A'}],{height:200}); });
   renderArchCompare(); renderArchProgress();
 
-  // Évolution mensuelle — snapshots persistés par wScoreSante() (voir "SNAPSHOT MENSUEL"),
-  // un mois à la fois, jamais reconstitué a posteriori. N'affiche que les mois réellement
-  // snapshotés (silence plutôt que "—" pour les mois sans donnée, ex. avant l'activation
-  // de la fonctionnalité, ou mode estimation avant le premier rendu du dashboard ce mois-là).
+  // Évolution mensuelle — recalculée EN DIRECT à chaque affichage (2026-09-08, retour Faustine :
+  // un historique figé pénalise une saisie tardive, ex. un encaissement daté d'un mois passé mais
+  // saisi après coup — l'ancien mécanisme figeait la ligne dès que le mois était clos et ne la
+  // retouchait plus jamais, même si les vraies données changeaient ensuite). CA brut/net et
+  // rentabilité recalculés depuis les données datées (missions, encaissements, dépenses) via
+  // getRentabiliteMois(mk) — jamais lus depuis DATA.snapshotsMensuels, qui ne sert plus que de
+  // repère "quels mois afficher" (clé + kpiType, écrits par wScoreSante() au premier rendu du
+  // dashboard de ce mois). Remplissage recalculé via getTauxRemplissageMois(mk) (moteur
+  // calendrier/sessions, dates réelles) plutôt que le pilier "Mon remplissage" du Score de Santé
+  // (chargeEstimee, sans historique daté, impossible à reconstituer pour un mois passé) — deux
+  // moteurs de remplissage volontairement distincts, voir shared/core/planning.js.
   const _snapKpiLbl=t=>t==='marge'?'Marge':t==='tjm'?'TJM réel':'TH réel';
-  const _snapKpiFmt=(t,v)=>v==null?'—':t==='marge'?v+'%':t==='tjm'?fmtE(v,0)+'/j':fmtE(v,0)+'/h';
   const snapKeys=Object.keys(DATA.snapshotsMensuels||{}).sort().reverse();
   const mensuelZone=document.getElementById('archives-mensuel-zone');
   if(mensuelZone){
@@ -13281,9 +13294,17 @@ function renderArchives() {
       const mRows=snapKeys.map(mk=>{
         const s=DATA.snapshotsMensuels[mk];
         const label=new Date(mk+'-01T12:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-        return `<tr><td data-label="Mois" style="font-weight:600">${label}</td><td data-label="CA Brut">${fmtE(s.caBrut||0)}</td><td data-label="Revenu net">${fmtE(s.caNet||0)}</td><td data-label="Remplissage">${s.tauxRemplissage!=null?s.tauxRemplissage+' %':'—'}</td><td data-label="${_snapKpiLbl(s.kpiType)}">${_snapKpiFmt(s.kpiType,s.kpiValeur)}</td></tr>`;
+        const live=getRentabiliteMois(mk);
+        const caBrut=live.caMoisCourant, caNet=getRevenuNetMois(mk);
+        const remp=getTauxRemplissageMois(mk);
+        const kpiType=s.kpiType||'th';
+        // Même garde que l'affichage "Ce mois-ci" du dashboard (hMoisTotal>=1) — jamais un TH/TJM
+        // calculé sur un temps quasi nul, même en recalcul live.
+        const kpiValeur=kpiType==='marge'?live.margePctMois:(live.hMoisTotal>=1?(kpiType==='tjm'?live.tjmMoisBrut:Math.round(live.thMoisBrut)):null);
+        const kpiFmt=kpiValeur==null?'—':kpiType==='marge'?kpiValeur+'%':kpiType==='tjm'?fmtE(kpiValeur,0)+'/j':fmtE(kpiValeur,0)+'/h';
+        return `<tr><td data-label="Mois" style="font-weight:600">${label}</td><td data-label="CA Brut">${fmtE(caBrut||0)}</td><td data-label="Revenu net">${fmtE(caNet||0)}</td><td data-label="Remplissage">${remp.taux!=null?remp.taux+' %':'—'}</td><td data-label="${_snapKpiLbl(kpiType)}">${kpiFmt}</td></tr>`;
       }).join('');
-      mensuelHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mois</th><th>CA Brut</th><th>Revenu net</th><th>Remplissage</th><th>Rentabilité</th></tr></thead><tbody>${mRows}</tbody></table></div>`;
+      mensuelHTML=`<div class="tbl-wrap"><table><thead><tr><th>Mois</th><th>CA Brut</th><th>Revenu net</th><th>Remplissage <span class="info-tip" title="Basé sur votre calendrier (sessions réelles), différent du pilier « Mon remplissage » du Score de Santé (temps planifié) — recalculé automatiquement si vous modifiez une session, même pour un mois déjà passé.">?</span></th><th>Rentabilité</th></tr></thead><tbody>${mRows}</tbody></table></div>`;
     } else {
       mensuelHTML=`<div style="color:var(--tl);font-size:13px;padding:16px 0;text-align:center">Aucune donnée mensuelle pour l'instant — vos KPIs du mois apparaîtront ici au fil du temps.</div>`;
     }

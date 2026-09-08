@@ -3210,6 +3210,22 @@ Gros chantier demandé par Faustine (spec détaillée via ChatGPT). Analyse fait
 
 **Vérifié** : `node --check` + suite Node complète, 0 échec. **Vérification navigateur (Faustine)** : émettre un brouillon (il passe en "Émis", plus de "Modifier", PDF identique), dupliquer un émis (nouveau brouillon éditable), marquer accepté puis vérifier qu'un 2e devis accepté fait bien repasser le 1er en "émis", marquer refusé, et confirmer qu'un document émis ne peut plus être édité en douce.
 
+### 2026-09-08 — Historique ("Évolution mensuelle") : recalcul en direct au lieu d'un instantané figé
+
+Retour Faustine : un encaissement d'août saisi début septembre (mais daté du bon jour d'août) se reflétait bien dans Revenus, mais pas dans l'Historique — et la rentabilité d'août affichée était aberrante (-112 788 177 €/j). Diagnostic en deux temps :
+
+1. **Le chiffre aberrant** : `_snapKpiValeur` (calcul du TH/TJM stocké dans le snapshot) utilisait `hMoisTotal>0` comme garde-fou, alors que l'affichage live "Ce mois-ci" du dashboard utilise `hMoisTotal>=1` (déjà un fix pour ce même type de bug, voir commentaire existant "TJM à plusieurs millions"). Un temps quasi nul (artefact d'arrondi) fait exploser (CA − coûts) ÷ heures, et cette valeur aberrante se figeait ensuite pour toujours dans l'historique.
+2. **Le chiffre pas à jour** : décision explicite de juillet 2026 ("une fois un mois clos, son entrée n'est plus jamais retouchée") — Faustine confirme après discussion que cette règle pénalise injustement une saisie tardive, au point de risquer de décourager une utilisatrice et de perdre en crédibilité.
+
+**Décision produit (discutée, 3 options posées)** : passer TOUT l'historique en recalcul live, y compris le Remplissage — repéré qu'il existe déjà un second moteur (`getTauxRemplissageMois(mk)`, calendrier/sessions, dates réelles) distinct du pilier "Mon remplissage" du Score de Santé (`chargeEstimee`, sans historique daté, donc non reconstituable pour un mois passé). Bascule sur ce moteur calendrier pour TOUTE la colonne (y compris le mois en cours, jamais deux bases différentes dans la même colonne), avec une infobulle qui explique la différence avec le pilier du dashboard.
+
+**Implémentation** :
+- Nouvelle fonction `getRentabiliteMois(mk)` (indepuls.html) — extraite du calcul jusqu'ici inline dans `wScoreSante()` pour `curMk` (CA brut, revenu net, marge/TH/TJM), désormais paramétrée par `mk` et réutilisée aux deux endroits (aucune régression : `wScoreSante()` fait juste `getRentabiliteMois(curMk)` à la place de son bloc inline, comportement strictement identique).
+- `DATA.snapshotsMensuels` ne sert plus que de repère "quels mois afficher" (clé + `kpiType`) — plus jamais lu pour ses valeurs (`caBrut`/`caNet`/`tauxRemplissage`/`kpiValeur`), toutes recalculées à l'affichage. La garde `hMoisTotal>=1` a quand même été corrigée côté écriture aussi (hygiène, au cas où ces champs soient un jour relus ailleurs).
+- Colonne Remplissage : `getTauxRemplissageMois(mk).taux`, infobulle explicative sur l'en-tête de colonne.
+
+**Vérifié** : suite complète (20 fichiers), 0 régression (aucune fonction `shared/core/` touchée). Navigateur (mode démo) : mission créée avec `dateFact` en août → CA/revenu net d'août mis à jour instantanément dans l'historique (5 100 € → 7 100 €) sans toucher au mois en cours ; session ajoutée rétroactivement en août → Remplissage passe de 56 % à 83 % instantanément ; dashboard (wScoreSante refactorée) toujours correct après coup, aucune erreur console.
+
 ### 2026-09-08 — FIX : "Action recommandée" disait "a de la place" alors que le remplissage était en surcharge à 222/336 %
 
 Retour Faustine (capture) : le pilier "Mon remplissage" affichait bien "Votre capacité facturable est dépassée (222 %). Attention à ne pas vous surcharger.", mais juste au-dessus, "Action recommandée" disait "Mon remplissage a de la place. Combler 1 h supplémentaire..." — deux messages contradictoires basés sur la **même donnée** (`pilRemp`).
