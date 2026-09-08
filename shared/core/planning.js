@@ -506,16 +506,16 @@ function resultatHSemaine(DATA, methode, cap, charge) {
   let diagnostic, conseil;
   if (pct > 100) {
     diagnostic = `Votre capacité facturable est dépassée (${pct} %). Attention à ne pas vous surcharger.`;
-    conseil    = "Gardez un œil sur votre rythme — envisagez de déléguer, d'augmenter vos tarifs ou d'espacer les prochaines missions si besoin.";
+    conseil    = "Gardez un œil sur votre rythme, envisagez de déléguer, d'augmenter vos tarifs ou d'espacer les prochaines missions si besoin.";
   } else if (pct >= 80) {
-    diagnostic = `Votre planning est à son plein potentiel (${pct} %) — c'est l'objectif recherché : votre temps facturable est optimisé.`;
+    diagnostic = `Votre planning est à son plein potentiel (${pct} %), c'est l'objectif recherché : votre temps facturable est optimisé.`;
     conseil    = "Continuez ainsi. Si de nouvelles demandes arrivent, pensez à ajuster vos tarifs plutôt qu'à vous surcharger.";
   } else if (pct >= 60) {
     diagnostic = `Bonne utilisation de votre capacité facturable (${pct} %). Il reste de la place pour de nouvelles missions.`;
-    conseil    = `${fmt1(libre)} h de capacité facturable encore disponibles par semaine — une belle marge de développement.`;
+    conseil    = `${fmt1(libre)} h de capacité facturable encore disponibles par semaine, une belle marge de développement.`;
   } else if (pct >= 40) {
     diagnostic = "Votre activité progresse mais votre capacité facturable n'est pas encore pleinement utilisée.";
-    conseil    = `${fmt1(libre)} h encore disponibles par semaine — cherchez à consolider votre portefeuille client.`;
+    conseil    = `${fmt1(libre)} h encore disponibles par semaine, cherchez à consolider votre portefeuille client.`;
   } else {
     diagnostic = `Votre capacité est largement sous-utilisée (${pct} %). Le principal enjeu est actuellement de développer votre activité.`;
     conseil    = "Priorité à la prospection. L'objectif de revenu est difficile à atteindre dans ces conditions.";
@@ -553,7 +553,7 @@ export function getPilierRemplissage(DATA) {
   if (congesCouvrentSemaineCourante(DATA)) {
     return {
       score: 12, valeur: '—', sousTitre: 'Congés cette semaine',
-      diagnostic: '🏖️ Vous avez des congés cette semaine — votre taux de remplissage n\'est pas représentatif.',
+      diagnostic: '🏖️ Vous avez des congés cette semaine, votre taux de remplissage n\'est pas représentatif.',
       conseil: '', methode: 'conges', details: null,
     };
   }

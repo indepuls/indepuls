@@ -3226,6 +3226,10 @@ Retour Faustine ([[feedback_indepuls_eviter_tirets_cadratins]]) : plusieurs tire
 
 **Vérifié** : suite complète (20 fichiers), 0 régression (changement de texte uniquement). Navigateur (mode démo) : les 4 modales de pilier (rentabilité, remplissage, trésorerie, horizon) confirmées sans tiret cadratin, ainsi que "Santé de l'activité" et "Action recommandée". Tirets restants sur la page = données de démo (descriptions de missions) et bandeau mode démo, hors périmètre de cette demande.
 
+**Complément (retour Faustine, capture "Mon remplissage" 100 %) : un lot manqué au premier passage.** Les textes de `wScoreSante()` (indepuls.html) étaient couverts, mais pas ceux qui alimentent le pilier "Mon remplissage" lui-même — générés dans `shared/core/planning.js` (`resultatHSemaine`, `getPilierRemplissage`), en dehors du fichier initialement balayé. Corrigés : les 5 diagnostics/conseils du barème de remplissage (surcharge, plein potentiel, bonne utilisation, sous-utilisé, très sous-utilisé) + le message "congés cette semaine". Trouvé et corrigé au passage un 6ᵉ oubli dans `shared/core/calculs.js` : le texte du rappel "déclaration de revenus" (feature du 2026-09-01, ACRE + rappels fiscaux) en avait un aussi.
+
+**Vérifié (complément)** : suite complète re-passée, 0 régression. Navigateur : `getPilierRemplissage()` forcé sur la branche 80-100 % (83 %, sans session cette semaine pour ne pas être filtré par le fix "missions séquentielles" du même jour) → diagnostic confirmé sans tiret cadratin, texte identique à celui de la capture de Faustine.
+
 ### 2026-09-08 — FIX : missions séquentielles additionnées comme si elles étaient concurrentes (222-311 % fantôme)
 
 Retour Faustine (capture calendrier octobre) : 3 missions confirmées et payées, mais programmées à des **semaines différentes** du mois (jamais en même temps) — impossible de les repasser "en attente" (acompte versé, planning posé). Le pilier "Mon remplissage" affichait pourtant 222-300 % de surcharge.

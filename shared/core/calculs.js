@@ -885,7 +885,7 @@ export function getEcheancesFiscalesGeneriques(maintenant = new Date()) {
   if (maintenant.getMonth() === 4) { // mai (0-indexé)
     echeances.push({
       type: 'declaration_revenus', dateKey: `${y}-05`, daysLeft: null,
-      texte: "La déclaration annuelle de revenus s'ouvre généralement en mai — vérifiez la date exacte de votre tranche sur impots.gouv.fr.",
+      texte: "La déclaration annuelle de revenus s'ouvre généralement en mai, vérifiez la date exacte de votre tranche sur impots.gouv.fr.",
       boutonLabel: "✅ J'ai déclaré",
     });
   }
