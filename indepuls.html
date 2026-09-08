@@ -1053,6 +1053,11 @@ html,body{overflow-x:hidden;}
         <div id="sasu-params-block" style="display:none">
           <div class="divider"></div>
           <div id="sasu-pilotage-label" class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">🏢 Pilotage SASU</div>
+          <div class="sw-wrap mb12" id="dirigeants-sw-wrap">
+            <label class="sw"><input type="checkbox" id="p-dirigeants-sw" onchange="toggleDirigeants(this.checked)"><span class="sw-sl"></span></label>
+            <span style="font-weight:600">Plusieurs dirigeants (SAS)</span>
+            <span class="info-tip" title="Indépuls suit une seule rémunération et un seul taux de charges, pas de compte partagé ni de suivi individuel par dirigeant. Si vous êtes plusieurs présidents/dirigeants à vous verser un salaire, indiquez le montant cumulé de toutes les rémunérations (le taux de charges reste le même pour tous en SAS, assimilé salarié).">?</span>
+          </div>
           <div class="frow">
             <div class="fgroup">
               <label class="flabel">Solde du compte pro <span id="sasu-treso-year-label"></span> (€)</label>
@@ -1062,16 +1067,16 @@ html,body{overflow-x:hidden;}
             <div class="fgroup">
               <label class="flabel" id="sasu-remu-label">Rémunération nette / mois (€)</label>
               <input type="number" id="p-remu-nette" step="100" min="0" placeholder="Ex : 3 000" oninput="saveSasuParam('remunerationNette',+this.value);updateSasuPreview()">
-              <div class="ts mt4" style="color:var(--tl)">Ce montant sert de base à tout le tableau de bord (trajectoire annuelle, Score de Santé, trésorerie) — c'est votre rémunération réellement configurée.</div>
+              <div class="ts mt4" style="color:var(--tl)">Ce montant sert de base à tout le tableau de bord (trajectoire annuelle, Score de Santé, trésorerie), c'est votre rémunération réellement configurée.</div>
             </div>
           </div>
           <div class="fgroup">
-            <label class="flabel">Charges sociales sur ma rémunération (%) <span class="info-tip" id="sasu-charges-tip" title="Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.">?</span></label>
+            <label class="flabel" id="sasu-charges-label">Charges sociales sur ma rémunération (%) <span class="info-tip" id="sasu-charges-tip" title="Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.">?</span></label>
             <input type="number" id="p-cout-remu-pct" step="5" min="0" max="200" placeholder="Ex : 82" oninput="saveSasuParam('coutRemunerationPct',+this.value);updateSasuPreview()">
             <div class="ts mt4" id="sasu-remu-preview" style="color:var(--tl)"></div>
-            <div class="ts mt4" style="color:var(--tl)">Pas sûr du bon pourcentage ? Simulez votre rémunération sur <a id="sasu-charges-simu-link" href="#" target="_blank" rel="noopener">l'outil officiel Urssaf</a>, puis reportez ici le taux de cotisations qu'il affiche (ex. 46 %). Ce taux est calibré sur le montant simulé — il peut varier légèrement si votre objectif de rémunération change beaucoup ensuite.</div>
+            <div class="ts mt4" style="color:var(--tl)">Pas sûr du bon pourcentage ? Simulez votre rémunération sur <a id="sasu-charges-simu-link" href="#" target="_blank" rel="noopener">l'outil officiel Urssaf</a>, puis reportez ici le taux de cotisations qu'il affiche (ex. 46 %). Ce taux est calibré sur le montant simulé, il peut varier légèrement si votre objectif de rémunération change beaucoup ensuite.</div>
           </div>
-          <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimations simplifiées — IS, dividendes, DSN et amortissements non inclus. Ne remplace pas un expert-comptable.</div>
+          <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimations simplifiées. IS, dividendes, DSN et amortissements non inclus. Ne remplace pas un expert-comptable.</div>
         </div>
         <div id="micro-charges-block">
           <div class="divider"></div>
@@ -4310,6 +4315,8 @@ function getDefaultData() {
       // applyDefaults() (voir CLAUDE.md), un défaut désactivé ne change jamais le comportement
       // de quelqu'un qui n'a jamais coché la case.
       acreActif:false, acreDateDebut:'', acreDateFin:'',
+      // Plusieurs dirigeants (2026-09-08) : purement cosmétique (vocabulaire), voir toggleDirigeants().
+      plusieursDirigeants:false,
       // Devis (chantier 2026-07-30) : optionnel, jamais requis, sert uniquement à pré-remplir
       // un devis généré depuis le Simulateur ou une fiche mission — voir CLAUDE.md.
       siret:'', logoDataUrl:'', devisConditionsDefaut:'', devisModalitesDefaut:''
@@ -11362,9 +11369,20 @@ function toggleAcre(val) {
   const det=document.getElementById('acre-detail');
   if(det) det.style.display=val?'':'none';
 }
+// ── PLUSIEURS DIRIGEANTS (2026-09-08, retour Faustine — bêta-testeuse en SAS à plusieurs) ────
+// Volontairement PAS un vrai mode multi-personnes (pas de compte partagé, pas de suivi individuel
+// par dirigeant — jugé trop complexe : régimes sociaux différents selon gérant majoritaire/
+// minoritaire en SARL, glisserait vers un outil de gestion d'entreprise à plusieurs). Ce
+// interrupteur ne change AUCUN calcul, uniquement le vocabulaire affiché (labels + infobulles),
+// pour indiquer clairement d'entrer le cumul de toutes les rémunérations plutôt que de laisser la
+// personne deviner si l'outil est réservé aux structures unipersonnelles.
+function toggleDirigeants(val) {
+  saveParam('plusieursDirigeants', val);
+  renderParams();
+}
 // ── LOGO DEVIS (chantier 2026-07-30) ───────────────────────────
-// Redimensionné et compressé côté navigateur avant stockage (canvas, aucune nouvelle dépendance)
-// — tout le reste de DATA est synchronisé en JSON à chaque sauvegarde ; un fichier image non
+// Redimensionné et compressé côté navigateur avant stockage (canvas, aucune nouvelle dépendance),
+// tout le reste de DATA est synchronisé en JSON à chaque sauvegarde ; un fichier image non
 // compressé alourdirait chaque sauvegarde, pas seulement celle du logo. Une largeur suffisante
 // pour un en-tête de devis (jamais pour de l'impression grand format) garde le poids négligeable.
 const LOGO_DEVIS_MAX_LARGEUR = 360;
@@ -12252,12 +12270,26 @@ function renderParams() {
   document.getElementById('micro-charges-block').style.display=sasu?'none':'';
   document.getElementById('sasu-params-block').style.display=sasu?'':'none';
   if(sasu){
-    document.getElementById('sasu-pilotage-label').textContent=`🏢 Pilotage ${isEurl?'EURL':'SASU'}`;
-    document.getElementById('sasu-remu-label').textContent=isEurl?'Rémunération du gérant / mois (€)':'Rémunération nette / mois (€)';
+    // Plusieurs dirigeants : SASU/SAS uniquement, jamais EURL/SARL (retour Faustine, 2026-09-08) —
+    // en SAS, tous les présidents/dirigeants relèvent du même régime (assimilé salarié), un total
+    // cumulé + le même taux reste une approximation raisonnable. En SARL, un gérant majoritaire
+    // (TNS, ~45 %) et un gérant minoritaire (assimilé salarié, ~82 %) relèvent de DEUX régimes
+    // différents — un "taux moyen" dépendrait fortement de la répartition entre eux, jamais
+    // demandée ici : approximation trop grossière pour être proposée sans induire en erreur.
+    const plusieurs=!isEurl&&!!DATA.params.plusieursDirigeants;
+    const dSwWrap=document.getElementById('dirigeants-sw-wrap'); if(dSwWrap) dSwWrap.style.display=isEurl?'none':'';
+    const dSw=document.getElementById('p-dirigeants-sw'); if(dSw) dSw.checked=plusieurs;
+    document.getElementById('sasu-pilotage-label').textContent=isEurl?'🏢 Pilotage EURL':`🏢 Pilotage SASU${plusieurs?'/SAS':''}`;
+    document.getElementById('sasu-remu-label').textContent=plusieurs
+      ? 'Rémunération nette totale des dirigeants / mois (€)'
+      : (isEurl?'Rémunération du gérant / mois (€)':'Rémunération nette / mois (€)');
+    const _chargesLbl=document.getElementById('sasu-charges-label');
+    if(_chargesLbl) _chargesLbl.firstChild.textContent=plusieurs?'Charges sociales sur la rémunération totale (%) ':'Charges sociales sur ma rémunération (%) ';
     const defaultPct=isEurl?45:82;
-    document.getElementById('sasu-charges-tip').title=isEurl
+    document.getElementById('sasu-charges-tip').title=(isEurl
       ?`Cotisations TNS du gérant majoritaire. Exemple : 45 % → 3 000 € nets = 4 350 € coût réel société.`
-      :`Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.`;
+      :`Cotisations patronales + salariales. Exemple : 82 % → 3 000 € nets = 5 460 € coût réel société.`)
+      +(plusieurs?` Plusieurs dirigeants : indiquez le total cumulé des rémunérations, le taux reste le même pour tous en SAS.`:'');
     const _simuLink=document.getElementById('sasu-charges-simu-link');
     if(_simuLink) _simuLink.href=isEurl?'https://mon-entreprise.urssaf.fr/simulateurs/eurl':'https://mon-entreprise.urssaf.fr/simulateurs/sasu';
     document.getElementById('eurl-fiscal-block').style.display=isEurl?'':'none';
@@ -12569,7 +12601,7 @@ function renderSasuCard(d) {
       <div class="alert ${badgeCls}" style="padding:4px 10px;font-size:12px;font-weight:700;border-radius:20px;margin:0">${badgeLbl}</div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--brd)">
-      <div style="font-size:11px;color:var(--tl)">Rémunération cible</div>
+      <div style="font-size:11px;color:var(--tl)">${(DATA.params.plusieursDirigeants&&DATA.params.statut!=='eurl')?'Rémunération cible (total dirigeants)':'Rémunération cible'}</div>
       <div style="font-size:13px;color:var(--text)"><strong>${fmtE(remuNet,0)}</strong>/mois nets · <span style="cursor:pointer;color:var(--acc)" onclick="navigate('params');setTimeout(()=>switchParamTab('fiscalite',document.querySelector('#page-params [onclick*=fiscalite]')),100)">Paramètres</span></div>
     </div>
     <div style="margin-bottom:12px">
