@@ -1758,6 +1758,16 @@ Faustine veut préparer l'abonnement payant (19 €/mois) sans risquer de bloque
 - **Vérifié** : signature webhook valide/invalide, paiement test de bout en bout (carte `4242...`) → `entitlements.access='active'` + `stripe_customer_id` renseigné en base ; JS de `indepuls.html` toujours syntaxiquement valide après les 3 patchs (diff purement additif, `_enterApp` enveloppe l'existant sans le supprimer).
 - **(2026-09-09)** Ajout d'une ligne de réassurance légale sous le bouton "S'abonner" dans `showPaywallScreen()` (chiffrement + jamais utilisé pour entraîner une IA, liens vers confidentialité/CGU/sécurité) — suite à l'audit du site vitrine, qui a relevé que les 3 pages légales étaient trop isolées pour rassurer avant l'acte de paiement. Même ligne ajoutée sur `site/tarifs/index.html`. Purement cosmétique, sans effet tant que `PAYWALL_ENABLED=false`.
 
+### FEATURE — Formulaire liste d'attente sur `site/tarifs/index.html`, écriture directe dans Supabase (2026-09-09)
+Remplace l'ancien lien `mailto:` (flaggé par l'audit du site) par un vrai formulaire (prénom, email, métier) qui écrit dans une nouvelle table Supabase, **sans passer par une Edge Function** — premier cas où le site vitrine (statique, zéro dépendance) parle directement à Supabase.
+
+- **Nouvelle table `public.waitlist`** (`id uuid pk default gen_random_uuid()`, `created_at timestamptz default now()`, `prenom text`, `email text not null`, `metier text`). RLS activé, une seule policy : `insert` pour le rôle `anon`, `with check (true)` — **aucune policy de lecture** pour `anon`/`authenticated`, donc les emails collectés ne sont lisibles que par Faustine via le SQL Editor Supabase (rôle `postgres`, qui contourne le RLS). Miroir inversé du pattern `entitlements` (là-bas : lecture seule pour le propriétaire, écriture seule pour `service_role` ; ici : écriture seule pour `anon`, lecture pour personne côté client).
+  - ⚠️ Même piège que pour `entitlements` : RLS ne suffit pas sans le `grant insert on public.waitlist to anon;` explicite. Ajouté dès la création pour éviter de reproduire le bug du `42501` silencieux.
+- **Client** (`site/tarifs/index.html`, IIFE dédiée en fin de fichier) : `fetch()` brut vers `POST {SUPABASE_URL}/rest/v1/waitlist` avec la clé **anon** (publique par design, la sécurité vient du RLS, pas du secret de la clé) — pas de dépendance à la librairie `@supabase/supabase-js`, cohérent avec le principe zéro-dépendance déjà appliqué au webhook Stripe.
+  - Anti-spam : un champ honeypot (`name="website"`, masqué en CSS) — si rempli, la soumission est ignorée silencieusement (succès simulé, aucun appel réseau), aucune dépendance ajoutée.
+  - En cas d'échec réseau/table absente : message d'erreur inline avec fallback `mailto:contact@indepuls.fr`, jamais un formulaire qui échoue sans recours.
+  - Tant que la table `waitlist` n'existe pas côté Supabase, le formulaire échoue proprement sur ce fallback (vérifié en local : requête envoyée, 404 reçu, message affiché) — **Faustine doit exécuter le SQL de création de la table avant que ce formulaire soit fonctionnel en production.**
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
