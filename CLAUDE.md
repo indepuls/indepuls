@@ -1756,6 +1756,7 @@ Faustine veut préparer l'abonnement payant (19 €/mois) sans risquer de bloque
   - `access==='past_due'` autorise toujours l'accès (Stripe retente le paiement automatiquement avant de passer en `canceled`) — évite de couper un utilisateur pour un simple échec de carte temporaire.
 - **Non fait volontairement** : portail de résiliation Stripe (self-service) et codes promo (coupon "1 mois offert") — remis à l'étape du lancement réel, aucun impact sur ce qui précède.
 - **Vérifié** : signature webhook valide/invalide, paiement test de bout en bout (carte `4242...`) → `entitlements.access='active'` + `stripe_customer_id` renseigné en base ; JS de `indepuls.html` toujours syntaxiquement valide après les 3 patchs (diff purement additif, `_enterApp` enveloppe l'existant sans le supprimer).
+- **(2026-09-09)** Ajout d'une ligne de réassurance légale sous le bouton "S'abonner" dans `showPaywallScreen()` (chiffrement + jamais utilisé pour entraîner une IA, liens vers confidentialité/CGU/sécurité) — suite à l'audit du site vitrine, qui a relevé que les 3 pages légales étaient trop isolées pour rassurer avant l'acte de paiement. Même ligne ajoutée sur `site/tarifs/index.html`. Purement cosmétique, sans effet tant que `PAYWALL_ENABLED=false`.
 
 ## Points d'attention
 
