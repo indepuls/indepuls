@@ -1768,6 +1768,23 @@ Remplace l'ancien lien `mailto:` (flaggé par l'audit du site) par un vrai formu
   - En cas d'échec réseau/table absente : message d'erreur inline avec fallback `mailto:contact@indepuls.fr`, jamais un formulaire qui échoue sans recours.
   - Tant que la table `waitlist` n'existe pas côté Supabase, le formulaire échoue proprement sur ce fallback (vérifié en local : requête envoyée, 404 reçu, message affiché) — **Faustine doit exécuter le SQL de création de la table avant que ce formulaire soit fonctionnel en production.**
 
+### FIX — `indepuls-demo.html` resynchronisé avec `indepuls.html` (2026-09-09)
+En reprenant la question "démo : copie sur le site, ou vrai accès à Indépuls ?", découverte que **le vrai accès existe déjà** : `indepuls-demo.html` (racine du repo) est un fork volontaire d'`indepuls.html`, dont le seul but est d'exposer sans condition de `hostname` le bouton "Essayer sans créer de compte" de l'écran de connexion (`authLoadDemo()`) — ce bouton existe aussi dans `indepuls.html`, mais y reste caché en production (gardé par `location.hostname==='localhost'`, réservé au dev). C'est donc `indepuls-demo.html`, pas une copie HTML sur le site vitrine, qui est le vrai point d'entrée de la démo publique (lien déjà en place depuis `site/demo/index.html`).
+
+- **Problème trouvé** : ce fork datait du 6 août (14609 lignes) contre 16284 dans `indepuls.html` au 9 septembre — plus d'un mois de fonctionnalités manquantes (brief hebdo, alertes de concentration client, tout le chantier Stripe/entitlements, le garde-fou anti-contamination de cache inter-comptes, etc.).
+- **Piège en régénérant naïvement** (copier `indepuls.html` tel quel par-dessus) : le mécanisme `isAnonymousDemoSession` / `_anonymousMemoryStore` — qui redirige `localStorage.setItem/getItem/removeItem('indepuls', ...)` vers une variable mémoire tant qu'on est en session démo anonyme, pour que **rien ne soit jamais écrit dans le vrai localStorage ni synchronisé au cloud** — n'existe QUE dans l'ancien `indepuls-demo.html`, jamais porté dans `indepuls.html`. Une resynchro brute aurait fait disparaître ce garde-fou de confidentialité/isolation.
+- **Correction appliquée** : `indepuls-demo.html` régénéré depuis `indepuls.html` du jour, puis 8 patchs chirurgicaux regreffés par-dessus (tous retrouvés en comparant l'ancien fork à sa base) :
+  1. Déclaration + monkey-patch localStorage (juste après `const STORAGE_KEY`).
+  2. `openClearExampleModal()` : redirige vers la création de compte si `isAnonymousDemoSession`.
+  3. `renderDemoBanner()` et 4. `renderDemoContextBar()` : copie et CTA ("Créer mon compte" / rien n'est enregistré) différents en session anonyme.
+  5. `saveData()` : n'écrit dans `localStorage` que si `!isAnonymousDemoSession`.
+  6. `authLoadDemo()` : version complète (pose `isAnonymousDemoSession=true`, applique le profil/statut par défaut avant `loadDemoWithCurrentParams()` — sans ça le dashboard restait sur l'écran "choisissez votre profil" au lieu d'afficher la démo peuplée).
+  7. `_enterApp(user)` : remet `isAnonymousDemoSession=false` (vraie connexion après avoir exploré la démo).
+  8. Bouton de l'écran de connexion : gate `hostname` retiré, libellé "Essayer sans créer de compte" (au lieu de "Continuer en mode démo", réservé au dev sur `indepuls.html`).
+- **Vérifié en local** (serveur statique + navigateur) : le bouton apparaît sans être développeur, charge une démo peuplée et à jour (brief, alertes visibles), le bandeau affiche bien la version "rien n'est enregistré / créer un compte", et un rechargement de page repart bien de zéro (aucune persistance).
+- **Effet de bord découvert en cours de route** : le flux réel "choisir son métier" décrit sur `site/demo/index.html` ne correspond plus au comportement actuel (`authLoadDemo()` charge directement le profil `prestataire_services` par défaut, pas d'écran de choix préalable — le changement de métier se fait après coup, dans Paramètres). Copie du site corrigée en conséquence (3 étapes réécrites, mention retirée de l'ancien "écran de choix de profil, la première étape").
+- **À refaire périodiquement** : `indepuls-demo.html` n'est pas auto-synchronisé — c'est un fork manuel. Il redivergera à chaque nouvelle fonctionnalité ajoutée à `indepuls.html` tant qu'aucune automatisation n'est mise en place. Prochaine resynchro : reprendre les 8 points ci-dessus (ou, mieux, envisager de générer `indepuls-demo.html` par un script qui applique ces patchs automatiquement plutôt qu'à la main).
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
