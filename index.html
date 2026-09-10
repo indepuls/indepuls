@@ -51,6 +51,24 @@
   .nav.enriched .brand{display:inline;}
   .nav.enriched .extra{display:inline;}
   .nav .extra{display:none;}
+  .navGroup{display:contents;}
+  .menuToggle{display:none;}
+  @media(max-width:640px){
+    .nav.enriched .menuToggle{display:inline-flex; align-items:center; justify-content:center; background:none; border:none; color:var(--cream); font-size:18px; line-height:1; cursor:pointer; padding:2px 4px; order:1;}
+    .nav.enriched .brand{order:0;}
+    .nav.enriched a[href="indepuls.html"]{order:2;}
+    .nav.enriched #skipLink{order:3; margin-left:0;}
+    .nav.enriched .navGroup{
+      display:none; order:4; flex-basis:100%; width:100%;
+      flex-direction:column; align-items:flex-start; gap:12px;
+      margin-top:12px; padding-top:12px; border-top:1px solid rgba(241,239,234,.25);
+    }
+    .nav.enriched .navGroup.open{display:flex;}
+    .nav.enriched .navGroup .dropdown{width:100%;}
+    .nav.enriched .navGroup .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; background:none; padding:6px 0 0 14px; margin-top:6px; display:none; min-width:0;}
+    .nav.enriched .navGroup .dropdown.open .dropmenu{display:flex; flex-direction:column; gap:8px;}
+    .nav.enriched .navGroup .dropmenu a{color:var(--cream); opacity:.8; padding:0;}
+  }
   .nav .dropdown{position:relative;}
   .nav.enriched .dropdown{display:inline-flex; align-items:center;}
   .nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; font-size:14px; color:var(--cream); opacity:.8; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0 0 2px; border-bottom:1px solid rgba(241,239,234,.4);}
@@ -231,13 +249,11 @@
   #s7 .inner{max-width:640px; margin:0 auto;}
   #s7 .neg{
     font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(19px,2.8vw,27px);
-    margin:0 0 22px; opacity:0; position:relative; display:inline-block;
+    margin:0 0 22px; opacity:0;
+    text-decoration-line:line-through; text-decoration-thickness:2px; text-decoration-color:transparent;
+    transition:text-decoration-color .6s var(--ease);
   }
-  #s7 .neg::after{
-    content:''; position:absolute; left:0; top:50%; width:0; height:2px; background:var(--navy);
-    transition:width .6s var(--ease);
-  }
-  #s7 .neg.struck::after{width:100%;}
+  #s7 .neg.struck{text-decoration-color:var(--navy);}
   #s7 .final{
     font-family:'Playfair Display',serif; color:var(--prune); font-size:clamp(22px,3.4vw,32px);
     margin-top:36px; opacity:0; line-height:1.5;
@@ -306,7 +322,7 @@
     #s3 .line{opacity:1 !important; transform:none !important; animation:none !important;}
     #s4 .ring-sub, #s4 .proof-lead, #s4 .kpi-glimpse, #s4 .proof{opacity:1 !important;}
     #s6 .reinforce{opacity:1;}
-    #s7 .neg{opacity:1 !important;} #s7 .neg::after{width:100% !important;}
+    #s7 .neg{opacity:1 !important; text-decoration-color:var(--navy) !important;}
     #s7 .final{opacity:1 !important;}
     #s9 .closing{opacity:1 !important;}
   }
@@ -344,34 +360,37 @@
 
 <nav class="nav" id="mainNav">
   <span class="brand">Indépuls</span>
-  <a href="fonctionnalites/index.html" class="extra">Fonctionnalités</a>
-  <a href="tarifs/index.html" class="extra">Tarifs</a>
-  <a href="demo/index.html" class="extra">Démo</a>
-  <a href="faq/index.html" class="extra">FAQ</a>
-  <div class="dropdown extra" id="metierDropdown">
-    <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
-    <div class="dropmenu">
-      <a href="pour/artisans-batiment/index.html">Artisans du bâtiment</a>
-      <a href="pour/evenementiel/index.html">Événementiel</a>
-      <a href="pour/services-creatifs/index.html">Temps &amp; expertise</a>
-      <a href="pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
-      <a href="pour/achat-revente/index.html">Achat &amp; revente</a>
+  <button type="button" class="menuToggle extra" id="menuToggle" aria-haspopup="true" aria-expanded="false" aria-controls="navGroup" aria-label="Menu">☰</button>
+  <div class="navGroup" id="navGroup">
+    <a href="fonctionnalites/index.html" class="extra">Fonctionnalités</a>
+    <a href="tarifs/index.html" class="extra">Tarifs</a>
+    <a href="demo/index.html" class="extra">Démo</a>
+    <a href="faq/index.html" class="extra">FAQ</a>
+    <div class="dropdown extra" id="metierDropdown">
+      <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+      <div class="dropmenu">
+        <a href="pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+        <a href="pour/evenementiel/index.html">Événementiel</a>
+        <a href="pour/services-creatifs/index.html">Temps &amp; expertise</a>
+        <a href="pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+        <a href="pour/achat-revente/index.html">Achat &amp; revente</a>
+      </div>
     </div>
-  </div>
-  <div class="dropdown extra" id="outilsDropdown">
-    <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
-    <div class="dropmenu">
-      <a href="outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
-      <a href="outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+    <div class="dropdown extra" id="outilsDropdown">
+      <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+      <div class="dropmenu">
+        <a href="outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM</a>
+        <a href="outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+      </div>
     </div>
-  </div>
-  <div class="dropdown extra" id="ressourcesDropdown">
-    <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
-    <div class="dropmenu">
-      <a href="ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
-      <a href="ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
-      <a href="ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
-      <a href="ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+    <div class="dropdown extra" id="ressourcesDropdown">
+      <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+      <div class="dropmenu">
+        <a href="ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+        <a href="ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+        <a href="ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+        <a href="ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+      </div>
     </div>
   </div>
   <a href="indepuls.html" target="_blank" rel="noopener">Mon espace</a>
@@ -535,16 +554,31 @@
 <script>
 (function(){
   var dds = document.querySelectorAll('.dropdown');
-  function closeAll(){ dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  var menuToggle = document.getElementById('menuToggle');
+  var navGroup = document.getElementById('navGroup');
+  function closeAll(){
+    dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+    if (navGroup) navGroup.classList.remove('open');
+    if (menuToggle) menuToggle.setAttribute('aria-expanded','false');
+  }
   dds.forEach(function(dd){
     var btn = dd.querySelector('.dropbtn');
     btn.addEventListener('click', function(e){
       e.stopPropagation();
       var willOpen = !dd.classList.contains('open');
-      closeAll();
-      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+      dds.forEach(function(o){ if (o !== dd) { o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); } });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); } else { dd.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
     });
   });
+  if (menuToggle && navGroup) {
+    menuToggle.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !navGroup.classList.contains('open');
+      closeAll();
+      if (willOpen) { navGroup.classList.add('open'); menuToggle.setAttribute('aria-expanded','true'); }
+    });
+    navGroup.addEventListener('click', function(e){ e.stopPropagation(); });
+  }
   document.addEventListener('click', closeAll);
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAll(); });
 })();

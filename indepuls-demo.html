@@ -2192,7 +2192,7 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-ponctuels">
   <div class="modal">
     <div class="modal-title" id="ponc-modal-title">Revenus ponctuels</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">
       <span class="ts" style="color:var(--tl)">Déplacements facturés, remboursements, cash ponctuel…</span>
       <span class="ts" id="ponc-summary" style="font-weight:600;color:var(--pri)"></span>
     </div>
@@ -4805,6 +4805,7 @@ function triggerSaveReminderIfNeeded() {}
 function showSaveBanner() {}
 function dismissSaveBanner() {}
 function showLocalDataNotice() {
+  if(isAnonymousDemoSession) return;
   if(DATA.lastSave || localStorage.getItem(STORAGE_KEY+'_notice_shown')) return;
   localStorage.setItem(STORAGE_KEY+'_notice_shown','1');
   const t=document.createElement('div');
@@ -7501,7 +7502,7 @@ function wScoreSante(d) {
     const defautReplie=(c==='var(--ok)');
     const replie=_widgetReplie(key,defautReplie);
     return `<div style="padding:16px;border-radius:10px;border:1px solid var(--brd);background:var(--card);border-top:3px solid ${c};display:flex;flex-direction:column;height:100%;box-sizing:border-box">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">
         <div style="font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tl);font-weight:700">${label}</div>
         <div style="font-size:18px;font-weight:900;color:${c}">${pts}<span style="font-size:9px;font-weight:400;color:var(--tl)">/25</span></div>
       </div>
@@ -11348,7 +11349,7 @@ function wNotesRapides() {
   const labelReplie = notes.length ? `Voir mes notes (${notes.length}) ▸` : 'Ajouter une note ▸';
   const toggleBtn = `<button type="button" onclick="toggleWidgetReplie('notesRapides')" style="display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--tl);font-size:11px;font-weight:700;padding:3px 6px;flex-shrink:0" title="${replie?'Déplier':'Replier'}">${replie?labelReplie:'Masquer ▾'}</button>`;
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">
       <div style="font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);font-weight:700">📌 Aide-mémoire</div>
       ${toggleBtn}
     </div>
