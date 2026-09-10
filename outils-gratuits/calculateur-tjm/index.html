@@ -6,8 +6,8 @@
 <link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
 <link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calculateur de TJM minimum · Indépuls</title>
-<meta name="description" content="Calculez gratuitement votre TJM (taux journalier moyen) minimum pour être rentable, en tenant compte de vos charges, cotisations et jours facturables.">
+<title>Calculateur de TJM et de taux horaire minimum · Indépuls</title>
+<meta name="description" content="Calculez gratuitement votre TJM (taux journalier moyen) ou votre taux horaire minimum pour être rentable, en tenant compte de vos charges, cotisations et temps facturable.">
 <link rel="canonical" href="https://indepuls.fr/outils-gratuits/calculateur-tjm/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -79,6 +79,11 @@
   .sliderrow input[type=range]{flex:1; accent-color:var(--prune);}
   .sliderrow .sliderval{font-weight:700; font-size:15px; color:var(--prune); min-width:48px; text-align:right;}
 
+  .modetoggle{display:flex; gap:8px; margin-bottom:24px;}
+  .modetoggle button{flex:1; border-radius:999px; border:1px solid #e4ddd0; background:#fff; padding:10px 14px; font-weight:700; font-size:13.5px; color:var(--navy); cursor:pointer; transition:background .15s, color .15s, border-color .15s; font-family:'Lato',sans-serif;}
+  .modetoggle button.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .modetoggle button:hover:not(.active){border-color:var(--prune);}
+
   .calc-result{background:var(--navy); color:#fff; border-radius:16px; padding:30px 26px; text-align:center;}
   .result-label{display:block; font-size:12.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); margin-bottom:8px;}
   .result-num{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(38px,6vw,54px); display:block; line-height:1;}
@@ -126,8 +131,8 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Indépuls">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:title" content="Calculateur de TJM minimum · Indépuls">
-<meta property="og:description" content="Calculez gratuitement votre TJM (taux journalier moyen) minimum pour être rentable, en tenant compte de vos charges, cotisations et jours facturables.">
+<meta property="og:title" content="Calculateur de TJM et de taux horaire minimum · Indépuls">
+<meta property="og:description" content="Calculez gratuitement votre TJM (taux journalier moyen) ou votre taux horaire minimum pour être rentable, en tenant compte de vos charges, cotisations et temps facturable.">
 <meta property="og:url" content="https://indepuls.fr/outils-gratuits/calculateur-tjm/">
 <meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -157,7 +162,7 @@
       <div class="dropdown has-active" id="outilsDropdown">
         <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
         <div class="dropmenu">
-          <a href="../calculateur-tjm/index.html" class="active">Calculateur de TJM</a>
+          <a href="../calculateur-tjm/index.html" class="active">Calculateur de TJM &amp; taux horaire</a>
           <a href="../calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
         </div>
       </div>
@@ -178,13 +183,17 @@
 
 <header class="hero">
   <span class="eyebrow">Outil gratuit</span>
-  <h1>Calculateur de TJM minimum</h1>
-  <p>Le taux journalier en dessous duquel votre activité ne couvre plus ce qu'elle doit couvrir : votre revenu visé, vos charges, et vos cotisations. Modifiez les chiffres, le résultat se met à jour tout de suite.</p>
+  <h1>Calculateur de TJM et de taux horaire minimum</h1>
+  <p>Le tarif en dessous duquel votre activité ne couvre plus ce qu'elle doit couvrir : votre revenu visé, vos charges, et vos cotisations. Facturez-vous à la journée ou à l'heure&nbsp;? Choisissez votre unité, modifiez les chiffres, le résultat se met à jour tout de suite.</p>
 </header>
 
 <section class="calc">
   <div class="wrap calc-wrap">
     <div class="calc-card">
+      <div class="modetoggle" role="group" aria-label="Unité de facturation">
+        <button type="button" id="modeJourBtn" class="active" aria-pressed="true">Par jour (TJM)</button>
+        <button type="button" id="modeHeureBtn" aria-pressed="false">Par heure (taux horaire)</button>
+      </div>
       <div class="field">
         <label for="revenu">Revenu net mensuel visé</label>
         <div class="inputrow"><input type="number" id="revenu" value="2500" min="0" step="50"><span class="unit">€ / mois</span></div>
@@ -201,17 +210,17 @@
         </div>
       </div>
       <div class="field">
-        <label for="jours">Jours facturables par an<span class="hint">Sur environ 220 jours ouvrés, congés, prospection et administratif déduits. 260 au maximum, soit tous les jours ouvrés d'une année.</span></label>
-        <div class="inputrow"><input type="number" id="jours" value="200" min="20" max="260" step="5"><span class="unit">jours</span></div>
-        <span class="clamp-note" id="joursNote"></span>
+        <label for="capacite"><span id="capaciteLabel">Jours facturables par an</span><span class="hint" id="capaciteHint">Sur environ 220 jours ouvrés, congés, prospection et administratif déduits. 260 au maximum, soit tous les jours ouvrés d'une année.</span></label>
+        <div class="inputrow"><input type="number" id="capacite" value="200" min="20" max="260" step="5"><span class="unit" id="capaciteUnit">jours</span></div>
+        <span class="clamp-note" id="capaciteNote"></span>
       </div>
     </div>
 
     <div class="calc-result">
-      <span class="result-label">TJM minimum</span>
-      <span class="result-num" id="tjmOut">224&nbsp;€</span>
-      <span class="result-sub">par jour facturé, pour ne pas être en dessous de vos charges</span>
-      <div class="result-secondary">Soit <b id="thOut">32&nbsp;€/h</b> sur une base de 7&nbsp;h par jour</div>
+      <span class="result-label" id="resultLabel">TJM minimum</span>
+      <span class="result-num" id="primaryOut">224&nbsp;€</span>
+      <span class="result-sub" id="resultSub">par jour facturé, pour ne pas être en dessous de vos charges</span>
+      <div class="result-secondary" id="resultSecondary">Soit <b id="secondaryOut">32&nbsp;€/h</b> sur une base de 7&nbsp;h par jour</div>
       <div class="formula" id="formulaOut"></div>
     </div>
   </div>
@@ -221,12 +230,12 @@
 <section class="explain">
   <div class="wrap">
     <h2>Comment ce calcul fonctionne</h2>
-    <p>Le TJM minimum répond à une question simple : combien dois-je facturer par jour pour que mon activité couvre tout ce qu'elle doit couvrir, sans y laisser de marge ? Quatre chiffres suffisent :</p>
+    <p>Le TJM ou le taux horaire minimum répond à une question simple : combien dois-je facturer, par jour ou par heure selon la façon dont vous travaillez, pour que mon activité couvre tout ce qu'elle doit couvrir, sans y laisser de marge&nbsp;? Quatre chiffres suffisent :</p>
     <ul>
       <li><strong>Le revenu net que vous voulez vraiment toucher</strong>, pas le chiffre d'affaires affiché.</li>
       <li><strong>Vos charges professionnelles</strong>, tout ce qui sert votre activité mais ne vous revient pas en poche.</li>
       <li><strong>La part de votre chiffre d'affaires qui part en cotisations et impôts</strong>, avant même d'arriver sur votre compte.</li>
-      <li><strong>Le nombre de jours réellement facturables</strong> dans l'année, une fois les congés, la prospection et l'administratif déduits.</li>
+      <li><strong>Le temps réellement facturable</strong> dans l'année, en jours ou en heures selon votre unité, une fois les congés, la prospection et l'administratif déduits.</li>
     </ul>
     <p>Le calcul reste toujours visible : aucun chiffre n'apparaît sans la formule qui le justifie.</p>
   </div>
@@ -251,7 +260,7 @@
 </section>
 
 <section class="keywords">
-  <p>Calculateur de TJM gratuit pour indépendants, freelances, consultants et artisans : calculer son TJM minimum, fixer ses tarifs, savoir si son taux journalier est trop bas par rapport à ses charges réelles.</p>
+  <p>Calculateur de TJM et de taux horaire gratuit pour indépendants, freelances, consultants, coachs, assistantes virtuelles et artisans : calculer son tarif minimum par jour ou par heure, fixer ses tarifs, savoir si son taux est trop bas par rapport à ses charges réelles.</p>
 </section>
 
 <section class="cta">
@@ -293,43 +302,94 @@
 
 (function(){
   var fmt = function(n){ return Math.round(n).toLocaleString('fr-FR'); };
+  var HEURES_PAR_JOUR = 7;
+  var mode = 'jour'; // 'jour' ou 'heure'
+
   var revenu = document.getElementById('revenu');
   var charges = document.getElementById('charges');
   var taux = document.getElementById('taux');
   var tauxVal = document.getElementById('tauxVal');
-  var jours = document.getElementById('jours');
-  var tjmOut = document.getElementById('tjmOut');
-  var thOut = document.getElementById('thOut');
+  var capacite = document.getElementById('capacite');
+  var capaciteLabel = document.getElementById('capaciteLabel');
+  var capaciteHint = document.getElementById('capaciteHint');
+  var capaciteUnit = document.getElementById('capaciteUnit');
+  var capaciteNote = document.getElementById('capaciteNote');
+  var modeJourBtn = document.getElementById('modeJourBtn');
+  var modeHeureBtn = document.getElementById('modeHeureBtn');
+  var resultLabel = document.getElementById('resultLabel');
+  var primaryOut = document.getElementById('primaryOut');
+  var resultSub = document.getElementById('resultSub');
+  var resultSecondary = document.getElementById('resultSecondary');
   var formulaOut = document.getElementById('formulaOut');
+
+  var CAP = {
+    jour: { min: 20, max: 260, step: 5, default: 200, unit: 'jours', label: 'Jours facturables par an',
+      hint: "Sur environ 220 jours ouvrés, congés, prospection et administratif déduits. 260 au maximum, soit tous les jours ouvrés d'une année." },
+    heure: { min: 140, max: 1820, step: 35, default: 1400, unit: 'heures', label: 'Heures facturables par an',
+      hint: "Sur une base de 7 h/jour, congés, prospection et administratif déduits. 1 820 h au maximum, soit tous les jours ouvrés d'une année." }
+  };
+
+  function setMode(newMode){
+    if (newMode === mode) return;
+    var v = parseFloat(capacite.value) || CAP[mode].default;
+    capacite.value = Math.round(newMode === 'heure' ? v * HEURES_PAR_JOUR : v / HEURES_PAR_JOUR);
+    mode = newMode;
+    var cap = CAP[mode];
+    capacite.min = cap.min; capacite.max = cap.max; capacite.step = cap.step;
+    capaciteLabel.textContent = cap.label;
+    capaciteHint.textContent = cap.hint;
+    capaciteUnit.textContent = cap.unit;
+    capaciteNote.textContent = '';
+    modeJourBtn.classList.toggle('active', mode === 'jour');
+    modeJourBtn.setAttribute('aria-pressed', mode === 'jour');
+    modeHeureBtn.classList.toggle('active', mode === 'heure');
+    modeHeureBtn.setAttribute('aria-pressed', mode === 'heure');
+    calc();
+  }
+
+  modeJourBtn.addEventListener('click', function(){ setMode('jour'); });
+  modeHeureBtn.addEventListener('click', function(){ setMode('heure'); });
 
   function calc(){
     var r = Math.max(parseFloat(revenu.value) || 0, 0);
     var c = Math.max(parseFloat(charges.value) || 0, 0);
     var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
-    var j = Math.min(Math.max(parseFloat(jours.value) || 1, 1), 260);
+    var cap = CAP[mode];
+    var cnt = Math.min(Math.max(parseFloat(capacite.value) || 1, cap.min), cap.max);
 
     tauxVal.textContent = t + ' %';
 
     var revenuAnnuel = r * 12;
     var chargesAnnuel = c * 12;
     var caNecessaire = (revenuAnnuel + chargesAnnuel) / (1 - t / 100);
-    var tjm = caNecessaire / j;
-    var th = tjm / 7;
+    var primaire = caNecessaire / cnt;
 
-    tjmOut.textContent = fmt(tjm) + ' €';
-    thOut.textContent = fmt(th) + ' €/h';
-    formulaOut.textContent = '(' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + t + ' %) ÷ ' + j + ' j = ' + fmt(tjm) + ' €/j';
+    if (mode === 'jour') {
+      var th = primaire / HEURES_PAR_JOUR;
+      resultLabel.textContent = 'TJM minimum';
+      primaryOut.innerHTML = fmt(primaire) + ' €';
+      resultSub.textContent = 'par jour facturé, pour ne pas être en dessous de vos charges';
+      resultSecondary.innerHTML = 'Soit <b>' + fmt(th) + ' €/h</b> sur une base de 7 h par jour';
+      formulaOut.textContent = '(' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + t + ' %) ÷ ' + cnt + ' j = ' + fmt(primaire) + ' €/j';
+    } else {
+      var tjm = primaire * HEURES_PAR_JOUR;
+      resultLabel.textContent = 'Taux horaire minimum';
+      primaryOut.innerHTML = fmt(primaire) + ' €';
+      resultSub.textContent = 'par heure facturée, pour ne pas être en dessous de vos charges';
+      resultSecondary.innerHTML = 'Soit <b>' + fmt(tjm) + ' €/j</b> sur une base de 7 h par jour';
+      formulaOut.textContent = '(' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + t + ' %) ÷ ' + cnt + ' h = ' + fmt(primaire) + ' €/h';
+    }
   }
 
-  [revenu, charges, taux, jours].forEach(function(el){ el.addEventListener('input', calc); });
+  [revenu, charges, taux, capacite].forEach(function(el){ el.addEventListener('input', calc); });
 
-  jours.addEventListener('change', function(){
-    var v = parseFloat(jours.value);
-    var note = document.getElementById('joursNote');
-    if (isNaN(v)) { jours.value = 200; note.textContent = ''; }
-    else if (v > 260) { jours.value = 260; note.textContent = 'Ramené à 260 jours : c\'est le maximum de jours ouvrés dans une année.'; }
-    else if (v < 20) { jours.value = 20; note.textContent = 'Ramené à 20 jours, le minimum pris en compte.'; }
-    else { note.textContent = ''; }
+  capacite.addEventListener('change', function(){
+    var cap = CAP[mode];
+    var v = parseFloat(capacite.value);
+    if (isNaN(v)) { capacite.value = cap.default; capaciteNote.textContent = ''; }
+    else if (v > cap.max) { capacite.value = cap.max; capaciteNote.textContent = 'Ramené à ' + cap.max + ' ' + cap.unit + " : c'est le maximum pris en compte."; }
+    else if (v < cap.min) { capacite.value = cap.min; capaciteNote.textContent = 'Ramené à ' + cap.min + ' ' + cap.unit + ', le minimum pris en compte.'; }
+    else { capaciteNote.textContent = ''; }
     calc();
   });
 
