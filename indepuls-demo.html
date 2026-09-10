@@ -16300,13 +16300,12 @@ document.addEventListener('keydown', function(e) {
 
   function _enterApp(user) {
     clearTimeout(_cdnFallback);
-    _authState = 'app';
-    isAnonymousDemoSession = false;
-    hasAccess(user).then(function(ok) {
-      if (!ok) { showPaywallScreen(user); return; }
-      setTimeout(addLogoutButton, 200);
-      loadFromCloud(user).then(hideOverlay);
-    });
+    // Ce fichier (indepuls-demo.html) n'est destine qu'a la demo anonyme du site vitrine. Si une
+    // vraie personne se connecte ici avec un compte existant (ex. en cliquant sur le lien Demo par
+    // habitude), on la bascule immediatement sur indepuls.html : la session Supabase est stockee
+    // dans le localStorage de l'origine (pas lie a ce fichier precis), donc aucune reconnexion
+    // n'est necessaire, seule l'URL affichee change pour refleter qu'il ne s'agit plus d'une demo.
+    window.location.replace('indepuls.html');
   }
 
   function _enterLogin() {
