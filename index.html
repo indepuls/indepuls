@@ -85,7 +85,7 @@
   @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
 
   /* ---------- Section 2 — La bascule (fondu radial doux, piloté dans le temps, rejoué une fois) ---------- */
-  #s2{background:var(--navy); padding:90px 24px; text-align:center; position:relative; overflow:hidden;}
+  #s2{background:var(--navy); padding:24px; text-align:center; position:relative; overflow:hidden; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;}
   #s2 .bg-wash{
     position:absolute; inset:0; z-index:0;
     background:radial-gradient(circle at 50% 50%, var(--cream) 0%, var(--cream) var(--wash,0%), var(--navy) calc(var(--wash,0%) + 18%));
@@ -97,21 +97,21 @@
   }
   #s2 .tagline{
     position:relative; z-index:2; font-family:'Lato',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:2px;
-    color:var(--cream); font-size:clamp(11px,1.6vw,13px); margin:8px 0 0; opacity:0; transform:translateY(8px);
+    color:var(--cream); font-size:clamp(11px,1.6vw,13px); margin:22px 0 0; opacity:0; transform:translateY(8px);
     transition:opacity .8s var(--ease) .3s, transform .8s var(--ease) .3s, color .6s var(--ease) 1.05s;
   }
   #s2 .script{
     position:relative; z-index:2; font-family:'Dancing Script',cursive; font-style:italic; color:var(--cream);
-    font-size:clamp(18px,3vw,26px); margin:10px 0 30px; opacity:0; transform:translateY(10px);
+    font-size:clamp(18px,3vw,26px); margin:24px 0 50px; opacity:0; transform:translateY(10px);
     transition:opacity 1s var(--ease) .5s, transform 1s var(--ease) .5s, color .6s var(--ease) 1.2s;
   }
   #s2 .question{
     position:relative; z-index:2; font-family:'Playfair Display',serif; font-weight:800; font-style:italic; color:var(--cream);
-    font-size:clamp(30px,5.4vw,50px); margin:0 0 26px; opacity:0;
+    font-size:clamp(30px,5.4vw,50px); margin:0 0 50px; opacity:0;
     transition:opacity .8s var(--ease) 1.2s, color .6s var(--ease) 1.4s;
   }
   #s2 .promise{
-    position:relative; z-index:2; font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(20px,3.2vw,32px); line-height:1.5;
+    position:relative; z-index:2; font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(20px,3.2vw,32px); line-height:1.6;
     max-width:640px; margin:0 auto; opacity:0; transform:translateY(10px);
     transition:opacity 1s var(--ease) 2.4s, transform 1s var(--ease) 2.4s;
   }
