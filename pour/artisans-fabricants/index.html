@@ -299,5 +299,16 @@
 })();
 </script>
 
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  if(!/Instagram|FBAN|FBAV/i.test(ua)) return;
+  document.querySelectorAll('a[target="_blank"]').forEach(function(a){
+    var href = a.getAttribute('href') || '';
+    if(/indepuls(-demo)?\.html$/.test(href)) a.removeAttribute('target');
+  });
+})();
+</script>
+
 </body>
 </html>
