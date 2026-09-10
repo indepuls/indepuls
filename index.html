@@ -145,11 +145,23 @@
   #s3.play .line:nth-child(2){animation-delay:1.2s;}
   #s3.play .line:nth-child(3){animation-delay:2.4s;}
   #s3.play .line:nth-child(4){animation-delay:3.6s;}
+  #s3.play .line:nth-child(5){animation-delay:4.8s;}
 
   /* ---------- Section 4 — La révélation ---------- */
   #s4{background:var(--cream); padding:90px 24px 60px; text-align:center;}
   #s4 .score-block{max-width:600px; margin:0 auto;}
   #s4 .ring-wrap{position:relative; display:inline-block; border-radius:50%;}
+  #s4 .echo-frag{
+    position:absolute; top:50%; left:50%; font-family:'Playfair Display',serif; font-style:italic;
+    font-size:clamp(11px,1.8vw,13px); color:var(--navy); opacity:0; white-space:nowrap; pointer-events:none; z-index:3;
+    transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1);
+    transition:opacity 1.1s var(--ease), transform 1.1s var(--ease);
+  }
+  #s4.echoing .echo-frag{opacity:.4;}
+  #s4.echoed .echo-frag{
+    opacity:0; transform:translate(-50%,-50%) scale(.15);
+    transition:opacity .8s var(--ease), transform .8s var(--ease);
+  }
   #s4 svg{width:min(52vw,280px); height:min(52vw,280px); display:block;}
   #s4 .ring-num{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
@@ -318,7 +330,7 @@
   "operatingSystem": "Web",
   "url": "https://indepuls.fr/",
   "inLanguage": "fr",
-  "description": "Indépuls est un copilote de rentabilité pour les indépendants (freelances, artisans, revendeurs). Il calcule un Score de Santé à partir de l'activité réelle et répond à une seule question : est-ce que ça va ?",
+  "description": "Indépuls est un logiciel de rentabilité pour les indépendants (freelances, artisans, revendeurs). Il calcule un Score de Santé à partir de l'activité réelle et répond à une seule question : est-ce que ça va ?",
   "image": "https://indepuls.fr/assets/og-image.png",
   "offers": {
     "@type": "Offer",
@@ -341,7 +353,7 @@
     <div class="dropmenu">
       <a href="pour/artisans-batiment/index.html">Artisans du bâtiment</a>
       <a href="pour/evenementiel/index.html">Événementiel</a>
-      <a href="pour/services-creatifs/index.html">Services &amp; créatifs</a>
+      <a href="pour/services-creatifs/index.html">Temps &amp; expertise</a>
       <a href="pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
       <a href="pour/achat-revente/index.html">Achat &amp; revente</a>
     </div>
@@ -400,6 +412,7 @@
 <section id="s3" aria-label="Le quotidien d'un indépendant">
   <p class="line">Tu factures. Tu encaisses. Tu recommences.</p>
   <p class="line">Le doute, lui, ne bouge pas.</p>
+  <p class="line">Personne ne t'a jamais appris à lire tes propres chiffres.</p>
   <p class="line">Tu avances au feeling.</p>
   <p class="line">Et si tu n'avais qu'une seule chose à regarder&nbsp;?</p>
 </section>
@@ -408,6 +421,10 @@
 <section id="s4" aria-label="Le score">
   <div class="score-block">
     <div class="ring-wrap">
+      <span class="echo-frag" style="--tx:-130px; --ty:-70px;">Ça va aller.</span>
+      <span class="echo-frag" style="--tx:120px; --ty:-50px;">Et si ce client s'en va&nbsp;?</span>
+      <span class="echo-frag" style="--tx:-140px; --ty:60px;">J'ai encore travaillé ce week-end.</span>
+      <span class="echo-frag" style="--tx:130px; --ty:75px;">Pourquoi mon compte est vide&nbsp;?</span>
       <svg viewBox="0 0 200 200">
         <circle cx="100" cy="100" r="86" fill="none" stroke="#e4ddd0" stroke-width="14"/>
         <circle id="ringProgress" cx="100" cy="100" r="86" fill="none" stroke="#2d7a4f" stroke-width="14"
@@ -688,6 +705,11 @@
         else { paint4(97); s4.classList.remove('counting'); }
       };
       requestAnimationFrame(stepCount);
+      // Écho de la section 1 : quelques fragments du "bruit" reviennent brièvement puis
+      // convergent visuellement vers l'anneau, comme si le bruit du début se transformait
+      // littéralement en ce chiffre (effet prévu dès la bible créative d'origine, jamais construit).
+      s4.classList.add('echoing');
+      setTimeout(function(){ s4.classList.add('echoed'); }, 450);
     };
     if ('IntersectionObserver' in window) {
       var io4 = new IntersectionObserver(function(entries){
