@@ -1822,6 +1822,14 @@ Suite à la vérification Trends ci-dessus, deux actions concrètes de l'audit S
 - **Google Search Console configuré** : propriété `https://indepuls.fr` vérifiée par fichier HTML (méthode la plus simple vu que le repo n'a pas de build step, un fichier ajouté à la racine est servi tel quel). Deux fichiers de vérification laissés à la racine (`google9695d24cbd89da78.html` et `google91fa338559a3602f.html` — Google en a régénéré un second lors d'une nouvelle tentative de Faustine) : **ne jamais les supprimer**, ils gardent le statut de propriétaire confirmé. Sitemap (`sitemap.xml`) soumis avec succès. Données de performance à consulter à partir de mi-septembre 2026.
 - **Nouveau calculateur public `/outils-gratuits/combien-facturer/`** ("Combien facturer pour gagner votre objectif de revenu") : priorité n°1 des calculateurs identifiée dans l'audit ("combien facturer" confirmé fort et en croissance par Trends). Repris fidèlement de l'écran "Mes objectifs" du produit (rythme de travail réel : jours/semaine, heures/jour, semaines/an → CA mensuel à atteindre, TJM/taux horaire minimum, capacité facturable/mois, charges+impôts) plutôt qu'inventé une logique différente. Toggle jour/heure comme sur le calculateur TJM. Ajouté en premier dans le menu "Outils" des 17 pages du site + sitemap + lien croisé depuis le calculateur TJM.
 
+### SEO — Glossaire ajouté sans alourdir la nav (2026-09-11)
+Dernière action de l'audit SEO restante. Faustine a fait remonter à raison que la nav du site est déjà chargée (Métiers▾, Outils▾, Ressources▾ + 4 liens directs) — pas question d'y ajouter un onglet ou une entrée de dropdown de plus.
+
+- **Une seule page `/glossaire/`**, pas une par terme : 15 entrées (CA vs revenu net, charges professionnelles, coût de revient, cotisations sociales, marge, micro-entreprise vs régime réel, rentabilité, Score de Santé, seuil de franchise TVA, seuil de rentabilité, taux de remplissage, taux horaire, TJM, temps facturable vs temps de travail réel, trésorerie prévisionnelle), avec ancres + petite nav de saut rapide en haut de page.
+- **Lien uniquement dans le footer** (à côté de "À propos", entre lui et "Confidentialité") sur les 18 pages du site vitrine — zéro poids ajouté à la nav principale, mobile compris. Les 4 pages légales (CGU, mentions légales, confidentialité, sécurité) ont un footer différent et minimal, volontairement pas touché.
+- Chaque définition renvoie vers le calculateur ou guide concerné (maillage interne) plutôt que de rester une fiche isolée.
+- Vérifié : 568 liens internes re-scannés (0 cassé), les 15 ancres de la nav de saut rapide vérifiées contre les vrais ids, aucun débordement mobile.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
