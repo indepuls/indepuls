@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" sizes="32x32" href="https://indepuls.fr/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
+<link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossaire de la rentabilité indépendante · Indépuls</title>
+<meta name="description" content="TJM, taux horaire, seuil de rentabilité, trésorerie prévisionnelle, Score de Santé... Les termes de la rentabilité indépendante expliqués simplement, sans jargon inutile.">
+<link rel="canonical" href="https://indepuls.fr/glossaire/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; line-height:1.65;}
+  .wrap{max-width:1040px; margin:0 auto; padding:0 24px;}
+
+  nav.nav{
+    position:sticky; top:0; z-index:50; background:rgba(241,239,234,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid #e4ddd0;
+  }
+  nav.nav .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px; flex-wrap:wrap; row-gap:10px;}
+  nav.nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; color:var(--navy); text-decoration:none;}
+  nav.nav .links{display:flex; gap:20px; align-items:center; font-size:14.5px;}
+  nav.nav .links a{color:var(--navy); text-decoration:none; opacity:.75;}
+  nav.nav .links a.active{opacity:1; border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .links a:hover{opacity:1;}
+  nav.nav .cta{background:var(--prune); color:#fff; padding:9px 18px; border-radius:999px; font-weight:700; font-size:14px;}
+  @media(max-width:680px){ nav.nav .links{gap:10px 14px; font-size:13px; width:100%; flex-wrap:wrap;} nav.nav .cta{padding:8px 12px;} }
+
+  nav.nav .dropdown{position:relative;}
+  nav.nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; color:var(--navy); font-size:14.5px; opacity:.75; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0; -webkit-tap-highlight-color:transparent;}
+  nav.nav .dropbtn:hover{opacity:1;}
+  nav.nav .dropdown.open .dropbtn, nav.nav .dropdown.has-active .dropbtn{opacity:1;}
+  nav.nav .dropdown.has-active .dropbtn{border-bottom:2px solid var(--prune); padding-bottom:2px;}
+  nav.nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
+  nav.nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
+  nav.nav .dropbtn:focus{outline:none;}
+  nav.nav .dropbtn:focus-visible{outline:2px solid currentColor; outline-offset:3px; border-radius:4px;}
+  nav.nav .dropmenu{position:absolute; top:calc(100% + 14px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 12px 30px rgba(20,21,56,.12); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  nav.nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; opacity:1; white-space:nowrap; color:var(--navy); text-decoration:none;}
+  nav.nav .dropmenu a:hover{background:var(--cream);}
+  nav.nav .dropmenu a.active{color:var(--prune); font-weight:700;}
+  @media(max-width:680px){
+    nav.nav .dropdown{position:static;}
+    nav.nav .dropmenu{
+      position:static; opacity:0; visibility:hidden; max-height:0; overflow:hidden; transform:none;
+      box-shadow:none; border:none; padding:0; margin:0; min-width:0; background:none; display:block;
+      transition:max-height .25s var(--ease), opacity .2s var(--ease);
+    }
+    nav.nav .dropdown.open .dropmenu{opacity:1; visibility:visible; max-height:320px; padding:8px 0 4px;}
+    nav.nav .dropmenu a{padding:8px 0; display:block; border-radius:0; font-size:13.5px; opacity:.8; white-space:normal;}
+    nav.nav .dropmenu a:hover, nav.nav .dropmenu a.active{opacity:1; background:none;}
+  }
+
+  header.hero{padding:60px 24px 10px;}
+  header.hero .wrap{max-width:760px;}
+  header.hero .eyebrow{font-family:'Dancing Script',cursive; color:var(--prune); font-style:italic; font-size:20px; display:block; margin-bottom:10px;}
+  header.hero h1{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(28px,4.4vw,44px); margin:0 0 18px; line-height:1.2;}
+  header.hero p{font-size:16px; color:#3a3a52; max-width:640px;}
+
+  .termnav{position:sticky; top:73px; z-index:40; background:var(--cream); border-bottom:1px solid #e4ddd0; padding:14px 0; margin-top:30px;}
+  .termnav .inner{max-width:1040px; margin:0 auto; padding:0 24px; display:flex; flex-wrap:wrap; gap:8px; overflow-x:auto;}
+  .termnav a{flex:none; font-size:12.5px; font-weight:700; color:var(--navy); opacity:.7; text-decoration:none; padding:6px 13px; border-radius:999px; border:1px solid #e4ddd0; background:#fff; transition:all .15s var(--ease); white-space:nowrap;}
+  .termnav a:hover{opacity:1; border-color:var(--prune); color:var(--prune);}
+
+  article{padding:36px 24px 40px;}
+  article .wrap{max-width:760px;}
+  .gterm{padding:26px 0; border-bottom:1px solid #e4ddd0; scroll-margin-top:130px;}
+  .gterm:last-child{border-bottom:none;}
+  .gterm h2{font-family:'Playfair Display',serif; font-weight:700; font-size:clamp(19px,2.6vw,23px); margin:0 0 4px; color:var(--navy);}
+  .gterm .abbr{font-size:12.5px; color:var(--beige); font-weight:700; letter-spacing:.3px; text-transform:uppercase; display:block; margin-bottom:10px;}
+  .gterm p{font-size:15.5px; color:#3a3a52; margin:0 0 10px;}
+  .gterm p:last-child{margin-bottom:0;}
+  .gterm a{color:var(--prune); font-weight:600; text-decoration:none;}
+  .gterm a:hover{text-decoration:underline;}
+  .gterm strong{color:var(--navy);}
+  .gterm .seealso{font-size:13.5px; color:#6b6b6b; margin-top:10px;}
+
+  section.cta{padding:20px 24px 70px;}
+  section.cta .box{max-width:760px; margin:0 auto; background:var(--navy); color:#fff; border-radius:16px; padding:36px 30px; text-align:center;}
+  section.cta h2{font-family:'Playfair Display',serif; font-size:clamp(21px,3vw,26px); margin:0 0 12px; color:#fff;}
+  section.cta p{color:#dcd9ec; font-size:15px; margin:0 0 22px;}
+  .btnrow{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{text-decoration:none; border-radius:999px; padding:14px 28px; font-weight:700; font-size:15px;}
+  .btn-primary{background:var(--prune); color:#fff;}
+  .btn-secondary{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4);}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px; font-size:12.5px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  footer a:hover{color:var(--cream);}
+
+  /* ---------- Reduced motion fallback ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:0.01ms !important; animation-iteration-count:1 !important;
+      transition-duration:0.01ms !important; scroll-behavior:auto !important;
+    }
+  }
+</style>
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Indépuls">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Glossaire de la rentabilité indépendante · Indépuls">
+<meta property="og:description" content="TJM, taux horaire, seuil de rentabilité, trésorerie prévisionnelle, Score de Santé... Les termes de la rentabilité indépendante expliqués simplement, sans jargon inutile.">
+<meta property="og:url" content="https://indepuls.fr/glossaire/">
+<meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="../index.html">Indépuls</a>
+    <div class="links">
+      <a href="../fonctionnalites/index.html">Fonctionnalités</a>
+      <a href="../tarifs/index.html">Tarifs</a>
+      <a href="../demo/index.html">Démo</a>
+      <a href="../faq/index.html">FAQ</a>
+      <div class="dropdown" id="metierDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../pour/artisans-batiment/index.html">Artisans du bâtiment</a>
+          <a href="../pour/evenementiel/index.html">Événementiel</a>
+          <a href="../pour/services-creatifs/index.html">Temps &amp; expertise</a>
+          <a href="../pour/artisans-fabricants/index.html">Fabricants &amp; artisanat</a>
+          <a href="../pour/achat-revente/index.html">Achat &amp; revente</a>
+        </div>
+      </div>
+      <div class="dropdown" id="outilsDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../outils-gratuits/combien-facturer/index.html">Combien facturer&nbsp;?</a>
+          <a href="../outils-gratuits/calculateur-tjm/index.html">Calculateur de TJM &amp; taux horaire</a>
+          <a href="../outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
+        </div>
+      </div>
+      <div class="dropdown" id="ressourcesDropdown">
+        <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
+        <div class="dropmenu">
+          <a href="../ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
+          <a href="../ressources/calculer-son-taux-horaire-reel/index.html">Guide du taux horaire réel</a>
+          <a href="../ressources/combien-mettre-de-cote/index.html">Guide de la trésorerie</a>
+          <a href="../ressources/temps-non-facture/index.html">Guide du temps non facturé</a>
+        </div>
+      </div>
+      <a href="../indepuls.html" target="_blank" rel="noopener">Mon espace</a>
+      <a class="cta" href="../indepuls.html" target="_blank" rel="noopener">Essayer</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Glossaire</span>
+    <h1>Le vocabulaire de la rentabilité indépendante</h1>
+    <p>TJM, taux horaire, seuil de rentabilité, trésorerie prévisionnelle&hellip; Des mots qu'on lit partout, rarement expliqués simplement. Quinze termes, chacun en quelques phrases, sans circularité (pas de définition qui utilise le mot lui-même pour l'expliquer).</p>
+  </div>
+</header>
+
+<nav class="termnav" aria-label="Accès rapide aux termes">
+  <div class="inner">
+    <a href="#ca-vs-revenu-net">CA vs revenu net</a>
+    <a href="#charges-professionnelles">Charges pro</a>
+    <a href="#cout-de-revient">Coût de revient</a>
+    <a href="#cotisations-sociales">Cotisations</a>
+    <a href="#marge">Marge</a>
+    <a href="#micro-entreprise">Micro / régime réel</a>
+    <a href="#rentabilite">Rentabilité</a>
+    <a href="#score-de-sante">Score de Santé</a>
+    <a href="#seuil-de-franchise-tva">Seuil de TVA</a>
+    <a href="#seuil-de-rentabilite">Seuil de rentabilité</a>
+    <a href="#taux-de-remplissage">Taux de remplissage</a>
+    <a href="#taux-horaire">Taux horaire</a>
+    <a href="#tjm">TJM</a>
+    <a href="#temps-facturable">Temps facturable</a>
+    <a href="#tresorerie-previsionnelle">Trésorerie prévisionnelle</a>
+  </div>
+</nav>
+
+<article>
+  <div class="wrap">
+
+    <div class="gterm" id="ca-vs-revenu-net">
+      <h2>CA (chiffre d'affaires) vs revenu net</h2>
+      <p>Le <strong>chiffre d'affaires</strong> est le total de ce que vous facturez ou encaissez, avant toute déduction. Le <strong>revenu net</strong> est ce qu'il vous reste vraiment une fois les charges professionnelles, les cotisations sociales et les impôts payés.</p>
+      <p>Un CA élevé ne dit rien sur ce qui reste en poche : deux indépendants au même CA peuvent avoir un revenu net très différent selon leurs charges et leur statut. C'est la confusion la plus fréquente sur la santé d'une activité.</p>
+      <div class="seealso">Voir aussi : <a href="../outils-gratuits/combien-facturer/index.html">calculateur d'objectif de CA</a> · <a href="../ressources/savoir-si-son-activite-est-rentable/index.html">guide de la rentabilité</a></div>
+    </div>
+
+    <div class="gterm" id="charges-professionnelles">
+      <h2>Charges professionnelles</h2>
+      <p>Tout ce qui sert votre activité sans jamais revenir en poche : outils et logiciels, assurance professionnelle, local, déplacements, sous-traitance, formations. Elles se déduisent du chiffre d'affaires avant de calculer ce qu'il vous reste vraiment.</p>
+      <p>À ne pas confondre avec les cotisations sociales, qui sont un prélèvement obligatoire lié à votre statut, pas une dépense que vous choisissez.</p>
+    </div>
+
+    <div class="gterm" id="cout-de-revient">
+      <h2>Coût de revient (ou prix de revient)</h2>
+      <p>Ce que coûte réellement la réalisation d'un produit ou d'une prestation : matières, fournitures, mais aussi le temps de travail valorisé à votre taux horaire. C'est le chiffre à connaître avant de fixer un prix de vente &mdash; en dessous, chaque vente fait perdre de l'argent.</p>
+      <p>Particulièrement central pour les métiers de fabrication et d'artisanat, où le coût matière peut masquer un temps de travail sous-évalué.</p>
+      <div class="seealso">Voir aussi : <a href="../pour/artisans-fabricants/index.html">Indépuls pour fabricants &amp; artisanat</a></div>
+    </div>
+
+    <div class="gterm" id="cotisations-sociales">
+      <h2>Cotisations sociales (URSSAF)</h2>
+      <p>Le prélèvement obligatoire calculé sur votre chiffre d'affaires (en micro-entreprise) ou votre rémunération (en société), qui finance votre protection sociale : retraite, santé, formation. Le taux exact dépend de votre statut et de votre activité.</p>
+      <p>Ces cotisations sont dues même si l'argent a déjà été dépensé &mdash; les provisionner au fil de l'eau évite la mauvaise surprise du trimestre où tout tombe en même temps.</p>
+      <div class="seealso">Voir aussi : <a href="../ressources/combien-mettre-de-cote/index.html">guide de la trésorerie</a></div>
+    </div>
+
+    <div class="gterm" id="marge">
+      <h2>Marge</h2>
+      <p>La différence entre le prix de vente et le coût de revient. Une marge peut se lire en valeur (30 € gagnés par unité vendue) ou en pourcentage (30 % du prix de vente). Sans elle, un volume de ventes élevé peut très bien ne rapporter presque rien.</p>
+    </div>
+
+    <div class="gterm" id="micro-entreprise">
+      <h2>Micro-entreprise vs régime réel</h2>
+      <p>La <strong>micro-entreprise</strong> est un statut simplifié : cotisations calculées en pourcentage du chiffre d'affaires encaissé, comptabilité allégée, mais un plafond de CA à ne pas dépasser. Le <strong>régime réel</strong> (EURL, SASU&hellip;) impose une comptabilité complète mais permet de déduire les charges réelles, souvent plus avantageux à partir d'un certain niveau d'activité ou de charges.</p>
+      <p>Le bon choix dépend du volume d'activité et du niveau de charges réelles &mdash; il n'y a pas de statut universellement meilleur.</p>
+    </div>
+
+    <div class="gterm" id="rentabilite">
+      <h2>Rentabilité</h2>
+      <p>Une activité est rentable quand ce qu'elle rapporte réellement &mdash; une fois le temps passé et les charges déduits &mdash; dépasse ce dont vous avez besoin pour vivre et la faire tourner. Ce n'est ni le chiffre d'affaires, ni le nombre de clients : c'est ce qui reste, rapporté au temps qu'il a fallu pour l'obtenir.</p>
+      <div class="seealso">Voir aussi : <a href="../ressources/savoir-si-son-activite-est-rentable/index.html">guide complet de la rentabilité</a></div>
+    </div>
+
+    <div class="gterm" id="score-de-sante">
+      <h2>Score de Santé</h2>
+      <span class="abbr">Vocabulaire Indépuls</span>
+      <p>L'indicateur unique d'Indépuls, qui répond à une seule question : est-ce que votre activité va bien&nbsp;? Il combine quatre piliers &mdash; rentabilité, remplissage, trésorerie et visibilité commerciale &mdash; calculés à partir de vos missions et encaissements réels, jamais d'une estimation.</p>
+      <div class="seealso">Voir aussi : <a href="../fonctionnalites/index.html">ce qu'Indépuls fait vraiment</a></div>
+    </div>
+
+    <div class="gterm" id="seuil-de-franchise-tva">
+      <h2>Seuil de franchise TVA</h2>
+      <p>Le plafond de chiffre d'affaires annuel en dessous duquel une micro-entreprise ne facture pas la TVA à ses clients. Le dépasser change la façon de facturer (TVA à ajouter, à déclarer, à reverser) &mdash; un changement à anticiper, pas à découvrir après coup.</p>
+      <p>Le montant exact évolue régulièrement selon la réglementation en vigueur : mieux vaut vérifier le chiffre officiel à jour plutôt que se fier à un montant mémorisé.</p>
+    </div>
+
+    <div class="gterm" id="seuil-de-rentabilite">
+      <h2>Seuil de rentabilité</h2>
+      <p>Le chiffre d'affaires minimum à atteindre pour couvrir vos charges et votre objectif de revenu, ni plus ni moins. En dessous, chaque mission supplémentaire ne fait que combler un manque ; au-dessus, elle commence à construire quelque chose.</p>
+      <div class="seealso">Voir aussi : <a href="../outils-gratuits/combien-facturer/index.html">calculateur d'objectif de CA</a></div>
+    </div>
+
+    <div class="gterm" id="taux-de-remplissage">
+      <h2>Taux de remplissage</h2>
+      <p>La proportion de votre temps disponible réellement vendue à des clients, par rapport à votre capacité totale (jours ou heures que vous pourriez facturer). Un taux de remplissage bas signale une activité qui manque de missions ; un taux proche de 100&nbsp;% pendant longtemps signale au contraire un risque de surcharge, sans marge pour absorber un imprévu.</p>
+    </div>
+
+    <div class="gterm" id="taux-horaire">
+      <h2>Taux horaire (TH)</h2>
+      <p>Le tarif minimum ou réel facturé pour une heure de travail. Utilisé par les indépendants qui vendent leur temps à l'heure plutôt qu'à la journée &mdash; coachs, assistantes virtuelles, consultants ponctuels. Se calcule comme le TJM, mais rapporté à l'heure plutôt qu'au jour.</p>
+      <div class="seealso">Voir aussi : <a href="../outils-gratuits/calculateur-tjm/index.html">calculateur de taux horaire</a> · <a href="../ressources/calculer-son-taux-horaire-reel/index.html">guide du taux horaire réel</a></div>
+    </div>
+
+    <div class="gterm" id="tjm">
+      <h2>TJM (Taux Journalier Moyen)</h2>
+      <p>Le tarif facturé pour une journée de travail. Le <strong>TJM minimum</strong> est le seuil en dessous duquel votre activité ne couvre plus vos charges et votre objectif de revenu ; le <strong>TJM réel</strong> est ce que vous facturez effectivement, une fois le temps réellement passé pris en compte &mdash; souvent plus bas que prévu une fois les imprévus comptés.</p>
+      <div class="seealso">Voir aussi : <a href="../outils-gratuits/calculateur-tjm/index.html">calculateur de TJM</a></div>
+    </div>
+
+    <div class="gterm" id="temps-facturable">
+      <h2>Temps facturable vs temps de travail réel</h2>
+      <p>Le <strong>temps facturable</strong> est celui que vous vendez à un client. Le <strong>temps de travail réel</strong> inclut tout le reste : prospection, devis, administratif, suivi de vos chiffres. Ce temps non facturé existe et pèse sur votre taux réel, même si aucune facture ne le mentionne jamais.</p>
+      <div class="seealso">Voir aussi : <a href="../ressources/temps-non-facture/index.html">guide du temps non facturé</a></div>
+    </div>
+
+    <div class="gterm" id="tresorerie-previsionnelle">
+      <h2>Trésorerie prévisionnelle</h2>
+      <p>L'anticipation de ce qui va entrer et sortir de votre compte dans les semaines et mois à venir &mdash; pas seulement ce qui s'y trouve aujourd'hui. Une trésorerie positive à l'instant T peut cacher un trou à venir si des cotisations ou des charges importantes tombent bientôt et n'ont pas été provisionnées.</p>
+      <div class="seealso">Voir aussi : <a href="../ressources/combien-mettre-de-cote/index.html">guide de la trésorerie</a></div>
+    </div>
+
+  </div>
+</article>
+
+<section class="cta">
+  <div class="box">
+    <h2>Voir ces chiffres appliqués à votre propre activité</h2>
+    <p>La démo tourne avec des données fictives réalistes, sans compte ni carte bancaire.</p>
+    <div class="btnrow">
+      <a class="btn btn-primary" href="../demo/index.html">Explorer la démo</a>
+      <a class="btn btn-secondary" href="../fonctionnalites/index.html">Voir les fonctionnalités</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../a-propos/index.html">À propos</a>
+  <a href="../glossaire/index.html" class="active">Glossaire</a>
+  <a href="../politique-confidentialite.html">Confidentialité</a>
+  <a href="../cgu.html">CGU</a>
+  <a href="../securite.html">Sécurité</a>
+  <a href="../mentions-legales.html">Mentions légales</a>
+  <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
+</footer>
+
+<script>
+(function(){
+  var dds = document.querySelectorAll('.dropdown');
+  dds.forEach(function(dd){
+    var btn = dd.querySelector('.dropbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var willOpen = !dd.classList.contains('open');
+      dds.forEach(function(o){ o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); }
+    });
+  });
+  document.addEventListener('click', function(){
+    dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { dds.forEach(function(dd){ dd.classList.remove('open'); dd.querySelector('.dropbtn').setAttribute('aria-expanded','false'); }); }
+  });
+})();
+</script>
+
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  if(!/Instagram|FBAN|FBAV/i.test(ua)) return;
+  document.querySelectorAll('a[target="_blank"]').forEach(function(a){
+    var href = a.getAttribute('href') || '';
+    if(/indepuls(-demo)?\.html$/.test(href)) a.removeAttribute('target');
+  });
+})();
+</script>
+
+</body>
+</html>
