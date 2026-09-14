@@ -583,17 +583,24 @@
       if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); } else { dd.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
     });
   });
+  var openScrollY = null;
   if (menuToggle && navGroup) {
     menuToggle.addEventListener('click', function(e){
       e.stopPropagation();
       var willOpen = !navGroup.classList.contains('open');
       closeAll();
-      if (willOpen) { navGroup.classList.add('open'); menuToggle.setAttribute('aria-expanded','true'); if (mainNavEl) mainNavEl.classList.add('menuOpen'); }
+      if (willOpen) { navGroup.classList.add('open'); menuToggle.setAttribute('aria-expanded','true'); if (mainNavEl) mainNavEl.classList.add('menuOpen'); openScrollY = window.scrollY; }
     });
     navGroup.addEventListener('click', function(e){ e.stopPropagation(); });
   }
   document.addEventListener('click', closeAll);
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAll(); });
+  window.addEventListener('scroll', function(){
+    if (openScrollY !== null && navGroup && navGroup.classList.contains('open') && Math.abs(window.scrollY - openScrollY) > 40) {
+      closeAll();
+      openScrollY = null;
+    }
+  }, {passive:true});
 })();
 (function(){
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
