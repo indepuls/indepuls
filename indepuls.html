@@ -1014,13 +1014,13 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card mt16">
         <div class="card-title mb4">Avis clients</div>
-        <div class="ts mb12" style="color:var(--tl)">Optionnel — utilisé pour pré-remplir le message proposé quand vous passez une mission ponctuelle en "Facturé". Rien n'est envoyé automatiquement, ni suivi.</div>
+        <div class="ts mb12" style="color:var(--tl)">Optionnel, utilisé pour pré-remplir le message proposé quand vous passez une mission ponctuelle en "Facturé". Rien n'est envoyé automatiquement, ni suivi.</div>
         <div class="fgroup">
-          <label class="flabel">Vos liens d'avis (Google, Trustpilot...) <span class="info-tip" title="Un lien par ligne, avec le nom de la plateforme si vous le souhaitez (ex. « Google : https://... »). Laissez vide si vous n'avez pas encore de page d'avis — un message de repli sera utilisé à la place.">?</span></label>
+          <label class="flabel">Vos liens d'avis (Google, Trustpilot...) <span class="info-tip" title="Un lien par ligne, avec le nom de la plateforme si vous le souhaitez (ex. « Google : https://... »). Laissez vide si vous n'avez pas encore de page d'avis, un message de repli sera utilisé à la place.">?</span></label>
           <textarea id="p-avis-liens" rows="2" placeholder="Ex : Google : https://g.page/r/...&#10;Trustpilot : https://trustpilot.com/..." style="width:100%;resize:vertical" oninput="saveParam('avisLiens',this.value)"></textarea>
         </div>
         <div class="fgroup">
-          <label class="flabel">Message personnalisé (optionnel) <span class="info-tip" title="Laissez vide pour utiliser le message par défaut d'Indépuls. Si vous rédigez le vôtre, utilisez {client} à l'endroit où insérer le nom du client — vous pourrez toujours ajuster le texte au moment de l'envoi.">?</span></label>
+          <label class="flabel">Message personnalisé (optionnel) <span class="info-tip" title="Laissez vide pour utiliser le message par défaut d'Indépuls. Si vous rédigez le vôtre, utilisez {client} à l'endroit où insérer le nom du client, vous pourrez toujours ajuster le texte au moment de l'envoi.">?</span></label>
           <textarea id="p-avis-message" rows="4" placeholder="Ex : Bonjour {client}, merci pour votre confiance..." style="width:100%;resize:vertical" oninput="saveParam('avisMessageTemplate',this.value)"></textarea>
         </div>
       </div>
@@ -2673,7 +2673,7 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
-<!-- MODAL DEMANDE D'AVIS (2026-09-14, nudge ponctuel et jetable — pas de tracking, voir CLAUDE.md) -->
+<!-- MODAL DEMANDE D'AVIS (2026-09-14, nudge ponctuel et jetable, pas de tracking, voir CLAUDE.md) -->
 <div class="modal-ov hidden" id="modal-avis">
   <div class="modal" style="max-width:480px">
     <div class="modal-title mb4" id="avis-modal-title">Demander un avis ?</div>
@@ -9977,7 +9977,7 @@ function updateFactTempsPrevuComparaison() {
 function confirmFacturation() {
   const m=DATA.missions.find(x=>x.id===pendingFactId);
   // Capturé AVANT d'écraser m.statut, indispensable pour détecter une vraie transition vers
-  // "fact" juste en dessous (nudge demande d'avis, 2026-09-14) — après coup ce serait toujours 'fact'.
+  // "fact" juste en dessous (nudge demande d'avis, 2026-09-14), après coup ce serait toujours 'fact'.
   const ancienStatut=m?m.statut:null;
   if(m){
     m.statut='fact'; m.dateFact=document.getElementById('fact-date-input').value||today();
@@ -9996,7 +9996,7 @@ function confirmFacturation() {
 // Nudge ponctuel et jetable, jamais un système de suivi : Indépuls prépare un message, la
 // personne fait le dernier geste elle-même (copier ou envoyer depuis son propre client mail).
 // mission.avisPropose empêche seulement une réapparition, il ne dit jamais si l'avis a été
-// envoyé ou obtenu (pas de champ dédié, pas de tableau de bord — hors périmètre volontairement).
+// envoyé ou obtenu (pas de champ dédié, pas de tableau de bord, hors périmètre volontairement).
 // Jamais déclenché rétroactivement (chargement, migration) : uniquement en sortie de
 // confirmFacturation(), sur une vraie transition vers "fact".
 let _avisMissionId=null;
@@ -10011,7 +10011,7 @@ function maybeProposerAvis(m, ancienStatut) {
   openModal('modal-avis');
 }
 // Message par défaut si aucun template personnalisé : {client} n'est utile que dans un template
-// personnalisé (Paramètres) — ici le nom est directement composé dans la formule de politesse.
+// personnalisé (Paramètres), ici le nom est directement composé dans la formule de politesse.
 // Client vide (mission sans nom saisi) → pas de "Bonjour ," disgracieux, juste "Bonjour,".
 function genererMessageAvis(m) {
   const clientLabel=m.client||'';
