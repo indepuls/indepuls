@@ -1845,6 +1845,12 @@ Faustine a renvoyé des captures montrant qu'un fond arrondi énorme recouvrait 
 - **Fix** : classe `menuOpen` ajoutée sur la nav en même temps que `navGroup.classList.add('open')` (et retirée avec), avec `.nav.enriched.menuOpen{border-radius:22px;}` sous 640px. Repéré en reproduisant exactement le scénario de Faustine (menu ouvert, scrollé jusqu'à `#s8`) via `getBoundingClientRect()` : le border-radius calculé était bien `999px` sur une boîte de 339×279px, confirmant le diagnostic avant même de toucher au code.
 - **Piège à retenir** : un `border-radius:999px` (pattern "pilule") n'est sûr que si la hauteur de la boîte reste petite et stable. Dès qu'un élément avec ce pattern peut changer de hauteur dynamiquement (contenu qui se déplie, liste qui s'allonge), prévoir un rayon fixe et raisonnable pour l'état "déplié" plutôt que de garder le même rayon extrême.
 
+### FEAT : le menu mobile ouvert se referme automatiquement au scroll (2026-09-14)
+Faustine a remonté que le menu déroulé restait ouvert et la suivait pendant le scroll (nav en `position:fixed`). Testé en reproduisant des taps réels (pas des `.click()` JS) : le clic sur le bouton et le tap en dehors fermaient déjà correctement le menu. Le vrai manque : rien ne le refermait quand on continuait simplement à scroller sans y penser, ce qui donne l'impression qu'il reste bloqué ouvert.
+
+- **Fix** : la position de scroll est mémorisée à l'ouverture du menu (`openScrollY`) ; un scroll de plus de 40px dans un sens ou l'autre referme automatiquement le panneau via un listener `scroll` dédié. Le seuil de 40px évite une fermeture sur le micro-tremblement du tap lui-même, tout en fermant dès un vrai geste de scroll.
+- Vérifié : scroll de 10px ne ferme pas, scroll de 50px+ ferme bien, JS valide, 568 liens internes 0 cassé.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
@@ -3321,6 +3327,14 @@ Une future bêta-testeuse en SAS (montée à plusieurs, pas encore rentable, auc
 **Implémentation** : `DATA.params.plusieursDirigeants` (défaut `false`, aucun garde-fou rétroactif nécessaire contrairement à `emailHebdoActif` — un défaut désactivé ne change jamais le comportement de quelqu'un qui n'a jamais coché la case). `toggleDirigeants(val)` sauvegarde puis ré-affiche les Paramètres. Labels ajustés : "🏢 Pilotage SASU" → "🏢 Pilotage SASU/SAS", "Rémunération nette / mois" → "Rémunération nette totale des dirigeants / mois", "Charges sociales sur ma rémunération" → "…sur la rémunération totale", infobulle enrichie d'une phrase. Même logique reprise sur la carte dashboard "🏦 Rémunération recommandée" ("Rémunération cible" → "Rémunération cible (total dirigeants)").
 
 **Vérifié** : suite complète (20 fichiers), 0 régression (aucun calcul touché). Navigateur (mode démo) : case cochée en SASU → tous les libellés basculent correctement (Paramètres + dashboard) ; bascule vers EURL → case masquée, libellés revenus à la version single-gérant malgré `plusieursDirigeants=true` toujours en base ; retour à SASU → libellés "total dirigeants" réapparaissent.
+
+### 2026-09-14 — FIX : bandeau "Calculateur d'objectifs" (SASU/EURL) éclaté en fragments
+
+Retour Faustine (capture) : la phrase bleue sous le calculateur d'objectifs (Paramètres → Mes objectifs, mode SASU/EURL) s'affichait découpée en morceaux disjoints au lieu d'un paragraphe normal. Même cause racine que le bug du lien Urssaf corrigé plus tôt (`.alert` est en `display:flex`) : le texte + les `<strong>` + une seconde ligne `<div class="ts">` étaient laissés comme enfants directs du conteneur flex, chacun devenant son propre item flex au lieu de rester dans le flux du texte.
+
+**Corrigé** : tout le contenu enveloppé dans un seul `<span>` (un seul enfant direct = plus de risque d'éclatement), même remède que pour le bandeau Urssaf. En profitant du même diagnostic, audit rapide des autres `.alert` du fichier mélangeant texte brut + `<strong>`/`<span>` sans enveloppe : 3 autres trouvés et corrigés préventivement (pas encore visuellement cassés dans leurs cas actuels, mais même fragilité structurelle) : "Dépenses récurrentes déjà incluses" (Mes objectifs), "Taux horaire minimum estimé" (Combien facturer ?), "reprĂ©sente X % de votre CA, une concentration à surveiller" (alerte client dominant du Score de Santé).
+
+**Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur (mode démo, SASU puis EURL) : le bandeau n'a plus qu'un seul enfant direct (`childCount:1` sur les deux statuts), texte confirmé comme un paragraphe continu.
 
 ### 2026-09-14 — FEATURE : "Demander un avis", nudge ponctuel après facturation, jamais un CRM
 
