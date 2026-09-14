@@ -53,7 +53,7 @@
   .nav .extra{display:none;}
   .navGroup{display:contents;}
   .menuToggle{display:none;}
-  .menuToggle{-webkit-tap-highlight-color:transparent;}
+  .menuToggle{-webkit-tap-highlight-color:transparent; appearance:none; -webkit-appearance:none; background:none;}
   .menuToggle:focus{outline:none;}
   .menuToggle:focus-visible{outline:2px solid currentColor; outline-offset:3px; border-radius:6px;}
   @media(max-width:640px){
@@ -74,7 +74,7 @@
   }
   .nav .dropdown{position:relative;}
   .nav.enriched .dropdown{display:inline-flex; align-items:center;}
-  .nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; font-size:14px; color:var(--cream); opacity:.8; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0 0 2px; border-bottom:1px solid rgba(241,239,234,.4); -webkit-tap-highlight-color:transparent;}
+  .nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; font-size:14px; color:var(--cream); opacity:.8; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0 0 2px; border-bottom:1px solid rgba(241,239,234,.4); -webkit-tap-highlight-color:transparent; appearance:none; -webkit-appearance:none;}
   .nav .dropbtn:hover, .nav .dropdown.open .dropbtn{opacity:1;}
   .nav .dropbtn:focus{outline:none;}
   .nav .dropbtn:focus-visible{outline:2px solid currentColor; outline-offset:3px; border-radius:4px;}
@@ -195,7 +195,6 @@
   #s4 .kpi-glimpse{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:22px 0 0; opacity:1; transition:opacity .8s var(--ease) .15s;}
   #s4 .kpi-glimpse .chip{background:#fff; border:1px solid #e4ddd0; border-radius:999px; padding:8px 16px; font-size:12.5px; color:#6b6b6b;}
   #s4 .kpi-glimpse .chip b{color:var(--navy); font-weight:700; margin-left:4px;}
-  #s4.counting .ring-sub, #s4.counting .proof-lead, #s4.counting .kpi-glimpse, #s4.counting .proof{opacity:0;}
 
   /* ---------- Section 4 — Le calcul, visible sans clic ---------- */
   #s4 .proof{
@@ -367,7 +366,7 @@
 
 <nav class="nav" id="mainNav">
   <span class="brand">Indépuls</span>
-  <button type="button" class="menuToggle extra" id="menuToggle" aria-haspopup="true" aria-expanded="false" aria-controls="navGroup" aria-label="Menu">☰</button>
+  <button type="button" class="menuToggle" id="menuToggle" aria-haspopup="true" aria-expanded="false" aria-controls="navGroup" aria-label="Menu">☰</button>
   <div class="navGroup" id="navGroup">
     <a href="fonctionnalites/index.html" class="extra">Fonctionnalités</a>
     <a href="tarifs/index.html" class="extra">Tarifs</a>
