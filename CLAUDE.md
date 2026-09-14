@@ -1851,6 +1851,13 @@ Faustine a remonté que le menu déroulé restait ouvert et la suivait pendant l
 - **Fix** : la position de scroll est mémorisée à l'ouverture du menu (`openScrollY`) ; un scroll de plus de 40px dans un sens ou l'autre referme automatiquement le panneau via un listener `scroll` dédié. Le seuil de 40px évite une fermeture sur le micro-tremblement du tap lui-même, tout en fermant dès un vrai geste de scroll.
 - Vérifié : scroll de 10px ne ferme pas, scroll de 50px+ ferme bien, JS valide, 568 liens internes 0 cassé.
 
+### FEAT : menu repliable (hamburger) étendu aux 17 autres pages du site (2026-09-14)
+En creusant le fix ci-dessus, la vraie capture d'écran de Faustine montrait en fait la page **Fonctionnalités**, pas l'accueil. Découverte importante : seule la page d'accueil avait un menu qui se replie sur mobile. Les 17 autres pages (Fonctionnalités, Tarifs, Démo, FAQ, pages métiers, outils, ressources, glossaire) n'ont jamais eu ce mécanisme : elles affichaient tous les liens en permanence, empilés sur 2-3 lignes en haut de l'écran, sans jamais se réduire. Ce que Faustine décrivait comme "le menu reste ouvert" n'était donc pas un bug du toggle, mais l'absence totale de toggle sur ces pages.
+
+- **Fix** : repris exactement le pattern déjà en place sur l'accueil (bandeau compact marque + ☰ + Mon espace + Essayer, reste des liens replié derrière le bouton) sur les 17 pages restantes. Fermeture au clic dehors, à Échap, et au scroll (même seuil de 40px). Rendu desktop strictement inchangé (le bouton ☰ reste caché au-dessus de 680px, `order` CSS repositionne visuellement les éléments sans toucher au DOM).
+- **Piège en généralisant à 18 fichiers** : le gap CSS de `.links` variait d'une page à l'autre (20px/22px/26px selon le nombre d'items visibles à l'origine) et une page (`faq/index.html`) avait un `max-width:1040px` supplémentaire sur `.wrap` que les autres n'avaient pas. Un script de transformation trop rigide aurait raté ces variantes silencieusement : vérifier après coup qu'aucun fichier n'a été sauté (`grep -c 'id="menuToggle"'` doit renvoyer 1 sur chacun) plutôt que de faire confiance au rapport du script seul.
+- Vérifié : JS valide sur les 18 fichiers, 568 liens internes 0 cassé, un seul bouton ☰ par page confirmé, comportement testé en direct (ouverture, sous-menu Métiers en place, fermeture au scroll) sur des pages à profondeurs de chemin différentes (racine, 1 niveau, 2 niveaux).
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
