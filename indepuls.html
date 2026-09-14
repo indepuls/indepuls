@@ -1233,7 +1233,7 @@ html,body{overflow-x:hidden;}
           <input type="number" id="p-charges-compl" step="100" min="0" oninput="saveParam('chargesAnnuellesCompl',+this.value);recalcObjectifsDebounced()" placeholder="Ex : 1 200">
           <div class="ts mt4" style="color:var(--tl);line-height:1.6">Ajoutez ici une estimation annuelle de dépenses non récurrentes ou exceptionnelles qui ne sont pas rentrées dans l'onglet « Dépenses » : formation, matériel, ordinateur, séminaire, shooting photo, imprévus…</div>
         </div>
-        <div class="alert al-info mb12">💡 Dépenses récurrentes déjà incluses : <strong><span id="dep-rec-display">—</span> / mois</strong> (depuis l'onglet Dépenses). Les charges complémentaires ci-dessus s'y ajoutent.</div>
+        <div class="alert al-info mb12"><span>💡 Dépenses récurrentes déjà incluses : <strong><span id="dep-rec-display">—</span> / mois</strong> (depuis l'onglet Dépenses). Les charges complémentaires ci-dessus s'y ajoutent.</span></div>
         <div id="objectifs-result"></div>
       </div>
     </div>
@@ -6628,7 +6628,7 @@ function wScoreSante(d) {
         <div style="font-size:38px;margin-bottom:10px">⏳</div>
         <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Score disponible après votre ${tVocabMasculin()?'premier':'première'} ${tVocab('item').toLowerCase()}</div>
         <div style="font-size:12px;color:var(--tl);line-height:1.7;max-width:360px;margin:0 auto">Le score n'est calculé que lorsque vos données sont suffisantes pour produire une analyse pertinente.</div>
-        ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto">💡 Taux horaire minimum (brut) estimé d'après mes paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></div>`:''}
+        ${hasParamsP?`<div class="alert al-info" style="margin-top:14px;text-align:left;max-width:360px;margin-left:auto;margin-right:auto"><span>💡 Taux horaire minimum (brut) estimé d'après mes paramètres : <strong>${fmtE(thMinP,0)}/h</strong> · <strong>${fmtE(tjmMinP,0)}/j</strong></span></div>`:''}
         <div style="margin-top:16px"><button class="btn btn-acc btn-sm" onclick="navigate('missions')">📋 ${tVocab('createButton')}</button></div>
       </div>
     </div>`;
@@ -7254,7 +7254,7 @@ function wScoreSante(d) {
       // topMissionRecur est null et irVersEtSi se contente d'amener sur la carte, sans présélection.
       const topMissionRecur=getEtSiClientsRecurrents().find(m=>m.client===topCl);
       if(!_alertDismissed('clientDominant')) alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px"><span style="flex:1">⚠️ <strong>${topCl}</strong> représente <strong>${pctTop} %</strong> de votre CA, votre activité dépend fortement d'un seul client. Cherchez un nouveau client pour réduire cette dépendance.<br><span class="step-cta" style="margin-top:4px" onclick="navigate('missions')">Ajouter ${tVocab('item').toLowerCase()}</span> · <span class="step-cta" onclick="irVersEtSi(3,'${topMissionRecur?topMissionRecur.id:''}')">Simuler la perte de ce client</span></span>${_dismissBtn('clientDominant')}</div>`);
-    } else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px">👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA, une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</div>`);
+    } else if(pctTop>=40) alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span>👀 <strong>${topCl}</strong> représente ${pctTop} % de votre CA, une concentration à surveiller. Gardez au moins un autre client actif en parallèle.</span></div>`);
   }
   // Objectif mensuel en cours
   if(objNet>0){
@@ -13045,7 +13045,7 @@ function renderObjectifsResult() {
   // cible indépendant du nombre de mois réellement travaillés cette année précise ; seul le
   // total annuel affiché ("= X € / an") doit refléter le nombre de mois réels.
   const actMois=getActiveMonthsInYear();
-  const actMoisNote=actMois<12?` Mon activité n'est active que <strong>${actMois} mois</strong> cette année — l'objectif annuel ci-dessus en tient compte.`:'';
+  const actMoisNote=actMois<12?` Mon activité n'est active que <strong>${actMois} mois</strong> cette année, l'objectif annuel ci-dessus en tient compte.`:'';
   const depRec=getDepensesMoyenneMensuelle();
   const depRecEl=document.getElementById('dep-rec-display');
   if(depRecEl) depRecEl.textContent=depRec>0?fmtE(depRec):'0 €';
@@ -13081,8 +13081,8 @@ function renderObjectifsResult() {
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
         <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.objectifNetMensuel||0)} nets + ${p.coutRemunerationPct||82} %</div></div>
       </div>
-      <div class="alert al-info mt12">💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de ma rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + mes dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas mon net versé — c'est ce que la société doit encaisser pour tenir.${actMoisNote}
-      <div class="ts mt6" style="color:var(--tl)">Simulation indépendante de votre rémunération réelle (${fmtE(p.remunerationNette||0)}/mois, configurable dans l'onglet Fiscalité) — n'affecte ni votre tableau de bord ni vos calculs de trésorerie.</div></div>`;
+      <div class="alert al-info mt12"><span>💡 En ${DATA.params.statut==='eurl'?'EURL':'SASU'}, le CA à atteindre couvre le coût total de ma rémunération (<strong>${fmtE(coutRemuMens)}/mois</strong>) + mes dépenses (<strong>${fmtE(dep)}/mois</strong>). Ce n'est pas mon net versé, c'est ce que la société doit encaisser pour tenir.${actMoisNote}
+      <div class="ts mt6" style="color:var(--tl)">Simulation indépendante de votre rémunération réelle (${fmtE(p.remunerationNette||0)}/mois, configurable dans l'onglet Fiscalité), n'affecte ni votre tableau de bord ni vos calculs de trésorerie.</div></span></div>`;
     return;
   }
   const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
