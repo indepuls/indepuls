@@ -1838,6 +1838,13 @@ Trois retours de Faustine après revérification en live sur indepuls.fr.
 - **Texte autour du Score de Santé (section 4) illisible** : masqué pendant les 1,5s de comptage du score puis réapparu d'un coup, trop rapide pour être lu. Retrait du masquage : le contenu ("Zéro boîte noire. Vous voyez toujours le calcul.", les KPI en aperçu) est maintenant visible en continu, comme c'était déjà le cas pour les utilisateurs en mode "réduire les animations" (`prefers-reduced-motion`) : la version accessible était en fait la bonne version tout court.
 - Vérifié : JS valide, 568 liens internes 0 cassé, comportement confirmé à 1440px (menu correctement caché, nav enrichie) et en mobile (`appearance:none` effectif).
 
+### FIX : le menu mobile ouvert prenait la forme d'un dôme géant (2026-09-14)
+Faustine a renvoyé des captures montrant qu'un fond arrondi énorme recouvrait la page une fois le menu mobile déroulé (le fix `appearance:none` ci-dessus n'était pas le bon coupable ici, il restait un vrai bug distinct).
+
+- **Cause** : `.nav.enriched{border-radius:999px;}` est pensé pour la pilule compacte fermée (une ligne, ~50px de haut). Une fois `navGroup.open` ajouté, la même nav passe à ~280px de haut pour ~340px de large : un rayon de 999px sur une boîte presque carrée donne un dôme/blob au lieu d'un rectangle arrondi, avec le contenu de la page visible en transparence à travers.
+- **Fix** : classe `menuOpen` ajoutée sur la nav en même temps que `navGroup.classList.add('open')` (et retirée avec), avec `.nav.enriched.menuOpen{border-radius:22px;}` sous 640px. Repéré en reproduisant exactement le scénario de Faustine (menu ouvert, scrollé jusqu'à `#s8`) via `getBoundingClientRect()` : le border-radius calculé était bien `999px` sur une boîte de 339×279px, confirmant le diagnostic avant même de toucher au code.
+- **Piège à retenir** : un `border-radius:999px` (pattern "pilule") n'est sûr que si la hauteur de la boîte reste petite et stable. Dès qu'un élément avec ce pattern peut changer de hauteur dynamiquement (contenu qui se déplie, liste qui s'allonge), prévoir un rayon fixe et raisonnable pour l'état "déplié" plutôt que de garder le même rayon extrême.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
