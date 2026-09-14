@@ -1830,6 +1830,14 @@ Dernière action de l'audit SEO restante. Faustine a fait remonter à raison que
 - Chaque définition renvoie vers le calculateur ou guide concerné (maillage interne) plutôt que de rester une fiche isolée.
 - Vérifié : 568 liens internes re-scannés (0 cassé), les 15 ancres de la nav de saut rapide vérifiées contre les vrais ids, aucun débordement mobile.
 
+### FIX : Menu ☰ visible en desktop, rond natif de bouton, texte du Score de Santé illisible (2026-09-14)
+Trois retours de Faustine après revérification en live sur indepuls.fr.
+
+- **Menu ☰ visible sur desktop large une fois la nav "enrichie"** (pas seulement sous 640px comme prévu) : le bouton `menuToggle` portait aussi la classe générique `extra` (partagée avec les liens de nav classiques), capturée par `.nav.enriched .extra{display:inline}` qui n'est pas limitée au mobile. Piège à retenir : ne jamais réutiliser une classe de visibilité générique sur un élément qui a déjà sa propre règle de visibilité dédiée, les deux se battent en dehors du cas prévu. Classe `extra` retirée du bouton.
+- **Fond rond persistant autour des boutons de menu sur mobile** (hamburger et Métiers/Outils/Ressources) : `appearance` restait `auto` malgré `background:none`, donc le navigateur affichait son propre habillage natif de bouton. Ajout de `appearance:none; -webkit-appearance:none;` sur `.menuToggle` et `.dropbtn` (19 pages). À garder en tête pour tout futur `<button>` custom stylé : `background:none` seul ne suffit jamais, `appearance:none` est systématiquement nécessaire en plus.
+- **Texte autour du Score de Santé (section 4) illisible** : masqué pendant les 1,5s de comptage du score puis réapparu d'un coup, trop rapide pour être lu. Retrait du masquage : le contenu ("Zéro boîte noire. Vous voyez toujours le calcul.", les KPI en aperçu) est maintenant visible en continu, comme c'était déjà le cas pour les utilisateurs en mode "réduire les animations" (`prefers-reduced-motion`) : la version accessible était en fait la bonne version tout court.
+- Vérifié : JS valide, 568 liens internes 0 cassé, comportement confirmé à 1440px (menu correctement caché, nav enrichie) et en mobile (`appearance:none` effectif).
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
