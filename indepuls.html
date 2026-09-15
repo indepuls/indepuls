@@ -4103,12 +4103,6 @@ function guideMarkSeen(key) {
   DATA.onboardingSeen[key] = true;
   saveData();
 }
-// N'a de sens que pour une activité qui a une antériorité réelle avant l'année en cours : sinon
-// il n'y a simplement rien à compléter rétroactivement dans Historique.
-function guideShowHistoriqueStep() {
-  const d = DATA.params.dateOuverture;
-  return !!(d && d < DATA.currentYear + '-01');
-}
 function renderGuideActionsHTML() {
   const items = tVocab('items').toLowerCase();
   const rows = [
@@ -4124,12 +4118,10 @@ function renderGuideActionsHTML() {
     {key:'calendrier', icon:'📅', title:'Choisissez votre vue : Tableau, Calendrier ou Kanban',
       desc:`La page ${tVocab('items')} propose 3 vues interchangeables : Tableau (liste classique), Calendrier (vos sessions positionnées dans le temps, affine votre remplissage), Kanban (glisser-déposer par statut). Testez-les pour trouver celle qui vous convient.`,
       cta:tVocab('goTo'), action:"guideMarkSeen('calendrier');navigate('missions')"},
+    {key:'historique', icon:'📈', title:'Consultez votre historique',
+      desc:'Utile pour rattraper une saisie en retard (même sur un mois déjà passé, vos calculs se mettent à jour), ou tout simplement pour comparer votre évolution en cours d\'année, mois par mois.',
+      cta:'→ Aller dans Historique', action:"guideMarkSeen('historique');navigate('archives')"},
   ];
-  if (guideShowHistoriqueStep()) {
-    rows.push({key:'historique', icon:'📈', title:'Complétez votre historique',
-      desc:`Vous exercez depuis avant ${DATA.currentYear} : complétez vos mois passés dans Historique pour que vos calculs rétroactifs restent justes.`,
-      cta:'→ Aller dans Historique', action:"guideMarkSeen('historique');navigate('archives')"});
-  }
   const cards = rows.map(r => {
     const done = guideActionDone(r.key);
     return `<div class="step-card" style="${done?'border-left:3px solid var(--ok)':''}">

@@ -3396,7 +3396,9 @@ Suite directe de l'entrée précédente. Constat en creusant le code, à la dema
 
 **Retouches (retour Faustine sur capture)** : carte "Suivez votre temps" enrichie (elle était jugée trop légère pour un concept aussi central au calcul du taux horaire réel) : mentionne désormais les deux chronomètres (barre latérale + fiche de chaque mission) et le temps interne. Carte "calendrier" élargie en "Choisissez votre vue" pour couvrir les 3 vues de la page Missions (Tableau/Calendrier/Kanban), pas seulement le calendrier. Colonne "Vos outils" jugée "brouillon" visuellement : chaque outil reprend désormais le même encadré `.step-card` que la colonne actions, plus une 7ᵉ carte "Statistiques détaillées" pointant vers le panneau dépliable de la page Missions (top clients, répartition du temps, sources d'acquisition, précision d'estimation).
 
-**Question ouverte, non tranchée** : Faustine se demande si le suivi du temps ne mériterait pas de sortir des étapes facultatives pour devenir une étape obligatoire, ou au moins d'être expliqué au moment de la création de la 1ʳᵉ mission plutôt que dans la phase 2. Pas encore décidé.
+**Question ouverte, tranchée (mise de côté)** : Faustine se demandait si le suivi du temps ne mériterait pas de sortir des étapes facultatives pour devenir une étape obligatoire, ou au moins d'être expliqué au moment de la création de la 1ʳᵉ mission plutôt que dans la phase 2. Décision : laissé de côté pour l'instant, pas prioritaire.
+
+**Étape "historique" rendue inconditionnelle** (retour Faustine) : `guideShowHistoriqueStep()` supprimée, l'étape "Consultez votre historique" s'affiche désormais pour tout le monde, peu importe `dateOuverture`. Raison : ne sert pas seulement à rattraper une saisie rétroactive sur une activité ancienne, mais aussi à comparer son évolution en cours d'année, mois par mois, utile dès la première année d'activité. Texte reformulé en conséquence (titre "Consultez" plutôt que "Complétez", description couvrant les deux usages).
 
 ### 2026-09-08 — Nettoyage tirets cadratins dans le Score de Santé
 
