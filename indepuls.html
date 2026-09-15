@@ -4495,6 +4495,16 @@ function applyDefaults(data) {
   if (!data.categories) data.categories = def.categories;
   if (!data.missions) data.missions = def.missions;
   if (!data.revenus) data.revenus = {};
+  // Phase 2 de l'onboarding (2026-09-15) : champ neuf, jamais défini sur un compte préexistant.
+  // Sans ce garde-fou, tout bêta-testeur ayant déjà des missions ou des revenus verrait cette
+  // phase apparaître à sa prochaine connexion (bug remonté par Faustine, repéré sur le compte de
+  // son mari, utilisateur de longue date). Même principe que emailHebdoActif un peu plus haut :
+  // un champ neuf ne doit jamais changer rétroactivement le vécu d'un compte déjà en place.
+  if (data.onboardingSkipped === undefined) {
+    const _hasMissionsDeja = (data.missions||[]).some(m => !m.isManagement);
+    const _hasRevenuDeja = Object.keys(data.revenus||{}).length > 0;
+    data.onboardingSkipped = _hasMissionsDeja || _hasRevenuDeja;
+  }
   if (!data.depenses) data.depenses = [];
   if (!data.archives) data.archives = {};
   if (!data.bilans) data.bilans = {};
@@ -5652,14 +5662,10 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
   // jamais dupliqué) pour ne pas recréer la dérive constatée entre les deux versions existantes.
   if(!DATA.isExample && !DATA.onboardingSkipped && (hasMissions||hasRevenu)){
     document.getElementById('dashboard-content').innerHTML=`
-      <div class="card" style="padding:24px 28px;border:2px dashed var(--brd);margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
-          <div>
-            <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:19px;color:var(--pri);margin-bottom:4px">Encore quelques étapes, facultatives</h2>
-            <p style="color:var(--tl);font-size:13px">Aucune n'est obligatoire, ni dans un ordre précis. Vous les retrouverez à tout moment dans Guide & glossaire si vous êtes perdu·e.</p>
-          </div>
-          <button class="btn btn-acc btn-sm" style="flex-shrink:0" onclick="skipOnboardingGuide()">Passer ces étapes, accéder à mon tableau de bord →</button>
-        </div>
+      <div class="card" style="padding:24px 28px;border:2px dashed var(--brd);margin-bottom:16px;text-align:center">
+        <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:19px;color:var(--pri);margin-bottom:4px">Encore quelques étapes, facultatives</h2>
+        <p style="color:var(--tl);font-size:13px;margin-bottom:16px">Aucune n'est obligatoire, ni dans un ordre précis. Vous les retrouverez à tout moment dans Guide & glossaire si vous êtes perdu·e.</p>
+        <button class="btn btn-acc" style="font-size:14px;padding:13px 24px" onclick="skipOnboardingGuide()">Passer ces étapes, accéder à mon tableau de bord →</button>
       </div>
       ${renderGuideBodyHTML()}`;
     return;

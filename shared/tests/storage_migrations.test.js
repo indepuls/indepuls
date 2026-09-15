@@ -214,6 +214,33 @@ section('applyDefaults — emailHebdoActif=false déjà choisi explicitement →
   test('false explicite préservé', out.params.emailHebdoActif, false);
 }
 
+section('applyDefaults — onboardingSkipped : jamais imposé rétroactivement à un compte déjà actif (2026-09-15, retour Faustine)');
+{
+  // Compte préexistant avec des missions réelles, jamais eu ce champ (créé avant la phase 2 de
+  // l'onboarding) : doit être considéré comme déjà sorti de l'onboarding, sinon la phase 2
+  // apparaîtrait à la prochaine connexion de n'importe quel bêta-testeur actif.
+  const data = { params: {}, missions: [{ id: 'm1' }], revenus: {} };
+  const out = applyDefaults(data, { params: {} });
+  test('compte existant avec missions, champ absent → onboardingSkipped forcé à true', out.onboardingSkipped, true);
+}
+{
+  const data = { params: {}, missions: [{ id: 'm1', isManagement: true }], revenus: { '2026-01': {} } };
+  const out = applyDefaults(data, { params: {} });
+  test('compte existant avec revenus (mais missions uniquement de gestion), champ absent → true', out.onboardingSkipped, true);
+}
+section('applyDefaults — onboardingSkipped : compte réellement neuf reste false');
+{
+  const data = { params: {}, missions: [], revenus: {} };
+  const out = applyDefaults(data, { params: {} });
+  test('aucune mission ni revenu, champ absent → reste false (la phase 2 doit pouvoir s\'afficher)', out.onboardingSkipped, false);
+}
+section('applyDefaults — onboardingSkipped déjà présent → jamais écrasé');
+{
+  const data = { params: {}, missions: [{ id: 'm1' }], revenus: {}, onboardingSkipped: false };
+  const out = applyDefaults(data, { params: {} });
+  test('false explicite (personne dans la phase 2) préservé malgré des missions existantes', out.onboardingSkipped, false);
+}
+
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`Résultat : ${passed} tests passés, ${failed} échoués`);
 if (failed > 0) process.exit(1);

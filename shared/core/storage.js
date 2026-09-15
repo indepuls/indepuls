@@ -109,6 +109,16 @@ export function applyDefaults(data, defaultData, deps = {}) {
   if (!data.categories)    data.categories = def.categories;
   if (!data.missions)      data.missions = def.missions;
   if (!data.revenus)       data.revenus = {};
+  // Phase 2 de l'onboarding (2026-09-15) : champ neuf, jamais défini sur un compte préexistant.
+  // Sans ce garde-fou, tout bêta-testeur ayant déjà des missions ou des revenus verrait cette
+  // phase apparaître à sa prochaine connexion (bug remonté par Faustine, repéré sur le compte de
+  // son mari, utilisateur de longue date). Même principe que emailHebdoActif un peu plus haut :
+  // un champ neuf ne doit jamais changer rétroactivement le vécu d'un compte déjà en place.
+  if (data.onboardingSkipped === undefined) {
+    const _hasMissionsDeja = (data.missions || []).some(m => !m.isManagement);
+    const _hasRevenuDeja = Object.keys(data.revenus || {}).length > 0;
+    data.onboardingSkipped = _hasMissionsDeja || _hasRevenuDeja;
+  }
   if (!data.depenses)      data.depenses = [];
   if (!data.archives)      data.archives = {};
   if (!data.bilans)        data.bilans = {};
