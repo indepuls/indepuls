@@ -3436,6 +3436,15 @@ Retour Faustine, dans la continuité directe des chantiers précédents :
 
 **Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur, sur 4 profils : prestataire_services et artisan_batiment (ni lots ni retours), achat_revente (les deux), fabricant_serie (retours seul, pas de lots) → comportement conforme dans les 4 cas. Texte de l'étape dépenses confirmé.
 
+### 2026-09-15 — Guide onboarding : élargissement, puis distinction visuelle des 2 colonnes
+
+Deux retouches visuelles rapides de Faustine, dans la continuité :
+
+- **Largeur de page** : `max-width` de `page-notice` passé de 1400px à 1600px (trop d'espace vide sur les côtés en grand écran depuis l'ajout des 2 colonnes actions/outils).
+- **Distinction visuelle actions/outils** : les titres de section (`🧭 Pour aller plus loin` / `🛠️ Vos outils`) étaient réduits à 13px (override involontaire du `.card-title` par défaut, qui est déjà à 15px), jugés trop petits et le rendu global "plat". Chaque colonne est désormais encadrée dans son propre `.card` avec une bordure supérieure colorée (`var(--acc)` prune pour les actions, `var(--sec)` beige pour les outils), le titre remonté à 18px et coloré de la même teinte que sa colonne, et les pastilles d'icône des cartes "outils" reprennent `var(--sec)` (au lieu du `var(--acc)` par défaut de `.step-num`, partagé jusqu'ici avec la colonne actions sans distinction). Couleurs theme-aware (`--acc`/`--sec` varient selon les 9 thèmes existants), aucune couleur en dur.
+
+**Vérifié** : suite complète (20 fichiers), 0 régression (changements visuels uniquement). Navigateur, écran large (1727px) : les 2 colonnes remplissent bien l'espace, distinction de couleur confirmée par capture.
+
 ### 2026-09-08 — Nettoyage tirets cadratins dans le Score de Santé
 
 Retour Faustine ([[feedback_indepuls_eviter_tirets_cadratins]]) : plusieurs tirets cadratins ("—") repérés dans les textes visibles du Score de Santé (diagnostics piliers, "Action recommandée", alertes, méthodologies). Nettoyage opportuniste (pas de grande passe fichier entier) : ~30 occurrences remplacées par la ponctuation naturelle (virgule, deux-points, point) dans `wScoreSante()` — diagRent/advRent (marge/TJM/TH), diagRentMois, diagTreso/_tresoLigne (SASU/EURL), diagGlobal, priorite, alertLines (client dominant, objectif mensuel, échéances, ACRE), méthodologies (methRent/methTreso), et le séparateur client/description d'une ligne de missions (`join(' — ')` → `join(' · ')`, cohérent avec le séparateur déjà utilisé partout ailleurs dans l'app). Les `val:'—'` (placeholder "aucune donnée", convention UI standard) volontairement laissés tels quels — différent des tirets utilisés comme connecteur de phrase.

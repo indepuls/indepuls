@@ -4146,7 +4146,7 @@ function renderGuideActionsHTML() {
       </div>
     </div>`;
   }).join('');
-  return `<div class="card-title mb12" style="font-size:13px">🧭 Pour aller plus loin</div>${cards}`;
+  return `<div class="card-title mb16" style="font-size:18px;display:flex;align-items:center;gap:8px;color:var(--acc)">🧭 Pour aller plus loin</div>${cards}`;
 }
 function renderGuideOutilsHTML() {
   const item = tVocab('item').toLowerCase();
@@ -4167,14 +4167,14 @@ function renderGuideOutilsHTML() {
   tools.push({icon:'📈', term:'Statistiques détaillées', cta:tVocab('goTo'), action:"navigate('missions')",
     def:`Dépliez "Statistiques" en haut de la page ${tVocab('items')} pour le détail de l'année : répartition du temps travaillé, temps par catégorie, sources d'acquisition de vos clients, précision de vos estimations (temps prévu comparé au temps réel), et vos meilleurs clients ou offres.`});
   const cards = tools.map(t => `<div class="step-card">
-    <div class="step-num">${t.icon}</div>
+    <div class="step-num" style="background:var(--sec)">${t.icon}</div>
     <div class="step-body" style="flex:1">
       <h3>${t.term}</h3>
       <p>${t.def}</p>
       <span class="step-cta" onclick="${t.action}">${t.cta}</span>
     </div>
   </div>`).join('');
-  return `<div class="card-title mb12" style="font-size:13px">🛠️ Vos outils</div>${cards}`;
+  return `<div class="card-title mb16" style="font-size:18px;display:flex;align-items:center;gap:8px;color:var(--sec)">🛠️ Vos outils</div>${cards}`;
 }
 function renderGuideGlossaireHTML() {
   const items = tVocab('items').toLowerCase(), item = tVocab('item').toLowerCase();
@@ -4203,8 +4203,8 @@ function renderGuideGlossaireHTML() {
 }
 function renderGuideBodyHTML() {
   return `<div class="notice-cols mb16">
-    <div>${renderGuideActionsHTML()}</div>
-    <div>${renderGuideOutilsHTML()}</div>
+    <div class="card" style="border-top:4px solid var(--acc)">${renderGuideActionsHTML()}</div>
+    <div class="card" style="border-top:4px solid var(--sec)">${renderGuideOutilsHTML()}</div>
   </div>
   ${renderGuideGlossaireHTML()}`;
 }
