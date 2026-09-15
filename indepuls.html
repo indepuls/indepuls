@@ -4119,10 +4119,10 @@ function renderGuideActionsHTML() {
       desc:'Ajoutez ventes et revenus ponctuels pour alimenter votre tableau de bord et obtenir un revenu net fiable.',
       cta:'→ Aller dans Revenus', action:"navigate('revenus')"},
     {key:'temps', icon:'⏱', title:'Suivez votre temps',
-      desc:`Démarrez le chronomètre depuis la barre latérale pour suivre le temps passé sur vos ${items} et vos tâches de gestion.`,
+      desc:`Le cœur du calcul de votre taux horaire réel. Deux chronomètres à votre disposition : celui de la barre latérale (pour votre gestion, prospection, tout ce qui n'est pas facturable) et celui de chaque ${tVocab('item').toLowerCase()}, dans sa fiche. Ce temps interne compte aussi dans vos calculs : sans lui, vos heures de gestion resteraient invisibles et votre taux horaire réel serait surévalué.`,
       cta:tVocab('goTo'), action:"guideMarkSeen('temps');navigate('missions')"},
-    {key:'calendrier', icon:'📅', title:'Utilisez le calendrier',
-      desc:`Ajoutez des sessions à vos ${items} pour visualiser votre planning et affiner votre remplissage.`,
+    {key:'calendrier', icon:'📅', title:'Choisissez votre vue : Tableau, Calendrier ou Kanban',
+      desc:`La page ${tVocab('items')} propose 3 vues interchangeables : Tableau (liste classique), Calendrier (vos sessions positionnées dans le temps, affine votre remplissage), Kanban (glisser-déposer par statut). Testez-les pour trouver celle qui vous convient.`,
       cta:tVocab('goTo'), action:"guideMarkSeen('calendrier');navigate('missions')"},
   ];
   if (guideShowHistoriqueStep()) {
@@ -4159,10 +4159,15 @@ function renderGuideOutilsHTML() {
     def:'Suivi chronologique de tous vos encaissements, obligation légale pour les micro-entreprises. À activer dans Paramètres, onglet Fiscalité & charges.'});
   tools.push({icon:'📊', term:'Export comptable', cta:'→ Aller dans Paramètres', action:"navigate('params')",
     def:'Générez un export CSV ou PDF de vos recettes et dépenses pour votre expert-comptable, en un clic depuis Paramètres, onglet Fiscalité & charges.'});
-  const cards = tools.map(t => `<div style="margin-bottom:16px">
-    <div class="gterm">${t.icon} ${t.term}</div>
-    <div class="gdef">${t.def}</div>
-    <span class="step-cta" onclick="${t.action}">${t.cta}</span>
+  tools.push({icon:'📈', term:'Statistiques détaillées', cta:tVocab('goTo'), action:"navigate('missions')",
+    def:`Dépliez "Statistiques" en haut de la page ${tVocab('items')} pour le détail de l'année : répartition du temps travaillé, temps par catégorie, sources d'acquisition de vos clients, précision de vos estimations (temps prévu comparé au temps réel), et vos meilleurs clients ou offres.`});
+  const cards = tools.map(t => `<div class="step-card">
+    <div class="step-num">${t.icon}</div>
+    <div class="step-body" style="flex:1">
+      <h3>${t.term}</h3>
+      <p>${t.def}</p>
+      <span class="step-cta" onclick="${t.action}">${t.cta}</span>
+    </div>
   </div>`).join('');
   return `<div class="card-title mb12" style="font-size:13px">🛠️ Vos outils</div>${cards}`;
 }
