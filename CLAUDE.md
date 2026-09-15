@@ -3424,6 +3424,18 @@ Retour Faustine, repéré en créant un compte réel en septembre : le tableau d
 
 **Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur : compte réel créé en septembre avec une seule mission facturée en septembre (rien en août) → bandeau absent ; même compte avec une mission facturée en août ajoutée → bandeau réapparaît avec les bons montants.
 
+### 2026-09-15 — Guide onboarding, 3ᵉ retouche : dépenses/mission, lots, retours, récap dashboard
+
+Retour Faustine, dans la continuité directe des chantiers précédents :
+
+- **Étape "Ajoutez vos dépenses professionnelles"** (phase 1, obligatoire) : précision ajoutée sur le rattachement possible d'une dépense à une mission précise (champ "Rattacher à une mission" déjà existant sur le formulaire, jusqu'ici jamais mentionné dans l'onboarding).
+- **Carte "Suivez vos achats en lots"** (nouvelle, conditionnelle `achat_revente` uniquement, via `BUSINESS_PROFILE_MAP`) : les lots (`DATA.lots[]`, achat groupé de stock créé depuis Dépenses → onglet "Achats en lots") n'ont de sens que pour ce profil, cohérent avec le commentaire déjà présent dans le code ("achat_revente uniquement"). Signal de complétion réel (`DATA.lots.length>0`).
+- **Carte "Suivez vos retours et remboursements"** (nouvelle, conditionnelle `modules.objectif==='marge_commande'`, même condition que `updateNavRetours()`) : plus large que les lots, couvre fabricant_serie, artisan_commande et achat_revente, pas seulement le commerce. Simple "vu au clic" (pas de signal de complétion bon marché disponible).
+- **Carte finale "Repérez-vous sur votre tableau de bord"** (toujours affichée, dernière de la liste comme demandé) : résume en 4 phrases le Score de Santé, les alertes, le suivi des objectifs, "Argent à mettre de côté", plutôt que de laisser ces widgets sans aucune explication nulle part dans le guide.
+- 2 tirets cadratins trouvés au passage en creusant le code (libellé de dépense généré automatiquement pour un achat de lot, sous-titre de la page Retours clients), corrigés (nettoyage opportuniste).
+
+**Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur, sur 4 profils : prestataire_services et artisan_batiment (ni lots ni retours), achat_revente (les deux), fabricant_serie (retours seul, pas de lots) → comportement conforme dans les 4 cas. Texte de l'étape dépenses confirmé.
+
 ### 2026-09-08 — Nettoyage tirets cadratins dans le Score de Santé
 
 Retour Faustine ([[feedback_indepuls_eviter_tirets_cadratins]]) : plusieurs tirets cadratins ("—") repérés dans les textes visibles du Score de Santé (diagnostics piliers, "Action recommandée", alertes, méthodologies). Nettoyage opportuniste (pas de grande passe fichier entier) : ~30 occurrences remplacées par la ponctuation naturelle (virgule, deux-points, point) dans `wScoreSante()` — diagRent/advRent (marge/TJM/TH), diagRentMois, diagTreso/_tresoLigne (SASU/EURL), diagGlobal, priorite, alertLines (client dominant, objectif mensuel, échéances, ACRE), méthodologies (methRent/methTreso), et le séparateur client/description d'une ligne de missions (`join(' — ')` → `join(' · ')`, cohérent avec le séparateur déjà utilisé partout ailleurs dans l'app). Les `val:'—'` (placeholder "aucune donnée", convention UI standard) volontairement laissés tels quels — différent des tirets utilisés comme connecteur de phrase.
