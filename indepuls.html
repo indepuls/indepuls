@@ -1055,7 +1055,7 @@ html,body{overflow-x:hidden;}
               <option value="micro-bnc">Micro libérale (BNC) — professions libérales</option>
               <option value="micro-bic">Micro prestation de service (BIC)</option>
               <option value="micro-achat">Micro achat-revente (BIC commerce)</option>
-              <option value="sasu">SASU — Société par actions simplifiée</option>
+              <option value="sasu">SASU / SAS — Société par actions simplifiée</option>
               <option value="eurl">EURL — Entreprise unipersonnelle à responsabilité limitée</option>
             </select>
             <div class="ts mt8">Le choix du statut met automatiquement à jour vos taux de charges.</div>
@@ -2750,11 +2750,12 @@ html,body{overflow-x:hidden;}
       <p class="picker-sub" style="margin-bottom:8px;font-weight:600;font-size:14px;color:var(--text)">Votre statut juridique</p>
       <select id="picker-statut-select" class="picker-select">
         <option value="micro-bnc">Entreprise individuelle micro</option>
-        <option value="sasu">SASU</option>
+        <option value="sasu">SASU / SAS</option>
         <option value="eurl">EURL</option>
       </select>
     </div>
-    <button class="btn btn-acc picker-btn" onclick="pickerStep1Next()">Découvrir Indépuls →</button>
+    <button class="btn btn-acc picker-btn" onclick="pickerStep1NextReal()">Démarrer avec mes données →</button>
+    <button class="btn btn-out picker-btn" style="margin-top:10px" onclick="pickerStep1Next()">Voir d'abord une démonstration</button>
   </div>
 </div>
 
@@ -4155,6 +4156,27 @@ function pickerUpdateDesc() {
   } else {
     box.style.display = 'none';
   }
+}
+
+// Étape 1 → démarrage direct sans démo, atterrit sur le wizard 4 étapes déjà en place
+// (condition !DATA.isExample && !hasMissions && !hasRevenu dans wScoreSante/renderDashboard)
+function pickerStep1NextReal() {
+  const sel = document.getElementById('picker-metier-select');
+  const metier = sel ? sel.value : '';
+  if (!metier) { if (sel) sel.classList.add('field-invalid'); return; }
+  const statutChoisi = (document.getElementById('picker-statut-select')||{}).value || 'micro-bnc';
+  const statut = statutChoisi==='micro-bnc' ? getDefaultMicroStatut(metier) : statutChoisi;
+  applyStatutParams(statut);
+  applyProfile(metier);
+  // _needsProfilePick doit être désactivé explicitement ici : contrairement au mode démo
+  // (où DATA est réassigné à un objet frais qui ne porte jamais ce champ), on mute ici le
+  // même objet DATA que loadData() avait initialisé avec _needsProfilePick=true — sans ce
+  // reset, le picker réapparaîtrait au prochain rechargement (même correctif que le retour
+  // de données cloud, ligne ~15896).
+  DATA._needsProfilePick = false;
+  saveData();
+  document.getElementById('screen-profile-picker').classList.add('hidden');
+  renderAll();
 }
 
 // Étape 1 → démo directe + modal bienvenue
@@ -5590,7 +5612,7 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
         </div>
         <div style="max-width:500px;margin:0 auto">
           ${step1}
-          ${step(2,hasParams,'⚙️','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs','Configurer',"navigate('params')")}
+          ${step(2,hasParams,'⚙️','Configurez votre activité','Revenu cible · régime fiscal · rythme de travail · objectifs. Comptez 5 à 10 minutes : ces informations conditionnent la justesse de tous vos calculs. Vous pourrez toujours les modifier plus tard.','Configurer',"navigate('params')")}
           ${step(3,hasDep,'💳','Ajoutez vos dépenses professionnelles','Logiciels · assurances · comptable · abonnements…','Ajouter des dépenses',"navigate('depenses')")}
           ${step(4,false,'📋',tVocab('firstItem'),'Étape finale : débloque le tableau de bord complet et le Score de Santé',tVocab('createButton'),"navigate('missions')")}
         </div>
