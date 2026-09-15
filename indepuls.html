@@ -4108,7 +4108,7 @@ function renderGuideActionsHTML() {
       desc:'Ajoutez ventes et revenus ponctuels pour alimenter votre tableau de bord et obtenir un revenu net fiable.',
       cta:'→ Aller dans Revenus', action:"navigate('revenus')"},
     {key:'temps', icon:'⏱', title:'Suivez votre temps',
-      desc:`Le cœur du calcul de votre taux horaire réel. Deux chronomètres à votre disposition : celui de la barre latérale (pour votre gestion, prospection, tout ce qui n'est pas facturable) et celui de chaque ${tVocab('item').toLowerCase()}, dans sa fiche. Ce temps interne compte aussi dans vos calculs : sans lui, vos heures de gestion resteraient invisibles et votre taux horaire réel serait surévalué.`,
+      desc:`Le cœur du calcul de votre taux horaire réel. Un seul chronomètre, démarrable depuis la barre latérale (en choisissant sur quoi : une ${tVocab('item').toLowerCase()} en cours, ou "Mon entreprise" pour votre gestion, prospection, tout ce qui n'est pas facturable) ou directement depuis la fiche de chaque ${tVocab('item').toLowerCase()}. Le temps sur "Mon entreprise" compte aussi dans vos calculs : sans lui, vos heures de gestion resteraient invisibles et votre taux horaire réel serait surévalué.`,
       cta:tVocab('goTo'), action:"guideMarkSeen('temps');navigate('missions')"},
     {key:'calendrier', icon:'📅', title:'Choisissez votre vue : Tableau, Calendrier ou Kanban',
       desc:`La page ${tVocab('items')} propose 3 vues interchangeables : Tableau (liste classique), Calendrier (vos sessions positionnées dans le temps, affine votre remplissage), Kanban (glisser-déposer par statut). Testez-les pour trouver celle qui vous convient.`,
