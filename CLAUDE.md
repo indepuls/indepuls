@@ -3416,6 +3416,14 @@ Suite directe de l'entrée précédente. Constat en creusant le code, à la dema
 
 **Leçon pour la suite** : tout nouveau champ `DATA.*` qui conditionne l'affichage d'un écran doit systématiquement se poser la question "que devient sa valeur pour un compte qui existe déjà avant ce chantier ?", pas seulement "quelle est sa valeur par défaut pour un compte tout neuf" ; `emailHebdoActif` avait déjà posé cette même question, `onboardingSkipped` aurait dû la reprendre dès l'écriture initiale.
 
+### 2026-09-15 — FIX : bandeau "Bilan du mois" affiché à 0€ pour un compte tout juste créé
+
+Retour Faustine, repéré en créant un compte réel en septembre : le tableau de bord affichait "Bilan Août 2026" entièrement à 0€, mois pendant lequel le compte n'existait même pas. Cause : `renderDashboard()` affiche ce bandeau dès que `DATA.bilanDismissed!==todayKey && !DATA.isExample`, sans jamais vérifier s'il y avait quoi que ce soit à bilanter sur le mois précédent.
+
+**Corrigé** : nouvelle garde `prevMoisVide` (CA brut, dépenses, heures ET missions facturées du mois précédent tous à 0) juste avant la construction du bandeau. Si le mois précédent est strictement vide, le bandeau ne s'affiche pas du tout, pour personne (pas seulement les comptes neufs, une activité réellement au repos un mois donné n'a rien à bilanter non plus). Aucun changement pour un mois qui a eu la moindre activité, même faible.
+
+**Vérifié** : suite complète (20 fichiers), 0 régression. Navigateur : compte réel créé en septembre avec une seule mission facturée en septembre (rien en août) → bandeau absent ; même compte avec une mission facturée en août ajoutée → bandeau réapparaît avec les bons montants.
+
 ### 2026-09-08 — Nettoyage tirets cadratins dans le Score de Santé
 
 Retour Faustine ([[feedback_indepuls_eviter_tirets_cadratins]]) : plusieurs tirets cadratins ("—") repérés dans les textes visibles du Score de Santé (diagnostics piliers, "Action recommandée", alertes, méthodologies). Nettoyage opportuniste (pas de grande passe fichier entier) : ~30 occurrences remplacées par la ponctuation naturelle (virgule, deux-points, point) dans `wScoreSante()` — diagRent/advRent (marge/TJM/TH), diagRentMois, diagTreso/_tresoLigne (SASU/EURL), diagGlobal, priorite, alertLines (client dominant, objectif mensuel, échéances, ACRE), méthodologies (methRent/methTreso), et le séparateur client/description d'une ligne de missions (`join(' — ')` → `join(' · ')`, cohérent avec le séparateur déjà utilisé partout ailleurs dans l'app). Les `val:'—'` (placeholder "aucune donnée", convention UI standard) volontairement laissés tels quels — différent des tirets utilisés comme connecteur de phrase.
