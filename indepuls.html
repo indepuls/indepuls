@@ -2352,7 +2352,7 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-conges">
   <div class="modal" style="max-width:460px">
     <div class="modal-title">🏖️ Mes congés</div>
-    <div class="ts mb14">Vos périodes de congés — pour que le calendrier et le Score de Santé ne les confondent jamais avec du temps sous-utilisé.</div>
+    <div class="ts mb14">Vos périodes de congés, pour que le calendrier et le Score de Santé ne les confondent jamais avec du temps sous-utilisé.</div>
     <div id="conges-suivi" class="mb14"></div>
     <div id="conges-list"></div>
     <div class="divider mt12"></div>
@@ -4091,6 +4091,7 @@ function skipOnboardingGuide() {
 function guideActionDone(key) {
   if (key === 'encaissements') return DATA.missions.some(m => !m.isManagement && encaissementsComptes(m).length > 0);
   if (key === 'revenus') return Object.keys(DATA.revenus || {}).length > 0;
+  if (key === 'conges') return (DATA.conges || []).length > 0;
   return !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
 }
 function guideMarkSeen(key) {
@@ -4116,6 +4117,9 @@ function renderGuideActionsHTML() {
     {key:'historique', icon:'📈', title:'Consultez votre historique',
       desc:'Utile pour rattraper une saisie en retard (même sur un mois déjà passé, vos calculs se mettent à jour), ou tout simplement pour comparer votre évolution en cours d\'année, mois par mois.',
       cta:'→ Aller dans Historique', action:"guideMarkSeen('historique');navigate('archives')"},
+    {key:'conges', icon:'🏖️', title:'Renseignez vos congés',
+      desc:`Ajoutez vos périodes de congés pour que le calendrier et le Score de Santé ne les confondent jamais avec du temps sous-utilisé : votre taux de remplissage et votre taux horaire réel restent justes, même pendant vos périodes d'absence.`,
+      cta:tVocab('goTo'), action:"navigate('missions');openCongesModal()"},
   ];
   const cards = rows.map(r => {
     const done = guideActionDone(r.key);
