@@ -1582,109 +1582,7 @@ html,body{overflow-x:hidden;}
         <div style="font-size:12px;font-weight:600;color:var(--text);padding:7px 12px;background:var(--bg);border-radius:7px;border:1px solid var(--brd);display:inline-block">⏱ Configuration estimée : moins de 10 minutes</div>
       </div>
 
-      <!-- Vos outils : pleine largeur (retour Faustine 2026-08-01 : empilé dans la colonne
-           droite du glossaire, ça laissait un gros vide disgracieux sur ordinateur) -->
-      <div class="card mb16" style="border-top:3px solid var(--acc);">
-        <div class="card-title mb12" style="font-size:13px;">🛠️ Vos outils</div>
-        <div class="g3" style="gap:16px">
-          <div>
-            <div class="gterm">📄 Créer un devis</div>
-            <div class="gdef">Devis PDF professionnel et personnalisable, avec votre logo et vos couleurs — depuis "Créer un devis", une fiche mission, ou "Combien facturer ?". Jamais de suivi automatique : une fois généré, le devis vous appartient.</div>
-            <span class="step-cta" onclick="ouvrirGenerateurDevisVierge()">→ Créer un devis</span>
-          </div>
-          <div>
-            <div class="gterm">🧮 Combien facturer ?</div>
-            <div class="gdef">"Vérifier un prix" (ce tarif est-il rentable ?) et "Calculer un tarif" (quel prix minimum demander pour atteindre mon objectif ?). Génère aussi un devis directement depuis le résultat.</div>
-            <span class="step-cta" onclick="navigate('simulateur')">→ Combien facturer ?</span>
-          </div>
-          <div>
-            <div class="gterm">🔮 Et si ?</div>
-            <div class="gdef">Testez l'impact d'un changement sur votre activité — rythme de travail, hausse de tarif, perte d'un client, changement de statut — avec des curseurs, en temps réel. Rien n'est enregistré.</div>
-            <span class="step-cta" onclick="navigate('etsi')">→ Et si ?</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="notice-cols">
-      <!-- Colonne gauche : Checklist -->
-      <div>
-      <div class="step-card">
-        <div class="step-num">1</div>
-        <div class="step-body" style="flex:1">
-          <h3>Configurez votre activité</h3>
-          <p>Renseignez votre statut, votre objectif de revenu et votre rythme de travail hebdomadaire.</p>
-          <span class="step-cta" onclick="navigate('params')">→ Aller dans Paramètres</span>
-        </div>
-      </div>
-
-      <div class="step-card">
-        <div class="step-num">2</div>
-        <div class="step-body" style="flex:1">
-          <h3>Ajoutez vos dépenses</h3>
-          <p>Enregistrez vos charges professionnelles pour affiner vos calculs et votre objectif de CA.</p>
-          <span class="step-cta" onclick="navigate('depenses')">→ Aller dans Dépenses</span>
-        </div>
-      </div>
-
-      <div class="step-card">
-        <div class="step-num">3</div>
-        <div class="step-body" style="flex:1">
-          <h3 id="onboarding-step3-title">Créez vos premières missions</h3>
-          <p id="onboarding-step3-desc">Ajoutez un client dès la création de votre mission. Suivez votre temps avec le chronomètre intégré.</p>
-          <span class="step-cta" id="onboarding-cta-1" onclick="navigate('missions')">→ Aller dans Missions</span>
-        </div>
-      </div>
-
-      <div class="step-card">
-        <div class="step-num">4</div>
-        <div class="step-body" style="flex:1">
-          <h3>Enregistrez vos encaissements</h3>
-          <p id="onboarding-step4-desc">Utilisez le bouton 💰 sur chaque mission pour déclarer les paiements réellement reçus — acomptes, soldes, versements partiels.</p>
-          <span class="step-cta" id="onboarding-cta-2" onclick="navigate('missions')">→ Aller dans Missions</span>
-        </div>
-      </div>
-
-      <div class="step-card">
-        <div class="step-num">5</div>
-        <div class="step-body" style="flex:1">
-          <h3>Complétez vos revenus</h3>
-          <p>Ajoutez ventes et revenus ponctuels pour alimenter votre tableau de bord et obtenir un revenu net fiable.</p>
-          <span class="step-cta" onclick="navigate('revenus')">→ Aller dans Revenus</span>
-        </div>
-      </div>
-
-      <div class="step-card" style="border-left:3px solid var(--ok);">
-        <div class="step-num" style="background:var(--ok);">6</div>
-        <div class="step-body" style="flex:1">
-          <h3>Vos données sont sauvegardées automatiquement</h3>
-          <p>Chaque modification est synchronisée sur votre compte. Connectez-vous depuis n'importe quel appareil pour retrouver vos données. Vous pouvez aussi exporter une sauvegarde locale en cas de besoin.</p>
-          <span class="step-cta" onclick="exportData()">→ Exporter une sauvegarde locale</span>
-        </div>
-      </div>
-      </div>
-
-      <!-- Colonne droite : Glossaire (déplié par défaut, repliable) -->
-      <div>
-      <div class="card" style="border-top:3px solid var(--sec);">
-        <div class="card-title" style="font-size:13px;">📖 Glossaire des indicateurs</div>
-        <div style="margin-top:12px;">
-          <div class="glossary-item"><div class="gterm">CA brut</div><div class="gdef">Chiffre d'affaires total, avant toutes charges.</div></div>
-          <div class="glossary-item"><div class="gterm">Revenu net réel</div><div class="gdef">Ce qu'il vous reste après URSSAF, CFP, impôts estimés et dépenses pro.</div></div>
-          <div class="glossary-item"><div class="gterm">Taux horaire réel</div><div class="gdef">Revenu net ÷ heures totales travaillées (missions + gestion). L'indicateur le plus honnête sur votre rentabilité.</div></div>
-          <div class="glossary-item"><div class="gterm">Projection annuelle</div><div class="gdef">Extrapolation du CA actuel sur 12 mois, basée sur la moyenne des mois réalisés.</div></div>
-          <div class="glossary-item"><div class="gterm">Temps non facturable</div><div class="gdef">Gestion, admin, prospection — suivi via la ligne "Mon entreprise".</div></div>
-          <div class="glossary-item"><div class="gterm">Taux de transformation</div><div class="gdef">% de missions acceptées (en cours + facturées) sur le total de missions proposées.</div></div>
-          <div class="glossary-item"><div class="gterm">Pertes sèches</div><div class="gdef">Heures passées sur des missions finalement refusées. Fait baisser votre taux horaire réel sans générer de CA.</div></div>
-          <div class="glossary-item"><div class="gterm">Seuil franchise TVA</div><div class="gdef">37 500 € (prestations, tolérance 41 250 €) — 85 000 € (ventes, tolérance 93 500 €). Au-delà, vous devez collecter la TVA.</div></div>
-          <div class="glossary-item"><div class="gterm">Zone de tolérance TVA</div><div class="gdef">CA au-dessus du seuil mais sous la tolérance : franchise maintenue l'année en cours, TVA obligatoire l'année suivante. Indépuls vous alerte dès que vous entrez dans cette zone.</div></div>
-          <div class="glossary-item"><div class="gterm">Activité mixte</div><div class="gdef">Prestations + ventes de produits. Chaque type suit son propre seuil TVA (37 500 € / 85 000 €).</div></div>
-          <div class="glossary-item"><div class="gterm">Capacité de travail</div><div class="gdef">Heures disponibles vs charge estimée de vos missions en cours — pour savoir si vous pouvez accepter un nouveau client.</div></div>
-          <div class="glossary-item"><div class="gterm">Charge estimée</div><div class="gdef">Temps approximatif qu'une mission représente chaque semaine ou mois. Valeur indicative, pas besoin d'être précis.</div></div>
-        </div>
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd);font-size:12px;color:var(--tl);line-height:1.5">Une définition qui vous semble incohérente ou peu claire ? N'hésitez pas à me le signaler à <a href="mailto:contact@indepuls.fr" style="color:var(--sec)">contact@indepuls.fr</a> — chaque retour aide à rendre ces explications plus justes.</div>
-      </div>
-      </div>
-      </div>
+      <div id="notice-dynamic"></div>
 
       <div class="card mt16" style="text-align:center;">
         <div style="font-size:13px;color:var(--tl)">Vous n'avez pas trouvé la réponse à votre question ?</div>
@@ -4179,6 +4077,132 @@ function pickerStep1NextReal() {
   renderAll();
 }
 
+function skipOnboardingGuide() {
+  DATA.onboardingSkipped = true;
+  saveData();
+  renderDashboard();
+}
+
+// ── GUIDE & GLOSSAIRE — contenu partagé entre la phase 2 de l'onboarding (dashboard) et la
+// page "Guide & glossaire" elle-même (navigate('notice')). Un seul texte à maintenir : avant ce
+// chantier, les deux vivaient en double et avaient dérivé l'une de l'autre (retour Faustine,
+// 2026-09-15 : "le guide et glossaire est presque plus détaillé que les étapes de la page
+// d'accueil"). Toujours passer par tVocab()/tVocabMasculin() ici, jamais "mission" en dur.
+
+// Signal de complétion réel quand c'est bon marché à calculer (encaissements, revenus) ; pour le
+// reste (temps, calendrier, historique), aucun signal fiable à coût raisonnable n'existe encore
+// (ce serait par exemple suivre des heures ou des sessions déjà utilisées pour tout autre chose),
+// on se contente donc de marquer "vue" au clic sur le lien de l'étape.
+function guideActionDone(key) {
+  if (key === 'encaissements') return DATA.missions.some(m => !m.isManagement && encaissementsComptes(m).length > 0);
+  if (key === 'revenus') return Object.keys(DATA.revenus || {}).length > 0;
+  return !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
+}
+function guideMarkSeen(key) {
+  if (!DATA.onboardingSeen) DATA.onboardingSeen = {};
+  DATA.onboardingSeen[key] = true;
+  saveData();
+}
+// N'a de sens que pour une activité qui a une antériorité réelle avant l'année en cours : sinon
+// il n'y a simplement rien à compléter rétroactivement dans Historique.
+function guideShowHistoriqueStep() {
+  const d = DATA.params.dateOuverture;
+  return !!(d && d < DATA.currentYear + '-01');
+}
+function renderGuideActionsHTML() {
+  const items = tVocab('items').toLowerCase();
+  const rows = [
+    {key:'encaissements', icon:'💰', title:'Enregistrez vos encaissements',
+      desc:`Utilisez le bouton 💰 sur chaque ${tVocab('item').toLowerCase()} pour déclarer les paiements réellement reçus, en plusieurs fois si besoin.`,
+      cta:tVocab('goTo'), action:"navigate('missions')"},
+    {key:'revenus', icon:'💶', title:'Complétez vos revenus',
+      desc:'Ajoutez ventes et revenus ponctuels pour alimenter votre tableau de bord et obtenir un revenu net fiable.',
+      cta:'→ Aller dans Revenus', action:"navigate('revenus')"},
+    {key:'temps', icon:'⏱', title:'Suivez votre temps',
+      desc:`Démarrez le chronomètre depuis la barre latérale pour suivre le temps passé sur vos ${items} et vos tâches de gestion.`,
+      cta:tVocab('goTo'), action:"guideMarkSeen('temps');navigate('missions')"},
+    {key:'calendrier', icon:'📅', title:'Utilisez le calendrier',
+      desc:`Ajoutez des sessions à vos ${items} pour visualiser votre planning et affiner votre remplissage.`,
+      cta:tVocab('goTo'), action:"guideMarkSeen('calendrier');navigate('missions')"},
+  ];
+  if (guideShowHistoriqueStep()) {
+    rows.push({key:'historique', icon:'📈', title:'Complétez votre historique',
+      desc:`Vous exercez depuis avant ${DATA.currentYear} : complétez vos mois passés dans Historique pour que vos calculs rétroactifs restent justes.`,
+      cta:'→ Aller dans Historique', action:"guideMarkSeen('historique');navigate('archives')"});
+  }
+  const cards = rows.map(r => {
+    const done = guideActionDone(r.key);
+    return `<div class="step-card" style="${done?'border-left:3px solid var(--ok)':''}">
+      <div class="step-num" style="${done?'background:var(--ok)':''}">${done?'✓':r.icon}</div>
+      <div class="step-body" style="flex:1">
+        <h3>${r.title}</h3>
+        <p>${r.desc}</p>
+        <span class="step-cta" onclick="${r.action}">${r.cta}</span>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="card-title mb12" style="font-size:13px">🧭 Pour aller plus loin</div>${cards}`;
+}
+function renderGuideOutilsHTML() {
+  const item = tVocab('item').toLowerCase();
+  const tools = [
+    {icon:'📄', term:'Créer un devis', cta:'→ Créer un devis', action:'ouvrirGenerateurDevisVierge()',
+      def:`Devis PDF professionnel et personnalisable, avec votre logo et vos couleurs, depuis "Créer un devis", une fiche ${item}, ou "Combien facturer ?". Jamais de suivi automatique : une fois généré, le devis vous appartient.`},
+    {icon:'🧮', term:'Combien facturer ?', cta:'→ Combien facturer ?', action:"navigate('simulateur')",
+      def:'"Vérifier un prix" (ce tarif est-il rentable ?) et "Calculer un tarif" (quel prix minimum demander pour atteindre mon objectif ?). Génère aussi un devis directement depuis le résultat.'},
+    {icon:'🔮', term:'Et si ?', cta:'→ Et si ?', action:"navigate('etsi')",
+      def:'Testez l\'impact d\'un changement sur votre activité : rythme de travail, hausse de tarif, perte d\'un client, changement de statut, avec des curseurs, en temps réel. Rien n\'est enregistré.'},
+    {icon:'⭐', term:'Demander un avis', cta:'→ Aller dans Paramètres', action:"navigate('params')",
+      def:`Une fois une ${item} facturée, Indépuls vous propose automatiquement un message prêt à l'emploi pour demander un avis à votre client, à copier ou envoyer par email. Personnalisez vos liens et votre message dans Paramètres, onglet Mon activité.`},
+  ];
+  if (!isSASU()) tools.push({icon:'📒', term:'Livre des recettes', cta:'→ Aller dans Paramètres', action:"navigate('params')",
+    def:'Suivi chronologique de tous vos encaissements, obligation légale pour les micro-entreprises. À activer dans Paramètres, onglet Fiscalité & charges.'});
+  tools.push({icon:'📊', term:'Export comptable', cta:'→ Aller dans Paramètres', action:"navigate('params')",
+    def:'Générez un export CSV ou PDF de vos recettes et dépenses pour votre expert-comptable, en un clic depuis Paramètres, onglet Fiscalité & charges.'});
+  const cards = tools.map(t => `<div style="margin-bottom:16px">
+    <div class="gterm">${t.icon} ${t.term}</div>
+    <div class="gdef">${t.def}</div>
+    <span class="step-cta" onclick="${t.action}">${t.cta}</span>
+  </div>`).join('');
+  return `<div class="card-title mb12" style="font-size:13px">🛠️ Vos outils</div>${cards}`;
+}
+function renderGuideGlossaireHTML() {
+  const items = tVocab('items').toLowerCase(), item = tVocab('item').toLowerCase();
+  const glossary = [
+    ['CA brut','Chiffre d\'affaires total, avant toutes charges.'],
+    ['Revenu net réel','Ce qu\'il vous reste après URSSAF, CFP, impôts estimés et dépenses pro.'],
+    ['Taux horaire réel',`Revenu net divisé par les heures totales travaillées (${items} + gestion). L'indicateur le plus honnête sur votre rentabilité.`],
+    ['Projection annuelle','Extrapolation du CA actuel sur 12 mois, basée sur la moyenne des mois réalisés.'],
+    ['Temps non facturable','Gestion, admin, prospection : suivi via la ligne "Mon entreprise".'],
+    ['Taux de transformation',`% de ${items} acceptées (en cours + facturées) sur le total de ${items} proposées.`],
+    ['Pertes sèches',`Heures passées sur des ${items} finalement refusées. Fait baisser votre taux horaire réel sans générer de CA.`],
+    ['Seuil franchise TVA','37 500 € (prestations, tolérance 41 250 €), 85 000 € (ventes, tolérance 93 500 €). Au-delà, vous devez collecter la TVA.'],
+    ['Zone de tolérance TVA','CA au-dessus du seuil mais sous la tolérance : franchise maintenue l\'année en cours, TVA obligatoire l\'année suivante. Indépuls vous alerte dès que vous entrez dans cette zone.'],
+    ['Activité mixte','Prestations + ventes de produits. Chaque type suit son propre seuil TVA (37 500 € / 85 000 €).'],
+    ['Capacité de travail',`Heures disponibles comparées à la charge estimée de vos ${items} en cours, pour savoir si vous pouvez accepter un nouveau client.`],
+    ['Charge estimée',`Temps approximatif qu'une ${item} représente chaque semaine ou mois. Valeur indicative, pas besoin d'être précis.`],
+    ['Score de Santé','Note globale sur 100 qui résume 4 piliers : Ma rentabilité, Mon remplissage, Ma trésorerie, Mon horizon. Le détail du calcul est visible sous chaque pilier via "Pourquoi ce score ?".'],
+    ['Bandeau En cours / En attente / Facturé',`En haut des pages ${tVocab('items')}, Revenus et Dépenses : un résumé de l'année en cours, à déplier via "Statistiques" pour le détail (répartition du temps, taux de transformation, pertes sèches).`],
+  ];
+  const rows = glossary.map(([term,def]) => `<div class="glossary-item"><div class="gterm">${term}</div><div class="gdef">${def}</div></div>`).join('');
+  return `<details class="card" style="border-top:3px solid var(--sec)">
+    <summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text)">📖 Glossaire des indicateurs</summary>
+    <div style="margin-top:12px">${rows}</div>
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd);font-size:12px;color:var(--tl);line-height:1.5">Une définition qui vous semble incohérente ou peu claire ? N'hésitez pas à me le signaler à <a href="mailto:contact@indepuls.fr" style="color:var(--sec)">contact@indepuls.fr</a>, chaque retour aide à rendre ces explications plus justes.</div>
+  </details>`;
+}
+function renderGuideBodyHTML() {
+  return `<div class="notice-cols mb16">
+    <div>${renderGuideActionsHTML()}</div>
+    <div>${renderGuideOutilsHTML()}</div>
+  </div>
+  ${renderGuideGlossaireHTML()}`;
+}
+function renderNotice() {
+  const el = document.getElementById('notice-dynamic');
+  if (el) el.innerHTML = renderGuideBodyHTML();
+}
+
 // Étape 1 → démo directe + modal bienvenue
 function pickerStep1Next() {
   const sel = document.getElementById('picker-metier-select');
@@ -5209,6 +5233,7 @@ function renderPage(page) {
     case 'etsi': renderEtSiPage(); break;
     case 'recettes': renderRecettes(); break;
     case 'retours': renderRetours(); break;
+    case 'notice': renderNotice(); break;
   }
 }
 
@@ -5621,6 +5646,26 @@ const months=getCurrentYearMonths(), mR=getMoisRealises(), mc=Math.max(getMoisAc
         </div>
       </div>
       ${earlyResults}`;
+    return;
+  }
+
+  // Phase B (retour Faustine, 2026-09-15) : entre la fin des 4 étapes obligatoires et le vrai
+  // tableau de bord, propose les étapes facultatives (aucun ordre, jamais bloquantes) + les
+  // outils secondaires, avant que la personne n'atterrisse d'un coup sur le Score de Santé sans
+  // explication. Contenu identique à la page Guide & glossaire (renderGuideBodyHTML(), partagé,
+  // jamais dupliqué) pour ne pas recréer la dérive constatée entre les deux versions existantes.
+  if(!DATA.isExample && !DATA.onboardingSkipped && (hasMissions||hasRevenu)){
+    document.getElementById('dashboard-content').innerHTML=`
+      <div class="card" style="padding:24px 28px;border:2px dashed var(--brd);margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+          <div>
+            <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:19px;color:var(--pri);margin-bottom:4px">Encore quelques étapes, facultatives</h2>
+            <p style="color:var(--tl);font-size:13px">Aucune n'est obligatoire, ni dans un ordre précis. Vous les retrouverez à tout moment dans Guide & glossaire si vous êtes perdu·e.</p>
+          </div>
+          <button class="btn btn-acc btn-sm" style="flex-shrink:0" onclick="skipOnboardingGuide()">Passer ces étapes, accéder à mon tableau de bord →</button>
+        </div>
+      </div>
+      ${renderGuideBodyHTML()}`;
     return;
   }
 
