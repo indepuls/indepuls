@@ -878,14 +878,14 @@ export function getEcheancesFiscalesGeneriques(maintenant = new Date()) {
   if (daysLeftCfe >= -10 && daysLeftCfe <= 30) {
     echeances.push({
       type: 'cfe', dateKey: `${y}-12-15`, daysLeft: daysLeftCfe,
-      texte: "Si vous êtes redevable de la CFE (Cotisation Foncière des Entreprises), pensez à la régler avant le 15 décembre sur impots.gouv.fr.",
+      texte: 'Si vous êtes redevable de la CFE (Cotisation Foncière des Entreprises), pensez à la régler avant le 15 décembre sur <a class="step-cta" href="https://www.impots.gouv.fr/professionnel" target="_blank" rel="noopener">votre espace professionnel impots.gouv.fr →</a>',
       boutonLabel: "✅ J'ai payé",
     });
   }
   if (maintenant.getMonth() === 4) { // mai (0-indexé)
     echeances.push({
       type: 'declaration_revenus', dateKey: `${y}-05`, daysLeft: null,
-      texte: "La déclaration annuelle de revenus s'ouvre généralement en mai, vérifiez la date exacte de votre tranche sur impots.gouv.fr.",
+      texte: 'La déclaration annuelle de revenus s\'ouvre généralement en mai, vérifiez la date exacte de votre tranche sur <a class="step-cta" href="https://www.impots.gouv.fr/particulier" target="_blank" rel="noopener">votre espace particulier impots.gouv.fr →</a>',
       boutonLabel: "✅ J'ai déclaré",
     });
   }

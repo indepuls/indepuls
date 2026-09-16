@@ -7290,7 +7290,10 @@ function wScoreSante(d) {
       if(DATA.echeancesPayees?.[payeeKey]) return;
       const cl=ech.daysLeft<=7?'al-err':ech.daysLeft<=21?'al-warn':'al-info';
       const ico=ech.daysLeft<=7?'🚨':ech.daysLeft<=21?'⏰':'📅';
-      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> : ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
+      const declLink=ech.type==='urssaf'
+        ? '<a class="step-cta" href="https://www.autoentrepreneur.urssaf.fr/portail/accueil.html" target="_blank" rel="noopener">Déclarer sur l\'Urssaf →</a>'
+        : '<a class="step-cta" href="https://www.impots.gouv.fr/professionnel" target="_blank" rel="noopener">Déclarer sur impots.gouv.fr →</a>';
+      alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} <strong>${ech.label}</strong> : ${fmtE(ech.montant)} avant le <strong>${ech.dateStr}</strong> (dans ${ech.daysLeft} j)<br>${declLink}</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à la prochaine échéance">✅ J'ai payé</button></div>`);
     });
   } catch(e){reportError('echeancesFiscales',e);}
   // Rappel ACRE (retour Faustine 2026-08-16) : contrairement à l'URSSAF/TVA ci-dessus, pas de
