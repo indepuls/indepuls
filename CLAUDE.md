@@ -1888,6 +1888,14 @@ Retour Faustine : `#skipLink` (`<a href="#s8">Aller à l'essentiel →</a>`, sau
 - **Fix** : `.nav.enriched #skipLink{display:none;}` ajouté (une seule règle, valable desktop et mobile). Nettoyage au passage d'une règle mobile `order`/`margin-left` devenue inutile sur un élément caché.
 - Vérifié : comportement confirmé en direct desktop (1440px) et mobile (375px), visible en haut de page uniquement, disparaît dès que `.nav` passe en `enriched`.
 
+### FIX : nettoyage des tirets cadratins, vague 1 (2026-09-16)
+Faustine a repéré des tirets cadratins dans le calculateur "Combien facturer" (voir règle [[feedback_indepuls_eviter_tirets_cadratins]]) et demandé une vague de nettoyage dédiée, pas seulement opportuniste.
+
+- **Scan complet du site** : 27 occurrences dans `index.html` (toutes en commentaires CSS/HTML/JS, aucune en contenu visible ni en logique), 4 dans le calculateur combien-facturer, quelques-unes dans les 4 pages légales (cgu, mentions-légales, confidentialité, sécurité). Les 17 autres pages du site vitrine étaient déjà propres.
+- **Vague 1 traitée** : ces fichiers, remplacement par deux-points/virgule/parenthèses selon le contexte. Les `<title>` "Page — Indépuls" des pages légales harmonisés au passage avec le séparateur "·" déjà utilisé partout ailleurs sur le site, plutôt qu'une simple substitution de caractère.
+- **Vague 2 volontairement reportée** : `indepuls.html` et `indepuls-demo.html` (l'app réelle) ont environ 1000 occurrences chacun. Bien trop pour un nettoyage à la volée sans risque sur le produit en production, à traiter comme un chantier dédié séparé.
+- Vérifié : 0 tiret cadratin restant dans les fichiers traités, JS valide, 568 liens internes 0 cassé.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
