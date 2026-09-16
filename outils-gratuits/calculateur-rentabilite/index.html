@@ -111,6 +111,9 @@
   .verdict.info{background:#eef0fb; border-left-color:#5a5fa8; color:#3a3d70;}
 
   .calc-result{background:var(--navy); color:#fff; border-radius:16px; padding:30px 26px; text-align:center;}
+  .calc-result.loss{background:#5c2020;}
+  .calc-result.loss .result-label{color:#f0a3a3;}
+  .calc-result.loss .result-sub{color:#f5d6d6; font-weight:700;}
   .result-label{display:block; font-size:12.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); margin-bottom:8px;}
   .result-num{font-family:'Playfair Display',serif; font-weight:800; font-size:clamp(38px,6vw,54px); display:block; line-height:1;}
   .result-sub{display:block; font-size:13px; color:#b5b2cc; margin-top:6px;}
@@ -274,7 +277,7 @@
 
     <div>
       <div class="calc-result">
-        <span class="result-label">Gain net estimé</span>
+        <span class="result-label" id="resultLabel">Gain net estimé</span>
         <span class="result-num" id="margeOut">1 200&nbsp;€</span>
         <span class="result-sub" id="margePctOut">soit 67&nbsp;% du montant, une fois Urssaf et impôts déduits</span>
         <div class="result-secondary" id="resultSecondary">Taux réel net : <b id="tauxReelOut">200&nbsp;€/j</b></div>
@@ -407,6 +410,8 @@
   var tauxVal = document.getElementById('tauxVal');
   var tauxDetail = document.getElementById('tauxDetail');
   var cible = document.getElementById('cible');
+  var resultLabel = document.getElementById('resultLabel');
+  var calcResultBox = document.querySelector('.calc-result');
   var margeOut = document.getElementById('margeOut');
   var margePctOut = document.getElementById('margePctOut');
   var tauxReelOut = document.getElementById('tauxReelOut');
@@ -434,13 +439,18 @@
 
   // Meme logique que getRevenuImposableMicro() dans shared/core/calculs.js : l'impot porte
   // sur le montant APRES abattement forfaitaire, pas sur le montant brut.
+  // Retourne un tableau de postes {montant, label}, jamais un montant generique etiquete
+  // "Urssaf" a tort : en societe, les cotisations portent sur le salaire (pas sur le CA) et
+  // l'IS sur le benefice (pas sur le CA), deux mecanismes que ce curseur ne modelise pas
+  // finement (retour Faustine 2026-09-16 : l'ancienne version affichait "X € Urssaf" meme en
+  // societe, ce qui suggerait a tort un vrai calcul de cotisations sociales).
   function getProvisions(m){
     if (regime.value === 'societe') {
       var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
       tauxVal.textContent = t + ' %';
-      tauxDetail.innerHTML = '';
+      tauxDetail.innerHTML = 'Approximation volontaire : en société, les cotisations portent sur le <strong>salaire</strong> que vous vous versez (pas sur le montant de la mission) et l\'impôt sur les sociétés porte sur le <strong>bénéfice</strong> (pas sur le CA). Un calcul exact dépend de votre répartition salaire/dividendes : ajustez ce pourcentage vous-même, ou demandez à votre expert-comptable.';
       urssafAuto.textContent = '';
-      return { urssaf: m * t / 100, impot: 0 };
+      return [{ montant: m * t / 100, label: 'cotisations et impôts' }];
     }
     var reg = REGIMES[regime.value];
     var urssafPct = reg.urssaf + reg.cfp;
@@ -448,7 +458,10 @@
     var impotPct = tmiPct * (1 - reg.abattement / 100);
     urssafAuto.textContent = fmtPct(urssafPct) + ' %';
     tauxDetail.innerHTML = 'Urssaf <strong>' + fmtPct(urssafPct) + ' %</strong> du montant + impôt <strong>' + tmiPct + ' %</strong> sur le montant après abattement forfaitaire de <strong>' + reg.abattement + ' %</strong> (soit ' + fmtPct(impotPct) + ' % du montant).';
-    return { urssaf: m * urssafPct / 100, impot: m * impotPct / 100 };
+    return [
+      { montant: m * urssafPct / 100, label: 'Urssaf' },
+      { montant: m * impotPct / 100, label: 'impôts' }
+    ];
   }
 
   function calc(){
@@ -459,18 +472,25 @@
     var heures = unit === 'heures' ? t : t * HEURES_PAR_JOUR;
 
     var margeBrute = m - c;
-    var prov = getProvisions(m);
-    var revenuNet = Math.max(0, margeBrute - prov.urssaf - prov.impot);
+    var provs = getProvisions(m);
+    var totalProv = provs.reduce(function(sum, p){ return sum + p.montant; }, 0);
+    var revenuNet = margeBrute - totalProv;
+    var isLoss = revenuNet < 0;
     var margePct = m > 0 ? (revenuNet / m) * 100 : 0;
     var tauxReelNet = revenuNet / t;
     var tauxReelBrut = margeBrute / t;
     var thBrut = margeBrute / heures;
 
+    calcResultBox.classList.toggle('loss', isLoss);
+    resultLabel.textContent = isLoss ? 'Déficit estimé' : 'Gain net estimé';
     margeOut.textContent = fmt(revenuNet) + ' €';
-    margePctOut.textContent = 'soit ' + Math.round(margePct) + ' % du montant, une fois Urssaf et impôts déduits';
+    margePctOut.textContent = isLoss
+      ? '⚠️ Cette mission est déficitaire : les coûts et charges dépassent le montant facturé.'
+      : 'soit ' + Math.round(margePct) + ' % du montant, une fois cotisations et impôts déduits';
     tauxReelOut.textContent = fmt(tauxReelNet) + ' €/' + unitAbbr;
     resultSecondary.innerHTML = 'Taux réel net : <b>' + fmt(tauxReelNet) + ' €/' + unitAbbr + '</b> · brut : <b>' + fmt(tauxReelBrut) + ' €/' + unitAbbr + '</b>';
-    formulaOut.textContent = '(' + fmt(m) + ' € − ' + fmt(c) + ' € − ' + fmt(prov.urssaf) + ' € Urssaf − ' + fmt(prov.impot) + ' € impôts) ÷ ' + t + ' ' + unit + ' = ' + fmt(tauxReelNet) + ' €/' + unitAbbr;
+    var provParts = provs.map(function(p){ return '− ' + fmt(p.montant) + ' € ' + p.label; }).join(' ');
+    formulaOut.textContent = '(' + fmt(m) + ' € − ' + fmt(c) + ' € ' + provParts + ') ÷ ' + t + ' ' + unit + ' = ' + fmt(tauxReelNet) + ' €/' + unitAbbr;
 
     var cibleVal = parseFloat(cible.value);
     if (cibleVal > 0) {

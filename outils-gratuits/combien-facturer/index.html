@@ -482,9 +482,9 @@
     if (regime.value === 'societe') {
       var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
       tauxVal.textContent = t + ' %';
-      tauxDetail.innerHTML = '';
+      tauxDetail.innerHTML = 'Approximation volontaire : en société, les cotisations portent sur le salaire que vous vous versez (pas sur le CA) et l\'impôt sur les sociétés porte sur le bénéfice (pas sur le CA). Un calcul exact dépend de votre répartition salaire/dividendes : ajustez ce pourcentage vous-même, ou demandez à votre expert-comptable.';
       urssafAuto.textContent = '';
-      return { pct: t, detail: 'cotisations et impots estimes' };
+      return { pct: t, detail: 'cotisations et impôts estimés' };
     }
     var reg = REGIMES[regime.value];
     var urssafPct = reg.urssaf + reg.cfp;
