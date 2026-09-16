@@ -1354,6 +1354,17 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="card-sub mb16" id="sim-subtitle">Vérifiez si ce que vous allez vendre est rentable avant de le proposer.</div>
 
+        <!-- Nature de la mission : activité mixte uniquement (prestation vs vente : taux de
+             cotisations et abattement fiscal différents, voir calcRentabilite()) -->
+        <div class="fgroup" id="sim-row-nature" style="display:none">
+          <label class="flabel">Nature de cette mission</label>
+          <div style="display:flex;gap:6px;margin-top:6px" id="sim-nature-toggle">
+            <button type="button" id="sim-nature-btn-presta" onclick="switchSimNature('presta')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Prestation</button>
+            <button type="button" id="sim-nature-btn-vente" onclick="switchSimNature('vente')" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Vente</button>
+          </div>
+          <div class="ts" style="color:var(--tl);margin-top:6px;font-size:11px">Votre activité est mixte : vos cotisations et votre abattement fiscal diffèrent selon la nature de cette mission.</div>
+        </div>
+
         <!-- Prix / CA — visible en mode vérifier -->
         <div class="fgroup" id="sim-row-ca">
           <label class="flabel" id="sim-label-ca">Prix envisagé (€ HT)</label>
@@ -1372,7 +1383,7 @@ html,body{overflow-x:hidden;}
         <div id="sim-row-collectif-detail" style="display:none">
           <div class="frow">
             <div class="fgroup"><label class="flabel">Participants prévus</label><input type="number" id="sim-participants-val" min="1" step="1" placeholder="Ex : 8" oninput="calcRentabilite()"></div>
-            <div class="fgroup" id="sim-fg-prixpart"><label class="flabel">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
+            <div class="fgroup" id="sim-fg-prixpart"><label class="flabel" id="sim-label-prixpart">Prix / participant (€ HT)</label><input type="number" id="sim-prixpart-val" step="50" min="0" placeholder="Ex : 500" oninput="calcRentabilite()"></div>
           </div>
           <div class="ts mb10" id="sim-ca-collectif" style="font-weight:700;color:var(--pri)"></div>
           <div class="frow">
@@ -1437,7 +1448,7 @@ html,body{overflow-x:hidden;}
         <!-- Coût d'achat -->
         <div id="sim-row-achat" style="display:none">
           <div class="fgroup">
-            <label class="flabel">Coût d'achat (€ HT)</label>
+            <label class="flabel" id="sim-label-achat">Coût d'achat (€ HT)</label>
             <input type="number" id="sim-achat-val" step="10" min="0" placeholder="Ex : 80" oninput="calcRentabilite()">
           </div>
         </div>
@@ -1453,7 +1464,7 @@ html,body{overflow-x:hidden;}
         <!-- Emballages -->
         <div id="sim-row-emballages" style="display:none">
           <div class="fgroup">
-            <label class="flabel">Emballages & consommables (€)</label>
+            <label class="flabel" id="sim-label-emballages">Emballages & consommables (€)</label>
             <input type="number" id="sim-emballages-val" step="5" min="0" placeholder="Ex : 15" oninput="calcRentabilite()">
           </div>
         </div>
@@ -1461,7 +1472,7 @@ html,body{overflow-x:hidden;}
         <!-- Sous-traitance -->
         <div id="sim-row-soustraitance" style="display:none">
           <div class="fgroup">
-            <label class="flabel">Sous-traitance (€)</label>
+            <label class="flabel" id="sim-label-soustraitance">Sous-traitance (€)</label>
             <input type="number" id="sim-soustraitance-val" step="50" min="0" placeholder="Ex : 300" oninput="calcRentabilite()">
           </div>
         </div>
@@ -1477,7 +1488,7 @@ html,body{overflow-x:hidden;}
         <!-- Autres frais -->
         <div id="sim-row-autresfrais">
           <div class="fgroup">
-            <label class="flabel">Autres frais (€)</label>
+            <label class="flabel" id="sim-label-autresfrais">Autres frais (€)</label>
             <input type="number" id="sim-autresfrais-val" step="10" min="0" placeholder="Ex : 50" oninput="calcRentabilite()">
           </div>
         </div>
@@ -14252,32 +14263,32 @@ async function confirmReset() {
 const SIM_PRESETS = {
   service: {
     subtitle: 'Estimez si votre prestation ou programme est rentable avant de le proposer.',
-    labelCa: 'Prix envisagé (€ HT)',
+    labelCa: 'Prix envisagé',
     labelTemps: 'Temps total estimé (h)',
-    labelMatieres: 'Fournitures (€)',
+    labelMatieres: 'Fournitures',
     fields: { temps:true, trajet:false, achat:false, matieres:false, emballages:false, soustraitance:false, plateforme:false, autresfrais:false, collectif:true },
   },
   chantier: {
     subtitle: 'Vérifiez si votre devis reste rentable avant de l\'envoyer.',
-    labelCa: 'Montant du devis (€ HT)',
+    labelCa: 'Montant du devis',
     labelTemps: 'Temps chantier estimé (h)',
-    labelMatieres: 'Fournitures & matériaux (€)',
+    labelMatieres: 'Fournitures & matériaux',
     fields: { temps:true, trajet:true, achat:false, matieres:true, emballages:false, soustraitance:false, plateforme:false, autresfrais:true, collectif:false },
   },
   fabrication: {
     subtitle: 'Cette commande est-elle suffisamment rentable pour être acceptée ?',
     subtitleCalculer: 'Entrez les coûts et le temps — le simulateur calcule le prix de vente minimum à facturer.',
-    labelCa: 'Prix de vente / Montant de la commande (€ HT)',
+    labelCa: 'Prix de vente / Montant de la commande',
     labelTemps: 'Temps de fabrication estimé (h)',
-    labelMatieres: 'Matières premières (€)',
+    labelMatieres: 'Matières premières',
     fields: { temps:true, trajet:false, achat:false, matieres:true, emballages:true, soustraitance:true, plateforme:false, autresfrais:true, collectif:false, serie:false },
   },
   achat_revente: {
     subtitle: 'Est-ce que cette vente vaut vraiment le temps que vous allez y consacrer ?',
     subtitleCalculer: 'Entrez le prix de vente et votre temps — le simulateur calcule le prix d\'achat maximum pour rester rentable.',
-    labelCa: 'Prix de vente (€)',
+    labelCa: 'Prix de vente',
     labelTemps: 'Temps total estimé (h)',
-    labelMatieres: 'Matières / fournitures (€)',
+    labelMatieres: 'Matières / fournitures',
     fields: { temps:true, trajet:false, achat:true, matieres:false, emballages:true, soustraitance:false, plateforme:true, autresfrais:true, collectif:false, lot:false },
   },
 };
@@ -14298,6 +14309,15 @@ let _simMode = 'verifier';      // 'verifier' | 'calculer'
 // bouger entre les modes).
 let _simCalculerMontant = 0;
 let _simTempsMode = 'total';    // 'total' | 'sem' (service uniquement)
+// Nature de la mission simulée, pour les comptes en activité mixte uniquement (voir
+// calcRentabilite()) : 'auto' résout vers 'vente' pour les presets achat_revente/fabrication et
+// 'presta' pour les autres, sans qu'aucune saisie ne soit nécessaire pour un compte non mixte.
+let _simNatureCa = 'auto';      // 'auto' | 'presta' | 'vente'
+
+function switchSimNature(nature) {
+  _simNatureCa = nature;
+  renderSimulateurPage();
+}
 
 function switchSimMode(mode) {
   _simMode = mode;
@@ -14337,6 +14357,15 @@ function renderSimulateurPage() {
   const isAchatRevente = preset === 'achat_revente';
   const isAchatMax = isCalculer && isAchatRevente; // calculer = prix d'achat max (CA connu)
 
+  // Nature de la mission (presta/vente), pertinent seulement en activité mixte. 'auto' résout
+  // vers le type le plus probable selon le preset, sans saisie nécessaire pour un compte non mixte.
+  const isMixte = isActiviteMixte();
+  const natureDefault = (preset === 'achat_revente' || preset === 'fabrication') ? 'vente' : 'presta';
+  const natureResolved = _simNatureCa === 'auto' ? natureDefault : _simNatureCa;
+  const _bNP = el('sim-nature-btn-presta'), _bNV = el('sim-nature-btn-vente');
+  if (_bNP) _bNP.style.cssText = natureResolved === 'vente' ? _offStyle : _onStyle;
+  if (_bNV) _bNV.style.cssText = natureResolved === 'vente' ? _onStyle : _offStyle;
+
   const subtitleMap = {
     verifier: cfg.subtitle,
     calculer: isAchatMax
@@ -14344,9 +14373,17 @@ function renderSimulateurPage() {
       : 'Indiquez le temps et les coûts — le simulateur calcule le prix minimum à facturer.',
   };
   if (el('sim-subtitle')) el('sim-subtitle').textContent = subtitleMap[_simMode] || cfg.subtitle;
-  if (el('sim-label-ca')) el('sim-label-ca').textContent = cfg.labelCa;
+  // "HT" n'a de sens que pour une utilisatrice assujettie à la TVA (retour Faustine 2026-09-16) :
+  // en franchise, prix et achats sont dans la même unité, préciser "HT" n'apporte rien.
+  const _euroUnit = DATA.params.tva ? '(€ HT)' : '(€)';
+  if (el('sim-label-ca')) el('sim-label-ca').textContent = `${cfg.labelCa} ${_euroUnit}`;
   if (el('sim-label-temps')) el('sim-label-temps').textContent = cfg.labelTemps;
-  if (el('sim-label-matieres')) el('sim-label-matieres').textContent = cfg.labelMatieres;
+  if (el('sim-label-matieres')) el('sim-label-matieres').textContent = `${cfg.labelMatieres} ${_euroUnit}`;
+  if (el('sim-label-prixpart')) el('sim-label-prixpart').textContent = `Prix / participant ${_euroUnit}`;
+  if (el('sim-label-achat')) el('sim-label-achat').textContent = `Coût d'achat ${_euroUnit}`;
+  if (el('sim-label-emballages')) el('sim-label-emballages').textContent = `Emballages & consommables ${_euroUnit}`;
+  if (el('sim-label-soustraitance')) el('sim-label-soustraitance').textContent = `Sous-traitance ${_euroUnit}`;
+  if (el('sim-label-autresfrais')) el('sim-label-autresfrais').textContent = `Autres frais ${_euroUnit}`;
   if (el('sim-jours-conversion')) {
     const _hjConv = DATA.params.heuresParJour || 7;
     const _joursConv = parseFloat(el('sim-jours-val')?.value) || 0;
@@ -14363,6 +14400,7 @@ function renderSimulateurPage() {
   const isTempsJours  = isChantier && fields.temps && _simTempsMode === 'jours';
 
   const rows = {
+    'sim-row-nature':         isMixte,
     'sim-row-ca':             !isCollectif && (!isCalculer || isAchatMax),
     'sim-row-collectif':      fields.collectif,
     'sim-row-collectif-detail': isCollectif,
@@ -14551,6 +14589,16 @@ function calcRentabilite() {
   const { ca, heures, coutsDirects, participants, isCollectif, _isCalculer = false, _isAchatMax = false, _achatMax, preset = 'service', lotNb = 1, serieNb = 1 } = inputs;
   const p = DATA.params;
   const _isMicro    = !isSASU();
+  // Nature de cette mission (presta/vente), pertinente uniquement en activité mixte : les taux de
+  // cotisations et l'abattement fiscal diffèrent selon le type (retour Faustine 2026-09-16 : le
+  // simulateur traitait tout le CA comme de la prestation, même pour une mission de vente sur un
+  // compte mixte). 'auto' résout selon le preset ; un compte non mixte ignore cette valeur
+  // (getTauxChargesVente()/getAbattementMicro() retombent alors sur le taux unique du compte).
+  const _natureCa   = _simNatureCa === 'auto'
+    ? ((preset === 'achat_revente' || preset === 'fabrication') ? 'vente' : 'presta')
+    : _simNatureCa;
+  const _caPresta   = _natureCa === 'vente' ? 0  : ca;
+  const _caVente    = _natureCa === 'vente' ? ca : 0;
   // En SASU/EURL, les cotisations portent sur le salaire versé, pas sur le CA de la mission :
   // p.tauxURSSAF/tauxCFP ne sont jamais réinitialisés par applyStatutParams() pour ces deux
   // statuts (TAUX_URSSAF['sasu'|'eurl'] n'existe pas, voir applyStatutParams) et gardent donc la
@@ -14558,7 +14606,7 @@ function calcRentabilite() {
   // affichait une fausse ligne "URSSAF à mettre de côté" en SASU/EURL (retour Faustine
   // 2026-09-16). L'objectif de taux horaire cible reste correct (getTauxHoraireMinCible() est
   // déjà SASU-aware via getSasuCoutRemuMensuel), seule cette ligne d'affichage était fausse.
-  const _urssafTaux = _isMicro ? (p.tauxURSSAF||0) + (p.tauxCFP||0) : 0;
+  const _urssafTaux = _isMicro ? (_natureCa === 'vente' ? getTauxChargesVente() : getTauxChargesPresta()) * 100 : 0;
   const _impotTaux  = p.impotsTaux||0;
   const _hj         = p.heuresParJour||7;
   const _isJ        = isJours();
@@ -14568,7 +14616,7 @@ function calcRentabilite() {
   let provImpots = 0, abattPct = 0;
   if (_impotTaux > 0 && ca > 0) {
     if (_isMicro) {
-      const bi = getRevenuImposableMicro(ca, 0);
+      const bi = getRevenuImposableMicro(_caPresta, _caVente);
       abattPct = Math.round((1 - bi/ca)*100);
       provImpots = Math.round(bi * _impotTaux / 100);
     } else {
