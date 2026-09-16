@@ -1858,6 +1858,24 @@ En creusant le fix ci-dessus, la vraie capture d'écran de Faustine montrait en 
 - **Piège en généralisant à 18 fichiers** : le gap CSS de `.links` variait d'une page à l'autre (20px/22px/26px selon le nombre d'items visibles à l'origine) et une page (`faq/index.html`) avait un `max-width:1040px` supplémentaire sur `.wrap` que les autres n'avaient pas. Un script de transformation trop rigide aurait raté ces variantes silencieusement : vérifier après coup qu'aucun fichier n'a été sauté (`grep -c 'id="menuToggle"'` doit renvoyer 1 sur chacun) plutôt que de faire confiance au rapport du script seul.
 - Vérifié : JS valide sur les 18 fichiers, 568 liens internes 0 cassé, un seul bouton ☰ par page confirmé, comportement testé en direct (ouverture, sous-menu Métiers en place, fermeture au scroll) sur des pages à profondeurs de chemin différentes (racine, 1 niveau, 2 niveaux).
 
+### ⚠️ TEMPORAIRE : création de compte bloquée sur indepuls.fr en attendant Stripe (2026-09-16)
+Le paywall Stripe (`PAYWALL_ENABLED`, voir plus bas) reste désactivé : Faustine ne peut pas créer de structure (micro-entreprise ou société) pour l'instant, en arrêt de travail. Sans ce garde-fou, n'importe qui pouvait créer un compte Indépuls gratuit et illimité directement depuis le site public, un vrai risque maintenant que le site est référencé (SEO, Instagram) et visité par de vraies inconnues, pas seulement les bêta-testeurs connus.
+
+**Ce qui a été fait** : dans `indepuls.html` ET `indepuls-demo.html` (fork qui a sa propre copie du même flux d'auth), le lien "Créer son compte →" de l'écran de connexion est masqué, et la fonction `authSignUp()` refuse explicitement de créer un compte, quand `location.hostname` vaut `indepuls.fr` ou `www.indepuls.fr`. Reprend le mécanisme déjà utilisé pour le bouton démo réservé à `localhost`. La connexion (comptes existants) n'est pas touchée, et `indepuls.vercel.app` continue de fonctionner normalement pour les bêta-testeurs : ce n'est pas une fermeture complète (`indepuls.vercel.app` reste public si quelqu'un tombe dessus autrement), juste un blocage du chemin d'accès réel depuis le site public.
+
+**Pour réactiver la création de compte sur indepuls.fr** (dès que Faustine peut créer une structure et un compte Stripe live) :
+1. Dans `indepuls.html` ET `indepuls-demo.html`, chercher `location.hostname==='indepuls.fr'` (2 occurrences par fichier : le masquage du bouton, et le garde-fou dans `authSignUp()`) et supprimer ces deux blocs (ou les neutraliser), pour revenir au comportement normal sur tous les domaines.
+2. En profiter pour activer le paywall en même temps si le compte Stripe live est prêt : voir la section "Interrupteur général" plus bas (`PAYWALL_ENABLED = true` + remplacer `STRIPE_PAYMENT_LINK` par le lien live). Les deux changements vont naturellement ensemble : rouvrir l'inscription publique n'a de sens qu'une fois le paywall actif derrière.
+3. Repush et re-tester (créer un compte test depuis indepuls.fr, vérifier qu'il redirige bien vers l'écran de paiement Stripe si le paywall est activé en même temps).
+
+### FEAT : lien direct Urssaf / impots.gouv.fr sur les alertes de déclaration (2026-09-16)
+Retour Faustine : les alertes d'échéance URSSAF/TVA et les rappels CFE/déclaration de revenus mentionnaient les bons sites en texte, sans lien cliquable.
+
+- Alerte URSSAF/TVA (`indepuls.html` + `indepuls-demo.html`, copie manuelle du même bloc dans les deux) : lien ajouté vers l'accueil du portail auto-entrepreneur Urssaf, ou vers l'espace professionnel impots.gouv.fr selon le type d'échéance (`ech.type==='urssaf'` vs `'tva'`).
+- Rappel CFE et rappel déclaration de revenus (`shared/core/calculs.js`, `getEcheancesFiscalesGeneriques`, partagé par les deux fichiers HTML via `shared/modes/unified.js`, un seul endroit à modifier) : lien vers l'espace professionnel pour la CFE, vers l'espace particulier pour la déclaration de revenus (la déclaration de revenus se fait toujours via le compte personnel, même pour du BNC/BIC ; ne pas confondre avec l'espace pro).
+- Les deux URLs (autoentrepreneur.urssaf.fr, impots.gouv.fr/professionnel, impots.gouv.fr/particulier) ont été vérifiées en direct avant intégration, pas juste supposées correctes.
+- Vérifié : `shared/tests/materialiteSignaux.test.js` toujours 23/23, `calculs.js` s'importe sans erreur, JS valide sur les deux HTML.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
