@@ -1876,6 +1876,12 @@ Retour Faustine : les alertes d'échéance URSSAF/TVA et les rappels CFE/déclar
 - Les deux URLs (autoentrepreneur.urssaf.fr, impots.gouv.fr/professionnel, impots.gouv.fr/particulier) ont été vérifiées en direct avant intégration, pas juste supposées correctes.
 - Vérifié : `shared/tests/materialiteSignaux.test.js` toujours 23/23, `calculs.js` s'importe sans erreur, JS valide sur les deux HTML.
 
+### FIX : "Mon espace" et "Essayer" trop collés en desktop (2026-09-16)
+Régression introduite par le chantier menu ☰ repliable du 14/09 : en sortant "Mon espace" et "Essayer" du conteneur `.links` (qui avait son propre `gap` interne) pour les rendre toujours visibles, ils sont devenus des enfants directs de `.wrap` sans aucun espacement horizontal entre eux ni avec le bloc de liens (`row-gap` ne gère que le retour à la ligne, pas l'espacement horizontal entre éléments sur la même ligne).
+
+- **Fix** : `column-gap` ajouté sur `nav.nav .wrap`, avec la même valeur que le `gap` déjà utilisé par `.links` sur chaque page (20/22/26px selon les pages).
+- **Piège à retenir** : en sortant des éléments d'un conteneur flex qui portait tout le `gap`, toujours vérifier où le `gap` doit maintenant vivre. C'est le même type d'oubli que celui déjà documenté pour la classe `extra` du menu ☰ (une visibilité/un espacement pensé pour un seul conteneur qui casse silencieusement une fois la structure éclatée en plusieurs conteneurs).
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
