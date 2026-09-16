@@ -1882,6 +1882,12 @@ Régression introduite par le chantier menu ☰ repliable du 14/09 : en sortant 
 - **Fix** : `column-gap` ajouté sur `nav.nav .wrap`, avec la même valeur que le `gap` déjà utilisé par `.links` sur chaque page (20/22/26px selon les pages).
 - **Piège à retenir** : en sortant des éléments d'un conteneur flex qui portait tout le `gap`, toujours vérifier où le `gap` doit maintenant vivre. C'est le même type d'oubli que celui déjà documenté pour la classe `extra` du menu ☰ (une visibilité/un espacement pensé pour un seul conteneur qui casse silencieusement une fois la structure éclatée en plusieurs conteneurs).
 
+### FEAT : "Aller à l'essentiel" disparaît une fois la nav enrichie (2026-09-16)
+Retour Faustine : `#skipLink` (`<a href="#s8">Aller à l'essentiel →</a>`, saute à la section "Essayer Indépuls") restait affiché en permanence, y compris une fois que les autres onglets (Fonctionnalités, Tarifs, Démo, FAQ, Métiers, Outils, Ressources) apparaissent au scroll (nav `enriched`). À ce stade, le lien n'a plus d'utilité : soit la section visée est déjà dépassée, soit une vraie navigation est maintenant disponible.
+
+- **Fix** : `.nav.enriched #skipLink{display:none;}` ajouté (une seule règle, valable desktop et mobile). Nettoyage au passage d'une règle mobile `order`/`margin-left` devenue inutile sur un élément caché.
+- Vérifié : comportement confirmé en direct desktop (1440px) et mobile (375px), visible en haut de page uniquement, disparaît dès que `.nav` passe en `enriched`.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
