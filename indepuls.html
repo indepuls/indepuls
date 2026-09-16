@@ -14688,9 +14688,16 @@ function calcRentabilite() {
 
   const { ca, heures, coutsDirects, participants, isCollectif, _isCalculer = false, _isAchatMax = false, _achatMax, preset = 'service', lotNb = 1, serieNb = 1 } = inputs;
   const p = DATA.params;
-  const _urssafTaux = (p.tauxURSSAF||0) + (p.tauxCFP||0);
-  const _impotTaux  = p.impotsTaux||0;
   const _isMicro    = !isSASU();
+  // En SASU/EURL, les cotisations portent sur le salaire versé, pas sur le CA de la mission :
+  // p.tauxURSSAF/tauxCFP ne sont jamais réinitialisés par applyStatutParams() pour ces deux
+  // statuts (TAUX_URSSAF['sasu'|'eurl'] n'existe pas, voir applyStatutParams) et gardent donc la
+  // valeur micro-BNC posée par défaut à la création du compte. Sans ce garde-fou, le simulateur
+  // affichait une fausse ligne "URSSAF à mettre de côté" en SASU/EURL (retour Faustine
+  // 2026-09-16). L'objectif de taux horaire cible reste correct (getTauxHoraireMinCible() est
+  // déjà SASU-aware via getSasuCoutRemuMensuel), seule cette ligne d'affichage était fausse.
+  const _urssafTaux = _isMicro ? (p.tauxURSSAF||0) + (p.tauxCFP||0) : 0;
+  const _impotTaux  = p.impotsTaux||0;
   const _hj         = p.heuresParJour||7;
   const _isJ        = isJours();
 
