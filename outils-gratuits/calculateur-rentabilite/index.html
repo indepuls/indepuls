@@ -96,6 +96,19 @@
     padding:8px 10px; border-radius:999px; cursor:pointer; font-family:'Lato',sans-serif;
   }
   .unittoggle button.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  select.selectrow{width:100%; background:var(--cream); border:1px solid #e4ddd0; border-radius:10px; padding:11px 12px; font-size:14.5px; font-weight:700; color:var(--navy); font-family:'Lato',sans-serif; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238a8a9a'/></svg>"); background-repeat:no-repeat; background-position:right 14px center;}
+  .field-2col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(max-width:520px){ .field-2col{grid-template-columns:1fr;} }
+  .taux-detail{font-size:12px; color:#8a8a9a; margin-top:8px; line-height:1.5;}
+  .taux-detail strong{color:var(--navy);}
+  .sliderrow{display:flex; align-items:center; gap:14px;}
+  .sliderrow input[type=range]{flex:1; accent-color:var(--prune);}
+  .sliderrow .sliderval{font-weight:700; font-size:15px; color:var(--prune); min-width:48px; text-align:right;}
+  .verdict{margin-top:14px; padding:14px 16px; border-radius:12px; font-size:13.5px; line-height:1.5; border-left:4px solid var(--brd);}
+  .verdict.ok{background:#eaf6ef; border-left-color:#2d7a4f; color:#1e5c39;}
+  .verdict.warn{background:#fdf3e2; border-left-color:#b8871f; color:#7a5c14;}
+  .verdict.bad{background:#fbeaea; border-left-color:#b33a3a; color:#7a2424;}
+  .verdict.info{background:#eef0fb; border-left-color:#5a5fa8; color:#3a3d70;}
 
   .calc-result{background:var(--navy); color:#fff; border-radius:16px; padding:30px 26px; text-align:center;}
   .result-label{display:block; font-size:12.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--beige); margin-bottom:8px;}
@@ -179,7 +192,6 @@
         <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
         <div class="dropmenu">
           <a href="../combien-facturer/index.html">Combien facturer&nbsp;?</a>
-          <a href="../calculateur-tjm/index.html">Calculateur de TJM &amp; taux horaire</a>
           <a href="../calculateur-rentabilite/index.html" class="active">Calculateur de rentabilité</a>
         </div>
       </div>
@@ -221,37 +233,78 @@
           <button type="button" id="btnJours" class="active">Jours</button>
         </div>
       </div>
+      <div class="field">
+        <label for="regime">Mon statut<span class="hint">Pour estimer ce qu'il reste vraiment une fois Urssaf et impôts déduits</span></label>
+        <select class="selectrow" id="regime">
+          <option value="micro-bnc">Micro-entreprise : prestations de services (BNC, libéral)</option>
+          <option value="micro-bic">Micro-entreprise : prestations de services (BIC, artisan/commerçant)</option>
+          <option value="micro-achat">Micro-entreprise : achat-revente / commerce</option>
+          <option value="societe">Société (SASU, EURL&hellip;) ou autre statut</option>
+        </select>
+      </div>
+      <div class="field-2col" id="microFields">
+        <div class="field">
+          <label for="tmi">Tranche d'imposition (TMI)</label>
+          <select class="selectrow" id="tmi">
+            <option value="0">0 %</option>
+            <option value="11" selected>11 %</option>
+            <option value="30">30 %</option>
+            <option value="41">41 %</option>
+            <option value="45">45 %</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cotisations Urssaf<span class="hint">Calculées automatiquement selon votre statut</span></label>
+          <div class="inputrow" style="background:#fff"><span id="urssafAuto" style="font-size:16px;font-weight:700;color:var(--navy)">25,8&nbsp;%</span></div>
+        </div>
+      </div>
+      <div class="field" id="societeField" style="display:none">
+        <label for="taux">Cotisations et impôts estimés<span class="hint">En % du montant de la mission</span></label>
+        <div class="sliderrow">
+          <input type="range" id="taux" min="10" max="60" value="35" step="1">
+          <span class="sliderval" id="tauxVal">35 %</span>
+        </div>
+      </div>
+      <div class="taux-detail" id="tauxDetail"></div>
+      <div class="field">
+        <label for="cible">Mon taux horaire cible<span class="hint">Optionnel : pour savoir si cette mission atteint votre objectif</span></label>
+        <div class="inputrow"><input type="number" id="cible" min="0" step="1" placeholder="Ex : 35"><span class="unit">€/h</span></div>
+      </div>
     </div>
 
-    <div class="calc-result">
-      <span class="result-label">Marge nette</span>
-      <span class="result-num" id="margeOut">1 500&nbsp;€</span>
-      <span class="result-sub" id="margePctOut">soit 83&nbsp;% du montant</span>
-      <div class="result-secondary">Taux réel : <b id="tauxReelOut">250&nbsp;€/j</b></div>
-      <div class="formula" id="formulaOut"></div>
+    <div>
+      <div class="calc-result">
+        <span class="result-label">Gain net estimé</span>
+        <span class="result-num" id="margeOut">1 200&nbsp;€</span>
+        <span class="result-sub" id="margePctOut">soit 67&nbsp;% du montant, une fois Urssaf et impôts déduits</span>
+        <div class="result-secondary" id="resultSecondary">Taux réel net : <b id="tauxReelOut">200&nbsp;€/j</b></div>
+        <div class="formula" id="formulaOut"></div>
+      </div>
+      <div class="verdict info" id="verdictBox" style="display:none"></div>
     </div>
   </div>
-  <p class="disclaimer wrap">Calcul indicatif et simplifié, basé sur les chiffres que vous renseignez. Il ne prend en compte ni vos charges fixes, ni vos cotisations, ni la valeur du marché pour votre prestation : il vous donne votre marge, pas si votre prix est bien positionné.</p>
+  <p class="disclaimer wrap">Calcul indicatif basé sur les taux Urssaf 2026 et vos chiffres. Il ne remplace pas un conseil fiscal personnalisé et ne tient pas compte de la TVA ni du plafond du régime micro.</p>
 </section>
 
 <section class="explain">
   <div class="wrap">
     <h2>Comment ce calcul fonctionne</h2>
-    <p>Un montant qui semble correct sur un devis peut cacher une rentabilité très différente une fois les coûts et le temps réellement passés pris en compte. Trois chiffres suffisent :</p>
+    <p>Un montant qui semble correct sur un devis peut cacher une rentabilité très différente une fois les coûts, le temps réellement passé et vos charges réelles pris en compte. Quatre éléments suffisent :</p>
     <ul>
       <li><strong>Le montant total</strong> facturé pour la mission, le chantier ou la commande.</li>
       <li><strong>Les coûts directs</strong> qui lui sont propres : matières, sous-traitance, déplacement, tout ce qui part avant même de calculer votre temps.</li>
       <li><strong>Le temps réellement passé</strong>, pas le temps initialement prévu.</li>
+      <li><strong>Votre statut</strong>, pour appliquer les vrais taux Urssaf et l'abattement fiscal qui en découle, pas un pourcentage générique.</li>
     </ul>
-    <p>La marge nette et le taux réel qui en découle sont toujours accompagnés du calcul qui les justifie.</p>
+    <p>Le gain net qui en résulte, ce qu'il vous reste vraiment en poche, est toujours accompagné du calcul qui le justifie. Renseignez en plus votre taux horaire cible pour savoir d'un coup d'œil si cette mission précise l'atteint.</p>
   </div>
 </section>
 
 <section class="bridge">
   <div class="wrap">
     <div>
-      <h2>Cet outil est volontairement simplifié</h2>
-      <p>Ce calculateur donne la rentabilité d'une seule mission à partir de trois chiffres. Indépuls prend en compte beaucoup plus de paramètres : vos charges, vos cotisations, vos objectifs, mais aussi les missions collectives à plusieurs participants et les ventes en lots.</p>
+      <h2>Cet outil reste une photo, prise une fois</h2>
+      <p>Ce calculateur donne la rentabilité d'une seule mission, avec vos vrais taux de cotisations. Indépuls va plus loin : vos charges fixes, votre objectif de revenu personnel, les missions collectives à plusieurs participants et les ventes en lots.</p>
       <p>Et surtout, vous ne saisissez vos informations qu'une seule fois. Indépuls garde en mémoire vos objectifs, vos dépenses et vos encaissements, et les intègre directement à chaque calcul, mission après mission, sans ressaisie.</p>
     </div>
     <div>
@@ -273,7 +326,7 @@
   <h2>Voir ce calcul appliqué en continu à votre activité</h2>
   <div class="btnrow">
     <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
-    <a class="btn btn-secondary" href="../calculateur-tjm/index.html">Calculer mon TJM minimum</a>
+    <a class="btn btn-secondary" href="../combien-facturer/index.html">Calculer mon TJM ou taux horaire minimum</a>
   </div>
 </section>
 
@@ -328,16 +381,38 @@
 
 (function(){
   var fmt = function(n){ return Math.round(n).toLocaleString('fr-FR'); };
+  var fmtPct = function(n){ return n.toLocaleString('fr-FR', {minimumFractionDigits:1, maximumFractionDigits:1}); };
+
+  // Taux Urssaf 2026 et abattements forfaitaires micro (source DGFIP), identiques a ceux
+  // utilises dans Indepuls (shared/core/taux.js) pour rester coherent entre le site et l'app.
+  var REGIMES = {
+    'micro-bnc':   { urssaf: 25.6, cfp: 0.2, abattement: 34 },
+    'micro-bic':   { urssaf: 21.2, cfp: 0.3, abattement: 50 },
+    'micro-achat': { urssaf: 12.3, cfp: 0.1, abattement: 71 }
+  };
+  var HEURES_PAR_JOUR = 7;
+
   var montant = document.getElementById('montant');
   var couts = document.getElementById('couts');
   var temps = document.getElementById('temps');
   var unitLabel = document.getElementById('unitLabel');
   var btnHeures = document.getElementById('btnHeures');
   var btnJours = document.getElementById('btnJours');
+  var regime = document.getElementById('regime');
+  var tmi = document.getElementById('tmi');
+  var microFields = document.getElementById('microFields');
+  var societeField = document.getElementById('societeField');
+  var urssafAuto = document.getElementById('urssafAuto');
+  var taux = document.getElementById('taux');
+  var tauxVal = document.getElementById('tauxVal');
+  var tauxDetail = document.getElementById('tauxDetail');
+  var cible = document.getElementById('cible');
   var margeOut = document.getElementById('margeOut');
   var margePctOut = document.getElementById('margePctOut');
   var tauxReelOut = document.getElementById('tauxReelOut');
+  var resultSecondary = document.getElementById('resultSecondary');
   var formulaOut = document.getElementById('formulaOut');
+  var verdictBox = document.getElementById('verdictBox');
   var unit = 'jours';
 
   function setUnit(u){
@@ -350,23 +425,69 @@
   btnHeures.addEventListener('click', function(){ setUnit('heures'); });
   btnJours.addEventListener('click', function(){ setUnit('jours'); });
 
+  regime.addEventListener('change', function(){
+    var isSociete = regime.value === 'societe';
+    microFields.style.display = isSociete ? 'none' : '';
+    societeField.style.display = isSociete ? '' : 'none';
+    calc();
+  });
+
+  // Meme logique que getRevenuImposableMicro() dans shared/core/calculs.js : l'impot porte
+  // sur le montant APRES abattement forfaitaire, pas sur le montant brut.
+  function getProvisions(m){
+    if (regime.value === 'societe') {
+      var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
+      tauxVal.textContent = t + ' %';
+      tauxDetail.innerHTML = '';
+      urssafAuto.textContent = '';
+      return { urssaf: m * t / 100, impot: 0 };
+    }
+    var reg = REGIMES[regime.value];
+    var urssafPct = reg.urssaf + reg.cfp;
+    var tmiPct = parseFloat(tmi.value) || 0;
+    var impotPct = tmiPct * (1 - reg.abattement / 100);
+    urssafAuto.textContent = fmtPct(urssafPct) + ' %';
+    tauxDetail.innerHTML = 'Urssaf <strong>' + fmtPct(urssafPct) + ' %</strong> du montant + impôt <strong>' + tmiPct + ' %</strong> sur le montant après abattement forfaitaire de <strong>' + reg.abattement + ' %</strong> (soit ' + fmtPct(impotPct) + ' % du montant).';
+    return { urssaf: m * urssafPct / 100, impot: m * impotPct / 100 };
+  }
+
   function calc(){
     var m = Math.max(parseFloat(montant.value) || 0, 0);
     var c = Math.max(parseFloat(couts.value) || 0, 0);
     var t = Math.max(parseFloat(temps.value) || 0, 0.1);
-
-    var marge = m - c;
-    var margePct = m > 0 ? (marge / m) * 100 : 0;
-    var tauxReel = marge / t;
     var unitAbbr = unit === 'heures' ? 'h' : 'j';
+    var heures = unit === 'heures' ? t : t * HEURES_PAR_JOUR;
 
-    margeOut.textContent = fmt(marge) + ' €';
-    margePctOut.textContent = 'soit ' + Math.round(margePct) + ' % du montant';
-    tauxReelOut.textContent = fmt(tauxReel) + ' €/' + unitAbbr;
-    formulaOut.textContent = '(' + fmt(m) + ' € − ' + fmt(c) + ' €) ÷ ' + t + ' ' + unit + ' = ' + fmt(tauxReel) + ' €/' + unitAbbr;
+    var margeBrute = m - c;
+    var prov = getProvisions(m);
+    var revenuNet = Math.max(0, margeBrute - prov.urssaf - prov.impot);
+    var margePct = m > 0 ? (revenuNet / m) * 100 : 0;
+    var tauxReelNet = revenuNet / t;
+    var tauxReelBrut = margeBrute / t;
+    var thBrut = margeBrute / heures;
+
+    margeOut.textContent = fmt(revenuNet) + ' €';
+    margePctOut.textContent = 'soit ' + Math.round(margePct) + ' % du montant, une fois Urssaf et impôts déduits';
+    tauxReelOut.textContent = fmt(tauxReelNet) + ' €/' + unitAbbr;
+    resultSecondary.innerHTML = 'Taux réel net : <b>' + fmt(tauxReelNet) + ' €/' + unitAbbr + '</b> · brut : <b>' + fmt(tauxReelBrut) + ' €/' + unitAbbr + '</b>';
+    formulaOut.textContent = '(' + fmt(m) + ' € − ' + fmt(c) + ' € − ' + fmt(prov.urssaf) + ' € Urssaf − ' + fmt(prov.impot) + ' € impôts) ÷ ' + t + ' ' + unit + ' = ' + fmt(tauxReelNet) + ' €/' + unitAbbr;
+
+    var cibleVal = parseFloat(cible.value);
+    if (cibleVal > 0) {
+      var ratio = thBrut / cibleVal;
+      var cls, icon, txt;
+      if (ratio >= 1.2) { cls = 'ok'; icon = '🟢'; txt = 'Très bonne mission : votre gain brut par heure dépasse largement votre objectif.'; }
+      else if (ratio >= 0.8) { cls = 'warn'; icon = '🟡'; txt = 'Mission rentable, mais marge limitée si un imprévu survient.'; }
+      else { cls = 'bad'; icon = '🔴'; txt = 'Mission peu rentable compte tenu du temps et des coûts engagés, par rapport à votre objectif.'; }
+      verdictBox.className = 'verdict ' + cls;
+      verdictBox.style.display = '';
+      verdictBox.innerHTML = icon + ' ' + txt + ' <span style="opacity:.8">(gain brut : ' + fmt(Math.round(thBrut)) + ' €/h, objectif : ' + fmt(cibleVal) + ' €/h)</span>';
+    } else {
+      verdictBox.style.display = 'none';
+    }
   }
 
-  [montant, couts, temps].forEach(function(el){ el.addEventListener('input', calc); });
+  [montant, couts, temps, tmi, taux, cible].forEach(function(el){ el.addEventListener('input', calc); });
   calc();
 })();
 </script>

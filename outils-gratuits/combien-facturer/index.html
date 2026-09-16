@@ -100,6 +100,11 @@
   .sliderrow{display:flex; align-items:center; gap:14px;}
   .sliderrow input[type=range]{flex:1; accent-color:var(--prune);}
   .sliderrow .sliderval{font-weight:700; font-size:15px; color:var(--prune); min-width:48px; text-align:right;}
+  select.selectrow{width:100%; background:var(--cream); border:1px solid #e4ddd0; border-radius:10px; padding:11px 12px; font-size:14.5px; font-weight:700; color:var(--navy); font-family:'Lato',sans-serif; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238a8a9a'/></svg>"); background-repeat:no-repeat; background-position:right 14px center;}
+  .field-2col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(max-width:520px){ .field-2col{grid-template-columns:1fr;} }
+  .taux-detail{font-size:12px; color:#8a8a9a; margin-top:8px; line-height:1.5;}
+  .taux-detail strong{color:var(--navy);}
 
   .modetoggle{display:flex; gap:8px; margin-bottom:24px;}
   .modetoggle button{flex:1; border-radius:999px; border:1px solid #e4ddd0; background:#fff; padding:10px 14px; font-weight:700; font-size:13.5px; color:var(--navy); cursor:pointer; transition:background .15s, color .15s, border-color .15s; font-family:'Lato',sans-serif;}
@@ -192,7 +197,6 @@
         <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
         <div class="dropmenu">
           <a href="../combien-facturer/index.html" class="active">Combien facturer&nbsp;?</a>
-          <a href="../calculateur-tjm/index.html">Calculateur de TJM &amp; taux horaire</a>
           <a href="../calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
         </div>
       </div>
@@ -254,12 +258,38 @@
           <div class="inputrow"><input type="number" id="charges" value="300" min="0" step="10"><span class="unit">€ / mois</span></div>
         </div>
         <div class="field">
-          <label for="taux">Cotisations et impôts estimés<span class="hint">En % du chiffre d'affaires, à ajuster selon votre statut (micro-entreprise ou société)</span></label>
-          <div class="sliderrow">
-            <input type="range" id="taux" min="10" max="45" value="25" step="1">
-            <span class="sliderval" id="tauxVal">25 %</span>
+          <label for="regime">Mon statut<span class="hint">Détermine le taux réel de vos cotisations et l'abattement fiscal applicable</span></label>
+          <select class="selectrow" id="regime">
+            <option value="micro-bnc">Micro-entreprise : prestations de services (BNC, libéral)</option>
+            <option value="micro-bic">Micro-entreprise : prestations de services (BIC, artisan/commerçant)</option>
+            <option value="micro-achat">Micro-entreprise : achat-revente / commerce</option>
+            <option value="societe">Société (SASU, EURL&hellip;) ou autre statut</option>
+          </select>
+        </div>
+        <div class="field-2col" id="microFields">
+          <div class="field">
+            <label for="tmi">Tranche d'imposition (TMI)</label>
+            <select class="selectrow" id="tmi">
+              <option value="0">0 %</option>
+              <option value="11" selected>11 %</option>
+              <option value="30">30 %</option>
+              <option value="41">41 %</option>
+              <option value="45">45 %</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cotisations Urssaf<span class="hint">Calculées automatiquement selon votre statut</span></label>
+            <div class="inputrow" style="background:#fff"><span id="urssafAuto" style="font-size:16px;font-weight:700;color:var(--navy)">25,8&nbsp;%</span></div>
           </div>
         </div>
+        <div class="field" id="societeField" style="display:none">
+          <label for="taux">Cotisations et impôts estimés<span class="hint">En % du chiffre d'affaires : à ajuster selon la rémunération que vous vous versez</span></label>
+          <div class="sliderrow">
+            <input type="range" id="taux" min="10" max="60" value="35" step="1">
+            <span class="sliderval" id="tauxVal">35 %</span>
+          </div>
+        </div>
+        <div class="taux-detail" id="tauxDetail"></div>
       </div>
     </div>
 
@@ -283,13 +313,13 @@
         <div class="result-tile">
           <span class="rt-label">Charges + impôts</span>
           <span class="rt-num" id="tauxOut">25&nbsp;%</span>
-          <span class="rt-sub">cotisations et impôts estimés</span>
+          <span class="rt-sub" id="tauxOutSub">cotisations et impôts estimés</span>
         </div>
       </div>
       <div class="formula" id="formulaOut"></div>
     </div>
   </div>
-  <p class="disclaimer wrap">Calcul indicatif et simplifié, basé sur les chiffres que vous renseignez. Il ne constitue pas un conseil fiscal ou comptable personnalisé ; le taux réel de cotisations et d'impôts dépend de votre statut exact.</p>
+  <p class="disclaimer wrap">Calcul indicatif basé sur les taux Urssaf 2026 et vos chiffres. Il ne remplace pas un conseil fiscal personnalisé et ne tient pas compte de la TVA ni du plafond du régime micro.</p>
 </section>
 
 <section class="explain">
@@ -300,7 +330,7 @@
       <li><strong>Votre rythme de travail réel</strong> : combien de jours par semaine, combien d'heures par jour, combien de semaines dans l'année vous facturez effectivement (congés, prospection et administratif déjà exclus).</li>
       <li><strong>Le revenu net que vous voulez vraiment toucher</strong>, pas le chiffre d'affaires affiché sur vos factures.</li>
       <li><strong>Vos charges professionnelles</strong>, tout ce qui sert votre activité mais ne vous revient pas en poche.</li>
-      <li><strong>La part de votre chiffre d'affaires qui part en cotisations et impôts</strong>, avant même d'arriver sur votre compte.</li>
+      <li><strong>La part de votre chiffre d'affaires qui part en cotisations et impôts</strong>, avant même d'arriver sur votre compte : calculée selon les vrais taux Urssaf 2026 de votre statut, et l'abattement fiscal forfaitaire réellement applicable, pas un pourcentage générique.</li>
     </ul>
     <p>Le résultat : le chiffre d'affaires mensuel à atteindre, et le TJM ou taux horaire minimum qui en découle. Le calcul reste toujours visible : aucun chiffre n'apparaît sans la formule qui le justifie.</p>
   </div>
@@ -333,7 +363,7 @@
   <h2>Voir cet objectif suivi en continu sur votre activité</h2>
   <div class="btnrow">
     <a class="btn btn-primary" href="../../demo/index.html">Explorer la démo</a>
-    <a class="btn btn-secondary" href="../calculateur-tjm/index.html">Calculer mon TJM ou taux horaire minimum</a>
+    <a class="btn btn-secondary" href="../calculateur-rentabilite/index.html">Vérifier la rentabilité d'une mission précise</a>
   </div>
 </section>
 
@@ -389,16 +419,30 @@
 (function(){
   var fmt = function(n){ return Math.round(n).toLocaleString('fr-FR'); };
   var fmt1 = function(n){ return n.toLocaleString('fr-FR', {minimumFractionDigits:1, maximumFractionDigits:1}); };
-  var HEURES_PAR_JOUR_DEFAUT = 7;
+  var fmtPct = function(n){ return n.toLocaleString('fr-FR', {minimumFractionDigits:1, maximumFractionDigits:1}); };
   var mode = 'jour'; // 'jour' ou 'heure'
+
+  // Taux Urssaf 2026 et abattements forfaitaires micro (source DGFIP), identiques a ceux
+  // utilises dans Indepuls (shared/core/taux.js) pour rester coherent entre le site et l'app.
+  var REGIMES = {
+    'micro-bnc':   { urssaf: 25.6, cfp: 0.2, abattement: 34 },
+    'micro-bic':   { urssaf: 21.2, cfp: 0.3, abattement: 50 },
+    'micro-achat': { urssaf: 12.3, cfp: 0.1, abattement: 71 }
+  };
 
   var joursSemaine = document.getElementById('joursSemaine');
   var heuresJour = document.getElementById('heuresJour');
   var semainesAn = document.getElementById('semainesAn');
   var revenu = document.getElementById('revenu');
   var charges = document.getElementById('charges');
+  var regime = document.getElementById('regime');
+  var tmi = document.getElementById('tmi');
+  var microFields = document.getElementById('microFields');
+  var societeField = document.getElementById('societeField');
+  var urssafAuto = document.getElementById('urssafAuto');
   var taux = document.getElementById('taux');
   var tauxVal = document.getElementById('tauxVal');
+  var tauxDetail = document.getElementById('tauxDetail');
   var modeJourBtn = document.getElementById('modeJourBtn');
   var modeHeureBtn = document.getElementById('modeHeureBtn');
 
@@ -411,6 +455,7 @@
   var capaciteOut = document.getElementById('capaciteOut');
   var capaciteSub = document.getElementById('capaciteSub');
   var tauxOut = document.getElementById('tauxOut');
+  var tauxOutSub = document.getElementById('tauxOutSub');
   var formulaOut = document.getElementById('formulaOut');
 
   function setMode(newMode){
@@ -426,16 +471,41 @@
   modeJourBtn.addEventListener('click', function(){ setMode('jour'); });
   modeHeureBtn.addEventListener('click', function(){ setMode('heure'); });
 
+  regime.addEventListener('change', function(){
+    var isSociete = regime.value === 'societe';
+    microFields.style.display = isSociete ? 'none' : '';
+    societeField.style.display = isSociete ? '' : 'none';
+    calc();
+  });
+
+  function getTauxGlobal(){
+    if (regime.value === 'societe') {
+      var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
+      tauxVal.textContent = t + ' %';
+      tauxDetail.innerHTML = '';
+      urssafAuto.textContent = '';
+      return { pct: t, detail: 'cotisations et impots estimes' };
+    }
+    var reg = REGIMES[regime.value];
+    var urssafPct = reg.urssaf + reg.cfp;
+    var tmiPct = parseFloat(tmi.value) || 0;
+    var impotPct = tmiPct * (1 - reg.abattement / 100);
+    urssafAuto.textContent = fmtPct(urssafPct) + ' %';
+    tauxDetail.innerHTML = 'Urssaf <strong>' + fmtPct(urssafPct) + ' %</strong> du CA + impot <strong>' + tmiPct + ' %</strong> sur le revenu apres abattement forfaitaire de <strong>' + reg.abattement + ' %</strong> (soit ' + fmtPct(impotPct) + ' % du CA).';
+    return { pct: urssafPct + impotPct, detail: 'dont ' + fmtPct(urssafPct) + ' % Urssaf + ' + fmtPct(impotPct) + ' % impot' };
+  }
+
   function calc(){
     var js = Math.min(Math.max(parseFloat(joursSemaine.value) || 1, 1), 7);
     var hj = Math.min(Math.max(parseFloat(heuresJour.value) || 1, 1), 12);
     var sa = Math.min(Math.max(parseFloat(semainesAn.value) || 1, 20), 52);
     var r = Math.max(parseFloat(revenu.value) || 0, 0);
     var c = Math.max(parseFloat(charges.value) || 0, 0);
-    var t = Math.min(Math.max(parseFloat(taux.value) || 0, 0), 90);
+    var tg = getTauxGlobal();
+    var t = tg.pct;
 
-    tauxVal.textContent = t + ' %';
-    tauxOut.textContent = t + ' %';
+    tauxOut.textContent = fmtPct(t) + ' %';
+    tauxOutSub.textContent = tg.detail;
 
     var joursFacturablesAn = js * sa;
     var heuresFacturablesAn = joursFacturablesAn * hj;
@@ -459,7 +529,7 @@
       capaciteLabel.textContent = 'Jours facturables/mois';
       capaciteOut.innerHTML = fmt1(joursFacturablesMois) + ' j';
       capaciteSub.textContent = js + 'j × ' + sa + '/52 sem.';
-      formulaOut.textContent = 'TJM = (' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + t + ' %) ÷ ' + fmt(joursFacturablesAn) + ' j = ' + fmt(tjm) + ' €/j';
+      formulaOut.textContent = 'TJM = (' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + fmtPct(t) + ' %) ÷ ' + fmt(joursFacturablesAn) + ' j = ' + fmt(tjm) + ' €/j';
     } else {
       tarifLabel.textContent = 'Taux horaire minimum (brut)';
       tarifOut.innerHTML = fmt(th) + ' €/h';
@@ -467,11 +537,11 @@
       capaciteLabel.textContent = 'Heures facturables/mois';
       capaciteOut.innerHTML = fmt1(heuresFacturablesMois) + ' h';
       capaciteSub.textContent = js + 'j × ' + hj + 'h × ' + sa + '/52 sem.';
-      formulaOut.textContent = 'Taux horaire = (' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + t + ' %) ÷ ' + fmt(heuresFacturablesAn) + ' h = ' + fmt(th) + ' €/h';
+      formulaOut.textContent = 'Taux horaire = (' + fmt(revenuAnnuel) + ' € + ' + fmt(chargesAnnuel) + ' €) ÷ (1 − ' + fmtPct(t) + ' %) ÷ ' + fmt(heuresFacturablesAn) + ' h = ' + fmt(th) + ' €/h';
     }
   }
 
-  [joursSemaine, heuresJour, semainesAn, revenu, charges, taux].forEach(function(el){ el.addEventListener('input', calc); });
+  [joursSemaine, heuresJour, semainesAn, revenu, charges, tmi, taux].forEach(function(el){ el.addEventListener('input', calc); });
 
   calc();
 })();
