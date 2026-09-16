@@ -16259,9 +16259,10 @@ document.addEventListener('keydown', function(e) {
             <button onclick="authForgotPassword()" style="background:none;border:none;color:#9a9aaa;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0">
               Mot de passe oublié ?
             </button>
+            ${(location.hostname==='indepuls.fr'||location.hostname==='www.indepuls.fr')?'':`
             <button onclick="authShowSignup()" style="background:none;border:none;color:#5B2C4A;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700;padding:0">
               Créer son compte →
-            </button>
+            </button>`}
           </div>
           ${(location.hostname==='localhost'||location.hostname==='127.0.0.1')?`
           <div style="margin-top:24px;padding-top:20px;border-top:1px solid #e0ddd8">
@@ -16305,6 +16306,10 @@ document.addEventListener('keydown', function(e) {
       var pwd   = (document.getElementById('auth-signup-pwd')?.value||'');
       var msg   = document.getElementById('auth-signup-msg');
       var btn   = document.getElementById('auth-signup-btn');
+      if (location.hostname==='indepuls.fr' || location.hostname==='www.indepuls.fr') {
+        if(msg){ msg.style.color='#e55'; msg.textContent="Les nouvelles inscriptions ne sont pas encore ouvertes sur ce site. Déjà bêta-testeur ? Connectez-vous ci-dessus."; }
+        return;
+      }
       if (!email || !pwd) { if(msg){ msg.style.color='#e55'; msg.textContent='Veuillez remplir tous les champs.'; } return; }
       if (pwd.length < 8) { if(msg){ msg.style.color='#e55'; msg.textContent='Le mot de passe doit faire au moins 8 caractères.'; } return; }
       if(btn){ btn.disabled=true; btn.textContent='Création…'; }
