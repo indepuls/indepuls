@@ -1012,24 +1012,6 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
       </div>
-      <div class="card mt16">
-        <div class="card-title mb12">Tarification & objectif</div>
-        <div class="divider mt4 mb12"></div>
-        <div class="ts mb12" style="color:var(--tl)">Pré-configuré selon votre profil — ajustez si votre façon de travailler est différente.</div>
-        <div class="ts mb8" style="color:var(--tl)">Ce que je veux piloter en priorité :</div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          <label class="tva-regime-opt" id="mod-obj-th"><input type="radio" name="mod-objectif" value="th" onchange="saveModuleParam('objectif','th')"><div><strong>Mon taux horaire (€/h)</strong><div class="ts mt1">Idéal pour les prestations vendues au temps passé</div></div></label>
-          <label class="tva-regime-opt" id="mod-obj-tjm"><input type="radio" name="mod-objectif" value="tjm" onchange="saveModuleParam('objectif','tjm')"><div><strong>Mon taux journalier (€/jour)</strong><div class="ts mt1">Idéal pour les missions facturées à la journée</div></div></label>
-          <label class="tva-regime-opt" id="mod-obj-marge"><input type="radio" name="mod-objectif" value="marge_commande" onchange="saveModuleParam('objectif','marge_commande')"><div><strong>La marge de chaque commande ou vente</strong><div class="ts mt1">Idéal pour les artisans, fabricants et revendeurs</div></div></label>
-        </div>
-        <div id="mod-unite-zone" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--brd)">
-          <div class="ts mb8" style="color:var(--tl)">Je compte mon temps en…</div>
-          <div style="display:flex;gap:8px">
-            <button type="button" id="mod-unite-heures" onclick="saveModuleParam('uniteTemps','heures')" style="padding:6px 18px;border-radius:20px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s">Heures</button>
-            <button type="button" id="mod-unite-jours" onclick="saveModuleParam('uniteTemps','jours')" style="padding:6px 18px;border-radius:20px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s">Journées</button>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- FISCALITÉ & CHARGES -->
@@ -1213,6 +1195,24 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="ts mt12" style="color:var(--tl);font-style:italic">Ce rythme correspond uniquement à votre temps facturable client ; il sert à calculer votre taux horaire minimum et votre CA mensuel brut à atteindre.</div>
         <div id="cap-facturable-display" class="mt8" style="display:none;background:rgba(91,44,74,.06);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--pri)"></div>
+      </div>
+      <div class="card mb16">
+        <div class="card-header">
+          <div><div class="card-title">Tarification & objectif</div><div class="card-sub">Pré-configuré selon votre profil, ajustez si besoin</div></div>
+        </div>
+        <div class="ts mb8" style="color:var(--tl)">Ce que je veux piloter en priorité :</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <label class="tva-regime-opt" id="mod-obj-th"><input type="radio" name="mod-objectif" value="th" onchange="saveModuleParam('objectif','th')"><div><strong>Mon taux horaire (€/h)</strong><div class="ts mt1">Idéal pour les prestations vendues au temps passé</div></div></label>
+          <label class="tva-regime-opt" id="mod-obj-tjm"><input type="radio" name="mod-objectif" value="tjm" onchange="saveModuleParam('objectif','tjm')"><div><strong>Mon taux journalier (€/jour)</strong><div class="ts mt1">Idéal pour les missions facturées à la journée</div></div></label>
+          <label class="tva-regime-opt" id="mod-obj-marge"><input type="radio" name="mod-objectif" value="marge_commande" onchange="saveModuleParam('objectif','marge_commande')"><div><strong>La marge de chaque commande ou vente</strong><div class="ts mt1">Idéal pour les artisans, fabricants et revendeurs</div></div></label>
+        </div>
+        <div id="mod-unite-zone" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--brd)">
+          <div class="ts mb8" style="color:var(--tl)">Je compte mon temps en…</div>
+          <div style="display:flex;gap:8px">
+            <button type="button" id="mod-unite-heures" onclick="saveModuleParam('uniteTemps','heures')" style="padding:6px 18px;border-radius:20px;border:1.5px solid var(--pri);background:var(--pri);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s">Heures</button>
+            <button type="button" id="mod-unite-jours" onclick="saveModuleParam('uniteTemps','jours')" style="padding:6px 18px;border-radius:20px;border:1.5px solid var(--brd);background:transparent;color:var(--tl);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s">Journées</button>
+          </div>
+        </div>
       </div>
       <div class="card">
         <div class="card-header">
@@ -11344,11 +11344,10 @@ function switchParamTab(tab, btn) {
   document.getElementById('tab-'+tab).classList.add('active');
   if(btn) btn.classList.add('active');
   currentParamTab=tab;
-  if(tab==='objectifs') renderObjectifsResult();
+  if(tab==='objectifs') { renderModulesUI(); renderObjectifsResult(); }
   if(tab==='offres') { renderCategoriesList(); renderCategoriesTempsList(); }
   if(tab==='fiscalite'||tab==='avance') renderTvaParams();
   if(tab==='perso') renderThemes();
-  if(tab==='activite') renderModulesUI();
 }
 // ── PENSE-BÊTE (post-it libres, tableau de bord, 2026-07-29) ──
 // Bloc-notes volontairement minimal (retour Faustine) : noter une idée qui passe, la supprimer
