@@ -8617,9 +8617,12 @@ function exportComptablePDF() {
   const rows = mks.map(mk => {
     const ca = getCaFromMissions(mk), a = getPonctuelsCA(mk), brut = ca + a;
     const { presta: bp, vente: bv } = getCaBreakdownMois(mk);
-    const imp = brut * getImpotsTaux();
-    const c = bp * getTauxChargesPresta() + bv * getTauxChargesVente();
     const dep = getDepensesMois(mk);
+    // EI au réel : cotisations et impôt portent sur le bénéfice réel (CA - dépenses), pas sur le
+    // CA brut comme en micro, et sans abattement (voir getCotisationsTNSEstimees/getImpotEIReel).
+    const _bReel = isEIReel() ? Math.max(0, brut - dep) : 0;
+    const imp = isEIReel() ? getImpotEIReel(_bReel) : brut * getImpotsTaux();
+    const c = isEIReel() ? getCotisationsTNSEstimees(_bReel) : bp * getTauxChargesPresta() + bv * getTauxChargesVente();
     const tresorerie = getPonctuelsTresorerie(mk);
     const net = brut + tresorerie - c - imp - dep;
     const tvaC = tva ? brut * (DATA.params.tauxTVA / 100) : 0;
@@ -8641,7 +8644,7 @@ function exportComptablePDF() {
   <h1>📊 Export comptable — récapitulatif</h1>
   <p class="sub">Période : ${monthLabelFull(mks[0])} → ${monthLabelFull(mks[mks.length - 1])} · Exporté le ${new Date().toLocaleDateString('fr-FR')} · ${DATA.params && DATA.params.nom ? DATA.params.nom : ''}</p>
   <div class="warn">⚠️ Ce document reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité — vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
-  <table><thead><tr><th>Mois</th><th>CA brut</th><th>Charges URSSAF+CFP</th>${tva ? '<th>TVA collectée</th>' : ''}<th>Impôt estimé</th><th>Dépenses</th><th>Revenu net</th></tr></thead>
+  <table><thead><tr><th>Mois</th><th>CA brut</th><th>${isEIReel() ? 'Cotisations sociales' : 'Charges URSSAF+CFP'}</th>${tva ? '<th>TVA collectée</th>' : ''}<th>Impôt estimé</th><th>Dépenses</th><th>Revenu net</th></tr></thead>
   <tbody>${rows}</tbody>
   <tfoot><tr><td>Total</td><td class="num">${fmtE(totBrut)}</td><td class="num">${fmtE(totCharges)}</td>${tva ? `<td class="num">${fmtE(totTVA)}</td>` : ''}<td class="num">${fmtE(totImp)}</td><td class="num">${fmtE(totDep)}</td><td class="num">${fmtE(totNet)}</td></tr></tfoot>
   </table>
@@ -10857,7 +10860,12 @@ function renderRevenus() {
     if(isMonthBeforeOpening(mk)) return;
     const ca=getCaFromMissions(mk),a=getPonctuelsCA(mk),brut=ca+a;
     const {presta:bp,vente:bv}=getCaBreakdownMois(mk);
-    const imp=brut*getImpotsTaux(),c=bp*getTauxChargesPresta()+bv*getTauxChargesVente(),dep=getDepensesMois(mk);
+    const dep=getDepensesMois(mk);
+    // EI au réel : cotisations et impôt portent sur le bénéfice réel (CA - dépenses), pas sur le
+    // CA brut comme en micro, et sans abattement (voir getCotisationsTNSEstimees/getImpotEIReel).
+    const _bReel=isEIReel()?Math.max(0,brut-dep):0;
+    const imp=isEIReel()?getImpotEIReel(_bReel):brut*getImpotsTaux();
+    const c=isEIReel()?getCotisationsTNSEstimees(_bReel):bp*getTauxChargesPresta()+bv*getTauxChargesVente();
     const tresorerie=getPonctuelsTresorerie(mk),tvaC=tva?brut*(DATA.params.tauxTVA/100):0;
     tCA+=ca;tA+=a;tVentes+=getPonctuelsVente(mk);tB+=brut;tC+=c;tI+=imp;tD+=dep;tN+=brut+tresorerie-c-imp-dep;tTVA+=tvaC;
   });
@@ -10931,7 +10939,7 @@ function renderRevenus() {
       <th style="background:rgba(45,122,79,.04)">CA ${tVocab('items')}${tva?' <span class="ts">(HT)</span>':''} <span class="info-tip" title="Auto-calculé depuis les ${tVocab('items').toLowerCase()} facturées">?</span></th>
       <th style="background:rgba(45,122,79,.04)">Revenus ponctuels <span class="info-tip" title="Prestation / vente taxable ou trésorerie hors activité. Trois types : Prestation, Vente, Hors CA.">?</span></th>
       <th style="background:rgba(45,122,79,.04)">Total brut</th>
-      <th style="background:rgba(185,28,28,.04)">Charges URSSAF+CFP</th>
+      <th style="background:rgba(185,28,28,.04)">${isEIReel()?'Cotisations sociales':'Charges URSSAF+CFP'}</th>
       ${tva?'<th style="background:rgba(185,28,28,.04)">TVA collectée</th>':''}
       ${showImp?'<th style="background:rgba(185,28,28,.04)">Impôt estimé</th>':''}
       <th style="background:rgba(185,28,28,.04)">Dépenses</th>
@@ -10948,7 +10956,12 @@ function renderRevenus() {
     }
     const ca=getCaFromMissions(mk),a=getPonctuelsCA(mk),brut=ca+a;
     const {presta:bp,vente:bv}=getCaBreakdownMois(mk);
-    const imp=brut*getImpotsTaux(),c=bp*getTauxChargesPresta()+bv*getTauxChargesVente(),dep=getDepensesMois(mk);
+    const dep=getDepensesMois(mk);
+    // EI au réel : cotisations et impôt portent sur le bénéfice réel (CA - dépenses), pas sur le
+    // CA brut comme en micro, et sans abattement (voir getCotisationsTNSEstimees/getImpotEIReel).
+    const _bReel=isEIReel()?Math.max(0,brut-dep):0;
+    const imp=isEIReel()?getImpotEIReel(_bReel):brut*getImpotsTaux();
+    const c=isEIReel()?getCotisationsTNSEstimees(_bReel):bp*getTauxChargesPresta()+bv*getTauxChargesVente();
     const tresorerie=getPonctuelsTresorerie(mk),net=brut+tresorerie-c-imp-dep,tvaC=tva?brut*(DATA.params.tauxTVA/100):0;
     const nc=net>=0?'tok':'terr';
     const poncList=(r.autresList||[]);
