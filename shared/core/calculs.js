@@ -396,10 +396,20 @@ export function getRevenuNetMois(DATA, mk) {
   if (isMonthBeforeOpening(DATA, mk)) return 0;
   const { presta, vente } = getCaBreakdownMois(DATA, mk);
   const brut = presta + vente;
+  const dep = getDepensesMois(DATA, mk);
+  const tresorerie = getPonctuelsTresorerie(DATA, mk);
+  // EI au réel : cotisations et impôt portent sur le bénéfice réel (CA - dépenses), pas sur le CA
+  // brut (sans quoi getTauxChargesPresta/Vente, qui renvoient 0 pour ce statut, feraient tomber
+  // les cotisations à 0 et l'impôt serait calculé sans jamais déduire les dépenses).
+  if (isEIReel(DATA)) {
+    const beneficeReel = Math.max(0, brut - dep);
+    const charges = getCotisationsTNSEstimees(DATA, beneficeReel);
+    const impots = getImpotEIReel(DATA, beneficeReel);
+    return brut + tresorerie - charges - impots - dep - (DATA.params.chargesSalariales || 0);
+  }
   const charges = presta * getTauxChargesPresta(DATA) + vente * getTauxChargesVente(DATA);
   const impots = brut * getImpotsTaux(DATA);
-  const tresorerie = getPonctuelsTresorerie(DATA, mk);
-  return brut + tresorerie - charges - impots - getDepensesMois(DATA, mk) - (DATA.params.chargesSalariales || 0);
+  return brut + tresorerie - charges - impots - dep - (DATA.params.chargesSalariales || 0);
 }
 
 // ── TVA ──────────────────────────────────────────────────────

@@ -4191,7 +4191,7 @@ function renderGuideOutilsHTML() {
     {icon:'⭐', term:'Demander un avis', cta:'→ Aller dans Paramètres', action:"navigate('params')",
       def:`Une fois une ${item} facturée, Indépuls vous propose automatiquement un message prêt à l'emploi pour demander un avis à votre client, à copier ou envoyer par email. Personnalisez vos liens et votre message dans Paramètres, onglet Mon activité.`},
   ];
-  if (!isSASU()) tools.push({icon:'📒', term:'Livre des recettes', cta:'→ Aller dans Paramètres', action:"navigate('params')",
+  if (isMicro()) tools.push({icon:'📒', term:'Livre des recettes', cta:'→ Aller dans Paramètres', action:"navigate('params')",
     def:'Suivi chronologique de tous vos encaissements, obligation légale pour les micro-entreprises. À activer dans Paramètres, onglet Fiscalité & charges.'});
   tools.push({icon:'📊', term:'Export comptable', cta:'→ Aller dans Paramètres', action:"navigate('params')",
     def:'Générez un export CSV ou PDF de vos recettes et dépenses pour votre expert-comptable, en un clic depuis Paramètres, onglet Fiscalité & charges.'});
@@ -6288,6 +6288,13 @@ function getTrajectoireAnnuelleInfo(objNet) {
     const coutRemuMens=getSasuCoutMensuelDepuisNet(objNet);
     const impotsR=1-getImpotsTaux();
     annualTarget=(impotsR>0&&objNet>0)?(coutRemuMens+depM)/impotsR*actMois:0;
+  } else if(isEIReel()){
+    // Même correction de formule que getTauxHoraireMinCible() : pas d'abattement, les dépenses
+    // s'ajoutent au bénéfice nécessaire APRÈS le calcul du bénéfice (pas grossies par le même
+    // taux que l'objectif net), contrairement au CA-based micro ci-dessous.
+    const netR=1-getTauxChargesTNS()-getImpotsTaux();
+    const beneficeMensuel=netR>0?objNet/netR:0;
+    annualTarget=(netR>0&&objNet>0)?(beneficeMensuel+depM)*actMois:0;
   } else {
     const netR=1-getTauxChargesPresta()-getImpotsTaux();
     annualTarget=(netR>0&&objNet>0)?(objNet+depM)/netR*actMois:0;
@@ -8738,7 +8745,7 @@ function navRecettesClick() {
 function updateNavRecettes() {
   const el=document.getElementById('nav-recettes');
   if(!el) return;
-  if(isSASU()){ el.style.display='none'; return; }
+  if(isSASU()||isEIReel()){ el.style.display='none'; return; }
   el.style.display='';
   if(DATA.params.livreRecettesActif){ el.classList.remove('nav-locked'); el.title=''; el.innerHTML='<span class="nav-icon">📒</span> Livre des recettes'; }
   else { el.classList.add('nav-locked'); el.title=''; el.innerHTML='<span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span>'; }
@@ -12609,6 +12616,19 @@ function renderParams() {
     const tnsEl=document.getElementById('p-taux-tns');
     if(tnsEl) tnsEl.value=p.tauxChargesTNS||35;
   }
+  // Bloc "Régime fiscal" (EURL à l'IS/IR) : sa visibilité n'était mise à jour que dans le bloc
+  // `if(sasu)` ci-dessous, jamais réévaluée en dehors. Un compte déjà passé par EURL puis basculé
+  // vers un autre statut (micro ou EI au réel) gardait donc ce bloc affiché indéfiniment (retour
+  // Faustine 2026-09-17, capture d'écran à l'appui). Sorti du bloc `if(sasu)` pour être réévalué
+  // à chaque rendu, quel que soit le statut.
+  document.getElementById('eurl-fiscal-block').style.display=isEurl?'':'none';
+  if(isEurl){
+    const fiscal=DATA.params.eurlFiscal||'is';
+    ['is','ir'].forEach(v=>{
+      const lbl=document.getElementById('eurl-r-'+v);
+      if(lbl){lbl.classList.toggle('selected',v===fiscal);lbl.querySelector('input').checked=(v===fiscal);}
+    });
+  }
   if(sasu){
     // Plusieurs dirigeants : SASU/SAS uniquement, jamais EURL/SARL (retour Faustine, 2026-09-08) —
     // en SAS, tous les présidents/dirigeants relèvent du même régime (assimilé salarié), un total
@@ -12632,14 +12652,6 @@ function renderParams() {
       +(plusieurs?` Plusieurs dirigeants : indiquez le total cumulé des rémunérations, le taux reste le même pour tous en SAS.`:'');
     const _simuLink=document.getElementById('sasu-charges-simu-link');
     if(_simuLink) _simuLink.href=isEurl?'https://mon-entreprise.urssaf.fr/simulateurs/eurl':'https://mon-entreprise.urssaf.fr/simulateurs/sasu';
-    document.getElementById('eurl-fiscal-block').style.display=isEurl?'':'none';
-    if(isEurl){
-      const fiscal=DATA.params.eurlFiscal||'is';
-      ['is','ir'].forEach(v=>{
-        const lbl=document.getElementById('eurl-r-'+v);
-        if(lbl){lbl.classList.toggle('selected',v===fiscal);lbl.querySelector('input').checked=(v===fiscal);}
-      });
-    }
     const _ouv=DATA.params.dateOuverture;
     const _ouvYear=_ouv?parseInt(_ouv.slice(0,4)):null;
     const _ouvSameYear=_ouvYear===DATA.currentYear;
@@ -12745,7 +12757,7 @@ function updateMixteChargesInfo() {
   const el=document.getElementById('micro-charges-mixte-info');
   if(!el) return;
   const p=DATA.params;
-  if(!p.activiteMixte || isSASU()) { el.style.display='none'; return; }
+  if(!p.activiteMixte || isSASU() || isEIReel()) { el.style.display='none'; return; }
   const pr=getTauxStatut(p.statut);
   const urssafP=p.tauxCotisationsPrestation??pr.urssafPresta;
   const cfpP=p.tauxCFPPrestation??pr.cfpPresta;
@@ -13340,7 +13352,18 @@ function renderObjectifsResult() {
       <div class="ts mt6" style="color:var(--tl)">Simulation indépendante de votre rémunération réelle (${fmtE(p.remunerationNette||0)}/mois, configurable dans l'onglet Fiscalité), n'affecte ni votre tableau de bord ni vos calculs de trésorerie.</div></span></div>`;
     return;
   }
-  const r=1-getTauxChargesPresta()-getImpotsTaux(), caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
+  // EI au réel : même correction de formule que getTauxHoraireMinCible()/getTrajectoireAnnuelleInfo()
+  // : pas d'abattement, les dépenses s'ajoutent au bénéfice nécessaire après coup, pas grossies
+  // par le même taux que l'objectif net (contrairement au CA-based micro ci-dessous).
+  let r,caMens;
+  if(isEIReel()){
+    r=1-getTauxChargesTNS()-getImpotsTaux();
+    const beneficeMens=r>0?(p.objectifNetMensuel||0)/r:0;
+    caMens=r>0?beneficeMens+dep:0;
+  } else {
+    r=1-getTauxChargesPresta()-getImpotsTaux();
+    caMens=r>0?(p.objectifNetMensuel+dep)/r:0;
+  }
   // caAn = objectif réel à atteindre cette année (proratisé) ; thMin reste calculé sur une base
   // pleine année (caMens×12/hAn) — c'est un taux horaire cible, pas un total, donc indépendant
   // du nombre de mois réellement actifs cette année précise.
@@ -13365,7 +13388,7 @@ function renderObjectifsResult() {
       <div class="kpi neu"><div class="kpi-label">CA mensuel à atteindre</div><div class="kpi-val">${fmtE(caMens)}</div><div class="kpi-sub">= ${fmtE(caAn)} / an</div>${depTxtDetail}</div>
       <div class="kpi neu"><div class="kpi-label">${_kpiRateLabel} <span class="info-tip" title="${_kpiRateTooltip}">?</span></div><div class="kpi-val">${_kpiRateVal}</div><div class="kpi-sub">${_kpiRateSub}</div></div>
       <div class="kpi neu"><div class="kpi-label">${_uniteLbl}</div><div class="kpi-val">${_uniteVal}</div><div class="kpi-sub">${_uniteSub}</div></div>
-      <div class="kpi neu"><div class="kpi-label">Charges + impôts</div><div class="kpi-val">${fmt((getTauxChargesPresta()+getImpotsTaux())*100,1)} %</div><div class="kpi-sub">URSSAF+CFP+impôts</div></div>
+      <div class="kpi neu"><div class="kpi-label">Charges + impôts</div><div class="kpi-val">${fmt(((isEIReel()?getTauxChargesTNS():getTauxChargesPresta())+getImpotsTaux())*100,1)} %</div><div class="kpi-sub">${isEIReel()?'Cotisations+impôts':'URSSAF+CFP+impôts'}</div></div>
     </div>
     <div class="alert al-info mt12"><span style="flex:1">${_phraseRate}${actMoisNote}</span></div>`;
 }
@@ -15726,8 +15749,12 @@ function saveActiviteType(type) {
     saveParam('activiteMixte', true);
   } else if (type === 'produits') {
     saveParam('activiteMixte', false);
-    // "Uniquement des produits" → statut micro-achat (taux vente)
-    if (!isSASU() && DATA.params.statut !== 'micro-achat') {
+    // "Uniquement des produits" → statut micro-achat (taux vente). Micro uniquement : SASU/EURL
+    // n'ont pas de sous-régime à faire basculer, et l'EI au réel encore moins (un seul statut
+    // 'ei-reel', sans BNC/BIC/achat). `!isSASU()` aurait fait basculer silencieusement un compte
+    // EI au réel vers micro-achat au premier changement de "Que vendez-vous ?" (retour Faustine
+    // 2026-09-17, audit "chantier terminé ?").
+    if (isMicro() && DATA.params.statut !== 'micro-achat') {
       onStatutChange('micro-achat');
       const el = document.getElementById('p-statut');
       if (el) el.value = 'micro-achat';

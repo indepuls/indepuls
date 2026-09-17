@@ -14,6 +14,7 @@ import {
   getTauxHoraireMinCible,
   getTauxHoraireMinCibleSimule,
   getComparateurStatuts,
+  getRevenuNetMois,
 } from '../core/calculs.js';
 
 let passed = 0, failed = 0;
@@ -108,6 +109,22 @@ section('getComparateurStatuts : colonne "EI au réel" du comparateur "Et si je 
   const comp = getComparateurStatuts(D, 10000, true, ['2026-01'], 'micro-bnc');
   // bénéfice réel = 10000 (aucune dépense saisie) ; cotisTNS = 3500 ; impôt = 1100 ; eiReel = 5400
   test('eiReel : bénéfice 10000, cotisations 35% + impôt 11% = 5400 restants', comp.eiReel, 5400);
+}
+
+section('getRevenuNetMois : le moteur principal du dashboard (KPI, trajectoire, Score Santé) doit lui aussi tenir compte du bénéfice réel');
+{
+  // Mois de mai : CA 3300€, dépenses 171€, TNS 35%, TMI 11% (mêmes valeurs vérifiées en direct sur
+  // le dashboard 2026-09-17). Bénéfice réel = 3129 ; cotisations = 1095 (35%) ; impôt = 344 (11%).
+  const D = mkData({ statut: 'ei-reel', tauxChargesTNS: 35, impotsTaux: 11 });
+  D.revenus['2026-05'] = { autresList: [{ montantPrestation: 3300 }] };
+  D.depenses = [{ date: '2026-05-01', recurrence: 'mensuelle', montant: 171 }];
+  // 3300 - 1095 - 344 - 171 = 1690
+  test('EI-réel : revenu net = CA - cotisations TNS - impôt - dépenses, sur le bénéfice réel', getRevenuNetMois(D, '2026-05'), 1690);
+
+  const Dmicro = mkData({ statut: 'micro-bnc', impotsTaux: 11 });
+  Dmicro.revenus['2026-05'] = { autresList: [{ montantPrestation: 3300 }] };
+  Dmicro.depenses = [{ date: '2026-05-01', recurrence: 'mensuelle', montant: 171 }];
+  testEq('hors EI-réel, comportement inchangé (pas de régression sur le calcul micro)', getRevenuNetMois(Dmicro, '2026-05') !== getRevenuNetMois(D, '2026-05'), true);
 }
 
 // ── Résumé ────────────────────────────────────────────────────
