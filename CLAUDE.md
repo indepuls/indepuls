@@ -1977,6 +1977,14 @@ Suite du chantier fiscal du simulateur : Faustine a validé l'option A (un inter
 - Appliqué à `indepuls.html` ET `indepuls-demo.html`, mêmes zones modifiées vérifiées identiques octet près.
 - **Hors scope pour l'instant** (à la demande de Faustine) : le site vitrine (`combien-facturer`, `calculateur-rentabilite`) n'a pas reçu l'option VFL ; le vrai simulateur d'éligibilité (revenu fiscal de référence, parts du foyer) reste à construire dans "Et si ?", en saisie optionnelle.
 
+### FIX/UX : clarté du champ TMI et déplacement de la carte "Tarification & objectif" (2026-09-17)
+Deux retours après la mise en ligne du VFL.
+
+- **Champ TMI peu clair** : le texte sous le champ ne précisait pas si le taux à saisir était avant ou après abattement, ni où trouver son propre TMI. Reformulé explicitement : "Indiquez votre TMI telle quelle, sans calcul de votre part : Indépuls applique automatiquement l'abattement forfaitaire (34/50/71 % selon votre statut) avant de calculer l'impôt." Ajout d'une infobulle "?" avec la source (avis d'imposition, mention "Taux marginal d'imposition" dans le détail du calcul, ou simulateur officiel impots.gouv.fr) et un rappel que ce n'est toujours que l'une de ces 5 valeurs (0/11/30/41/45 %). Infobulle masquée en SASU/EURL (le champ y garde son sens générique "cotisations et impôts estimés"). Toggle VFL également espacé du champ suivant (`sw-wrap mb16` / `vfl-detail mb16`, trop serrés).
+- **Carte "Tarification & objectif" déplacée** de l'onglet "Mon activité" vers "Mes objectifs" : ce choix (piloter en taux horaire / TJM / marge de commande) pilote directement le libellé et l'unité affichés par `renderObjectifsResult()` (`(p.modules||{}).objectif`, lu à la ligne du "Calculateur d'objectifs") : les deux vivaient dans des onglets différents pour une seule et même décision. Repositionnée juste avant "Calculateur d'objectifs" qu'elle configure. Allégée au passage (titre + divider + paragraphe séparé → `card-header`/`card-sub` en une ligne, comme les cartes voisines). `switchParamTab()` : le déclenchement de `renderModulesUI()` suit le déplacement (`'activite'` → `'objectifs'`, fusionné avec l'appel existant à `renderObjectifsResult()`).
+- Vérifié en direct : carte absente de "Mon activité", présente et fonctionnelle dans "Mes objectifs" (bascule taux horaire/TJM met à jour le KPI affiché immédiatement, sans changer d'onglet).
+- Appliqué à `indepuls.html` ET `indepuls-demo.html`.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
