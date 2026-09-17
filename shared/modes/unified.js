@@ -36,7 +36,9 @@ let DATA = null;
 
 export const isSASU                   = () => C.isSASU(DATA);
 export const isActiviteMixte          = () => C.isActiviteMixte(DATA);
+export const isVersementLiberatoire   = () => C.isVersementLiberatoire(DATA);
 export const getImpotsTaux            = () => C.getImpotsTaux(DATA);
+export const getTauxImpotEffectifPresta = () => C.getTauxImpotEffectifPresta(DATA);
 export const getTauxCharges           = () => C.getTauxCharges(DATA);
 export const getTauxChargesPresta     = () => C.getTauxChargesPresta(DATA);
 export const getTauxChargesVente      = () => C.getTauxChargesVente(DATA);
@@ -123,6 +125,7 @@ export const getTempsJour             = (ds) => C.getTempsJour(DATA, ds);
 export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA, caP, caV);
 export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
 export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
+export const getTauxVFLPourNature     = (nature) => C.getTauxVFLPourNature(DATA, nature);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
 
 // ── AFFAIRES ─────────────────────────────────────────────────

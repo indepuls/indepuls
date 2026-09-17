@@ -1149,10 +1149,16 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card mt16">
         <div class="card-title mb16">Impôt sur le revenu</div>
-        <div class="fgroup">
-          <label class="flabel">Taux d'impôt estimé ou versement libératoire (%) — facultatif</label>
+        <div class="sw-wrap" id="vfl-toggle-row" style="display:none">
+          <label class="sw"><input type="checkbox" id="p-vfl-sw" onchange="toggleVersementLiberatoire(this.checked)"><span class="sw-sl"></span></label>
+          <span style="font-weight:600">Je suis au versement fiscal libératoire</span>
+          <span class="info-tip" title="Option du régime micro-entreprise : vous payez un taux fixe légal directement sur votre CA à chaque déclaration Urssaf (1 % vente, 1,7 % BIC service, 2,2 % BNC), sans abattement, au lieu de l'impôt calculé en fin d'année sur le barème progressif. Non disponible en SASU/EURL. Indépuls ne vérifie pas votre éligibilité (revenu fiscal de référence du foyer) ni les dates de bascule : renseignez-vous auprès de l'Urssaf.">?</span>
+        </div>
+        <div class="ts mb12" id="vfl-detail" style="display:none;color:var(--tl);line-height:1.5"></div>
+        <div class="fgroup" id="tmi-field">
+          <label class="flabel" id="tmi-label">Taux d'impôt estimé ou versement libératoire (%, facultatif)</label>
           <input type="number" id="p-impots-taux" step="1" min="0" max="60" placeholder="Ex : 11" oninput="saveParam('impotsTaux',+this.value);recalcObjectifsDebounced()">
-          <div class="ts mt4" style="color:var(--tl);line-height:1.5">Renseignez ici le taux que vous souhaitez provisionner : prélèvement à la source estimé, versement libératoire ou estimation personnelle. Si vous laissez 0 %, aucun impôt n'est déduit des calculs.</div>
+          <div class="ts mt4" id="tmi-hint" style="color:var(--tl);line-height:1.5">Renseignez ici le taux que vous souhaitez provisionner : prélèvement à la source estimé, versement libératoire ou estimation personnelle. Si vous laissez 0 %, aucun impôt n'est déduit des calculs.</div>
         </div>
       </div>
       <div class="card mt16" id="livre-recettes-block">
@@ -4101,7 +4107,7 @@ function getExampleData(metier) {
       tauxCotisationsVente:_t.urssafVente, tauxCFPVente:_t.cfpVente,
       objectifNetMensuel:3500, heuresParJour:7, joursParSemaine:4, semainesParAn:44,
       tva:true, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
-      dateOuverture:mk4, impotsTaux:11,
+      dateOuverture:mk4, impotsTaux:11, versementLiberatoire:false,
       remunerationNette:0, coutRemunerationPct:82, tresorerieParAnnee:{},
       rentabClientSort:'ca', rentabCatSort:'ca', rentabPeriode:'annee', livreRecettesActif:true
     },
@@ -4352,7 +4358,7 @@ function getDefaultData() {
       tva:false, seuilTVA:37500, tauxTVA:20, activiteMixte:false,
       seuilTVAPrestationBase:37500, seuilTVAPrestationMajore:41250,
       seuilTVAVenteBase:85000, seuilTVAVenteMajore:93500,
-      impotsTaux:0,
+      impotsTaux:0, versementLiberatoire:false,
       remunerationNette:0, coutRemunerationPct:82, tresorerieParAnnee:{},
       rentabClientSort:'ca', rentabCatSort:'ca', rentabPeriode:'annee',
       tauxCotisationsPrestation:_t.urssafPresta, tauxCFPPrestation:_t.cfpPresta,
@@ -5745,20 +5751,29 @@ function getEcheancesAVenir(d) {
     if(tvaOn) echTVA=getNextTVAEcheance();
   }catch(e){reportError('getEcheancesAVenir',e);}
   const impotsTaux=getImpotsTaux();
-  const caMoyMensuel=d.caBrut>0?Math.round(d.caBrut/mc):0;
+  const _isVFL=isVersementLiberatoire();
   const _microS=['micro-bnc','micro-bic','micro-achat'];
   const _isMicro=!isSASU()&&_microS.includes(DATA.params.statut);
+  const caMoyMensuel=d.caBrut>0?Math.round(d.caBrut/mc):0;
   let provImpots,impotSubW;
-  if(_isMicro&&caMoyMensuel>0&&impotsTaux>0){
+  // Le VFL n'a pas besoin qu'impotsTaux soit renseigné (son taux vient de TAUX_VFL, pas du TMI) :
+  // sans ce garde-fou étendu, un compte VFL avec impotsTaux resté à 0 ne provisionnait aucun
+  // impôt du tout (retour Faustine 2026-09-17).
+  if(_isMicro&&caMoyMensuel>0&&(impotsTaux>0||_isVFL)){
     let _mP=caMoyMensuel,_mV=0;
     if(isActiviteMixte()){
       const _mks=getMoisActifsAnnee();
       if(_mks.length){const _t=_mks.reduce((s,mk)=>{const b=getCaBreakdownMois(mk);return{p:s.p+(b.presta||0),v:s.v+(b.vente||0)};},{p:0,v:0});_mP=_t.p/_mks.length;_mV=_t.v/_mks.length;}
     }
     provImpots=getImpotEstimeMicro(_mP,_mV);
-    const _ri=getRevenuImposableMicro(_mP,_mV);
-    const _pA=caMoyMensuel>0?Math.round((1-_ri/caMoyMensuel)*100):0;
-    impotSubW=`${Math.round(impotsTaux*100)} % sur revenu après abattement ${_pA} % · indicatif`;
+    if(_isVFL){
+      const _pctEff=caMoyMensuel>0?Math.round(provImpots/caMoyMensuel*100*10)/10:0;
+      impotSubW=`${_pctEff} % du CA (versement libératoire) · indicatif`;
+    }else{
+      const _ri=getRevenuImposableMicro(_mP,_mV);
+      const _pA=caMoyMensuel>0?Math.round((1-_ri/caMoyMensuel)*100):0;
+      impotSubW=`${Math.round(impotsTaux*100)} % sur revenu après abattement ${_pA} % · indicatif`;
+    }
   }else{
     provImpots=Math.round(caMoyMensuel*impotsTaux);
     impotSubW=Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive';
@@ -7601,15 +7616,21 @@ function wJalonFiscal() {
   const tvaNote={franchise:'',mensuel:'TVA nette du mois en cours',trimestriel:'TVA annuelle ÷ mois actifs (lissée)',simplifie:'TVA annuelle ÷ mois actifs (lissée)'}[regime]||'';
   const tvaLabel={franchise:'TVA',mensuel:'TVA à mettre de côté <span class="info-tip" title="Provision mensuelle = TVA nette collectée ce mois. À ne pas confondre avec la dette TVA réelle (cumulée) ni avec la prochaine échéance (date et montant du prochain versement à l\'État).">?</span>',simplifie:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Logique de mise de côté mensuelle pour faire face aux 2 acomptes (juillet et décembre).">?</span>',trimestriel:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Pour faire face au versement trimestriel — le montant réel sera la TVA nette des 3 mois du trimestre.">?</span>'}[regime]||'TVA';
   const _isMicroJ=!isSASU()&&['micro-bnc','micro-bic','micro-achat'].includes(DATA.params.statut);
+  const _isVFLJ=isVersementLiberatoire();
   const impot=_isMicroJ?getImpotEstimeMicro(presta,vente):Math.round(brut*getImpotsTaux());
-  const _impotNote=_isMicroJ&&DATA.params.impotsTaux
-    ?(()=>{const ri=getRevenuImposableMicro(presta,vente);const pA=brut>0?Math.round((1-ri/brut)*100):0;return DATA.params.impotsTaux+'% sur revenu après abattement '+pA+'% · indicatif';})()
+  // Le VFL provisionne un impôt même si impotsTaux est resté à 0 (son taux vient de TAUX_VFL, pas
+  // du TMI), sans ce garde-fou étendu : le widget affichait "aucun taux renseigné" à tort pour un
+  // compte VFL (retour Faustine 2026-09-17, même piège que getEcheancesAVenir()).
+  const _impotNote=_isMicroJ&&(DATA.params.impotsTaux||_isVFLJ)
+    ?(_isVFLJ
+        ?(brut>0?Math.round(impot/brut*1000)/10+'% du CA (versement libératoire) · indicatif':'versement libératoire · indicatif')
+        :(()=>{const ri=getRevenuImposableMicro(presta,vente);const pA=brut>0?Math.round((1-ri/brut)*100):0;return DATA.params.impotsTaux+'% sur revenu après abattement '+pA+'% · indicatif';})())
     :(DATA.params.impotsTaux?DATA.params.impotsTaux+'% du CA':'');
   const total=totalUrssaf+tva+impot;
   const row=(label,val,note)=>val>0?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><div><span class="ts">${label}</span>${note?`<span style="margin-left:6px;opacity:.6;font-size:11px;color:var(--tl)">${note}</span>`:''}</div><span style="font-weight:700;color:var(--warn)">${fmtE(val)}</span></div>`:'';
-  const _impotLigne=DATA.params.impotsTaux
+  const _impotLigne=(DATA.params.impotsTaux||_isVFLJ)
     ?row('Impôt estimé',impot,_impotNote)
-    :(_isMicroJ?`<div style="padding:6px 0;border-bottom:1px solid var(--brd);font-size:11px;color:var(--tl)">Aucun taux d'impôt renseigné — aucune provision calculée.</div>`:'');
+    :(_isMicroJ?`<div style="padding:6px 0;border-bottom:1px solid var(--brd);font-size:11px;color:var(--tl)">Aucun taux d'impôt renseigné : aucune provision calculée.</div>`:'');
   return `<div class="card" style="border-left:4px solid var(--acc)">
     <div class="card-header"><div><div class="card-title">🧾 Provisions — ${moisLabel} <span class="info-tip" title="Montants à mettre de côté chaque mois — pas des dettes exigibles immédiatement. Voyez le widget Trésorerie disponible pour la dette réelle et la prochaine échéance.">?</span></div><div class="card-sub">Montants à mettre de côté ce mois-ci</div></div></div>
     ${brut>0?`<div style="font-size:12px;margin-bottom:8px">
@@ -7622,7 +7643,7 @@ function wJalonFiscal() {
       <span style="font-size:18px;font-weight:700;color:${total>0?'var(--err)':'var(--tl)'}">${fmtE(total)}</span>
     </div>
     <div class="ts mt4" style="color:var(--tl)">Basé sur ${fmtE(brut)} de CA HT — ${moisLabel}</div>
-    ${_isMicroJ?`<div class="ts mt4" style="color:var(--tl);font-style:italic">Impôt estimé — prévision indicative basée sur votre taux saisi et le revenu imposable estimé après abattement micro. À ajuster selon votre situation personnelle.</div>`:''}
+    ${_isMicroJ?`<div class="ts mt4" style="color:var(--tl);font-style:italic">Impôt estimé : prévision indicative basée sur ${_isVFLJ ? "le taux fixe du versement libératoire, appliqué directement au CA" : "votre taux saisi et le revenu imposable estimé après abattement micro"}. À ajuster selon votre situation personnelle.</div>`:''}
     `:`<div class="ts" style="color:var(--tl)">Aucun CA enregistré ce mois — les provisions s'afficheront automatiquement.</div>`}
   </div>`;
 }
@@ -11442,6 +11463,44 @@ function toggleAcre(val) {
   const det=document.getElementById('acre-detail');
   if(det) det.style.display=val?'':'none';
 }
+// ── VERSEMENT LIBÉRATOIRE (2026-09-17, retour Faustine) ───────────────────────────────────────
+// Réservé au régime micro (isVersementLiberatoire() retourne toujours false en SASU/EURL, voir
+// shared/core/calculs.js) : le toggle est masqué pour ces deux statuts, qui gardent l'ancien champ
+// unique tel quel. Indépuls ne vérifie ni l'éligibilité (revenu fiscal de référence du foyer) ni
+// les dates de bascule : case à cocher + taux légal fixe (TAUX_VFL), sur le même principe que
+// l'ACRE ci-dessus : on fait confiance à la déclaration de l'utilisatrice.
+function toggleVersementLiberatoire(val) {
+  saveParam('versementLiberatoire', val);
+  renderVFLDetail();
+  recalcObjectifsDebounced();
+  if(currentPage==='dashboard') renderDashboard();
+}
+function renderVFLDetail() {
+  const toggleRow=document.getElementById('vfl-toggle-row');
+  const isMicro=!isSASU();
+  if(toggleRow) toggleRow.style.display=isMicro?'':'none';
+  const on=isMicro&&!!DATA.params.versementLiberatoire;
+  const vflSw=document.getElementById('p-vfl-sw');
+  if(vflSw) vflSw.checked=on;
+  const tmiField=document.getElementById('tmi-field');
+  if(tmiField) tmiField.style.display=on?'none':'';
+  const tmiLabel=document.getElementById('tmi-label');
+  const tmiHint=document.getElementById('tmi-hint');
+  if(isMicro){
+    if(tmiLabel) tmiLabel.textContent='Tranche marginale d\'imposition, TMI (%, facultatif)';
+    if(tmiHint) tmiHint.textContent='Le taux marginal d\'imposition de votre foyer fiscal. Appliqué après abattement forfaitaire (34/50/71 % selon votre statut). Si vous laissez 0 %, aucun impôt n\'est déduit des calculs.';
+  }
+  const det=document.getElementById('vfl-detail');
+  if(det){
+    det.style.display=on?'':'none';
+    if(on){
+      const tPresta=getTauxVFLPourNature('presta');
+      det.textContent=isActiviteMixte()
+        ? `Taux appliqué directement sur votre CA, sans abattement : ${tPresta} % sur la part prestation, ${getTauxVFLPourNature('vente')} % sur la part vente.`
+        : `Taux appliqué directement sur votre CA, sans abattement : ${tPresta} %.`;
+    }
+  }
+}
 // ── PLUSIEURS DIRIGEANTS (2026-09-08, retour Faustine — bêta-testeuse en SAS à plusieurs) ────
 // Volontairement PAS un vrai mode multi-personnes (pas de compte partagé, pas de suivi individuel
 // par dirigeant — jugé trop complexe : régimes sociaux différents selon gérant majoritaire/
@@ -12472,6 +12531,7 @@ function renderTvaParams() {
     document.getElementById('p-taux-tva').value=p.tauxTVA;
   }
   document.getElementById('p-impots-taux').value=p.impotsTaux||'';
+  renderVFLDetail();
 }
 function updateMixteChargesInfo() {
   const el=document.getElementById('micro-charges-mixte-info');
@@ -14618,7 +14678,13 @@ function calcRentabilite() {
   // 2026-09-16). L'objectif de taux horaire cible reste correct (getTauxHoraireMinCible() est
   // déjà SASU-aware via getSasuCoutRemuMensuel), seule cette ligne d'affichage était fausse.
   const _urssafTaux = _isMicro ? (_natureCa === 'vente' ? getTauxChargesVente() : getTauxChargesPresta()) * 100 : 0;
-  const _impotTaux  = p.impotsTaux||0;
+  // Versement libératoire (VFL) : taux fixe légal sur le CA brut, sans abattement (retour
+  // Faustine 2026-09-17). getImpotEstimeMicro() gère déjà les deux mécanismes en interne ; ici on
+  // calcule en plus _impotTaux (le taux à AFFICHER : VFL ou TMI classique) et abattPct (laissé à 0
+  // en VFL, ce qui fait retomber les textes d'affichage sur leur formulation "% du CA" plutôt que
+  // "après abattement").
+  const _isVFL      = _isMicro && isVersementLiberatoire();
+  const _impotTaux  = _isVFL ? getTauxVFLPourNature(_natureCa) : (p.impotsTaux||0);
   const _hj         = p.heuresParJour||7;
   const _isJ        = isJours();
 
@@ -14627,9 +14693,11 @@ function calcRentabilite() {
   let provImpots = 0, abattPct = 0;
   if (_impotTaux > 0 && ca > 0) {
     if (_isMicro) {
-      const bi = getRevenuImposableMicro(_caPresta, _caVente);
-      abattPct = Math.round((1 - bi/ca)*100);
-      provImpots = Math.round(bi * _impotTaux / 100);
+      provImpots = getImpotEstimeMicro(_caPresta, _caVente);
+      if (!_isVFL) {
+        const bi = getRevenuImposableMicro(_caPresta, _caVente);
+        abattPct = Math.round((1 - bi/ca)*100);
+      }
     } else {
       provImpots = Math.round(ca * _impotTaux / 100);
     }
@@ -14643,12 +14711,27 @@ function calcRentabilite() {
 
   renderSimOutputs({ ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
+    _urssafTaux, _impotTaux, _isMicro, _isVFL, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
+}
+// Texte de contexte pour une ligne "Impôts à provisionner" : distingue le barème classique
+// (abattement) du versement libératoire (taux fixe direct sur le CA, sans abattement). Jamais
+// vide, pour rester zéro boîte noire dans les deux cas (retour Faustine 2026-09-17).
+function _impotContexte(_isMicro, _isVFL, _impotTaux, abattPct) {
+  if (!_isMicro) return _impotTaux + ' % du CA';
+  if (_isVFL) return _impotTaux + ' % du CA, versement libératoire';
+  if (abattPct > 0) return _impotTaux + ' % après abattement ' + abattPct + ' %';
+  return _impotTaux + ' % du CA';
+}
+// Variante compacte pour les notes en une ligne ("après URSSAF X% + impôts (...)")
+function _impotContexteCompact(_isMicro, _isVFL, abattPct) {
+  if (_isVFL) return ' (versement libératoire)';
+  if (_isMicro && abattPct > 0) return ` (abatt. ${abattPct}%)`;
+  return '';
 }
 function renderSimOutputs(r) {
   const { ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
+    _urssafTaux, _impotTaux, _isMicro, _isVFL, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
     preset = 'service', lotNb = 1, serieNb = 1 } = r;
 
   // ── Mode "Calculer mon tarif" ──────────────────────────────
@@ -14656,13 +14739,11 @@ function renderSimOutputs(r) {
     const prixMin    = Math.ceil(ca / 10) * 10;
     const prixConfort = Math.ceil(ca * 1.1 / 10) * 10;
     // Provisions sur le prix minimum
-    const _impotSub = _impotTaux > 0 ? (_isMicro && abattPct > 0
-      ? ` + impôts ${_impotTaux}% (abatt. ${abattPct}%)`
-      : ` + impôts ${_impotTaux}%`) : '';
+    const _impotSub = _impotTaux > 0 ? ` + impôts ${_impotTaux}%${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : '';
     const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
     const advLines = [];
     if (_urssafTaux > 0) advLines.push(`💼 URSSAF à prévoir sur ce prix : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-    if (_impotTaux > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
+    if (_impotTaux > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
     if (coutsDirects > 0) advLines.push(`📦 Coûts inclus dans le calcul : <strong>${fmtE(coutsDirects)}</strong>`);
     const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Détail</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
     // Même ventilation presta/vente que calcRentabilite() (_natureCa) : sinon un compte mixte
@@ -14701,7 +14782,7 @@ function renderSimOutputs(r) {
     const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
     const advLines = [];
     if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 URSSAF à prévoir sur ce prix de vente : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-    if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
+    if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
     if (coutsDirects > 0) advLines.push(`📦 Autres frais (hors achat) : <strong>${fmtE(coutsDirects)}</strong>`);
     const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Détail</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${isViable ? 'var(--pri)' : 'var(--err)'}">
@@ -14756,7 +14837,7 @@ function renderSimOutputs(r) {
     // Provisions
     const provLines = [];
     if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
+    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
     const conseilLines = [...provLines, ...objLines];
     const conseilHtml = conseilLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Provisions & objectif</div>${conseilLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
 
@@ -14783,7 +14864,7 @@ function renderSimOutputs(r) {
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${diagBorder}">
       <div class="ts mb12" style="font-size:14px;font-weight:700">${diagIcon} ${diagTxt}</div>
       ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)"><span class="ts">${l}</span><span>${v}</span></div>`).join('')}
-      ${_hasCharges && revenuNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_isMicro && abattPct > 0 ? ` (abatt. ${abattPct}%)` : ''}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
+      ${_hasCharges && revenuNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
       ${serieHtml}
       ${conseilHtml}
     </div>`;
@@ -14829,7 +14910,7 @@ function renderSimOutputs(r) {
     // Provisions
     const provLines = [];
     if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du prix de vente)`);
-    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
+    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
     const provHtml = provLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Provisions & objectif</div>${[...provLines,...objLines].map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : (objLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">🎯 Objectif</div>${objHtml}</div>` : '');
 
     // Lot
@@ -14852,7 +14933,7 @@ function renderSimOutputs(r) {
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${diagBorder}">
       <div class="ts mb12" style="font-size:14px;font-weight:700">${diagIcon} ${diagTxt}</div>
       ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)"><span class="ts">${l}</span><span>${v}</span></div>`).join('')}
-      ${_hasCharges && gainNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_isMicro && abattPct > 0 ? ` (abatt. ${abattPct}%)` : ''}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
+      ${_hasCharges && gainNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
       ${lotHtml}
       ${provHtml}
     </div>`;
@@ -14899,9 +14980,7 @@ function renderSimOutputs(r) {
   ].filter(Boolean);
 
   // Box net
-  const _impotSub = _impotTaux > 0 ? (_isMicro && abattPct > 0
-    ? ` + impôts ${_impotTaux}% (abatt. ${abattPct}%)`
-    : ` + impôts ${_impotTaux}%`) : '';
+  const _impotSub = _impotTaux > 0 ? ` + impôts ${_impotTaux}%${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : '';
   const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
   const netBox = _hasCharges && margeBrute > 0 ? `<div style="margin-top:14px;padding:12px 16px;background:rgba(45,122,79,.08);border-radius:8px;border-left:3px solid var(--ok)">
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans ma poche</div>
@@ -14912,7 +14991,7 @@ function renderSimOutputs(r) {
   // Conseils
   const advLines = [];
   if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-  if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ` (${_impotTaux} % du CA)`}`);
+  if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
   if (thCible > 0 && heures > 0 && thBrut !== null && thBrut < thCible) {
     const prixMin = Math.ceil((thCible * heures + coutsDirects) / 10) * 10;
     if (isCollectif && participants > 1) {
@@ -15643,6 +15722,7 @@ document.addEventListener('keydown', function(e) {
   window.getTVACollecteeDebitsMois        = (mk) => { sync(); return Mode.getTVACollecteeDebitsMois(mk); };
   window.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
   window.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+  window.isVersementLiberatoire = ()   => { sync(); return Mode.isVersementLiberatoire(); };
   window.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
   window.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
   window.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };
@@ -15712,6 +15792,7 @@ document.addEventListener('keydown', function(e) {
   window.getAbattementMicro        = (caP, caV) => { sync(); return Mode.getAbattementMicro(caP, caV); };
   window.getRevenuImposableMicro   = (caP, caV) => { sync(); return Mode.getRevenuImposableMicro(caP, caV); };
   window.getImpotEstimeMicro       = (caP, caV) => { sync(); return Mode.getImpotEstimeMicro(caP, caV); };
+  window.getTauxVFLPourNature      = (nature) => { sync(); return Mode.getTauxVFLPourNature(nature); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
   window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
   window.getTauxRemplissageMois    = (mk)        => { sync(); return Mode.getTauxRemplissageMois(mk); };

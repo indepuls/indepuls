@@ -8,9 +8,15 @@
 // avec le reste du code existant (ex: getRevenuNetMois(mk) au lieu de
 // calculs.getRevenuNetMois(DATA, mk)).
 
-import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS } from './taux.js';
+import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL } from './taux.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
+
+// Versement fiscal libératoire : option du régime micro-entreprise uniquement (le mécanisme
+// n'existe pas en SASU/EURL, qui ne cotisent pas via le système micro-social/micro-fiscal).
+export function isVersementLiberatoire(DATA) {
+  return !isSASU(DATA) && !!DATA.params.versementLiberatoire;
+}
 
 export function isSASU(DATA) {
   return DATA.params.statut === 'sasu' || DATA.params.statut === 'eurl';
@@ -505,6 +511,24 @@ export function getUrssafProvisionMensuelle(DATA) {
   return Math.round(getUrssafAnnuelBrut(DATA) / Math.max(moisActifs.length, 1));
 }
 
+// Taux effectif d'impôt sur la part "presta" du CA, le pendant fiscal de getTauxChargesPresta().
+// Corrige un écart avec le reste du moteur fiscal (retour Faustine 2026-09-17) : cette fonction
+// ignorait l'abattement forfaitaire et traitait le taux saisi comme s'il portait directement sur
+// le CA brut, alors que getImpotEstimeMicro()/getRevenuImposableMicro() l'appliquent après
+// abattement partout ailleurs (dashboard, simulateur). Ce comportement "sans abattement" est en
+// réalité celui du versement libératoire, il manquait juste le bon taux (TAUX_VFL) à la place du
+// TMI. Les deux régimes sont maintenant représentés correctement.
+export function getTauxImpotEffectifPresta(DATA) {
+  if (isSASU(DATA)) return 0;
+  if (isVersementLiberatoire(DATA)) {
+    const t = TAUX_VFL[DATA.params.statut] || TAUX_VFL['micro-bnc'];
+    return t.presta / 100;
+  }
+  const abatt = ABATTEMENTS_MICRO[DATA.params.statut];
+  if (!abatt) return 0;
+  return getImpotsTaux(DATA) * (1 - abatt.presta);
+}
+
 // ── TAUX HORAIRE MINIMUM ─────────────────────────────────────
 
 export function getTauxHoraireMinCible(DATA) {
@@ -513,7 +537,7 @@ export function getTauxHoraireMinCible(DATA) {
   if (hAn <= 0) return 0;
   const dep = getDepensesMoyenneMensuelle(DATA) + (p.chargesAnnuellesCompl || 0) / 12 + (p.chargesSalariales || 0);
   if (isSASU(DATA)) return (getSasuCoutRemuMensuel(DATA) + dep) * 12 / hAn;
-  const r = 1 - getTauxChargesPresta(DATA) - getImpotsTaux(DATA);
+  const r = 1 - getTauxChargesPresta(DATA) - getTauxImpotEffectifPresta(DATA);
   return r > 0 ? ((p.objectifNetMensuel || 0) + dep) / r * 12 / hAn : 0;
 }
 
@@ -536,7 +560,7 @@ export function getTauxHoraireMinCibleSimule(DATA, overrides = {}) {
     return (getSasuCoutMensuelDepuisNet(DATA, net) + dep) * 12 / hAn;
   }
   const objectifNetMensuel = overrides.objectifNetMensuel ?? p.objectifNetMensuel ?? 0;
-  const r = 1 - getTauxChargesPresta(DATA) - getImpotsTaux(DATA);
+  const r = 1 - getTauxChargesPresta(DATA) - getTauxImpotEffectifPresta(DATA);
   return r > 0 ? (objectifNetMensuel + dep) / r * 12 / hAn : 0;
 }
 
@@ -1153,13 +1177,31 @@ export function getRevenuImposableMicro(DATA, caPrestaBreakdown, caVenteBreakdow
   return Math.max(0, caTotal - getAbattementMicro(DATA, caPrestaBreakdown, caVenteBreakdown));
 }
 
-// Impôt estimé = revenu imposable × taux saisi par l'utilisateur.
-// Retourne 0 si SASU, si statut non micro, ou si impotsTaux = 0.
+// Taux VFL (en %, pas en fraction) pour une nature ('presta'|'vente') donnée, utilisé pour
+// l'affichage (le simulateur "Combien facturer ?" a besoin du taux nominal à montrer, pas
+// seulement du montant calculé par getImpotEstimeMicro()).
+export function getTauxVFLPourNature(DATA, nature) {
+  if (isSASU(DATA)) return 0;
+  const t = TAUX_VFL[DATA.params.statut] || TAUX_VFL['micro-bnc'];
+  return nature === 'vente' ? t.vente : t.presta;
+}
+
+// Impôt estimé. Deux mécanismes distincts (retour Faustine 2026-09-17) :
+// - Versement libératoire : taux fixe légal (TAUX_VFL) directement sur le CA BRUT, sans
+//   abattement forfaitaire (l'abattement ne s'applique qu'au barème classique).
+// - Barème classique : revenu imposable (après abattement) × taux saisi par l'utilisateur.
+// Retourne 0 si SASU, si statut non micro, ou (hors VFL) si impotsTaux = 0.
 export function getImpotEstimeMicro(DATA, caPrestaBreakdown, caVenteBreakdown) {
   if (isSASU(DATA)) return 0;
+  if (!ABATTEMENTS_MICRO[DATA.params.statut]) return 0; // Statut non micro
+  const caTotal = caPrestaBreakdown + caVenteBreakdown;
+  if (caTotal <= 0) return 0;
+  if (isVersementLiberatoire(DATA)) {
+    const t = TAUX_VFL[DATA.params.statut] || TAUX_VFL['micro-bnc'];
+    return Math.round(caPrestaBreakdown * t.presta / 100 + caVenteBreakdown * t.vente / 100);
+  }
   const tauxPct = DATA.params.impotsTaux || 0;
   if (!tauxPct) return 0;
-  if (!ABATTEMENTS_MICRO[DATA.params.statut]) return 0; // Statut non micro
   return Math.round(getRevenuImposableMicro(DATA, caPrestaBreakdown, caVenteBreakdown) * tauxPct / 100);
 }
 

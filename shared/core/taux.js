@@ -35,6 +35,19 @@ export const ABATTEMENTS_MICRO = {
 };
 export const ABATTEMENT_MINIMUM = 305; // € — plancher légal d'abattement
 
+// Taux du versement fiscal libératoire (VFL) 2026 (source : DGFIP/URSSAF), en % du CA BRUT :
+// à la différence de l'impôt classique, aucun abattement forfaitaire ne s'applique avant, le
+// taux fixe porte directement sur le CA encaissé. Micro-entreprise uniquement (SASU/EURL n'ont
+// pas accès au VFL, voir isSASU()). presta/vente répliquent la même logique que
+// TAUX_URSSAF/ABATTEMENTS_MICRO : pour micro-achat, la colonne "presta" (activité mixte) suit la
+// même convention que tauxCotisationsPrestation dans applyStatutParams() (indepuls.html), traitée
+// comme une activité libérale (BNC), pas comme du commerce.
+export const TAUX_VFL = {
+  'micro-bnc':   { presta: 2.2, vente: 1.0 },
+  'micro-bic':   { presta: 1.7, vente: 1.0 },
+  'micro-achat': { presta: 2.2, vente: 1.0 },
+};
+
 // Plafonds du régime micro 2026 (source : DGFIP)
 // Distincts des seuils de franchise TVA — ne pas confondre.
 //   TVA franchise prestation : 37 500 €  (dans TVA_SEUILS)
