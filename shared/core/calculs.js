@@ -479,10 +479,14 @@ export function getUrssafRegime(DATA) {
   return DATA.params.urssafRegime || 'mensuel';
 }
 
+// La part "presta" utilise getTauxChargesPresta() (mixte-aware) et non tauxURSSAF/tauxCFP bruts :
+// pour un compte micro-achat, ces deux champs stockent le taux vente (voir applyStatutParams()
+// dans indepuls.html), pas le taux presta : les lire directement sous-estime les cotisations sur
+// la part prestation d'un compte micro-achat en activité mixte (retour Faustine 2026-09-17).
 export function getUrssafAnnuelBrut(DATA) {
   return getCurrentYearMonths(DATA).reduce((s, mk) => {
     const { presta, vente } = getCaBreakdownMois(DATA, mk);
-    const u  = presta * (DATA.params.tauxURSSAF || 0) / 100 + presta * (DATA.params.tauxCFP || 0) / 100;
+    const u  = presta * getTauxChargesPresta(DATA);
     const uV = isActiviteMixte(DATA) ? vente * getTauxChargesVente(DATA) : 0;
     return s + u + uV;
   }, 0);
@@ -493,7 +497,7 @@ export function getUrssafProvisionMensuelle(DATA) {
   const mk = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const { presta, vente } = getCaBreakdownMois(DATA, mk);
   if (regime === 'mensuel') {
-    const u  = Math.round(presta * (DATA.params.tauxURSSAF || 0) / 100 + presta * (DATA.params.tauxCFP || 0) / 100);
+    const u  = Math.round(presta * getTauxChargesPresta(DATA));
     const uV = isActiviteMixte(DATA) ? Math.round(vente * getTauxChargesVente(DATA)) : 0;
     return u + uV;
   }

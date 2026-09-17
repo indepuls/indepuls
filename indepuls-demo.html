@@ -5115,10 +5115,15 @@ function getNextUrssafEcheance() {
   const now=new Date(), y=now.getFullYear(), m=now.getMonth()+1;
   const fmtDate=d=>d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
   const daysLeft=d=>Math.ceil((d-now)/86400000);
+  // La part presta utilise getTauxChargesPresta() (mixte-aware) et non tauxURSSAF/tauxCFP bruts :
+  // pour un compte micro-achat, ces deux champs stockent le taux vente, pas le taux presta (voir
+  // applyStatutParams), les lire directement sous-estimait les cotisations sur la part
+  // prestation d'un compte micro-achat en activité mixte (retour Faustine 2026-09-17, même bug
+  // que getUrssafAnnuelBrut()/getUrssafProvisionMensuelle() dans shared/core/calculs.js).
   if(regime==='mensuel') {
     const prevMk=m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;
     const {presta,vente}=getCaBreakdownMois(prevMk);
-    const montant=Math.round(presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100+(isActiviteMixte()?vente*getTauxChargesVente():0));
+    const montant=Math.round(presta*getTauxChargesPresta()+(isActiviteMixte()?vente*getTauxChargesVente():0));
     const due=new Date(y,m,0); // dernier jour du mois courant
     const moisLabel=new Date(y,m-2,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
     return {montant,dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`URSSAF de ${moisLabel}`,type:'urssaf',dateKey:due.toISOString().slice(0,10)};
@@ -5131,7 +5136,7 @@ function getNextUrssafEcheance() {
   for(let mo=(q-1)*3+1;mo<=m;mo++){
     const mk=`${y}-${String(mo).padStart(2,'0')}`;
     const {presta,vente}=getCaBreakdownMois(mk);
-    montant+=presta*(DATA.params.tauxURSSAF||0)/100+presta*(DATA.params.tauxCFP||0)/100+(isActiviteMixte()?vente*getTauxChargesVente():0);
+    montant+=presta*getTauxChargesPresta()+(isActiviteMixte()?vente*getTauxChargesVente():0);
   }
   return {montant:Math.round(montant),dateStr:fmtDate(due),daysLeft:daysLeft(due),label:`URSSAF T${q} ${y} (cumul)`,type:'urssaf',dateKey:due.toISOString().slice(0,10)};
 }
@@ -5865,7 +5870,13 @@ function wRepartitionCA(d) {
     // pas de cotisations URSSAF personnelles. Vue annuelle : CA encaissé depuis le 1er janvier,
     // donc mois réellement écoulés (mc), jamais ×12 fixe (même piège que getSasuProjectionFinAnnee()).
     const urssaf=isSASU()?Math.round(getSasuCoutRemuMensuel()*(isAn?mc:1)):isAn?Math.round(getUrssafAnnuelBrut()):Math.round(getUrssafProvisionMensuelle());
-    const impots=isSASU()?Math.round(ca*getImpotsTaux()):getImpotEstimeMicro(ca,0);
+    // Ventilation presta/vente réelle (pas ca=100% presta) : sinon l'abattement fiscal d'un
+    // compte mixte micro-achat est calculé comme si toute la période était de la prestation
+    // (retour Faustine 2026-09-17, même bug que le simulateur "Combien facturer ?").
+    const { presta: caPresta, vente: caVente } = isAn
+      ? months.reduce((acc, mk) => { const b = getCaBreakdownMois(mk); return { presta: acc.presta + b.presta, vente: acc.vente + b.vente }; }, { presta: 0, vente: 0 })
+      : getCaBreakdownMois(curMk);
+    const impots=isSASU()?Math.round(ca*getImpotsTaux()):getImpotEstimeMicro(caPresta,caVente);
     const dep=isAn?months.reduce((s,mk)=>s+getDepensesMois(mk),0):getDepensesMois(curMk);
     const disponible=Math.max(0,ca-urssaf-impots-dep);
     return {ca,urssaf,impots,dep,disponible};
@@ -14632,12 +14643,12 @@ function calcRentabilite() {
 
   renderSimOutputs({ ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
+    _urssafTaux, _impotTaux, _isMicro, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
 }
 function renderSimOutputs(r) {
   const { ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
+    _urssafTaux, _impotTaux, _isMicro, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
     preset = 'service', lotNb = 1, serieNb = 1 } = r;
 
   // ── Mode "Calculer mon tarif" ──────────────────────────────
@@ -14654,7 +14665,12 @@ function renderSimOutputs(r) {
     if (_impotTaux > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong>${_isMicro && abattPct > 0 ? ` (${_impotTaux} % après abattement ${abattPct} %)` : ''}`);
     if (coutsDirects > 0) advLines.push(`📦 Coûts inclus dans le calcul : <strong>${fmtE(coutsDirects)}</strong>`);
     const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Détail</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
-    const netConfort = Math.max(0, Math.round(prixConfort - coutsDirects - prixConfort*(_urssafTaux/100) - (_isMicro ? Math.round(getRevenuImposableMicro(prixConfort,0)*_impotTaux/100) : Math.round(prixConfort*_impotTaux/100))));
+    // Même ventilation presta/vente que calcRentabilite() (_natureCa) : sinon un compte mixte
+    // voit son abattement recalculé ici comme si prixConfort était 100 % presta (retour Faustine
+    // 2026-09-17, oubli du premier passage sur l'activité mixte).
+    const _confortPresta = _natureCa === 'vente' ? 0 : prixConfort;
+    const _confortVente  = _natureCa === 'vente' ? prixConfort : 0;
+    const netConfort = Math.max(0, Math.round(prixConfort - coutsDirects - prixConfort*(_urssafTaux/100) - (_isMicro ? Math.round(getRevenuImposableMicro(_confortPresta,_confortVente)*_impotTaux/100) : Math.round(prixConfort*_impotTaux/100))));
     const partLabel = isCollectif && participants > 1 ? ` / ${participants} participants` : '';
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid var(--pri)">
       <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">💶 Prix minimum à facturer</div>
