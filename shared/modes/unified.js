@@ -35,6 +35,8 @@ let DATA = null;
 // ── WRAPPERS — injectent DATA implicitement ───────────────────
 
 export const isSASU                   = () => C.isSASU(DATA);
+export const isEIReel                 = () => C.isEIReel(DATA);
+export const isMicro                  = () => C.isMicro(DATA);
 export const isActiviteMixte          = () => C.isActiviteMixte(DATA);
 export const isVersementLiberatoire   = () => C.isVersementLiberatoire(DATA);
 export const getImpotsTaux            = () => C.getImpotsTaux(DATA);
@@ -100,6 +102,11 @@ export const getTresorerieDepart      = () => C.getTresorerieDepart(DATA);
 export const getSasuSoldeActuelEstime = () => C.getSasuSoldeActuelEstime(DATA);
 export const getSasuProjectionFinAnnee = () => C.getSasuProjectionFinAnnee(DATA);
 export const getTvaAVenirFinAnnee     = () => C.getTvaAVenirFinAnnee(DATA);
+
+export const getBeneficeReelMois      = (mk) => C.getBeneficeReelMois(DATA, mk);
+export const getTauxChargesTNS        = () => C.getTauxChargesTNS(DATA);
+export const getCotisationsTNSEstimees = (beneficeReel) => C.getCotisationsTNSEstimees(DATA, beneficeReel);
+export const getImpotEIReel           = (beneficeReel) => C.getImpotEIReel(DATA, beneficeReel);
 
 export const getTotalEncaisse         = C.getTotalEncaisse;
 export const getResteAEncaisser       = C.getResteAEncaisser;

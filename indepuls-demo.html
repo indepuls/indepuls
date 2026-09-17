@@ -1025,6 +1025,7 @@ html,body{overflow-x:hidden;}
               <option value="micro-bnc">Micro libérale (BNC) — professions libérales</option>
               <option value="micro-bic">Micro prestation de service (BIC)</option>
               <option value="micro-achat">Micro achat-revente (BIC commerce)</option>
+              <option value="ei-reel">Entreprise individuelle au réel : BNC/BIC réel</option>
               <option value="sasu">SASU — Société par actions simplifiée</option>
               <option value="eurl">EURL — Entreprise unipersonnelle à responsabilité limitée</option>
             </select>
@@ -1059,6 +1060,16 @@ html,body{overflow-x:hidden;}
             <div class="ts mt4" style="color:var(--tl)">Pas sûr du bon pourcentage ? Simulez votre rémunération sur <a id="sasu-charges-simu-link" href="#" target="_blank" rel="noopener">l'outil officiel Urssaf</a>, puis reportez ici le taux de cotisations qu'il affiche (ex. 46 %). Ce taux est calibré sur le montant simulé, il peut varier légèrement si votre objectif de rémunération change beaucoup ensuite.</div>
           </div>
           <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimations simplifiées. IS, dividendes, DSN et amortissements non inclus. Ne remplace pas un expert-comptable.</div>
+        </div>
+        <div id="ei-reel-params-block" style="display:none">
+          <div class="divider"></div>
+          <div class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">📊 Pilotage EI au réel</div>
+          <div class="fgroup">
+            <label class="flabel">Cotisations sociales TNS (%) <span class="info-tip" title="Estimation forfaitaire de l'ensemble de vos cotisations sociales (maladie, retraite, CSG-CRDS...), calculée sur votre bénéfice réel. Simulez votre situation sur l'outil officiel Urssaf, puis reportez ici le taux global qu'il affiche.">?</span></label>
+            <input type="number" id="p-taux-tns" step="1" min="0" max="70" placeholder="Ex : 35" oninput="saveParam('tauxChargesTNS',+this.value);recalcObjectifsDebounced()">
+            <div class="ts mt4" style="color:var(--tl)">Contrairement à la micro-entreprise, il n'y a pas d'abattement forfaitaire : vos cotisations et votre impôt se calculent directement sur votre bénéfice réel (chiffre d'affaires moins dépenses réelles). Pas sûr du bon pourcentage ? Simulez votre situation sur <a href="https://mon-entreprise.urssaf.fr/simulateurs/independant" target="_blank" rel="noopener">l'outil officiel Urssaf</a>.</div>
+          </div>
+          <div class="alert al-info mt8" style="font-size:12px">ℹ️ Estimation simplifiée sur un taux forfaitaire unique. La régularisation N+1 (ajustement de vos cotisations une fois votre revenu réel connu) n'est pas modélisée. Ne remplace pas un expert-comptable.</div>
         </div>
         <div id="micro-charges-block">
           <div class="divider"></div>
@@ -2738,6 +2749,7 @@ html,body{overflow-x:hidden;}
       <p class="picker-sub" style="margin-bottom:8px;font-weight:600;font-size:14px;color:var(--text)">Votre statut juridique</p>
       <select id="picker-statut-select" class="picker-select">
         <option value="micro-bnc">Entreprise individuelle micro</option>
+        <option value="ei-reel">Entreprise individuelle au réel</option>
         <option value="sasu">SASU</option>
         <option value="eurl">EURL</option>
       </select>
@@ -5749,15 +5761,20 @@ function getEcheancesAVenir(d) {
   const tvaOn=DATA.params.tva;
   let echURSSAF=null,echTVA=null;
   try{
-    if(!isSASU()) echURSSAF=getNextUrssafEcheance();
+    // Pas d'échéance URSSAF déclarative pour l'EI au réel : contrairement à la micro-entreprise,
+    // les cotisations TNS ne se déclarent pas mensuellement/trimestriellement sur le CA, elles
+    // sont provisionnelles (basées sur le revenu N-1/N-2) puis régularisées l'année suivante, un
+    // mécanisme non modélisé ici (voir getTauxChargesTNS/getCotisationsTNSEstimees). On affiche à
+    // la place une provision cotisations distincte, ci-dessous.
+    if(!isSASU()&&!isEIReel()) echURSSAF=getNextUrssafEcheance();
     if(tvaOn) echTVA=getNextTVAEcheance();
   }catch(e){reportError('getEcheancesAVenir',e);}
   const impotsTaux=getImpotsTaux();
   const _isVFL=isVersementLiberatoire();
-  const _microS=['micro-bnc','micro-bic','micro-achat'];
-  const _isMicro=!isSASU()&&_microS.includes(DATA.params.statut);
+  const _isMicro=isMicro();
+  const _isEIReel=isEIReel();
   const caMoyMensuel=d.caBrut>0?Math.round(d.caBrut/mc):0;
-  let provImpots,impotSubW;
+  let provImpots,impotSubW,provCotisTNS=0,cotisTNSSubW=null;
   // Le VFL n'a pas besoin qu'impotsTaux soit renseigné (son taux vient de TAUX_VFL, pas du TMI) :
   // sans ce garde-fou étendu, un compte VFL avec impotsTaux resté à 0 ne provisionnait aucun
   // impôt du tout (retour Faustine 2026-09-17).
@@ -5776,21 +5793,30 @@ function getEcheancesAVenir(d) {
       const _pA=caMoyMensuel>0?Math.round((1-_ri/caMoyMensuel)*100):0;
       impotSubW=`${Math.round(impotsTaux*100)} % sur revenu après abattement ${_pA} % · indicatif`;
     }
+  }else if(_isEIReel&&caMoyMensuel>0){
+    // Base = bénéfice réel moyen (CA moyen - dépenses structurelles moyennes), pas le CA brut :
+    // pas d'abattement forfaitaire ici, cotisations ET impôt portent tous les deux directement
+    // sur ce bénéfice (deux provisions indépendantes, voir getCotisationsTNSEstimees/getImpotEIReel).
+    const beneficeMoy=Math.max(0,caMoyMensuel-getDepensesMoyenneMensuelle());
+    provCotisTNS=getCotisationsTNSEstimees(beneficeMoy);
+    cotisTNSSubW=`${Math.round(getTauxChargesTNS()*100)} % du bénéfice réel estimé · indicatif`;
+    provImpots=getImpotEIReel(beneficeMoy);
+    impotSubW=impotsTaux>0?`${Math.round(impotsTaux*100)} % du bénéfice réel, sans abattement · indicatif`:null;
   }else{
     provImpots=Math.round(caMoyMensuel*impotsTaux);
     impotSubW=Math.round(impotsTaux*100)+' % du CA moyen · réserve progressive';
   }
   const urssafAmt=(echURSSAF&&echURSSAF.montant>0)?echURSSAF.montant:0;
   const tvaAmt=(echTVA&&echTVA.montant>0)?echTVA.montant:0;
-  const total=urssafAmt+tvaAmt+provImpots;
-  return {echURSSAF,echTVA,provImpots,impotSubW,total,urssafAmt,tvaAmt,isMicro:_isMicro,impotsTaux};
+  const total=urssafAmt+tvaAmt+provImpots+provCotisTNS;
+  return {echURSSAF,echTVA,provImpots,impotSubW,provCotisTNS,cotisTNSSubW,total,urssafAmt,tvaAmt,isMicro:_isMicro,isEIReel:_isEIReel,impotsTaux};
 }
 function wProvisionsSide(d) {
   const curMk=getCurrentMk();
   const [cy,cm]=curMk.split('-');
   const moisLabel=new Date(+cy,+cm-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
 
-  const {echURSSAF,echTVA,provImpots,impotSubW:_impotSubW,total:totalAConserver,urssafAmt,tvaAmt,isMicro:_isMicro,impotsTaux}=getEcheancesAVenir(d);
+  const {echURSSAF,echTVA,provImpots,impotSubW:_impotSubW,provCotisTNS,cotisTNSSubW,total:totalAConserver,urssafAmt,tvaAmt,isMicro:_isMicro,isEIReel:_isEIReel,impotsTaux}=getEcheancesAVenir(d);
   // netAnnuel supprimé (case Disponible retirée)
 
   // Urgence bordure
@@ -5815,6 +5841,7 @@ function wProvisionsSide(d) {
   const repartRows=[
     urssafAmt>0?{lbl:echURSSAF.label,val:urssafAmt,days:echURSSAF.daysLeft,sub:null}:null,
     tvaRow,
+    provCotisTNS>0?{lbl:'Cotisations sociales · provision '+moisLabel,val:provCotisTNS,days:null,sub:cotisTNSSubW}:null,
     provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:_impotSubW}:null,
   ].filter(Boolean);
 
@@ -5854,6 +5881,8 @@ function wProvisionsSide(d) {
         return '<div style="font-size:11px;color:var(--tl);margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid var(--brd)">Aucun taux d\'impôt renseigné — aucune provision d\'impôt n\'est calculée. <span style="cursor:pointer;text-decoration:underline;color:var(--acc)" onclick="navigate(\'params\')">Renseigner dans Paramètres › Impôt</span></div>';
       if(_isMicro&&impotsTaux)
         return '<div style="font-size:10px;color:var(--tl);margin-top:8px;opacity:.8">Impôt estimé après abattement micro — prévision indicative basée sur mon taux saisi. À ajuster selon ma situation personnelle.</div>';
+      if(_isEIReel)
+        return '<div style="font-size:10px;color:var(--tl);margin-top:8px;opacity:.8">Cotisations et impôt estimés sur le bénéfice réel (CA moins dépenses), sans abattement. Prévision indicative basée sur mon taux de cotisations et mon TMI saisis, sans régularisation N+1. À ajuster selon ma situation personnelle.</div>';
       return '';
     })()
     +(()=>{
@@ -5883,18 +5912,32 @@ function wRepartitionCA(d) {
   const mc=Math.max(getMoisActifsAnnee().length,1);
   function rep(isAn) {
     const ca=isAn?d.caBrut:getCaFromMissions(curMk)+getPonctuelsCA(curMk);
-    // SASU/EURL : la "charge" à ce niveau est la rémunération elle-même (charges comprises) —
-    // pas de cotisations URSSAF personnelles. Vue annuelle : CA encaissé depuis le 1er janvier,
-    // donc mois réellement écoulés (mc), jamais ×12 fixe (même piège que getSasuProjectionFinAnnee()).
-    const urssaf=isSASU()?Math.round(getSasuCoutRemuMensuel()*(isAn?mc:1)):isAn?Math.round(getUrssafAnnuelBrut()):Math.round(getUrssafProvisionMensuelle());
-    // Ventilation presta/vente réelle (pas ca=100% presta) : sinon l'abattement fiscal d'un
-    // compte mixte micro-achat est calculé comme si toute la période était de la prestation
-    // (retour Faustine 2026-09-17, même bug que le simulateur "Combien facturer ?").
-    const { presta: caPresta, vente: caVente } = isAn
-      ? months.reduce((acc, mk) => { const b = getCaBreakdownMois(mk); return { presta: acc.presta + b.presta, vente: acc.vente + b.vente }; }, { presta: 0, vente: 0 })
-      : getCaBreakdownMois(curMk);
-    const impots=isSASU()?Math.round(ca*getImpotsTaux()):getImpotEstimeMicro(caPresta,caVente);
     const dep=isAn?months.reduce((s,mk)=>s+getDepensesMois(mk),0):getDepensesMois(curMk);
+    let urssaf,impots;
+    if(isSASU()){
+      // SASU/EURL : la "charge" à ce niveau est la rémunération elle-même (charges comprises) —
+      // pas de cotisations URSSAF personnelles. Vue annuelle : CA encaissé depuis le 1er janvier,
+      // donc mois réellement écoulés (mc), jamais ×12 fixe (même piège que getSasuProjectionFinAnnee()).
+      urssaf=Math.round(getSasuCoutRemuMensuel()*(isAn?mc:1));
+      impots=Math.round(ca*getImpotsTaux());
+    } else if(isEIReel()){
+      // Pas d'abattement, cotisations ET impôt portent sur le bénéfice réel (CA - dépenses
+      // réelles), pas sur le CA brut. Sinon "disponible pour moi" surestimerait fortement
+      // le revenu réel (les dépenses seraient comptées une seule fois au lieu de deux, dans
+      // le bénéfice ET dans le segment "Dépenses pro").
+      const beneficeReel=Math.max(0,ca-dep);
+      urssaf=getCotisationsTNSEstimees(beneficeReel);
+      impots=getImpotEIReel(beneficeReel);
+    } else {
+      urssaf=isAn?Math.round(getUrssafAnnuelBrut()):Math.round(getUrssafProvisionMensuelle());
+      // Ventilation presta/vente réelle (pas ca=100% presta) : sinon l'abattement fiscal d'un
+      // compte mixte micro-achat est calculé comme si toute la période était de la prestation
+      // (retour Faustine 2026-09-17, même bug que le simulateur "Combien facturer ?").
+      const { presta: caPresta, vente: caVente } = isAn
+        ? months.reduce((acc, mk) => { const b = getCaBreakdownMois(mk); return { presta: acc.presta + b.presta, vente: acc.vente + b.vente }; }, { presta: 0, vente: 0 })
+        : getCaBreakdownMois(curMk);
+      impots=getImpotEstimeMicro(caPresta,caVente);
+    }
     const disponible=Math.max(0,ca-urssaf-impots-dep);
     return {ca,urssaf,impots,dep,disponible};
   }
@@ -5926,7 +5969,7 @@ function wRepartitionCA(d) {
   const _dispoLbl=isSASU()?"Disponible pour l'entreprise":'Disponible pour moi';
   const segs=[
     {lbl:_dispoLbl, val:cur.disponible, col:'#2d7a4f'},
-    {lbl:isSASU()?'Charges sociales':'URSSAF + CFP', val:cur.urssaf, col:'#f97316'},
+    {lbl:isSASU()?'Charges sociales':(isEIReel()?'Cotisations sociales':'URSSAF + CFP'), val:cur.urssaf, col:'#f97316'},
     ...(cur.impots>0?[{lbl:'Impôts (estimés)', val:cur.impots, col:'#a78bfa'}]:[]),
     ...(cur.dep>0?[{lbl:'Dépenses pro', val:cur.dep, col:'#94a3b8'}]:[]),
   ].filter(s=>s.val>0);
@@ -11478,9 +11521,9 @@ function toggleVersementLiberatoire(val) {
 }
 function renderVFLDetail() {
   const toggleRow=document.getElementById('vfl-toggle-row');
-  const isMicro=!isSASU();
-  if(toggleRow) toggleRow.style.display=isMicro?'':'none';
-  const on=isMicro&&!!DATA.params.versementLiberatoire;
+  const micro=isMicro();
+  if(toggleRow) toggleRow.style.display=micro?'':'none';
+  const on=micro&&!!DATA.params.versementLiberatoire;
   const vflSw=document.getElementById('p-vfl-sw');
   if(vflSw) vflSw.checked=on;
   const tmiField=document.getElementById('tmi-field');
@@ -11488,11 +11531,14 @@ function renderVFLDetail() {
   const tmiLabel=document.getElementById('tmi-label');
   const tmiHint=document.getElementById('tmi-hint');
   const tmiInfoTip=document.getElementById('tmi-info-tip');
-  if(tmiInfoTip) tmiInfoTip.style.display=isMicro?'':'none';
-  if(isMicro){
+  if(tmiInfoTip) tmiInfoTip.style.display=micro?'':'none';
+  if(micro){
     if(tmiLabel) tmiLabel.textContent='Tranche marginale d\'imposition, TMI (%, facultatif)';
     if(tmiHint) tmiHint.textContent='Indiquez votre TMI telle quelle, sans calcul de votre part : Indépuls applique automatiquement l\'abattement forfaitaire (34/50/71 % selon votre statut) avant de calculer l\'impôt. Si vous laissez 0 %, aucun impôt n\'est déduit des calculs.';
     if(tmiInfoTip) tmiInfoTip.title='Votre TMI est indiquée sur votre avis d\'imposition sur le revenu (mention "Taux marginal d\'imposition" dans le détail du calcul), ou calculable sur le simulateur officiel impots.gouv.fr avec vos revenus. C\'est toujours l\'une de ces 5 valeurs : 0, 11, 30, 41 ou 45 %, selon votre revenu par part de quotient familial.';
+  } else if(isEIReel()){
+    if(tmiLabel) tmiLabel.textContent='Tranche marginale d\'imposition, TMI (%, facultatif)';
+    if(tmiHint) tmiHint.textContent='Indiquez votre TMI telle quelle : au régime réel, il n\'y a pas d\'abattement forfaitaire, l\'impôt s\'applique directement sur votre bénéfice réel (CA moins dépenses). Si vous laissez 0 %, aucun impôt n\'est déduit des calculs.';
   }
   const det=document.getElementById('vfl-detail');
   if(det){
@@ -12402,9 +12448,16 @@ function renderParams() {
   const pSalEl=document.getElementById('p-charges-salariales');
   if(pSalEl) pSalEl.value=p.chargesSalariales||'';
   const sasu=isSASU();
+  const eiReel=isEIReel();
   const isEurl=DATA.params.statut==='eurl';
-  document.getElementById('micro-charges-block').style.display=sasu?'none':'';
+  document.getElementById('micro-charges-block').style.display=(sasu||eiReel)?'none':'';
   document.getElementById('sasu-params-block').style.display=sasu?'':'none';
+  const eiReelBlock=document.getElementById('ei-reel-params-block');
+  if(eiReelBlock) eiReelBlock.style.display=eiReel?'':'none';
+  if(eiReel){
+    const tnsEl=document.getElementById('p-taux-tns');
+    if(tnsEl) tnsEl.value=p.tauxChargesTNS||35;
+  }
   if(sasu){
     // Plusieurs dirigeants : SASU/SAS uniquement, jamais EURL/SARL (retour Faustine, 2026-09-08) —
     // en SAS, tous les présidents/dirigeants relèvent du même régime (assimilé salarié), un total
@@ -12448,7 +12501,7 @@ function renderParams() {
     updateSasuPreview();
   }
   const livreBlock=document.getElementById('livre-recettes-block');
-  if(livreBlock) livreBlock.style.display=sasu?'none':'';
+  if(livreBlock) livreBlock.style.display=(sasu||eiReel)?'none':'';
   // Brief hebdomadaire par email
   const ehSw=document.getElementById('p-email-hebdo-sw');
   if(ehSw) ehSw.checked=!!(p.emailHebdoActif);
@@ -12618,6 +12671,14 @@ function applyStatutParams(val) {
     if(DATA.params.activiteMixte) DATA.params.activiteMixte=false;
     // Forcer le taux de charges à 45 % par défaut en EURL (vs 82 % SASU)
     if(!DATA.params.coutRemunerationPct||DATA.params.coutRemunerationPct===82) DATA.params.coutRemunerationPct=45;
+  }
+  if(val==='ei-reel'){
+    // Cotisations TNS approximées par un taux forfaitaire ajustable (même principe que
+    // coutRemunerationPct pour la SASU/EURL), pas de tauxURSSAF/tauxCFP pour ce statut :
+    // 'ei-reel' est absent de TAUX_URSSAF donc le bloc `if(pr)` ci-dessus est sauté.
+    // Activité mixte reste disponible (contrairement à SASU/EURL) : les seuils de TVA
+    // presta/vente restent pertinents même si les cotisations/impôt portent sur le total.
+    if(!DATA.params.tauxChargesTNS) DATA.params.tauxChargesTNS=35;
   }
   if((val==='sasu'||val==='eurl')&&!DATA.params.objectifNetMensuel){
     // objectifNetMensuel devient en SASU/EURL un champ de simulation isolé (page Objectifs,
@@ -14663,7 +14724,8 @@ function calcRentabilite() {
 
   const { ca, heures, coutsDirects, participants, isCollectif, _isCalculer = false, _isAchatMax = false, _achatMax, preset = 'service', lotNb = 1, serieNb = 1 } = inputs;
   const p = DATA.params;
-  const _isMicro    = !isSASU();
+  const _isMicro    = isMicro();
+  const _isEIReel   = isEIReel();
   // Nature de cette mission (presta/vente), pertinente uniquement en activité mixte : les taux de
   // cotisations et l'abattement fiscal diffèrent selon le type (retour Faustine 2026-09-16 : le
   // simulateur traitait tout le CA comme de la prestation, même pour une mission de vente sur un
@@ -14681,7 +14743,9 @@ function calcRentabilite() {
   // affichait une fausse ligne "URSSAF à mettre de côté" en SASU/EURL (retour Faustine
   // 2026-09-16). L'objectif de taux horaire cible reste correct (getTauxHoraireMinCible() est
   // déjà SASU-aware via getSasuCoutRemuMensuel), seule cette ligne d'affichage était fausse.
-  const _urssafTaux = _isMicro ? (_natureCa === 'vente' ? getTauxChargesVente() : getTauxChargesPresta()) * 100 : 0;
+  const _urssafTaux = _isMicro ? (_natureCa === 'vente' ? getTauxChargesVente() : getTauxChargesPresta()) * 100
+                    : _isEIReel ? getTauxChargesTNS() * 100
+                    : 0;
   // Versement libératoire (VFL) : taux fixe légal sur le CA brut, sans abattement (retour
   // Faustine 2026-09-17). getImpotEstimeMicro() gère déjà les deux mécanismes en interne ; ici on
   // calcule en plus _impotTaux (le taux à AFFICHER : VFL ou TMI classique) et abattPct (laissé à 0
@@ -14693,9 +14757,15 @@ function calcRentabilite() {
   const _isJ        = isJours();
 
   const margeBrute = ca - coutsDirects;
-  const provUrssaf = ca > 0 ? Math.round(ca * _urssafTaux / 100) : 0;
+  // EI au réel : pas d'abattement, cotisations ET impôt portent sur la marge de cette mission
+  // (CA - coûts directs), pas sur le CA brut, même principe que le bénéfice réel mensuel
+  // (getBeneficeReelMois), transposé au niveau d'une seule mission/devis.
+  const provUrssaf = _isEIReel ? getCotisationsTNSEstimees(Math.max(0, margeBrute))
+                   : ca > 0 ? Math.round(ca * _urssafTaux / 100) : 0;
   let provImpots = 0, abattPct = 0;
-  if (_impotTaux > 0 && ca > 0) {
+  if (_isEIReel) {
+    if (_impotTaux > 0) provImpots = getImpotEIReel(Math.max(0, margeBrute));
+  } else if (_impotTaux > 0 && ca > 0) {
     if (_isMicro) {
       provImpots = getImpotEstimeMicro(_caPresta, _caVente);
       if (!_isVFL) {
@@ -14715,12 +14785,13 @@ function calcRentabilite() {
 
   renderSimOutputs({ ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _isVFL, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
+    _urssafTaux, _impotTaux, _isMicro, _isEIReel, _isVFL, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax, preset, lotNb, serieNb });
 }
 // Texte de contexte pour une ligne "Impôts à provisionner" : distingue le barème classique
 // (abattement) du versement libératoire (taux fixe direct sur le CA, sans abattement). Jamais
 // vide, pour rester zéro boîte noire dans les deux cas (retour Faustine 2026-09-17).
-function _impotContexte(_isMicro, _isVFL, _impotTaux, abattPct) {
+function _impotContexte(_isMicro, _isEIReel, _isVFL, _impotTaux, abattPct) {
+  if (_isEIReel) return _impotTaux + ' % du bénéfice, sans abattement';
   if (!_isMicro) return _impotTaux + ' % du CA';
   if (_isVFL) return _impotTaux + ' % du CA, versement libératoire';
   if (abattPct > 0) return _impotTaux + ' % après abattement ' + abattPct + ' %';
@@ -14732,10 +14803,22 @@ function _impotContexteCompact(_isMicro, _isVFL, abattPct) {
   if (_isMicro && abattPct > 0) return ` (abatt. ${abattPct}%)`;
   return '';
 }
+// Libellé de la ligne "charges sociales" du simulateur, adapté au régime : l'EI au réel n'a pas
+// de déclaration URSSAF sur le CA à ce niveau (voir provUrssaf dans calcRentabilite()).
+// `capitalise` pour un libellé en tête de ligne (💼 ...), sinon pour une insertion en milieu de phrase.
+function _chargesMot(_isEIReel, capitalise) {
+  if (_isEIReel) return capitalise ? 'Cotisations sociales' : 'cotisations sociales';
+  return 'URSSAF';
+}
+// Base du taux affiché à côté du montant de charges sociales : CA en micro, bénéfice réel
+// (CA - coûts directs de la mission) en EI au réel, sans abattement.
+function _chargesBase(_isEIReel, base) {
+  return _isEIReel ? 'du bénéfice' : 'du ' + (base || 'CA');
+}
 function renderSimOutputs(r) {
   const { ca, heures, coutsDirects, margeBrute, provUrssaf, provImpots, abattPct,
     revenuNet, thBrut, thNet, tjmBrut, thCible, pctMarge, participants, isCollectif,
-    _urssafTaux, _impotTaux, _isMicro, _isVFL, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
+    _urssafTaux, _impotTaux, _isMicro, _isEIReel, _isVFL, _natureCa, _hj, _isJ, _isCalculer, _isAchatMax, _achatMax,
     preset = 'service', lotNb = 1, serieNb = 1 } = r;
 
   // ── Mode "Calculer mon tarif" ──────────────────────────────
@@ -14746,8 +14829,8 @@ function renderSimOutputs(r) {
     const _impotSub = _impotTaux > 0 ? ` + impôts ${_impotTaux}%${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : '';
     const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
     const advLines = [];
-    if (_urssafTaux > 0) advLines.push(`💼 URSSAF à prévoir sur ce prix : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-    if (_impotTaux > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
+    if (_urssafTaux > 0) advLines.push(`💼 ${_chargesMot(_isEIReel, true)} à prévoir sur ce prix : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % ${_chargesBase(_isEIReel)})`);
+    if (_impotTaux > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isEIReel, _isVFL, _impotTaux, abattPct)})`);
     if (coutsDirects > 0) advLines.push(`📦 Coûts inclus dans le calcul : <strong>${fmtE(coutsDirects)}</strong>`);
     const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Détail</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
     // Même ventilation presta/vente que calcRentabilite() (_natureCa) : sinon un compte mixte
@@ -14785,8 +14868,8 @@ function renderSimOutputs(r) {
     const isViable = _achatMax > 0;
     const _hasCharges = _urssafTaux > 0 || _impotTaux > 0;
     const advLines = [];
-    if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 URSSAF à prévoir sur ce prix de vente : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-    if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
+    if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 ${_chargesMot(_isEIReel, true)} à prévoir sur ce prix de vente : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % ${_chargesBase(_isEIReel)})`);
+    if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isEIReel, _isVFL, _impotTaux, abattPct)})`);
     if (coutsDirects > 0) advLines.push(`📦 Autres frais (hors achat) : <strong>${fmtE(coutsDirects)}</strong>`);
     const advHtml = advLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Détail</div>${advLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${isViable ? 'var(--pri)' : 'var(--err)'}">
@@ -14840,8 +14923,8 @@ function renderSimOutputs(r) {
 
     // Provisions
     const provLines = [];
-    if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
+    if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 ${_chargesMot(_isEIReel, true)} à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % ${_chargesBase(_isEIReel)})`);
+    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isEIReel, _isVFL, _impotTaux, abattPct)})`);
     const conseilLines = [...provLines, ...objLines];
     const conseilHtml = conseilLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Provisions & objectif</div>${conseilLines.map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : '';
 
@@ -14868,7 +14951,7 @@ function renderSimOutputs(r) {
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${diagBorder}">
       <div class="ts mb12" style="font-size:14px;font-weight:700">${diagIcon} ${diagTxt}</div>
       ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)"><span class="ts">${l}</span><span>${v}</span></div>`).join('')}
-      ${_hasCharges && revenuNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
+      ${_hasCharges && revenuNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après ${_chargesMot(_isEIReel, false)} ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
       ${serieHtml}
       ${conseilHtml}
     </div>`;
@@ -14913,8 +14996,8 @@ function renderSimOutputs(r) {
 
     // Provisions
     const provLines = [];
-    if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du prix de vente)`);
-    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
+    if (_urssafTaux > 0 && ca > 0) provLines.push(`💼 ${_chargesMot(_isEIReel, true)} à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % ${_chargesBase(_isEIReel, 'prix de vente')})`);
+    if (_impotTaux > 0 && ca > 0) provLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isEIReel, _isVFL, _impotTaux, abattPct)})`);
     const provHtml = provLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">💡 Provisions & objectif</div>${[...provLines,...objLines].map(l=>`<div style="font-size:12px;color:var(--text);padding:5px 0;border-bottom:1px solid var(--brd);line-height:1.5">${l}</div>`).join('')}</div>` : (objLines.length ? `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);font-weight:700;margin-bottom:8px">🎯 Objectif</div>${objHtml}</div>` : '');
 
     // Lot
@@ -14937,7 +15020,7 @@ function renderSimOutputs(r) {
     document.getElementById('sim-results-zone').innerHTML = `<div class="card" style="border-left:4px solid ${diagBorder}">
       <div class="ts mb12" style="font-size:14px;font-weight:700">${diagIcon} ${diagTxt}</div>
       ${rows.map(([l,v])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)"><span class="ts">${l}</span><span>${v}</span></div>`).join('')}
-      ${_hasCharges && gainNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après URSSAF ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
+      ${_hasCharges && gainNet > 0 ? `<div class="ts mt8" style="font-size:11px;color:var(--tl)">Net estimé après ${_chargesMot(_isEIReel, false)} ${_urssafTaux > 0 ? `${_urssafTaux}% ` : ''}${_impotTaux > 0 ? `+ impôts${_impotContexteCompact(_isMicro, _isVFL, abattPct)}` : ''}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>` : ''}
       ${lotHtml}
       ${provHtml}
     </div>`;
@@ -14974,8 +15057,8 @@ function renderSimOutputs(r) {
     coutsDirects > 0 ? [`Marge brute (${pctMarge} %)`, fmtE(margeBrute)] : null,
     isCollectif && participants > 1 ? ['Participants', participants] : null,
     heures > 0 ? ['Temps estimé', `${fmt(heures,1)} h`] : null,
-    !_isJ && thBrut !== null ? ['TH brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(Math.round(thBrut),0)}/h</span><span class="ts"> avant URSSAF</span>`] : null,
-    _isJ && tjmBrut !== null ? ['TJM brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(tjmBrut,0)}/j</span><span class="ts"> avant URSSAF</span>`] : null,
+    !_isJ && thBrut !== null ? ['TH brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(Math.round(thBrut),0)}/h</span><span class="ts"> avant ${_chargesMot(_isEIReel, false)}</span>`] : null,
+    _isJ && tjmBrut !== null ? ['TJM brut estimé', `<span class="${cl}" style="font-weight:700;font-size:15px">${fmtE(tjmBrut,0)}/j</span><span class="ts"> avant ${_chargesMot(_isEIReel, false)}</span>`] : null,
     _isJ && thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['TJM net estimé', `<strong>${fmtE(Math.round(thNet*_hj),0)}/j</strong><span class="ts"> dans ma poche</span>`] : null,
     !_isJ && thNet !== null && (_urssafTaux > 0 || _impotTaux > 0) ? ['Net / heure estimé', `<strong>${fmtE(thNet,0)}/h</strong><span class="ts"> dans ma poche</span>`] : null,
     thCible > 0 ? (_isJ
@@ -14989,13 +15072,13 @@ function renderSimOutputs(r) {
   const netBox = _hasCharges && margeBrute > 0 ? `<div style="margin-top:14px;padding:12px 16px;background:rgba(45,122,79,.08);border-radius:8px;border-left:3px solid var(--ok)">
     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">💰 Net dans ma poche</div>
     <div style="font-size:24px;font-weight:700;color:var(--ok);line-height:1">${fmtE(revenuNet)}</div>
-    <div style="font-size:11px;color:var(--tl);margin-top:3px">après URSSAF ${_urssafTaux}%${_impotSub}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>
+    <div style="font-size:11px;color:var(--tl);margin-top:3px">après ${_chargesMot(_isEIReel, false)} ${_urssafTaux}%${_impotSub}${coutsDirects > 0 ? ' · coûts déjà déduits' : ''}</div>
   </div>` : '';
 
   // Conseils
   const advLines = [];
-  if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 URSSAF à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % du CA)`);
-  if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isVFL, _impotTaux, abattPct)})`);
+  if (_urssafTaux > 0 && ca > 0) advLines.push(`💼 ${_chargesMot(_isEIReel, true)} à mettre de côté : <strong>${fmtE(provUrssaf)}</strong> (${_urssafTaux} % ${_chargesBase(_isEIReel)})`);
+  if (_impotTaux > 0 && ca > 0) advLines.push(`🏦 Impôts à provisionner : <strong>${fmtE(provImpots)}</strong> (${_impotContexte(_isMicro, _isEIReel, _isVFL, _impotTaux, abattPct)})`);
   if (thCible > 0 && heures > 0 && thBrut !== null && thBrut < thCible) {
     const prixMin = Math.ceil((thCible * heures + coutsDirects) / 10) * 10;
     if (isCollectif && participants > 1) {
@@ -15075,7 +15158,7 @@ const ETSI_METH = {
   prix: `<strong>Données ·</strong> Votre chiffre d'affaires et vos heures des 12 derniers mois glissants (mêmes valeurs que "Ma rentabilité").<br><strong>Calcul ·</strong> Marge en plus = CA × hausse. Temps gagné = heures actuelles − (heures actuelles ÷ (1 + hausse)) : le temps qu'il faudrait en moins pour gagner la même chose au nouveau tarif.`,
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
   delegation: `<strong>Données ·</strong> Le temps que vous avez passé sur les catégories cochées, sur les 3 derniers mois (moyenne mensuelle), et votre taux horaire net réel (revenu net ÷ heures, sur vos 12 derniers mois glissants — le même "TH réel net" qu'ailleurs).<br><strong>Calcul ·</strong> Budget = heures/mois libérées × taux horaire NET. On prend le net (ce que vous gardez vraiment) et pas le brut (ce que vous facturez), parce que le budget est une dépense réelle : la facture du prestataire. C'est un plafond à coût neutre, jusqu'auquel déléguer ne vous coûte rien si vous revendez le temps libéré.<br><strong>Garde-fou ·</strong> Ce budget ne se réalise que si vous revendez réellement le temps gagné. En dessous de 80 % de remplissage, on vous prévient : libérer du temps ne crée pas de CA tant que votre agenda facturable n'est pas plein. Si votre calendrier n'est pas renseigné, on affiche quand même le budget mais on ne peut pas vérifier votre saturation.`,
-  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut — le même calcul que "Combien facturer ?". Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU) — ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale.`,
+  statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut — le même calcul que "Combien facturer ?". Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EI au réel : (CA − dépenses) − cotisations sociales − impôt, les deux calculés directement sur ce bénéfice (CA moins dépenses), sans aucun abattement contrairement à la micro, avec le taux de cotisations et le TMI pris depuis Paramètres › Fiscalité. EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU) — ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale, ni régularisation N+1 des cotisations TNS.`,
 };
 // Lien contextuel depuis le dashboard vers une carte "Et si ?" précise (retour Faustine
 // 2026-08-01 : relier une alerte à la simulation qui répond directement à ce qu'elle soulève,
@@ -15156,6 +15239,7 @@ function etsiCard4Html() {
       <div class="g2" style="gap:8px">
         ${cellStatut(isMicroActuel&&!DATA.params.tva,'Micro · sans TVA','impôt après abattement, URSSAF inclus',comp.microSansTVA)}
         ${cellStatut(isMicroActuel&&!!DATA.params.tva,'Micro · avec TVA',subTva,comp.microAvecTVA)}
+        ${cellStatut(statutActuel==='ei-reel','EI au réel',`sans abattement, ${Math.round(getTauxChargesTNS()*100)}% de cotisations`,comp.eiReel)}
         ${cellStatut(statutActuel==='eurl','EURL',"à l'IS, 45% de charges",comp.eurl)}
         ${cellStatut(statutActuel==='sasu','SASU','82% de charges',comp.sasu)}
       </div>
@@ -15167,6 +15251,7 @@ function etsiCard4Html() {
         const options=[
           {key:'micro-sans',label:'Micro sans TVA',val:comp.microSansTVA,actuel:isMicroActuel&&!DATA.params.tva},
           {key:'micro-avec',label:'Micro avec TVA',val:comp.microAvecTVA,actuel:isMicroActuel&&!!DATA.params.tva},
+          {key:'ei-reel',label:'EI au réel',val:comp.eiReel,actuel:statutActuel==='ei-reel'},
           {key:'eurl',label:'EURL',val:comp.eurl,actuel:statutActuel==='eurl'},
           {key:'sasu',label:'SASU',val:comp.sasu,actuel:statutActuel==='sasu'},
         ];
@@ -15726,7 +15811,13 @@ document.addEventListener('keydown', function(e) {
   window.getTVACollecteeDebitsMois        = (mk) => { sync(); return Mode.getTVACollecteeDebitsMois(mk); };
   window.getCaBreakdownMois     = (mk) => { sync(); return Mode.getCaBreakdownMois(mk); };
   window.isSASU                 = ()   => { sync(); return Mode.isSASU(); };
+  window.isEIReel                = ()   => { sync(); return Mode.isEIReel(); };
+  window.isMicro                 = ()   => { sync(); return Mode.isMicro(); };
   window.isVersementLiberatoire = ()   => { sync(); return Mode.isVersementLiberatoire(); };
+  window.getBeneficeReelMois     = (mk) => { sync(); return Mode.getBeneficeReelMois(mk); };
+  window.getTauxChargesTNS       = ()   => { sync(); return Mode.getTauxChargesTNS(); };
+  window.getCotisationsTNSEstimees = (beneficeReel) => { sync(); return Mode.getCotisationsTNSEstimees(beneficeReel); };
+  window.getImpotEIReel          = (beneficeReel) => { sync(); return Mode.getImpotEIReel(beneficeReel); };
   window.getImpotsTaux          = ()   => { sync(); return Mode.getImpotsTaux(); };
   window.getTauxCharges         = ()   => { sync(); return Mode.getTauxCharges(); };
   window.getCurrentYearMonths   = ()   => { sync(); return Mode.getCurrentYearMonths(); };

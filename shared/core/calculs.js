@@ -22,6 +22,20 @@ export function isSASU(DATA) {
   return DATA.params.statut === 'sasu' || DATA.params.statut === 'eurl';
 }
 
+// Entreprise individuelle au régime réel (BNC/BIC réel) : statut juridique EI comme la micro-
+// entreprise, mais régime fiscal et social différent (voir isMicro ci-dessous). Chantier
+// 2026-09-17 (retour Faustine : "on n'est pas du tout carré là-dessus").
+export function isEIReel(DATA) {
+  return DATA.params.statut === 'ei-reel';
+}
+
+// Régime micro (BNC/BIC/achat) : la seule famille avec abattement forfaitaire ET cotisations
+// calculées sur le CA brut. Centralise ce qui était jusqu'ici recomposé au cas par cas via
+// ABATTEMENTS_MICRO[statut] ou des tableaux ad hoc ('_microS' dans indepuls.html).
+export function isMicro(DATA) {
+  return ['micro-bnc', 'micro-bic', 'micro-achat'].includes(DATA.params.statut);
+}
+
 export function isActiviteMixte(DATA) {
   return !!DATA.params.activiteMixte;
 }
@@ -32,20 +46,24 @@ export function getImpotsTaux(DATA) {
 
 // ── TAUX DE CHARGES ──────────────────────────────────────────
 
+// EI au réel : pas de taux URSSAF/CFP déclaré sur le CA (contrairement à la micro-entreprise),
+// les cotisations sont estimées sur le bénéfice réel via getCotisationsTNSEstimees(). Même garde
+// que isSASU() ci-dessous : sans elle, ces fonctions retomberaient sur tauxURSSAF/tauxCFP restés
+// au dernier statut micro sélectionné (ou undefined en cas de choix direct à l'onboarding).
 export function getTauxCharges(DATA) {
-  if (isSASU(DATA)) return 0;
+  if (isSASU(DATA) || isEIReel(DATA)) return 0;
   return (DATA.params.tauxURSSAF + DATA.params.tauxCFP) / 100;
 }
 
 export function getTauxChargesPresta(DATA) {
-  if (isSASU(DATA)) return 0;
+  if (isSASU(DATA) || isEIReel(DATA)) return 0;
   if (!isActiviteMixte(DATA)) return (DATA.params.tauxURSSAF + DATA.params.tauxCFP) / 100;
   return ((DATA.params.tauxCotisationsPrestation || DATA.params.tauxURSSAF) +
           (DATA.params.tauxCFPPrestation || DATA.params.tauxCFP)) / 100;
 }
 
 export function getTauxChargesVente(DATA) {
-  if (isSASU(DATA)) return 0;
+  if (isSASU(DATA) || isEIReel(DATA)) return 0;
   if (!isActiviteMixte(DATA)) return getTauxChargesPresta(DATA);
   const _tv = getTauxStatut(DATA.params.statut);
   return ((DATA.params.tauxCotisationsVente || _tv.urssafVente) +
@@ -537,6 +555,17 @@ export function getTauxHoraireMinCible(DATA) {
   if (hAn <= 0) return 0;
   const dep = getDepensesMoyenneMensuelle(DATA) + (p.chargesAnnuellesCompl || 0) / 12 + (p.chargesSalariales || 0);
   if (isSASU(DATA)) return (getSasuCoutRemuMensuel(DATA) + dep) * 12 / hAn;
+  if (isEIReel(DATA)) {
+    // Formule différente de la micro/SASU : ici les dépenses réduisent le CA en bénéfice
+    // AVANT que le taux de charges/impôt s'applique, pas après. On résout donc d'abord le
+    // bénéfice nécessaire pour atteindre l'objectif net, puis on y rajoute les dépenses pour
+    // remonter au CA (vérifié numériquement le 2026-09-17 : réutiliser la formule micro/SASU
+    // ici surestimerait le CA nécessaire d'environ 17 % dans un cas type).
+    const r = 1 - getTauxChargesTNS(DATA) - getImpotsTaux(DATA);
+    if (r <= 0) return 0;
+    const beneficeMensuel = (p.objectifNetMensuel || 0) / r;
+    return ((beneficeMensuel + dep) * 12) / hAn;
+  }
   const r = 1 - getTauxChargesPresta(DATA) - getTauxImpotEffectifPresta(DATA);
   return r > 0 ? ((p.objectifNetMensuel || 0) + dep) / r * 12 / hAn : 0;
 }
@@ -560,6 +589,12 @@ export function getTauxHoraireMinCibleSimule(DATA, overrides = {}) {
     return (getSasuCoutMensuelDepuisNet(DATA, net) + dep) * 12 / hAn;
   }
   const objectifNetMensuel = overrides.objectifNetMensuel ?? p.objectifNetMensuel ?? 0;
+  if (isEIReel(DATA)) {
+    const r = 1 - getTauxChargesTNS(DATA) - getImpotsTaux(DATA);
+    if (r <= 0) return 0;
+    const beneficeMensuel = objectifNetMensuel / r;
+    return ((beneficeMensuel + dep) * 12) / hAn;
+  }
   const r = 1 - getTauxChargesPresta(DATA) - getTauxImpotEffectifPresta(DATA);
   return r > 0 ? (objectifNetMensuel + dep) / r * 12 / hAn : 0;
 }
@@ -675,7 +710,15 @@ export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true,
   const disponibleEntreprise = Math.max(0, caBrutMensuel - dep);
   const eurl = disponibleEntreprise / (1 + 45 / 100);
   const sasu = disponibleEntreprise / (1 + 82 / 100);
-  return { microSansTVA, microAvecTVA, eurl, sasu, tvaCollectee, tvaRecuperee };
+  // EI au réel : pas d'abattement, cotisations TNS ET impôt portent directement sur le bénéfice
+  // réel (CA - dépenses), pas sur le CA brut comme en micro (voir getCotisationsTNSEstimees/
+  // getImpotEIReel). Utilise le taux TNS et le TMI déjà configurés sur le compte, même quand le
+  // statut simulé n'est pas le statut réel (comparateur "et si ?").
+  const beneficeReelMensuel = disponibleEntreprise;
+  const cotisTNS = beneficeReelMensuel * getTauxChargesTNS(DATA);
+  const impotEIReel = getImpotsTaux(DATA) > 0 ? beneficeReelMensuel * getImpotsTaux(DATA) : 0;
+  const eiReel = Math.max(0, beneficeReelMensuel - cotisTNS - impotEIReel);
+  return { microSansTVA, microAvecTVA, eurl, sasu, eiReel, tvaCollectee, tvaRecuperee };
 }
 
 // ── RENTABILITÉ BRUTE (TH/TJM RÉEL) ───────────────────────────
@@ -762,6 +805,43 @@ export function getSasuSoldeActuelEstime(DATA) {
   const dep      = allMonths.reduce((s, mk) => s + getDepensesMois(DATA, mk), 0);
   const remu     = getSasuCoutRemuMensuel(DATA) * allMonths.length;
   return Math.round(getTresorerieDepart(DATA) + ca + inflows - dep - remu);
+}
+
+// ── EI AU RÉEL ───────────────────────────────────────────────
+//
+// Entreprise individuelle au régime réel : contrairement à la micro-entreprise, pas
+// d'abattement forfaitaire. La base imposable et sociale est le bénéfice réel
+// (CA - dépenses réelles). Les cotisations TNS (maladie, retraite, CSG-CRDS...) sont
+// approximées par UN taux forfaitaire ajustable (DATA.params.tauxChargesTNS, défaut 35 %),
+// sur le même principe que coutRemunerationPct pour la SASU/EURL : Indépuls ne modélise
+// pas les 7 sous-cotisations ni la régularisation N+1 (nécessiterait un historique
+// pluriannuel de revenus absent du modèle de données actuel).
+
+export function getBeneficeReelMois(DATA, mk) {
+  const { presta, vente } = getCaBreakdownMois(DATA, mk);
+  return Math.max(0, (presta + vente) - getDepensesMois(DATA, mk));
+}
+
+export function getTauxChargesTNS(DATA) {
+  return (DATA.params.tauxChargesTNS || 35) / 100;
+}
+
+// Cotisations sociales TNS estimées sur un bénéfice réel donné (déjà calculé par l'appelant,
+// pour ne pas recalculer le bénéfice deux fois quand il est déjà sous la main).
+export function getCotisationsTNSEstimees(DATA, beneficeReel) {
+  if (!isEIReel(DATA)) return 0;
+  return Math.round(Math.max(0, beneficeReel || 0) * getTauxChargesTNS(DATA));
+}
+
+// Impôt sur le revenu estimé pour l'EI au réel : le TMI s'applique directement au bénéfice
+// réel, sans abattement (à la différence de la micro-entreprise). Provision indépendante des
+// cotisations TNS, pas un calcul en cascade sur "bénéfice - cotisations" : même simplification
+// que celle déjà appliquée à la SASU/EURL (impôt calculé sur le CA, pas sur le net après coût).
+export function getImpotEIReel(DATA, beneficeReel) {
+  if (!isEIReel(DATA)) return 0;
+  const tauxPct = DATA.params.impotsTaux || 0;
+  if (!tauxPct) return 0;
+  return Math.round(Math.max(0, beneficeReel || 0) * tauxPct / 100);
 }
 
 // TVA encore due entre maintenant et la fin de l'année — PAS la TVA annuelle totale
