@@ -1161,14 +1161,14 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card mt16">
         <div class="card-title mb16">Impôt sur le revenu</div>
-        <div class="sw-wrap" id="vfl-toggle-row" style="display:none">
+        <div class="sw-wrap mb16" id="vfl-toggle-row" style="display:none">
           <label class="sw"><input type="checkbox" id="p-vfl-sw" onchange="toggleVersementLiberatoire(this.checked)"><span class="sw-sl"></span></label>
           <span style="font-weight:600">Je suis au versement fiscal libératoire</span>
           <span class="info-tip" title="Option du régime micro-entreprise : vous payez un taux fixe légal directement sur votre CA à chaque déclaration Urssaf (1 % vente, 1,7 % BIC service, 2,2 % BNC), sans abattement, au lieu de l'impôt calculé en fin d'année sur le barème progressif. Non disponible en SASU/EURL. Indépuls ne vérifie pas votre éligibilité (revenu fiscal de référence du foyer) ni les dates de bascule : renseignez-vous auprès de l'Urssaf.">?</span>
         </div>
-        <div class="ts mb12" id="vfl-detail" style="display:none;color:var(--tl);line-height:1.5"></div>
+        <div class="ts mb16" id="vfl-detail" style="display:none;color:var(--tl);line-height:1.5"></div>
         <div class="fgroup" id="tmi-field">
-          <label class="flabel" id="tmi-label">Taux d'impôt estimé ou versement libératoire (%, facultatif)</label>
+          <label class="flabel"><span id="tmi-label">Taux d'impôt estimé ou versement libératoire (%, facultatif)</span> <span class="info-tip" id="tmi-info-tip" title="">?</span></label>
           <input type="number" id="p-impots-taux" step="1" min="0" max="60" placeholder="Ex : 11" oninput="saveParam('impotsTaux',+this.value);recalcObjectifsDebounced()">
           <div class="ts mt4" id="tmi-hint" style="color:var(--tl);line-height:1.5">Renseignez ici le taux que vous souhaitez provisionner : prélèvement à la source estimé, versement libératoire ou estimation personnelle. Si vous laissez 0 %, aucun impôt n'est déduit des calculs.</div>
         </div>
@@ -11620,9 +11620,12 @@ function renderVFLDetail() {
   if(tmiField) tmiField.style.display=on?'none':'';
   const tmiLabel=document.getElementById('tmi-label');
   const tmiHint=document.getElementById('tmi-hint');
+  const tmiInfoTip=document.getElementById('tmi-info-tip');
+  if(tmiInfoTip) tmiInfoTip.style.display=isMicro?'':'none';
   if(isMicro){
     if(tmiLabel) tmiLabel.textContent='Tranche marginale d\'imposition, TMI (%, facultatif)';
-    if(tmiHint) tmiHint.textContent='Le taux marginal d\'imposition de votre foyer fiscal. Appliqué après abattement forfaitaire (34/50/71 % selon votre statut). Si vous laissez 0 %, aucun impôt n\'est déduit des calculs.';
+    if(tmiHint) tmiHint.textContent='Indiquez votre TMI telle quelle, sans calcul de votre part : Indépuls applique automatiquement l\'abattement forfaitaire (34/50/71 % selon votre statut) avant de calculer l\'impôt. Si vous laissez 0 %, aucun impôt n\'est déduit des calculs.';
+    if(tmiInfoTip) tmiInfoTip.title='Votre TMI est indiquée sur votre avis d\'imposition sur le revenu (mention "Taux marginal d\'imposition" dans le détail du calcul), ou calculable sur le simulateur officiel impots.gouv.fr avec vos revenus. C\'est toujours l\'une de ces 5 valeurs : 0, 11, 30, 41 ou 45 %, selon votre revenu par part de quotient familial.';
   }
   const det=document.getElementById('vfl-detail');
   if(det){
