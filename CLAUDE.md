@@ -2012,6 +2012,12 @@ Audit à la demande de Faustine ("on n'est pas du tout carré là-dessus et ça 
 
 **Non traité, hors mandat explicite de ce chantier** (repéré en passant) : `wJalonFiscal()` (dashboard) présente le même bug de proxy `!isSASU()` mais est du code mort (aucun site d'appel trouvé), laissé tel quel, déjà noté comme candidat de nettoyage futur avant ce chantier. Le toggle `eurlFiscal` (cosmétique, jamais lu par aucun calcul) n'a pas été retouché, sans lien avec l'EI-réel.
 
+### FIX : page Revenus et export comptable ignoraient l'EI au réel (2026-09-17, suite)
+
+Repéré en vérifiant le reste de l'app après le chantier EI au réel ci-dessus : `renderRevenus()` (tableau mensuel + totaux) et `exportComptablePDF()` (document explicitement destiné à l'expert-comptable) partageaient la même formule dupliquée 3 fois (`brut*getImpotsTaux()` pour l'impôt, `getTauxChargesPresta()/getTauxChargesVente()` pour les charges), sans branche EI au réel : les cotisations tombaient silencieusement à 0 (gate déjà corrigé côté `calculs.js`) et l'impôt était calculé sur le CA brut au lieu du bénéfice réel, sans déduire les dépenses.
+
+Ajouté une branche EI au réel dans les 3 occurrences (bénéfice réel = CA moins dépenses, cotisations et impôt calculés dessus via `getCotisationsTNSEstimees`/`getImpotEIReel`), et relabellé la colonne "Charges URSSAF+CFP" en "Cotisations sociales" pour ce statut, dans les deux tableaux (page Revenus + export PDF). Vérifié en direct : mois de mai (CA 3300€, dépenses 171€, bénéfice réel 3129€) donne cotisations 1095€ (35 %), impôt 344€ (11 %), revenu net 1690€, identique sur `indepuls.html` et `indepuls-demo.html`. 277+ tests toujours au vert (aucune fonction de `shared/core/calculs.js` touchée, uniquement l'appel dans les deux fichiers HTML).
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir
