@@ -229,18 +229,18 @@
 
       <div class="fieldgroup">
         <h3 class="fieldgroup-title">Mon rythme de travail</h3>
-        <span class="fieldgroup-sub">Ces valeurs alimentent le calcul ci-dessous</span>
+        <span class="fieldgroup-sub">Le temps réellement <strong>facturé</strong>, pas votre temps de travail total : prospection et administratif déjà exclus</span>
         <div class="field-row">
           <div class="field">
-            <label for="joursSemaine">Jours / semaine</label>
+            <label for="joursSemaine">Jours facturés / semaine</label>
             <div class="inputrow"><input type="number" id="joursSemaine" value="5" min="1" max="7" step="0.5"></div>
           </div>
           <div class="field">
-            <label for="heuresJour">Heures / jour</label>
+            <label for="heuresJour">Heures facturées / jour</label>
             <div class="inputrow"><input type="number" id="heuresJour" value="7" min="1" max="12" step="0.5"></div>
           </div>
           <div class="field">
-            <label for="semainesAn">Semaines / an</label>
+            <label for="semainesAn">Semaines facturées / an</label>
             <div class="inputrow"><input type="number" id="semainesAn" value="44" min="20" max="52" step="1"></div>
           </div>
         </div>
@@ -491,8 +491,8 @@
     var tmiPct = parseFloat(tmi.value) || 0;
     var impotPct = tmiPct * (1 - reg.abattement / 100);
     urssafAuto.textContent = fmtPct(urssafPct) + ' %';
-    tauxDetail.innerHTML = 'Urssaf <strong>' + fmtPct(urssafPct) + ' %</strong> du CA + impot <strong>' + tmiPct + ' %</strong> sur le revenu apres abattement forfaitaire de <strong>' + reg.abattement + ' %</strong> (soit ' + fmtPct(impotPct) + ' % du CA).';
-    return { pct: urssafPct + impotPct, detail: 'dont ' + fmtPct(urssafPct) + ' % Urssaf + ' + fmtPct(impotPct) + ' % impot' };
+    tauxDetail.innerHTML = 'Urssaf <strong>' + fmtPct(urssafPct) + ' %</strong> du CA + impôt <strong>' + tmiPct + ' %</strong> sur le revenu après abattement forfaitaire de <strong>' + reg.abattement + ' %</strong> (soit ' + fmtPct(impotPct) + ' % du CA).';
+    return { pct: urssafPct + impotPct, detail: 'dont ' + fmtPct(urssafPct) + ' % Urssaf + ' + fmtPct(impotPct) + ' % impôt' };
   }
 
   function calc(){

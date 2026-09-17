@@ -1950,6 +1950,15 @@ Faustine a demandé s'il fallait vérifier d'autres fonctions une par une, aprè
 - Vérifié en direct (mode démo, micro-achat mixte + TVA) : `getUrssafProvisionMensuelle()` = 877 € sur 3 400 € de CA presta (25,8 %, pas 12,3 %) ; widget dashboard affiche bien "URSSAF + CFP 877 €" et "Impôts (estimés) 187 €" (abattement 50 % mixte, pas 71 %). Les 19 suites de tests (`shared/tests/*.test.js`) restent toutes vertes après le fix de `calculs.js`.
 - Appliqué à `indepuls.html` ET `indepuls-demo.html` (miroir exact, vérifié identique octet près sur les 3 zones modifiées).
 
+### FEAT : retours Faustine sur les calculateurs (titre, transparence abattement, temps facturé) (2026-09-17)
+Trois retours après relecture des captures d'écran des calculateurs corrigés la veille.
+
+- **`calculateur-rentabilite`** renommé "Calculateur de rentabilité par devis" (au lieu de "par mission") pour rester universel entre chantier, service, fabrication et achat-revente (`<title>`, `og:title`, `<h1>`). URL et `<link rel="canonical">` inchangés, aucun impact SEO/liens.
+- **Transparence de l'abattement** : Faustine a vérifié le calcul à la main (2 000 € de devis, micro-BIC, TMI 30 % → 300 € d'impôt) et demandé confirmation que l'abattement forfaitaire est bien appliqué avant, avec la remarque "zéro boîte noire, il faudrait que ce soit précisé en petit quelque part". Le détail existait déjà (`tauxDetail`, dans la colonne de saisie) mais restait trop loin du résultat pour être relié mentalement au chiffre affiché. Le libellé "impôts" de la ligne de formule affiche désormais directement le taux et l'abattement : `"− 300 € impôts (30 % après abattement 50 %)"` au lieu de `"− 300 € impôts"`. Appliqué sur `calculateur-rentabilite` (`combien-facturer` avait déjà son propre récap `tauxOutSub` équivalent).
+- **"Mon rythme de travail" (`combien-facturer`)** : Faustine considère que préciser qu'il s'agit du temps **facturé** (pas du temps de travail total) est un point clé de différenciation d'Indépuls, à ne pas laisser implicite. Sous-titre du bloc explicité ("Le temps réellement facturé, pas votre temps de travail total : prospection et administratif déjà exclus") et les 3 labels renommés "Jours facturés / semaine", "Heures facturées / jour", "Semaines facturées / an" (au lieu de "Jours / semaine" etc., pour que le mot "facturé" soit visible à chaque champ, pas seulement dans le sous-titre).
+- Au passage : coquilles d'accents corrigées dans `combien-facturer` (`impot`→`impôt`, `apres`→`après` dans le texte de détail affiché), reliquat de la génération précédente en ASCII pur pour contourner un problème d'espaces insécables.
+- **Piège à retenir** : une explication technique correcte mais placée loin du chiffre qu'elle justifie ("zéro boîte noire" mal exécuté) revient au même que ne pas l'avoir écrite pour l'utilisatrice qui lit le résultat. Toujours vérifier que l'explication est visible au même endroit que le chiffre concerné, pas seulement présente quelque part sur la page.
+
 ## Points d'attention
 
 ### Interface unifiée — `indepuls.html` est le seul fichier à maintenir

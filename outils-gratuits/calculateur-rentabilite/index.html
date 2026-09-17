@@ -6,7 +6,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
 <link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calculateur de rentabilité par mission · Indépuls</title>
+<title>Calculateur de rentabilité par devis · Indépuls</title>
 <meta name="description" content="Calculez gratuitement la marge et le taux horaire ou journalier réel d'une mission, d'un chantier ou d'une commande, une fois les coûts et le temps réellement passés déduits.">
 <link rel="canonical" href="https://indepuls.fr/outils-gratuits/calculateur-rentabilite/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -160,7 +160,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Indépuls">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:title" content="Calculateur de rentabilité par mission · Indépuls">
+<meta property="og:title" content="Calculateur de rentabilité par devis · Indépuls">
 <meta property="og:description" content="Calculez gratuitement la marge et le taux horaire ou journalier réel d'une mission, d'un chantier ou d'une commande, une fois les coûts et le temps réellement passés déduits.">
 <meta property="og:url" content="https://indepuls.fr/outils-gratuits/calculateur-rentabilite/">
 <meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
@@ -213,7 +213,7 @@
 
 <header class="hero">
   <span class="eyebrow">Outil gratuit</span>
-  <h1>Calculateur de rentabilité par mission</h1>
+  <h1>Calculateur de rentabilité par devis</h1>
   <p>Une mission, un chantier ou une commande précis : combien reste-t-il vraiment une fois les coûts directs déduits et le temps réellement passé compté ? Modifiez les chiffres, le résultat se met à jour tout de suite.</p>
 </header>
 
@@ -460,7 +460,7 @@
     tauxDetail.innerHTML = 'Urssaf <strong>' + fmtPct(urssafPct) + ' %</strong> du montant + impôt <strong>' + tmiPct + ' %</strong> sur le montant après abattement forfaitaire de <strong>' + reg.abattement + ' %</strong> (soit ' + fmtPct(impotPct) + ' % du montant).';
     return [
       { montant: m * urssafPct / 100, label: 'Urssaf' },
-      { montant: m * impotPct / 100, label: 'impôts' }
+      { montant: m * impotPct / 100, label: 'impôts (' + tmiPct + ' % après abattement ' + reg.abattement + ' %)' }
     ];
   }
 
