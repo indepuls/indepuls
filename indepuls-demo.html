@@ -15660,14 +15660,18 @@ const ETSI_SIMULATEURS=[
 function etsiSimulateursDisponibles(){
   return ETSI_SIMULATEURS.filter(s=>s.key!=='vfl'||isMicro());
 }
-let _etsiOpenKey=null;
+// Persisté (retour Faustine 2026-09-19 : le simulateur ouvert se refermait à chaque navigation ou
+// rechargement de page), même pattern que missionsView : un simple flag localStorage plutôt que
+// DATA.params (état de navigation locale à l'appareil, pas une donnée métier à synchroniser).
+let _etsiOpenKey = (function() { try { return localStorage.getItem('indepuls_etsi_open') || null; } catch(e) { return null; } })();
 function renderEtSiPage() {
   const zone=document.getElementById('etsi-content');
   if(!zone) return;
-  _etsiOpenKey=null; // repart de la galerie seule à chaque arrivée sur la page
-  const cartes=etsiSimulateursDisponibles().map(s=>{
+  const sims=etsiSimulateursDisponibles();
+  if(_etsiOpenKey&&!sims.some(s=>s.key===_etsiOpenKey)) _etsiOpenKey=null; // simulateur persisté devenu indisponible (ex. VFL sur un compte non-micro)
+  const cartes=sims.map(s=>{
     let teaser=''; try{ teaser=s.teaserFn?s.teaserFn():''; }catch(e){}
-    return `<button type="button" class="etsi-gal-card" id="etsi-gal-${s.key}" onclick="etsiClicGalerie('${s.key}')">
+    return `<button type="button" class="etsi-gal-card${_etsiOpenKey===s.key?' selected':''}" id="etsi-gal-${s.key}" onclick="etsiClicGalerie('${s.key}')">
       <div class="etsi-gal-icon">${s.icon}</div>
       <div class="etsi-gal-title">${s.titre}</div>
       <div class="etsi-gal-phrase">${s.phrase}</div>
@@ -15682,6 +15686,7 @@ function renderEtSiPage() {
     <div class="etsi-gallery">${cartes}</div>
     <div id="etsi-detail"></div>
   `;
+  if(_etsiOpenKey) etsiRenderDetail(_etsiOpenKey); // restaure le simulateur ouvert, sans scroller (contrairement à etsiOuvrirSimulateur)
 }
 function etsiRenderDetail(key){
   const detail=document.getElementById('etsi-detail');
@@ -15694,6 +15699,7 @@ function etsiRenderDetail(key){
 // bord, irVersEtSi) : contrairement au clic sur une carte, on veut toujours atterrir dessus.
 function etsiOuvrirSimulateur(key){
   _etsiOpenKey=key;
+  try{ localStorage.setItem('indepuls_etsi_open',key); }catch(e){}
   document.querySelectorAll('.etsi-gal-card').forEach(el=>el.classList.toggle('selected',el.id===`etsi-gal-${key}`));
   etsiRenderDetail(key);
   const detail=document.getElementById('etsi-detail');
@@ -15708,6 +15714,7 @@ function etsiOuvrirSimulateur(key){
 }
 function etsiFermerSimulateur(){
   _etsiOpenKey=null;
+  try{ localStorage.removeItem('indepuls_etsi_open'); }catch(e){}
   document.querySelectorAll('.etsi-gal-card').forEach(el=>el.classList.remove('selected'));
   etsiRenderDetail(null);
 }
