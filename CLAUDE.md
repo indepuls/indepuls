@@ -2250,6 +2250,20 @@ Faustine a signalé que la carte "Et si ?" dépliée se refermait dès qu'elle c
 
 Vérifié en direct sur les deux fichiers : simulateur ouvert conservé après navigation vers une autre page puis retour, et après un rechargement complet (F5) ; fermeture manuelle efface bien la persistance. 466 tests toujours au vert (aucune fonction de calcul touchée).
 
+### FEAT : rappel annuel de la date limite du versement libératoire (2026-09-19)
+
+Demande Faustine : une alerte pour tous les comptes micro invitant à revérifier l'intérêt du VFL avant la date limite légale, avec renvoi vers le simulateur, masquable définitivement.
+
+**Vérification préalable (WebSearch, Urssaf/LégiFiscal)** : l'option (ou la renonciation) pour le versement libératoire doit être demandée à l'Urssaf au plus tard le 30 septembre de l'année N pour s'appliquer au 1er janvier N+1, une date légale stricte, sans dérogation, réversible chaque année. Confirme exactement la logique déjà en place dans le simulateur VFL (`anneeCible = année courante + 1`).
+
+**Détour de construction** : l'alerte a d'abord été ajoutée dans `buildAlerts()`, avant de découvrir que cette fonction (et `wAlertesCritiques()` qui la consomme) est du **code mort** : jamais appelée nulle part dans le fichier. L'"ALERTES" réellement visible sur le tableau de bord est construite séparément dans `wScoreSante()` (variable `alertLines`), aux côtés des échéances URSSAF/TVA/ACRE/CFE. Corrigé en déplaçant l'alerte au bon endroit.
+
+**`indepuls.html` + `indepuls-demo.html`**, dans `wScoreSante()`, juste après le bloc "Rappels fiscaux génériques" (CFE, déclaration de revenus, `getEcheancesFiscalesGeneriques`) : n'a pas été ajoutée à cette fonction partagée, qui est pure (aucun accès à `DATA.params.statut`) alors que ce rappel ne concerne que les comptes micro (`isMicro()`). Affiché tout le mois de septembre (`getMonth()===8`), jamais après. Masquage **permanent** via `marquerEcheancePayee()` (même mécanique que les échéances fiscales déjà en place, clé datée `vfl_rappel_${année cible}`) plutôt que le masquage 15 jours des alertes de coaching : revient naturellement l'année suivante puisque la clé change, pas de sens à re-proposer une semaine plus tard un rappel qui reste vrai tout le mois. Lien direct vers le simulateur via `irVersEtSi('vfl')`.
+
+Vérifié en direct sur les deux fichiers (date système du jour de test : 18/19 septembre 2026) : alerte visible pour un compte micro, absente pour un compte non-micro (implicite via `isMicro()`), clic sur le lien ouvre bien la carte VFL de la galerie "Et si ?", masquage permanent confirmé (`DATA.echeancesPayees.vfl_rappel_2027`). 466 tests toujours au vert (aucune fonction de calcul touchée).
+
+**Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
