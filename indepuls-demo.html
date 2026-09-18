@@ -1139,6 +1139,7 @@ html,body{overflow-x:hidden;}
           <label class="tva-regime-opt" id="eurl-r-is"><input type="radio" name="eurl-fiscal" value="is" onchange="saveEurlFiscal('is')"><div><strong>EURL à l'IS</strong><div class="ts mt1">Impôt sur les sociétés</div></div></label>
           <label class="tva-regime-opt" id="eurl-r-ir"><input type="radio" name="eurl-fiscal" value="ir" onchange="saveEurlFiscal('ir')"><div><strong>EURL à l'IR</strong><div class="ts mt1">Impôt sur le revenu</div></div></label>
         </div>
+        <div id="eurl-ir-warning" class="alert al-warn mt12" style="display:none;font-size:12px">⚠️ L'EURL à l'IR n'est pas encore prise en charge dans Indépuls : tous les calculs (cotisations, impôt, trésorerie) utilisent toujours le modèle EURL à l'IS. Si vous êtes réellement à l'IR, <a href="mailto:contact@indepuls.fr">contactez-moi</a> pour qu'on regarde ensemble comment l'intégrer.</div>
       </div>
       <div class="card mt16">
         <div class="card-title mb16">Impôt sur le revenu</div>
@@ -7653,54 +7654,6 @@ function wScoreSante(d) {
   </div>`;
 }
 
-// ── JALON FISCAL DU MOIS ──────────────────────────────────────
-function wJalonFiscal() {
-  const mk=getCurrentMk();
-  const [cY,cM]=mk.split('-').map(Number);
-  const moisLabel=new Date(cY,cM-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  const {presta,vente}=getCaBreakdownMois(mk);
-  const brut=presta+vente;
-  const totalUrssaf=getUrssafProvisionMensuelle();
-  const urssafRegime=getUrssafRegime();
-  const urssafNote={mensuel:'URSSAF + CFP du mois en cours',trimestriel:'URSSAF annuelle ÷ mois actifs (lissée)'}[urssafRegime]||'';
-  const regime=getTvaRegime();
-  const tva=getTVAProvisionMensuelle();
-  const tvaNote={franchise:'',mensuel:'TVA nette du mois en cours',trimestriel:'TVA annuelle ÷ mois actifs (lissée)',simplifie:'TVA annuelle ÷ mois actifs (lissée)'}[regime]||'';
-  const tvaLabel={franchise:'TVA',mensuel:'TVA à mettre de côté <span class="info-tip" title="Provision mensuelle = TVA nette collectée ce mois. À ne pas confondre avec la dette TVA réelle (cumulée) ni avec la prochaine échéance (date et montant du prochain versement à l\'État).">?</span>',simplifie:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Logique de mise de côté mensuelle pour faire face aux 2 acomptes (juillet et décembre).">?</span>',trimestriel:'TVA à mettre de côté <span class="info-tip" title="Provision lissée = TVA annuelle estimée ÷ 12. Pour faire face au versement trimestriel — le montant réel sera la TVA nette des 3 mois du trimestre.">?</span>'}[regime]||'TVA';
-  const _isMicroJ=!isSASU()&&['micro-bnc','micro-bic','micro-achat'].includes(DATA.params.statut);
-  const _isVFLJ=isVersementLiberatoire();
-  const impot=_isMicroJ?getImpotEstimeMicro(presta,vente):Math.round(brut*getImpotsTaux());
-  // Le VFL provisionne un impôt même si impotsTaux est resté à 0 (son taux vient de TAUX_VFL, pas
-  // du TMI), sans ce garde-fou étendu : le widget affichait "aucun taux renseigné" à tort pour un
-  // compte VFL (retour Faustine 2026-09-17, même piège que getEcheancesAVenir()).
-  const _impotNote=_isMicroJ&&(DATA.params.impotsTaux||_isVFLJ)
-    ?(_isVFLJ
-        ?(brut>0?Math.round(impot/brut*1000)/10+'% du CA (versement libératoire) · indicatif':'versement libératoire · indicatif')
-        :(()=>{const ri=getRevenuImposableMicro(presta,vente);const pA=brut>0?Math.round((1-ri/brut)*100):0;return DATA.params.impotsTaux+'% sur revenu après abattement '+pA+'% · indicatif';})())
-    :(DATA.params.impotsTaux?DATA.params.impotsTaux+'% du CA':'');
-  const total=totalUrssaf+tva+impot;
-  const row=(label,val,note)=>val>0?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><div><span class="ts">${label}</span>${note?`<span style="margin-left:6px;opacity:.6;font-size:11px;color:var(--tl)">${note}</span>`:''}</div><span style="font-weight:700;color:var(--warn)">${fmtE(val)}</span></div>`:'';
-  const _impotLigne=(DATA.params.impotsTaux||_isVFLJ)
-    ?row('Impôt estimé',impot,_impotNote)
-    :(_isMicroJ?`<div style="padding:6px 0;border-bottom:1px solid var(--brd);font-size:11px;color:var(--tl)">Aucun taux d'impôt renseigné : aucune provision calculée.</div>`:'');
-  return `<div class="card" style="border-left:4px solid var(--acc)">
-    <div class="card-header"><div><div class="card-title">🧾 Provisions — ${moisLabel} <span class="info-tip" title="Montants à mettre de côté chaque mois — pas des dettes exigibles immédiatement. Voyez le widget Trésorerie disponible pour la dette réelle et la prochaine échéance.">?</span></div><div class="card-sub">Montants à mettre de côté ce mois-ci</div></div></div>
-    ${brut>0?`<div style="font-size:12px;margin-bottom:8px">
-      ${row('URSSAF + CFP',totalUrssaf,urssafNote||DATA.params.tauxURSSAF+'% + '+DATA.params.tauxCFP+'%')}
-      ${regime!=='franchise'?row(tvaLabel,tva,tvaNote):`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)"><span class="ts">TVA</span><span class="ts" style="color:var(--ok)">Franchise ✓</span></div>`}
-      ${_impotLigne}
-    </div>
-    <div style="display:flex;justify-content:space-between;padding:8px 0 2px">
-      <span style="font-weight:700">Total à provisionner</span>
-      <span style="font-size:18px;font-weight:700;color:${total>0?'var(--err)':'var(--tl)'}">${fmtE(total)}</span>
-    </div>
-    <div class="ts mt4" style="color:var(--tl)">Basé sur ${fmtE(brut)} de CA HT — ${moisLabel}</div>
-    ${_isMicroJ?`<div class="ts mt4" style="color:var(--tl);font-style:italic">Impôt estimé : prévision indicative basée sur ${_isVFLJ ? "le taux fixe du versement libératoire, appliqué directement au CA" : "votre taux saisi et le revenu imposable estimé après abattement micro"}. À ajuster selon votre situation personnelle.</div>`:''}
-    `:`<div class="ts" style="color:var(--tl)">Aucun CA enregistré ce mois — les provisions s'afficheront automatiquement.</div>`}
-  </div>`;
-}
-
-
 // ── MISSIONS ─────────────────────────────────────────────────
 let missionFilter='all', missionSort='newest', pendingFactId=null, timerInterval=null;
 
@@ -12490,6 +12443,10 @@ function renderParams() {
       const lbl=document.getElementById('eurl-r-'+v);
       if(lbl){lbl.classList.toggle('selected',v===fiscal);lbl.querySelector('input').checked=(v===fiscal);}
     });
+    // L'IR n'est pas modélisé (tous les calculs restent ceux de l'IS, voir saveEurlFiscal) :
+    // avertissement plutôt que boîte noire silencieuse (retour Faustine 2026-09-18).
+    const irWarn=document.getElementById('eurl-ir-warning');
+    if(irWarn) irWarn.style.display=fiscal==='ir'?'':'none';
   }
   if(sasu){
     // Plusieurs dirigeants : SASU/SAS uniquement, jamais EURL/SARL (retour Faustine, 2026-09-08) —
