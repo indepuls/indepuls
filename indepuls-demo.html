@@ -15358,8 +15358,8 @@ function etsiCardVFLHtml() {
   const elig=getVFLEligibilite();
   const eligHtml=(()=>{
     if(!elig.renseigne) return `<div class="ts mt8" style="color:var(--tl)">Renseignez ces deux informations pour voir si vous y avez droit.</div>`;
-    if(elig.eligible) return `<div class="alert al-ok mt8" style="font-size:12px;line-height:1.6">🟢 Vous êtes éligible au versement libératoire pour ${anneeCible}.<br>Votre RFR par part : <strong>${fmtE(elig.rfrParPart)}</strong> · Plafond de votre foyer (${fmt(elig.parts,elig.parts%1===0?0:1)} part${elig.parts>1?'s':''}) : <strong>${fmtE(elig.plafondFoyer)}</strong>.<br>Il vous reste une marge de <strong>${fmtE(elig.marge)}</strong> avant de perdre l'éligibilité.</div>`;
-    return `<div class="alert al-err mt8" style="font-size:12px;line-height:1.6">🔴 Vous dépassez le plafond d'éligibilité de <strong>${fmtE(-elig.marge)}</strong> pour ${anneeCible}.<br>Votre RFR par part : <strong>${fmtE(elig.rfrParPart)}</strong> · Plafond : <strong>${fmtE(elig.plafondParPart)}</strong>/part.</div>`;
+    if(elig.eligible) return `<div class="alert al-ok mt8" style="font-size:12px;line-height:1.6">🟢 <span>Vous êtes éligible au versement libératoire pour ${anneeCible}.<br>Votre RFR par part : <strong>${fmtE(elig.rfrParPart)}</strong> · Plafond de votre foyer (${fmt(elig.parts,elig.parts%1===0?0:1)} part${elig.parts>1?'s':''}) : <strong>${fmtE(elig.plafondFoyer)}</strong>.<br>Il vous reste une marge de <strong>${fmtE(elig.marge)}</strong> avant de perdre l'éligibilité.</span></div>`;
+    return `<div class="alert al-err mt8" style="font-size:12px;line-height:1.6">🔴 <span>Vous dépassez le plafond d'éligibilité de <strong>${fmtE(-elig.marge)}</strong> pour ${anneeCible}.<br>Votre RFR par part : <strong>${fmtE(elig.rfrParPart)}</strong> · Plafond : <strong>${fmtE(elig.plafondParPart)}</strong>/part.</span></div>`;
   })();
 
   // Section 2 (intérêt financier), uniquement si éligible : inutile de demander des informations
@@ -15416,10 +15416,10 @@ function etsiCardVFLHtml() {
       <div class="ts mt4" id="etsi-vfl-slider-out"></div>
     </div>`;
     const resultatHtml=`<div class="alert ${comp.avantageux?'al-ok':'al-err'} mt10" style="font-size:12px;line-height:1.7">
-      ${comp.avantageux?'🟢':'🔴'} <strong>Le versement libératoire serait ${comp.avantageux?'avantageux':'perdant'}</strong> dans cette situation, à ce niveau de CA.<br>
+      ${comp.avantageux?'🟢':'🔴'} <span><strong>Le versement libératoire serait ${comp.avantageux?'avantageux':'perdant'}</strong> dans cette situation, à ce niveau de CA.<br>
       Sans VFL, impôt du foyer estimé : <strong>${fmtE(comp.irSansVFL)}</strong>.<br>
       Avec VFL : ${fmtE(comp.vflSurCA)} de versement libératoire sur votre CA${comp.irAutresRevenusAvecVFL>0?` + ${fmtE(comp.irAutresRevenusAvecVFL)} d'impôt sur le reste du foyer (taux effectif ${fmt(comp.tauxEffectif*100,1)} %)`:''} = <strong>${fmtE(comp.coutAvecVFL)}</strong>.<br>
-      Écart estimé : <strong>${comp.difference>=0?'+':''}${fmtE(comp.difference)}/an</strong>${comp.avantageux?' en votre faveur':' en défaveur du versement libératoire'}.
+      Écart estimé : <strong>${comp.difference>=0?'+':''}${fmtE(comp.difference)}/an</strong>${comp.avantageux?' en votre faveur':' en défaveur du versement libératoire'}.</span>
     </div>
     ${comp.plafonnementQFApplique?`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Le plafonnement du quotient familial s'applique dans votre situation : l'avantage fiscal de vos parts liées aux enfants a été plafonné à 1 807 €/demi-part, comme le prévoit la loi.</div>`:''}
     ${DATA.params.vflSituationParticuliere?`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Votre situation particulière (parent isolé, garde alternée, invalidité, ancien combattant, veuvage) suit des règles de plafonnement spécifiques non prises en charge ici : ce résultat est encore plus indicatif que d'habitude.</div>`:''}
