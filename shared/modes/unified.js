@@ -134,6 +134,8 @@ export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(
 export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
 export const getTauxVFLPourNature     = (nature) => C.getTauxVFLPourNature(DATA, nature);
 export const getVFLEligibilite        = ()       => C.getVFLEligibilite(DATA);
+export const getImpotBaremeProgressif = (revenuImposable, parts) => C.getImpotBaremeProgressif(revenuImposable, parts);
+export const getVFLComparaison        = (caPresta, caVente, autresRevenusFoyer, parts) => C.getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
 
 // ── AFFAIRES ─────────────────────────────────────────────────

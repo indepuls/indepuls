@@ -52,8 +52,26 @@ export const TAUX_VFL = {
 // quotient familial. Condition d'accès : le revenu fiscal de référence (RFR) du foyer de l'année
 // N-2 par rapport à l'année pour laquelle on déclare, divisé par le nombre de parts de cette même
 // année N-2, ne doit pas dépasser ce montant. Distinct du barème de l'impôt (tranches) : c'est une
-// condition d'accès au régime, pas un taux d'imposition.
+// condition d'accès au régime, pas un taux d'imposition. Cohérence attendue : ce montant coïncide
+// avec le haut de la tranche à 11 % du barème ci-dessous (l'éligibilité au VFL correspond aux deux
+// tranches les plus basses du barème). Si l'un des deux change lors d'une mise à jour annuelle et
+// pas l'autre, vérifier qu'il ne s'agit pas d'une erreur de recopie.
 export const PLAFOND_VFL_PAR_PART = 29579;
+
+// Barème progressif de l'impôt sur le revenu 2026, applicable aux revenus 2025 (source :
+// service-public.fr, loi de finances 2026 promulguée le 19 février 2026, revalorisation +0,9 %).
+// Chaque tranche est bornée par son plafond haut ; taux marginal appliqué à la part de revenu
+// comprise entre le plafond de la tranche précédente et celui-ci. Utilisé avec le mécanisme du
+// quotient familial simple (voir getImpotBaremeProgressif) : SANS décote ni plafonnement du
+// quotient familial (règles applicables aux revenus proches du seuil d'imposition, ou aux foyers
+// avec plusieurs parts liées à des enfants), toujours une estimation, jamais un calcul officiel.
+export const BAREME_IR = [
+  { plafond: 11600,     taux: 0 },
+  { plafond: 29579,     taux: 0.11 },
+  { plafond: 84577,     taux: 0.30 },
+  { plafond: 181917,    taux: 0.41 },
+  { plafond: Infinity,  taux: 0.45 },
+];
 
 // Plafonds du régime micro 2026 (source : DGFIP)
 // Distincts des seuils de franchise TVA — ne pas confondre.

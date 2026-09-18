@@ -8,7 +8,7 @@
 // avec le reste du code existant (ex: getRevenuNetMois(mk) au lieu de
 // calculs.getRevenuNetMois(DATA, mk)).
 
-import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART } from './taux.js';
+import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART, BAREME_IR } from './taux.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -1291,6 +1291,56 @@ export function getVFLEligibilite(DATA) {
   const eligible = rfrParPart <= PLAFOND_VFL_PAR_PART;
   const plafondFoyer = PLAFOND_VFL_PAR_PART * parts;
   return { renseigne: true, eligible, rfr, parts, rfrParPart, plafondParPart: PLAFOND_VFL_PAR_PART, plafondFoyer, marge: plafondFoyer - rfr };
+}
+
+// Impôt selon le barème progressif (BAREME_IR), quotient familial simple : le revenu imposable
+// est divisé par le nombre de parts, le barème s'applique à ce montant par part, puis le résultat
+// est multiplié par le nombre de parts. Volontairement SANS décote ni plafonnement du quotient
+// familial (option B, retour Faustine 2026-09-18), utilitaire pur, ne prend pas DATA (comme
+// getTVAZone), réutilisable indépendamment du statut ou du contexte micro/VFL.
+export function getImpotBaremeProgressif(revenuImposable, parts) {
+  if (!(revenuImposable > 0) || !(parts > 0)) return 0;
+  const parPart = revenuImposable / parts;
+  let impotParPart = 0, bas = 0;
+  for (const tranche of BAREME_IR) {
+    if (parPart <= bas) break;
+    impotParPart += (Math.min(parPart, tranche.plafond) - bas) * tranche.taux;
+    bas = tranche.plafond;
+  }
+  return Math.round(impotParPart * parts);
+}
+
+// ── SIMULATEUR VFL : COMPARAISON AVEC/SANS VFL (chantier 2026-09-18, étape 2/5) ───────────
+// Mécanisme du "taux effectif" (confirmé DGFIP/BOFiP, retour Faustine 2026-09-18) : sous VFL, le
+// bénéfice micro forfaitaire (après abattement) n'est pas réimposé au barème, mais reste intégré
+// au revenu du foyer pour déterminer le taux moyen appliqué aux AUTRES revenus. Impossible donc de
+// comparer l'impôt sur le seul bénéfice micro contre le VFL sur le seul CA : il faut l'impôt du
+// foyer entier dans les deux situations.
+// - Sans VFL : le barème s'applique une seule fois, sur bénéfice micro + autres revenus ensemble.
+// - Avec VFL : le même calcul sert à obtenir un taux moyen (irSansVFL ÷ revenu total), appliqué
+//   uniquement aux autres revenus ; le micro paie en plus le taux VFL légal, directement sur le CA.
+// caPresta/caVente : CA de l'activité pour l'année simulée (paramètre explicite, pas lu sur
+// DATA, réutilisable tel quel pour les 3 scénarios de CA de l'étape 4, sans dupliquer ce calcul).
+// autresRevenusFoyer : revenus imposables du reste du foyer hors cette activité (conjoint,
+// fonciers, pensions...), 0 si aucun. parts : nombre de parts fiscales pour l'année simulée.
+export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts) {
+  const beneficeMicro = getRevenuImposableMicro(DATA, caPresta || 0, caVente || 0);
+  const revenuImposableTotal = beneficeMicro + (autresRevenusFoyer || 0);
+  const partsSures = parts > 0 ? parts : 1;
+
+  const irSansVFL = getImpotBaremeProgressif(revenuImposableTotal, partsSures);
+  const tauxEffectif = revenuImposableTotal > 0 ? irSansVFL / revenuImposableTotal : 0;
+  const irAutresRevenusAvecVFL = Math.round(tauxEffectif * (autresRevenusFoyer || 0));
+  const vflSurCA = Math.round((caPresta || 0) * getTauxVFLPourNature(DATA, 'presta') / 100
+                             + (caVente  || 0) * getTauxVFLPourNature(DATA, 'vente')  / 100);
+  const coutAvecVFL = irAutresRevenusAvecVFL + vflSurCA;
+
+  const difference = irSansVFL - coutAvecVFL; // positif = versement libératoire avantageux
+  return {
+    beneficeMicro, revenuImposableTotal, tauxEffectif,
+    irSansVFL, irAutresRevenusAvecVFL, vflSurCA, coutAvecVFL,
+    difference, avantageux: difference > 0,
+  };
 }
 
 // Impôt estimé. Deux mécanismes distincts (retour Faustine 2026-09-17) :
