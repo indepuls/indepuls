@@ -2053,6 +2053,22 @@ Nouveau chantier, brief détaillé de Faustine (texte + captures d'un concurrent
 - **UI** (`indepuls.html` + `indepuls-demo.html`) : nouvelle carte "🏛️ Suis-je éligible au versement libératoire ?" dans "Et si ?" (visible uniquement pour les comptes micro, `isMicro()`), avec ses propres champs RFR/parts. Contrairement aux autres cartes "Et si ?" (curseurs, rien d'enregistré), ces deux champs sont **persistés** dans `DATA.params` (`vflRfrN2`/`vflPartsN2`) : ce sont des faits fiscaux stables, pas une hypothèse à tester à la volée. Les années (RFR de l'année N-2, éligibilité pour l'année N+1) sont calculées dynamiquement depuis `DATA.currentYear`, jamais codées en dur. Modale "Comment c'est calculé ?" ajoutée (`ETSI_METH.vfl`), qui précise explicitement que l'éligibilité ne dit rien de l'intérêt financier réel (étape 2 à venir).
 - Vérifié en direct sur les deux fichiers avec l'exemple exact des captures de Faustine (RFR 25 123 €, 1 part → éligible, marge 4 456 €) et un cas de dépassement (RFR 65 000 €, 2 parts → non éligible, dépassement 5 842 €). Carte absente pour SASU/EURL/EI au réel, confirmé. 291+ tests toujours au vert.
 
+### FEAT : simulateur du versement libératoire, étape 2/5 (moteur de comparaison) (2026-09-18, suite)
+
+Moteur central du simulateur, construit et vérifié avant toute interface (aucune UI dans ce commit) : compare l'impôt du foyer avec et sans VFL, via le mécanisme du **taux effectif** confirmé par Faustine (source DGFIP/BOFiP) : sous VFL, le bénéfice micro forfaitaire n'est pas réimposé au barème, mais reste intégré au revenu du foyer pour déterminer le taux moyen appliqué aux autres revenus. Comparer "impôt sur le seul bénéfice micro" contre "VFL sur le seul CA" isolément serait faux dans les deux sens.
+
+**`shared/core/taux.js`** :
+- `BAREME_IR` : barème progressif de l'impôt sur le revenu 2026 (revenus 2025), 5 tranches (0/11/30/41/45 %), source service-public.fr (vérifiée par recherche web, deux sources concordantes). Coïncidence de contrôle notée en commentaire : le plafond VFL (29 579 €) est exactement le haut de la tranche à 11 %, cohérence légale attendue entre les deux textes.
+
+**`shared/core/calculs.js`** :
+- `getImpotBaremeProgressif(revenuImposable, parts)` : quotient familial simple (revenu ÷ parts, barème appliqué par part, × parts), **volontairement sans décote ni plafonnement du quotient familial** (option B validée par Faustine), utilitaire pur, ne prend pas DATA.
+- `getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts)` : bénéfice micro (réutilise `getRevenuImposableMicro` existant, pas de duplication de l'abattement), impôt sans VFL sur le revenu total du foyer, taux effectif dérivé, impôt avec VFL appliqué uniquement aux autres revenus + VFL légal sur le CA. `caPresta`/`caVente` en paramètres explicites (pas lus sur DATA) pour être réutilisables tels quels par les 3 scénarios de CA de l'étape 4, sans dupliquer ce calcul.
+- **Propriété structurelle notée par Faustine et vérifiée** : un foyer non imposable obtient automatiquement un écart négatif (VFL perdant), sans vérification "est-ce imposable ?" séparée à coder, c'est un sous-produit naturel de la comparaison, pas un cas particulier.
+- Nouveau fichier `shared/tests/vfl_comparaison.test.js` (31 tests) : barème à plusieurs points de contrôle, exemple exact de Faustine (CA 40 000 € BNC → bénéfice 26 400 €, VFL 880 €, écart +748 € sans conjoint), le même exemple avec un conjoint imposable à 40 000 € et 2 parts (taux effectif ≈ 9,23 %, écart +1 556 €), un cas non imposable (écart -330 €, VFL perdant), une activité mixte (micro-achat, abattements et taux VFL distincts par nature), et un statut hors micro (tout à 0).
+- 322+ tests globaux toujours au vert.
+
+**Pas encore fait** : aucune interface pour cette étape (pas de champ "autres revenus du foyer", pas d'affichage du résultat). Le moteur est présenté à Faustine pour validation avant de construire l'UI, qui viendra étendre la carte d'éligibilité de l'étape 1.
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
