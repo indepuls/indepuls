@@ -2112,6 +2112,26 @@ Ordre confirmé avec la décote : plafonnement d'abord, décote ensuite (déjà 
 
 **Toujours aucune UI.** Reste à construire : les champs (RFR/parts déjà en base depuis l'étape 1, + situation fiscale imposition individuelle/commune, autres revenus du foyer avec un libellé sans ambiguïté sur le revenu net imposable, éventuel signalement "situation particulière non prise en charge"), le disclaimer sur le barème utilisé (dernier connu, pas garanti pour l'année simulée), et l'affichage du résultat de comparaison.
 
+### FEAT : simulateur du versement libératoire, interface étape 2/5 (2026-09-18, suite)
+
+Interface de l'étape 2 (intérêt financier), construite après validation du moteur (barème, décote, plafonnement du quotient familial). Étend la carte d'éligibilité de l'étape 1 dans "Et si ?" : une section "Est-ce intéressant pour moi ?" apparaît uniquement une fois l'éligibilité acquise (inutile de demander des informations supplémentaires à quelqu'un qui n'a de toute façon pas le droit au VFL).
+
+**Point de vocabulaire corrigé par Faustine avant construction** : le libellé demande "Situation fiscale : imposition individuelle / imposition commune" (avec description "célibataire, divorcé·e, veuf·ve, ou en concubinage" vs "marié·e ou pacsé·e"), jamais "célibataire/en couple". Un couple en concubinage reste deux foyers fiscaux distincts, la décote et le plafonnement du quotient familial dépendent de l'imposition commune, pas de la situation amoureuse.
+
+**Champs ajoutés** (`indepuls.html` + `indepuls-demo.html`, persistés dans `DATA.params`) :
+- Situation fiscale (`vflEstCouple`)
+- Autres revenus imposables du foyer (`vflAutresRevenus`), libellé et infobulle insistant explicitement sur "revenu NET IMPOSABLE, jamais le salaire brut annuel" (point remonté par la relecture externe : une saisie du salaire brut au lieu du net fausserait tout le calcul silencieusement)
+- Nombre de parts pour l'année simulée (`vflPartsCible`, pré-rempli depuis `vflPartsN2` de l'étape 1 mais modifiable séparément)
+- Case "Je suis dans une situation particulière" (`vflSituationParticuliere`) : parent isolé/garde alternée/invalidité/ancien combattant/veuvage, dégrade le message de confiance sans bloquer le calcul.
+
+**CA utilisé** : moyenne roulante des 12 derniers mois réels (même source que "Et si je changeais de statut ?"), annualisée, split presta/vente si activité mixte. Aucune ressaisie. Les scénarios sur un CA futur (étape 4) ne sont pas encore construits : cette étape répond à "est-ce intéressant à mon CA actuel ?".
+
+**Résultat affiché** : montant sans VFL, détail avec VFL (VFL sur le CA + impôt sur le reste du foyer au taux effectif affiché explicitement), écart en euros/an, avec deux avertissements conditionnels (jamais affichés par défaut, seulement si pertinents) : plafonnement du quotient familial réellement appliqué, et situation particulière non prise en charge précisément. Un disclaimer permanent rappelle que le barème utilisé est le plus récent disponible (2026), pas garanti pour l'année réellement simulée.
+
+**`ETSI_METH.vfl`** (modale "Comment c'est calculé ?") réécrite en 2 sections numérotées (éligibilité, intérêt financier) pour refléter les deux questions désormais couvertes.
+
+Vérifié en direct sur les deux fichiers, mêmes chiffres exacts (couple imposition commune, 40 000 € d'autres revenus, 2 parts : écart +1 950 €/an, taux effectif 10,0 %). 335+ tests toujours au vert (aucune fonction de calcul touchée, uniquement l'interface).
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
