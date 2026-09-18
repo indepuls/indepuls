@@ -73,6 +73,15 @@ export const BAREME_IR = [
   { plafond: Infinity,  taux: 0.45 },
 ];
 
+// Plafonnement général du quotient familial 2026, sur les revenus 2025 (source : BOFiP,
+// BOI-IR-LIQ-20-20-20). L'avantage en impôt procuré par chaque demi-part au-delà de la situation
+// de référence (1 part seul, 2 parts couple marié/pacsé) ne peut pas dépasser ce montant. Ne
+// couvre QUE les situations "classiques" (enfants à charge exclusive). Les plafonds spécifiques
+// parent isolé (4 262 €), invalidité/ancien combattant (3 608 €) et veuvage avec personne à
+// charge (5 625 €) sont volontairement hors périmètre (retour Faustine 2026-09-18 : mieux vaut
+// annoncer une estimation limitée que simuler une fausse précision pour ces situations).
+export const PLAFOND_QF_PAR_DEMI_PART = 1807;
+
 // Plafonds du régime micro 2026 (source : DGFIP)
 // Distincts des seuils de franchise TVA — ne pas confondre.
 //   TVA franchise prestation : 37 500 €  (dans TVA_SEUILS)

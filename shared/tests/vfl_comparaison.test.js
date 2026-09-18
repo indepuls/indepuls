@@ -8,7 +8,7 @@
 // 3 277 €), repérée manquante lors d'une relecture externe (ChatGPT) du premier jet de ce
 // moteur, vérifiée indépendamment ici avant correction.
 
-import { getImpotBaremeProgressif, getDecoteIR, getVFLComparaison } from '../core/calculs.js';
+import { getImpotBaremeProgressif, getDecoteIR, getImpotAvecPlafonnementQF, getVFLComparaison } from '../core/calculs.js';
 
 let passed = 0, failed = 0;
 
@@ -136,16 +136,60 @@ section('getVFLComparaison : activité mixte (micro-achat), abattements et taux 
   test('écart = 1500 - 1060 = 440 (avantageux, moins qu\'un calcul sans décote ne le suggérait)', c.difference, 440);
 }
 
-section('getVFLComparaison : foyer avec enfants (2,5 parts), quotient familial simple fonctionne, PAS de plafonnement (limite assumée, à signaler dans l\'UI)');
+section('getImpotAvecPlafonnementQF : vérifié sur l\'exemple chiffré officiel du BOFiP (BOI-IR-LIQ-20-20-20)');
 {
+  // Couple marié, 4 enfants (5 parts : 2 + 0,5 + 0,5 + 1 + 1, les enfants à partir du 3e comptant
+  // pour une part entière), 130 000 € de revenu imposable. Le BOFiP donne lui-même le résultat
+  // intermédiaire à chaque étape : 7 920 € avec 5 parts, 25 208 € avec 2 parts, plafond total
+  // 6 demi-parts × 1 807 € = 10 842 €, impôt plafonné 25 208 - 10 842 = 14 366 €, retenu car
+  // supérieur aux 7 920 € du calcul à 5 parts.
+  const r = getImpotAvecPlafonnementQF(130000, 5, true);
+  test('impôt avec quotient familial complet (5 parts) = 7920 (donné par le BOFiP)', getImpotBaremeProgressif(130000, 5), 7920);
+  test('impôt avec les seules parts de référence (2 parts) = 25208 (donné par le BOFiP)', getImpotBaremeProgressif(130000, 2), 25208);
+  testEq('le plafonnement s\'applique (14366 > 7920)', r.plafonnementApplique, true);
+  test('impôt final = 25208 - (6 × 1807) = 14366, exactement la valeur du BOFiP', r.impotBrut, 14366);
+}
+
+section('getVFLComparaison : foyer avec enfants, cas 1/3 demandés par Faustine, revenus modestes, le plafonnement NE s\'applique PAS');
+{
+  // Couple + 1 enfant (2,5 parts), revenu total 43 100 €. L'avantage de la demi-part supplémentaire
+  // (638 €) reste sous le plafond (1807 €) : le calcul classique du quotient familial suffit.
+  const D = mkData({ statut: 'micro-bnc' });
+  const c = getVFLComparaison(D, 35000, 0, 20000, 2.5, true);
+  test('bénéfice = 35000 × 66 % = 23100', c.beneficeMicro, 23100);
+  test('revenu imposable total = 23100 + 20000 = 43100', c.revenuImposableTotal, 43100);
+  testEq('plafonnement non déclenché (avantage des parts sous le plafond)', c.plafonnementQFApplique, false);
+  test('impôt brut = 1551 (calcul classique du quotient familial, sans correction)', c.impotBrutSansVFL, 1551);
+}
+
+section('getVFLComparaison : cas 2/3, même type de foyer, revenus plus élevés, le plafonnement S\'APPLIQUE');
+{
+  // Même composition (couple + 1 enfant, 2,5 parts), revenu total 93 000 €. Cette fois l'avantage
+  // de la demi-part (3448 €) dépasse largement le plafond (1807 €) : l'impôt est recalculé à la
+  // hausse par rapport au simple quotient familial (10 660 € → 12 301 €).
   const D = mkData({ statut: 'micro-bnc' });
   const c = getVFLComparaison(D, 50000, 0, 60000, 2.5, true);
   test('bénéfice = 50000 × 66 % = 33000', c.beneficeMicro, 33000);
   test('revenu imposable total = 33000 + 60000 = 93000', c.revenuImposableTotal, 93000);
-  test('impôt brut (93000 sur 2,5 parts) = 10660', c.impotBrutSansVFL, 10660);
+  testEq('plafonnement déclenché (avantage des parts au-dessus du plafond)', c.plafonnementQFApplique, true);
+  test('impôt brut plafonné = 12301 (et non 10660 sans plafonnement)', c.impotBrutSansVFL, 12301);
   testEq('décote nulle (bien au-dessus du seuil couple)', c.decoteSansVFL, 0);
-  test('taux effectif ≈ 11,46 %', c.tauxEffectif * 1000, 114.6);
-  test('écart ≈ 2683 (sans tenir compte d\'un éventuel plafonnement du quotient familial, non modélisé)', c.difference, 2683);
+  test('écart VFL = 12301 - (taux effectif × 60000 + VFL) ≈ 3265', c.difference, 3265);
+}
+
+section('getVFLComparaison : cas 3/3, le plafonnement modifie sensiblement l\'écart VFL/barème (famille nombreuse, hauts revenus)');
+{
+  // Couple + 3 enfants (parts : 2 + 0,5 + 0,5 + 1 = 4, le 3e enfant comptant pour une part
+  // entière), revenu total 152 800 €. Sans tenir compte du plafonnement, l'écart calculé serait
+  // ≈ 4547 € ; avec, il est de ≈ 6817 €, soit environ 50 % de plus, exactement le genre d'écart
+  // que Faustine redoutait de voir faussé si le plafonnement n'était pas modélisé.
+  const D = mkData({ statut: 'micro-bnc' });
+  const c = getVFLComparaison(D, 80000, 0, 100000, 4, true);
+  test('bénéfice = 80000 × 66 % = 52800', c.beneficeMicro, 52800);
+  test('revenu imposable total = 52800 + 100000 = 152800', c.revenuImposableTotal, 152800);
+  testEq('plafonnement déclenché', c.plafonnementQFApplique, true);
+  test('impôt brut plafonné = 24820 (contre 18256 sans plafonnement, +36 %)', c.impotBrutSansVFL, 24820);
+  test('écart VFL avec plafonnement correctement pris en compte ≈ 6817 (et non ≈ 4547 sans plafonnement)', c.difference, 6817);
 }
 
 section('getVFLComparaison : hors micro (SASU) → tout à 0, jamais de fuite vers ce statut');

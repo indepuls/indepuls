@@ -8,7 +8,7 @@
 // avec le reste du code existant (ex: getRevenuNetMois(mk) au lieu de
 // calculs.getRevenuNetMois(DATA, mk)).
 
-import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART, BAREME_IR } from './taux.js';
+import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART, BAREME_IR, PLAFOND_QF_PAR_DEMI_PART } from './taux.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -1325,6 +1325,39 @@ export function getDecoteIR(impotBrut, estCouple) {
   return Math.round(Math.max(0, Math.min(forfait - impotBrut * 0.4525, impotBrut)));
 }
 
+// Plafonnement général du quotient familial (source : BOFiP BOI-IR-LIQ-20-20-20), "situations
+// classiques" uniquement : personne seule ou couple marié/pacsé (imposition commune) avec des
+// enfants à charge exclusive. Les plafonds spécifiques parent isolé/invalidité/veuvage sont hors
+// périmètre (retour Faustine 2026-09-18) : à l'appelant de vérifier que la situation est bien
+// classique avant d'utiliser ce résultat comme fiable, sinon le présenter comme plus indicatif.
+// Méthode "double liquidation" (vérifiée sur l'exemple chiffré du BOFiP : couple 5 parts,
+// 130 000 € → 7 920 € avec le quotient familial complet contre 25 208 € avec seulement 2 parts,
+// moins 6 demi-parts × 1 807 € = 14 366 € retenus, résultat confirmé) :
+// 1. Impôt avec le quotient familial complet (toutes les parts, enfants compris).
+// 2. Impôt avec seulement les parts de référence (1 seul, 2 en couple), moins le plafond total
+//    (nombre de demi-parts supplémentaires × PLAFOND_QF_PAR_DEMI_PART).
+// 3. Le plus ÉLEVÉ des deux est retenu (le plafonnement ne peut qu'augmenter l'impôt par rapport
+//    au calcul avec quotient familial complet, jamais le réduire).
+export function getImpotAvecPlafonnementQF(revenuImposable, parts, estCouple) {
+  const partsReference = estCouple ? 2 : 1;
+  const impotAvecQFComplet = getImpotBaremeProgressif(revenuImposable, parts);
+  if (!(parts > partsReference)) {
+    return { impotBrut: impotAvecQFComplet, plafonnementApplique: false, avantageDemiParts: 0, avantagePlafonne: 0 };
+  }
+  const nbDemiParts = Math.max(0, (parts - partsReference) / 0.5);
+  const impotPartsReference = getImpotBaremeProgressif(revenuImposable, partsReference);
+  const avantageDemiParts = impotPartsReference - impotAvecQFComplet;
+  const plafondTotal = nbDemiParts * PLAFOND_QF_PAR_DEMI_PART;
+  const impotPlafonne = impotPartsReference - plafondTotal;
+  const plafonnementApplique = impotPlafonne > impotAvecQFComplet;
+  return {
+    impotBrut: Math.max(impotAvecQFComplet, impotPlafonne),
+    plafonnementApplique,
+    avantageDemiParts,
+    avantagePlafonne: Math.min(avantageDemiParts, plafondTotal),
+  };
+}
+
 // ── SIMULATEUR VFL : COMPARAISON AVEC/SANS VFL (chantier 2026-09-18, étape 2/5) ───────────
 // Mécanisme du "taux effectif" (confirmé DGFIP/BOFiP, retour Faustine 2026-09-18) : sous VFL, le
 // bénéfice micro forfaitaire (après abattement) n'est pas réimposé au barème, mais reste intégré
@@ -1348,9 +1381,10 @@ export function getDecoteIR(impotBrut, estCouple) {
 export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts, estCouple) {
   const beneficeMicro = getRevenuImposableMicro(DATA, caPresta || 0, caVente || 0);
   const revenuImposableTotal = beneficeMicro + (autresRevenusFoyer || 0);
-  const partsSures = parts > 0 ? parts : 1;
+  const partsSures = parts > 0 ? parts : (estCouple ? 2 : 1);
 
-  const impotBrutSansVFL = getImpotBaremeProgressif(revenuImposableTotal, partsSures);
+  const qf = getImpotAvecPlafonnementQF(revenuImposableTotal, partsSures, !!estCouple);
+  const impotBrutSansVFL = qf.impotBrut;
   const decoteSansVFL = getDecoteIR(impotBrutSansVFL, !!estCouple);
   const irSansVFL = Math.max(0, impotBrutSansVFL - decoteSansVFL);
 
@@ -1362,7 +1396,8 @@ export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, p
 
   const difference = irSansVFL - coutAvecVFL; // positif = versement libératoire avantageux
   return {
-    beneficeMicro, revenuImposableTotal, impotBrutSansVFL, decoteSansVFL, tauxEffectif,
+    beneficeMicro, revenuImposableTotal, impotBrutSansVFL, plafonnementQFApplique: qf.plafonnementApplique,
+    decoteSansVFL, tauxEffectif,
     irSansVFL, irAutresRevenusAvecVFL, vflSurCA, coutAvecVFL,
     difference, avantageux: difference > 0,
   };
