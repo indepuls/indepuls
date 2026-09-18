@@ -2184,6 +2184,24 @@ Faustine a signalé ne pas pouvoir saisir précisément son RFR dans la carte VF
 
 **`indepuls.html` + `indepuls-demo.html`**, section `/* === INPUTS === */` du CSS : `input[type="number"]::-webkit-outer-spin-button` et `::-webkit-inner-spin-button` masqués, `appearance:textfield` (+ préfixe `-moz-`) pour Firefox. S'applique à tous les champs numériques de l'app, pas seulement au RFR : aucun n'avait jusqu'ici cette règle. Purement cosmétique, aucune logique de saisie modifiée.
 
+### REFONTE UX : page "Et si ?" en galerie + zone de détail (2026-09-19)
+
+Faustine a signalé que la page empilait déjà les 6 simulateurs les uns sous les autres, trop longue et trop chargée, un problème qui n'aurait fait qu'empirer à chaque nouveau "Et si ?" ajouté (le versement libératoire venait justement d'en ajouter un). Nouvelle structure, validée avant codage : une galerie de cartes cliquables en haut de page, un seul simulateur déplié à la fois dans une zone de détail commune juste en dessous.
+
+**Aucun moteur de calcul touché** : uniquement `indepuls.html` + `indepuls-demo.html`, aucun fichier de `shared/`. La logique interne de chaque simulateur (sliders, sauvegardes, togglings) est réutilisée à l'identique.
+
+**`indepuls.html` + `indepuls-demo.html`** :
+- Les 3 cartes encore construites en inline dans `renderEtSiPage()` (rythme, prix, perte de client) extraites dans leurs propres fonctions `etsiCard1Html()`/`etsiCard2Html()`/`etsiCard3Html()`, à l'identique des 3 autres (`etsiCard4Html`, `etsiCard5Html`, `etsiCardVFLHtml`) : logique inchangée, juste isolée.
+- `ETSI_SIMULATEURS` : registre unique `{clé, icône, titre, phrase, htmlFn, teaserFn?}` des 6 simulateurs. **Point d'extensibilité** : un futur "Et si ?" s'ajoute en une entrée ici + sa fonction de rendu, sans toucher au reste de la page.
+- `renderEtSiPage()` réécrite : affiche la galerie (une carte par simulateur disponible, `etsiSimulateursDisponibles()` retire le VFL pour les comptes non-micro) + une zone `#etsi-detail` vide.
+- `etsiClicGalerie(clé)` : bascule ouvert/fermé au clic sur une carte (un seul simulateur ouvert à la fois, recliquer sur la carte déjà sélectionnée referme et revient à la galerie).
+- `etsiOuvrirSimulateur(clé)` : force l'ouverture sans jamais refermer (utilisé par les raccourcis du tableau de bord). Scrolle vers la zone de détail *seulement si elle n'est pas déjà visible* (`getBoundingClientRect().top` dans les 60 % hauts de l'écran), surtout utile sur mobile avec 6-8 cartes au-dessus.
+- Teasers optionnels, seulement là où une info est déjà calculable sans travail supplémentaire ("seulement si cela reste lisible", demande explicite) : poids du client le plus lourd (`etsiTeaserClient`), meilleure alternative de statut déjà connue (`etsiTeaserStatut`), éligibilité VFL déjà saisie (`etsiTeaserVfl`). Aucun teaser forcé pour rythme/prix/délégation.
+- `irVersEtSi(card, missionId)` (raccourcis depuis le tableau de bord) : les appelants continuent de passer le numéro historique des cartes (1 à 5), converti via `ETSI_CARD_LEGACY_KEY` vers la clé du registre, puis ouvre le bon simulateur via `etsiOuvrirSimulateur()` avant de scroller (au lieu de juste scroller vers une carte déjà toujours visible).
+- CSS : `.etsi-cols`/`.etsi-col` (2 colonnes fixes) remplacées par `.etsi-gallery` (`grid-template-columns:repeat(auto-fill,minmax(160px,1fr))`), qui s'adapte seule au nombre de colonnes disponibles sans media query dédiée. `.etsi-gal-card.selected` : bordure + fond légèrement teinté (`var(--acc)`/`var(--bg)`), sobre par demande explicite ("sans effet trop fort").
+
+Vérifié en direct sur les deux fichiers : galerie des 6 cartes avec teasers corrects, ouverture/fermeture/bascule entre simulateurs, VFL absent de la galerie sur un compte non-micro, les 3 raccourcis existants du tableau de bord (`irVersEtSi(3, missionId)`, `irVersEtSi(4)`, etc.) ouvrent bien la bonne carte avec présélection, grille à 2 colonnes sur mobile (375px). 466 tests toujours au vert (aucune fonction de calcul touchée).
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
