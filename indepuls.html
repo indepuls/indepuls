@@ -120,6 +120,11 @@ tr:hover:not(.row-pinned){background:rgba(0,0,0,.015);}
 /* === INPUTS === */
 input[type="text"],input[type="number"],input[type="date"],select,textarea{background:var(--inp);border:1.5px solid var(--brd);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--text);font-family:inherit;width:100%;transition:border-color .2s;}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc);}
+/* Flèches natives d'incrément masquées (retour Faustine 2026-09-18) : avec un step de 100 ou
+   plus, elles donnent l'impression qu'il faut cliquer des centaines de fois pour saisir un grand
+   nombre (RFR...), alors que la saisie directe au clavier a toujours fonctionné. */
+input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
 .fgroup{margin-bottom:13px;}
 .flabel{display:block;font-size:11px;font-weight:700;color:var(--tl);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
