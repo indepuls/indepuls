@@ -1310,25 +1310,50 @@ export function getImpotBaremeProgressif(revenuImposable, parts) {
   return Math.round(impotParPart * parts);
 }
 
+// Décote de l'impôt sur le revenu 2026 (source : economie.gouv.fr), lisse l'entrée dans
+// l'imposition pour les impôts bruts faibles (sous un seuil, distinct entre une personne seule et
+// un couple marié/pacsé en imposition commune). Indépendante du nombre de parts : un parent isolé
+// avec des enfants reste "seul" au sens de la décote malgré des parts supplémentaires. Repérée
+// manquante lors d'une relecture du moteur VFL par Faustine (retour ChatGPT, vérifié ici via
+// economie.gouv.fr) : à ~1628 € d'impôt brut, elle retire encore ~160 €, un écart significatif
+// précisément dans la zone de revenus où le choix VFL se joue.
+export function getDecoteIR(impotBrut, estCouple) {
+  if (!(impotBrut > 0)) return 0;
+  const seuil = estCouple ? 3277 : 1982;
+  if (impotBrut > seuil) return 0;
+  const forfait = estCouple ? 1483 : 897;
+  return Math.round(Math.max(0, Math.min(forfait - impotBrut * 0.4525, impotBrut)));
+}
+
 // ── SIMULATEUR VFL : COMPARAISON AVEC/SANS VFL (chantier 2026-09-18, étape 2/5) ───────────
 // Mécanisme du "taux effectif" (confirmé DGFIP/BOFiP, retour Faustine 2026-09-18) : sous VFL, le
 // bénéfice micro forfaitaire (après abattement) n'est pas réimposé au barème, mais reste intégré
 // au revenu du foyer pour déterminer le taux moyen appliqué aux AUTRES revenus. Impossible donc de
 // comparer l'impôt sur le seul bénéfice micro contre le VFL sur le seul CA : il faut l'impôt du
 // foyer entier dans les deux situations.
-// - Sans VFL : le barème s'applique une seule fois, sur bénéfice micro + autres revenus ensemble.
-// - Avec VFL : le même calcul sert à obtenir un taux moyen (irSansVFL ÷ revenu total), appliqué
-//   uniquement aux autres revenus ; le micro paie en plus le taux VFL légal, directement sur le CA.
-// caPresta/caVente : CA de l'activité pour l'année simulée (paramètre explicite, pas lu sur
-// DATA, réutilisable tel quel pour les 3 scénarios de CA de l'étape 4, sans dupliquer ce calcul).
+// - Sans VFL : barème + quotient familial sur bénéfice micro + autres revenus ensemble, puis
+//   décote sur ce total (jamais appliquée séparément sur chaque source de revenu).
+// - Avec VFL : le même impôt (après décote) sert à obtenir un taux moyen, appliqué uniquement aux
+//   autres revenus ; le micro paie en plus le taux VFL légal, directement sur le CA.
+// caPresta/caVente : CA de l'activité pour l'année simulée (paramètre explicite, pas lu sur DATA,
+// réutilisable tel quel pour les 3 scénarios de CA de l'étape 4, sans dupliquer ce calcul).
 // autresRevenusFoyer : revenus imposables du reste du foyer hors cette activité (conjoint,
 // fonciers, pensions...), 0 si aucun. parts : nombre de parts fiscales pour l'année simulée.
-export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts) {
+// estCouple : marié/pacsé en imposition commune (détermine le seuil de décote), indépendant du
+// nombre de parts, voir getDecoteIR.
+// Limite assumée (option B) : PAS de plafonnement du quotient familial (1 807 €/demi-part en
+// 2026, avec des règles distinctes pour parent isolé/invalidité/veuvage). Situations concernées
+// (2+ enfants, parent isolé...) à traiter comme une estimation encore plus indicative, jamais un
+// calcul officiel. Un vrai plafonnement viendrait en V2 si le besoin se confirme.
+export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts, estCouple) {
   const beneficeMicro = getRevenuImposableMicro(DATA, caPresta || 0, caVente || 0);
   const revenuImposableTotal = beneficeMicro + (autresRevenusFoyer || 0);
   const partsSures = parts > 0 ? parts : 1;
 
-  const irSansVFL = getImpotBaremeProgressif(revenuImposableTotal, partsSures);
+  const impotBrutSansVFL = getImpotBaremeProgressif(revenuImposableTotal, partsSures);
+  const decoteSansVFL = getDecoteIR(impotBrutSansVFL, !!estCouple);
+  const irSansVFL = Math.max(0, impotBrutSansVFL - decoteSansVFL);
+
   const tauxEffectif = revenuImposableTotal > 0 ? irSansVFL / revenuImposableTotal : 0;
   const irAutresRevenusAvecVFL = Math.round(tauxEffectif * (autresRevenusFoyer || 0));
   const vflSurCA = Math.round((caPresta || 0) * getTauxVFLPourNature(DATA, 'presta') / 100
@@ -1337,7 +1362,7 @@ export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, p
 
   const difference = irSansVFL - coutAvecVFL; // positif = versement libératoire avantageux
   return {
-    beneficeMicro, revenuImposableTotal, tauxEffectif,
+    beneficeMicro, revenuImposableTotal, impotBrutSansVFL, decoteSansVFL, tauxEffectif,
     irSansVFL, irAutresRevenusAvecVFL, vflSurCA, coutAvecVFL,
     difference, avantageux: difference > 0,
   };
