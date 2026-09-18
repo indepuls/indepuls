@@ -2069,6 +2069,24 @@ Moteur central du simulateur, construit et vérifié avant toute interface (aucu
 
 **Pas encore fait** : aucune interface pour cette étape (pas de champ "autres revenus du foyer", pas d'affichage du résultat). Le moteur est présenté à Faustine pour validation avant de construire l'UI, qui viendra étendre la carte d'éligibilité de l'étape 1.
 
+### FIX : moteur VFL, décote manquante repérée par relecture externe (2026-09-18, suite)
+
+Faustine a fait relire le moteur de comparaison ci-dessus par ChatGPT avant de donner le feu vert pour l'interface. Retour utile : la décote (mécanisme qui réduit l'impôt brut faible, applicable sous 1 982 € pour une personne seule et 3 277 € pour un couple) manquait, et faussait précisément l'exemple le plus simple (célibataire, sans conjoint). Vérifié indépendamment ici via economie.gouv.fr (formule confirmée : 897 − 45,25 % de l'impôt brut, seul ; 1 483 − 45,25 %, couple) avant de corriger, plutôt que de faire confiance à l'une ou l'autre source sans recoupement.
+
+**Impact concret** : sur l'exemple de Faustine (CA 40 000 € BNC, célibataire, sans conjoint), l'écart annoncé passe de +748 € à **+588 €** une fois la décote appliquée (impôt sans VFL : 1 468 € et non 1 628 €). L'exemple avec conjoint (66 400 € de revenu total sur 2 parts) restait inchangé : son impôt brut (6 128 €) dépasse largement le seuil de décote couple (3 277 €), la décote n'y change rien, confirmé par le calcul.
+
+**`shared/core/calculs.js`** :
+- `getDecoteIR(impotBrut, estCouple)` : nouvelle fonction, seuils et formule officiels 2026. Indépendante du nombre de parts (un parent isolé reste "seul" au sens de la décote malgré des parts liées aux enfants) : `estCouple` est un paramètre explicite, pas dérivé de `parts`.
+- `getVFLComparaison` : applique désormais la décote sur l'impôt brut du foyer avant de calculer le taux effectif, nouveau paramètre `estCouple`.
+
+**Plafonnement du quotient familial (1 807 €/demi-part en 2026, avec des règles distinctes parent isolé/invalidité/veuvage) : volontairement PAS implémenté**, décision alignée avec la recommandation de la relecture externe : pour les foyers avec plusieurs parts liées à des enfants, mieux vaut annoncer clairement une estimation encore plus indicative que simuler une précision non garantie. À documenter explicitement dans l'UI de l'étape 2 (pas encore construite).
+
+**Tests** (`shared/tests/vfl_comparaison.test.js`, réécrit, 61 tests) : formule de décote à plusieurs points de contrôle (dont l'exemple exact de la relecture externe : couple, 2 250 € brut → 465 € de décote), l'exemple de Faustine corrigé, BIC prestations (abattement 50 %, VFL 1,7 %), achat-revente non mixte (abattement 71 %, VFL 1 %), activité mixte avec décote, foyer à 2,5 parts (sanity check du quotient familial fractionnaire, sans prétendre gérer le plafonnement). 322+ tests globaux toujours au vert.
+
+**Deux points de vigilance identifiés pour l'UI de l'étape 2 (pas encore construite)**, également remontés par la relecture externe :
+1. Le barème utilisé est le dernier connu (2026, sur revenus 2025) : pour une simulation portant sur une année future, le barème réel n'est pas encore fixé. L'UI devra dire explicitement "estimation basée sur le dernier barème disponible, celui de l'année simulée pourra évoluer" plutôt que présenter un chiffre comme certain.
+2. Le champ "autres revenus du foyer" doit être sans ambiguïté : revenu **net imposable** (après abattement de 10 % sur les salaires, tel qu'il apparaît sur l'avis d'imposition), jamais le salaire brut annuel saisi tel quel, sous peine de fausser tout le calcul.
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
