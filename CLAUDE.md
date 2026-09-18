@@ -2087,6 +2087,31 @@ Faustine a fait relire le moteur de comparaison ci-dessus par ChatGPT avant de d
 1. Le barème utilisé est le dernier connu (2026, sur revenus 2025) : pour une simulation portant sur une année future, le barème réel n'est pas encore fixé. L'UI devra dire explicitement "estimation basée sur le dernier barème disponible, celui de l'année simulée pourra évoluer" plutôt que présenter un chiffre comme certain.
 2. Le champ "autres revenus du foyer" doit être sans ambiguïté : revenu **net imposable** (après abattement de 10 % sur les salaires, tel qu'il apparaît sur l'avis d'imposition), jamais le salaire brut annuel saisi tel quel, sous peine de fausser tout le calcul.
 
+### FEAT : moteur VFL, plafonnement du quotient familial pour les situations classiques (2026-09-18, suite)
+
+Faustine a revu la portée : plutôt que d'exclure entièrement le plafonnement du quotient familial (décision initiale, alignée sur une relecture externe), elle a demandé de le gérer pour les **situations familiales classiques** (personne seule, couple marié/pacsé en imposition commune, avec ou sans enfants à charge exclusive), en excluant seulement les situations particulières (parent isolé, garde alternée, invalidité, ancien combattant, veuvage) qui ont chacune un plafond distinct et restent hors périmètre.
+
+**Point de vocabulaire corrigé au passage** : le paramètre `estCouple` (à venir dans l'UI) désigne l'**imposition commune** (marié/pacsé), pas une situation amoureuse. Un couple en concubinage reste deux foyers fiscaux distincts. Le libellé UI sera "Situation fiscale : imposition individuelle / imposition commune", jamais "célibataire/en couple".
+
+**Méthode vérifiée sur le BOFiP** (BOI-IR-LIQ-20-20-20, "double liquidation") avant implémentation :
+1. Impôt avec le quotient familial complet (toutes les parts, enfants compris).
+2. Impôt avec seulement les parts de référence (1 seul, 2 en couple), moins le plafond total (nombre de demi-parts supplémentaires × 1 807 € en 2026).
+3. Le plus élevé des deux est retenu, le plafonnement ne peut qu'augmenter l'impôt, jamais le réduire.
+Ordre confirmé avec la décote : plafonnement d'abord, décote ensuite (déjà l'ordre implémenté).
+
+**`shared/core/taux.js`** : `PLAFOND_QF_PAR_DEMI_PART` (1 807 € en 2026, source BOFiP).
+
+**`shared/core/calculs.js`** :
+- `getImpotAvecPlafonnementQF(revenuImposable, parts, estCouple)` : implémente la double liquidation ci-dessus, retourne aussi `plafonnementApplique` (booléen) pour que l'UI n'affiche l'avertissement que quand il est réellement pertinent, jamais par précaution systématique dès qu'il y a des enfants (demande explicite de Faustine : "si son niveau de revenus ne déclenche pas le plafonnement, inutile de dégrader artificiellement la fiabilité du résultat").
+- `getVFLComparaison` : utilise désormais cette fonction au lieu du quotient familial simple, expose `plafonnementQFApplique` dans son retour.
+
+**Tests** (`shared/tests/vfl_comparaison.test.js`, 74 tests désormais) :
+- `getImpotAvecPlafonnementQF` vérifiée directement sur l'exemple chiffré officiel du BOFiP (couple 5 parts, 130 000 €, 4 enfants dont 2 comptant pour une part entière chacun à partir du 3e) : 7 920 € avec le quotient familial complet, 25 208 € avec 2 parts, plafond 6 × 1 807 € = 10 842 €, résultat final 14 366 €, retrouvé exactement.
+- Les 3 cas explicitement demandés par Faustine : (1) foyer avec enfants où le plafonnement ne se déclenche pas (avantage sous le plafond), (2) même type de foyer à revenus plus élevés où il se déclenche, (3) un cas où il change sensiblement l'écart VFL/barème (couple + 3 enfants, hauts revenus : écart correct ≈ 6 817 € contre ≈ 4 547 € si le plafonnement avait été ignoré, environ 50 % d'écart).
+- 335+ tests globaux toujours au vert.
+
+**Toujours aucune UI.** Reste à construire : les champs (RFR/parts déjà en base depuis l'étape 1, + situation fiscale imposition individuelle/commune, autres revenus du foyer avec un libellé sans ambiguïté sur le revenu net imposable, éventuel signalement "situation particulière non prise en charge"), le disclaimer sur le barème utilisé (dernier connu, pas garanti pour l'année simulée), et l'affichage du résultat de comparaison.
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
