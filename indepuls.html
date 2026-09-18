@@ -7502,6 +7502,26 @@ function wScoreSante(d) {
       alertLines.push(`<div class="alert ${cl}" style="font-size:12px;margin-bottom:6px"><span style="flex:1">${ico} ${ech.texte}</span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKey}')" title="Masquer jusqu'à l'année prochaine">${ech.boutonLabel}</button></div>`);
     });
   } catch(e){reportError('echeancesFiscalesGeneriques',e);}
+  // Rappel annuel versement libératoire (retour Faustine 2026-09-19) : l'option (ou la
+  // renonciation) auprès de l'Urssaf doit être demandée au plus tard le 30 septembre de l'année N
+  // pour s'appliquer au 1er janvier N+1, une date légale stricte et sans dérogation (source Urssaf/
+  // LégiFiscal, vérifié le 2026-09-19). Pas dans getEcheancesFiscalesGeneriques ci-dessus : cette
+  // fonction est pure (pas d'accès à DATA.params.statut), alors que ce rappel ne concerne que les
+  // comptes micro, seul régime éligible au VFL. Même mécanique de masquage que les échéances
+  // au-dessus (marquerEcheancePayee, clé datée) : permanent pour cette occurrence, revient
+  // naturellement l'année suivante puisque la clé change.
+  try {
+    if(isMicro()){
+      const _todayVfl=new Date();
+      if(_todayVfl.getMonth()===8){ // septembre, 0-indexé
+        const _anneeCibleVfl=_todayVfl.getFullYear()+1;
+        const payeeKeyVfl=`vfl_rappel_${_anneeCibleVfl}`;
+        if(!DATA.echeancesPayees?.[payeeKeyVfl]){
+          alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">🏛️ Avant le <strong>30 septembre</strong>, vérifiez si le versement libératoire vous serait avantageux pour ${_anneeCibleVfl}, surtout si votre CA ou votre situation a changé cette année. Passé cette date, impossible de changer d'avis avant l'année suivante.<br><span class="step-cta" style="margin-top:4px" onclick="irVersEtSi('vfl')">Simuler avec le versement libératoire</span></span><button type="button" class="btn btn-out btn-xs" style="flex-shrink:0" onclick="marquerEcheancePayee('${payeeKeyVfl}')" title="Vous ne reverrez plus ce rappel pour ${_anneeCibleVfl}.">🔕 Ne plus afficher</button></div>`);
+        }
+      }
+    }
+  } catch(e){reportError('rappelVFL',e);}
   // Pattern (catégorie ou tranche de montant, retour Faustine 2026-08-01, doc de vision "Couche
   // 4 — Patterns") : Statistiques affiche les 2 axes s'ils existent (patternsInsightHtml), mais
   // le Brief ne remonte que le plus marquant des deux (getMeilleurPatternPhrase) pour ne jamais
