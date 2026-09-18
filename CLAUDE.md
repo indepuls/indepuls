@@ -2132,6 +2132,19 @@ Interface de l'étape 2 (intérêt financier), construite après validation du m
 
 Vérifié en direct sur les deux fichiers, mêmes chiffres exacts (couple imposition commune, 40 000 € d'autres revenus, 2 parts : écart +1 950 €/an, taux effectif 10,0 %). 335+ tests toujours au vert (aucune fonction de calcul touchée, uniquement l'interface).
 
+### FEAT : simulateur du versement libératoire, étape 3/5 (2026-09-18, suite)
+
+Faustine avait initialement demandé un rappel de vérifier ses dépenses avant de se fier au résultat. Ce rappel n'aurait eu aucun effet réel : la micro-entreprise ne déduit jamais les dépenses réelles (seul l'abattement forfaitaire s'applique, dans le régime classique comme sous VFL), donc les dépenses ne rentrent dans aucun calcul de ce comparateur. Faustine a confirmé l'erreur de sa propre demande ("j'ai confondu VFL et passage en EI au réel !") : ce qui alimente réellement le calcul, c'est le CA (missions + encaissements réels d'Indépuls). Le rappel a donc été remplacé par une invitation à vérifier ses missions/encaissements avant de se fier au résultat, avec un lien direct vers la page Missions.
+
+**CA modifiable à la main** (demande de Faustine, "si c'est simple et possible uniquement") : un champ `vfl-ca-simule` pré-rempli avec le CA réel annualisé, modifiable pour tester un autre niveau de CA sans attendre que ce CA se réalise. Laisser le champ vide revient automatiquement au CA réel.
+
+**`indepuls.html` + `indepuls-demo.html`** :
+- `DATA.params.vflCaSimule` : nouveau champ persisté, 0 ou vide = utiliser le CA réel.
+- Le CA simulé est redistribué entre presta et vente en conservant le même ratio que le CA réel (`ratioPresta`), pour rester cohérent avec une activité mixte sans demander une deuxième saisie indépendante par nature qui divergerait silencieusement à chaque nouveau mois encaissé.
+- Le texte de bas de carte indique explicitement si le résultat est basé sur le CA réel ou sur un CA saisi manuellement.
+
+Aucune fonction de `shared/core/calculs.js` modifiée (uniquement l'interface : le CA utilisé, réel ou simulé, est calculé côté HTML avant d'être passé à `getVFLComparaison`, qui reste inchangée). Vérifié en direct sur les deux fichiers : saisie d'un CA de 60 000 € → recalcul correct de l'écart VFL/barème ; champ vidé → retour exact au CA réel annualisé (44 064 €). 335+ tests toujours au vert.
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
