@@ -2202,6 +2202,28 @@ Faustine a signalé que la page empilait déjà les 6 simulateurs les uns sous l
 
 Vérifié en direct sur les deux fichiers : galerie des 6 cartes avec teasers corrects, ouverture/fermeture/bascule entre simulateurs, VFL absent de la galerie sur un compte non-micro, les 3 raccourcis existants du tableau de bord (`irVersEtSi(3, missionId)`, `irVersEtSi(4)`, etc.) ouvrent bien la bonne carte avec présélection, grille à 2 colonnes sur mobile (375px). 466 tests toujours au vert (aucune fonction de calcul touchée).
 
+### FIX : encadrés VFL affichés en fragments dispersés au lieu de phrases (2026-09-19)
+
+Faustine a signalé des phrases "découpées", peu lisibles dans les encadrés verts/rouges du simulateur VFL. Cause : `.alert` utilise `display:flex`, et quand son contenu est composé de plusieurs passages de texte entrecoupés de `<br>` et de plusieurs `<strong>` sans un unique élément englobant, le navigateur éclate le contenu en plusieurs éléments flex distincts au lieu d'un seul bloc qui s'enroule normalement, dispersant des fragments de phrase au lieu de les afficher en paragraphe.
+
+Tous les autres encadrés multi-lignes de l'app évitent déjà ce piège en enveloppant leur texte dans un unique `<span>` après l'icône de tête ; les encadrés d'éligibilité et de résultat de comparaison du VFL étaient les seuls à avoir sauté cette étape. Même correctif, même pattern déjà établi partout ailleurs (`indepuls.html` + `indepuls-demo.html`, 3 encadrés corrigés).
+
+### FIX : choix TVA "Et si je changeais de statut ?" en cartes à cocher (2026-09-19)
+
+Faustine a signalé que le choix "Si vous passiez à la TVA, vous..." (augmenter les prix ou garder le même prix total) ne se lisait pas clairement comme un choix : deux simples boutons sous la phrase, sans signal visuel fort de "il faut en choisir un".
+
+**`indepuls.html` + `indepuls-demo.html`**, `etsiCard4Html()` : les deux boutons remplacés par le même pattern `.tva-regime-opt` (carte bordée + radio + sous-titre) déjà utilisé partout ailleurs dans l'app pour ce type de choix (type d'activité, régime TVA, régime EURL, module objectif, situation fiscale VFL). Comportement inchangé (`toggleEtsiPrixHypothese`), seul le rendu change.
+
+### FIX : simulateur VFL, trois corrections suite aux tests de Faustine (2026-09-19)
+
+**1. Virgule décimale sur les champs "parts".** `type="number"` refuse purement et simplement la virgule au clavier (uniquement le point est un séparateur décimal valide pour ce type de champ), alors que c'est le séparateur naturel en français ("je voudrais taper 4,5 parts"). `vfl-parts-n2` et `vfl-parts-cible` passent en `type="text" inputmode="decimal"` (clavier numérique conservé sur mobile), avec une nouvelle fonction `parseFrFloat()` qui remplace la virgule par un point avant `parseFloat`. Le champ se réaffiche ensuite avec un point (2,5 devient 2.5 à l'écran), sans perte de données.
+
+**2. Scénarios prudent/ambitieux disproportionnés.** Bug confirmé par Faustine sur ses données réelles : un seul mois exceptionnel (très bas ou très haut) suffisait à rendre "ambitieux" ou "prudent" totalement disproportionné par rapport à "prévu" (x5 dans son cas : prudent à 0 €, ambitieux à 123 858 € pour un prévu à 24 190 €). Remplacé par un écart fixe -20 %/+20 % autour du CA prévu, sur sa propre suggestion : plus prévisible, jamais dépendant d'un mois isolé.
+
+**3. Clarification "Autres revenus imposables du foyer".** Confusion légitime remontée par Faustine : elle pensait que ce champ recoupait le RFR saisi à l'étape 1, alors que les deux n'ont aucun lien (années différentes : RFR en N-2 pour l'éligibilité, autres revenus PROJETÉS pour l'année simulée pour le calcul financier). Libellé renommé "... pour [année simulée]", infobulle et texte d'aide sous le champ réécrits pour expliciter la distinction et donner des exemples concrets (salaire du conjoint en imposition commune, revenus fonciers, pension). Modale "Comment c'est calculé ?" mise à jour de la même façon.
+
+Aucune fonction de `shared/core/calculs.js` modifiée. Vérifié en direct sur les deux fichiers : virgule acceptée et correctement convertie, scénarios prudent/ambitieux strictement proportionnels (-20 %/+20 %), nouveaux libellés et infobulles affichés. 466 tests toujours au vert.
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
