@@ -15506,22 +15506,36 @@ function etsiCardVFLHtml() {
       caPrestaMens=rentRoulante.caBrut/mc;
     }
     const caPrestaAnnuel=Math.round(caPrestaMens*12), caVenteAnnuel=Math.round(caVenteMens*12);
+    const caReelAnnuel=caPrestaAnnuel+caVenteAnnuel;
+    // CA simulé, modifiable (retour Faustine 2026-09-18) : garde le même ratio presta/vente que
+    // le CA réel pour redistribuer un CA total modifié à la main, jamais une deuxième saisie
+    // indépendante par nature, qui diverge silencieusement à chaque nouveau mois réel encaissé.
+    const caSimule=DATA.params.vflCaSimule>0?DATA.params.vflCaSimule:caReelAnnuel;
+    const ratioPresta=caReelAnnuel>0?caPrestaAnnuel/caReelAnnuel:(DATA.params.statut==='micro-achat'?0:1);
+    const caPrestaUtilise=Math.round(caSimule*ratioPresta), caVenteUtilise=Math.round(caSimule*(1-ratioPresta));
+    const caModifie=DATA.params.vflCaSimule>0&&DATA.params.vflCaSimule!==caReelAnnuel;
     const estCouple=!!DATA.params.vflEstCouple;
     const partsCible=DATA.params.vflPartsCible||DATA.params.vflPartsN2||1;
     const autresRevenus=DATA.params.vflAutresRevenus||0;
-    const comp=getVFLComparaison(caPrestaAnnuel,caVenteAnnuel,autresRevenus,partsCible,estCouple);
+    const comp=getVFLComparaison(caPrestaUtilise,caVenteUtilise,autresRevenus,partsCible,estCouple);
     const resultatHtml=`<div class="alert ${comp.avantageux?'al-ok':'al-err'} mt10" style="font-size:12px;line-height:1.7">
-      ${comp.avantageux?'🟢':'🔴'} <strong>Le versement libératoire serait ${comp.avantageux?'avantageux':'perdant'}</strong> dans cette situation, à votre niveau de CA actuel.<br>
+      ${comp.avantageux?'🟢':'🔴'} <strong>Le versement libératoire serait ${comp.avantageux?'avantageux':'perdant'}</strong> dans cette situation, à ce niveau de CA.<br>
       Sans VFL, impôt du foyer estimé : <strong>${fmtE(comp.irSansVFL)}</strong>.<br>
       Avec VFL : ${fmtE(comp.vflSurCA)} de versement libératoire sur votre CA${comp.irAutresRevenusAvecVFL>0?` + ${fmtE(comp.irAutresRevenusAvecVFL)} d'impôt sur le reste du foyer (taux effectif ${fmt(comp.tauxEffectif*100,1)} %)`:''} = <strong>${fmtE(comp.coutAvecVFL)}</strong>.<br>
       Écart estimé : <strong>${comp.difference>=0?'+':''}${fmtE(comp.difference)}/an</strong>${comp.avantageux?' en votre faveur':' en défaveur du versement libératoire'}.
     </div>
     ${comp.plafonnementQFApplique?`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Le plafonnement du quotient familial s'applique dans votre situation : l'avantage fiscal de vos parts liées aux enfants a été plafonné à 1 807 €/demi-part, comme le prévoit la loi.</div>`:''}
     ${DATA.params.vflSituationParticuliere?`<div class="alert al-warn mt8" style="font-size:11px;line-height:1.5">⚠️ Votre situation particulière (parent isolé, garde alternée, invalidité, ancien combattant, veuvage) suit des règles de plafonnement spécifiques non prises en charge ici : ce résultat est encore plus indicatif que d'habitude.</div>`:''}
-    <div class="ts mt8" style="color:var(--tl);font-style:italic">Basé sur votre CA annualisé actuel (${fmtE(caPrestaAnnuel+caVenteAnnuel)}, moyenne des ${rentRoulante.nbMois} derniers mois). Estimation calculée avec le barème d'impôt le plus récent disponible (2026, sur les revenus 2025) : le barème réellement applicable à ${anneeCible} n'est pas encore connu et pourra évoluer.</div>`;
+    <div class="ts mt8" style="color:var(--tl);font-style:italic">${caModifie?`Basé sur le CA que vous avez saisi (${fmtE(caSimule)})`:`Basé sur votre CA annualisé réel (${fmtE(caReelAnnuel)}, moyenne des ${rentRoulante.nbMois} derniers mois)`}. Estimation calculée avec le barème d'impôt le plus récent disponible (2026, sur les revenus 2025) : le barème réellement applicable à ${anneeCible} n'est pas encore connu et pourra évoluer.</div>`;
     comparaisonHtml=`<div style="border-top:1px solid var(--brd);margin-top:14px;padding-top:14px">
       <div class="card-sub mb8" style="font-weight:700">Est-ce intéressant pour moi ?</div>
+      <div class="alert al-info mb10" style="font-size:11px;line-height:1.5">📋 Ce calcul se base sur votre CA déjà enregistré dans Indépuls (missions + encaissements). Avant de vous y fier, vérifiez que vos missions et encaissements récents sont bien à jour. <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('missions')">→ Vérifier mes missions</span></div>
       <div class="fgroup">
+        <label class="flabel">CA annuel utilisé pour la simulation (€) <span class="info-tip" title="Pré-rempli avec votre CA réel annualisé (moyenne des 12 derniers mois × 12). Modifiez-le si vous voulez tester un autre niveau de CA ; laissez le champ vide pour revenir à votre CA réel.">?</span></label>
+        <input type="number" id="vfl-ca-simule" min="0" step="500" placeholder="${caReelAnnuel}" value="${DATA.params.vflCaSimule>0?DATA.params.vflCaSimule:''}" oninput="saveVFLComparaisonInput()">
+        <div class="ts mt4" style="color:var(--tl)">${caModifie?`Votre CA réel annualisé est de ${fmtE(caReelAnnuel)}.`:`Pré-rempli avec votre CA réel annualisé.`} Laissez vide pour revenir à ce montant automatiquement.</div>
+      </div>
+      <div class="fgroup mt8">
         <label class="flabel">Situation fiscale</label>
         <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
           <label class="tva-regime-opt" id="vfl-si-individuelle"><input type="radio" name="vfl-situation-fiscale" value="individuelle" ${!estCouple?'checked':''} onchange="saveVFLComparaisonInput()"><div><strong>Imposition individuelle</strong><div class="ts mt1">Célibataire, divorcé·e, veuf·ve, ou en concubinage</div></div></label>
@@ -15573,6 +15587,7 @@ function saveVFLEligibiliteInput() {
   if(zone) zone.outerHTML=etsiCardVFLHtml();
 }
 function saveVFLComparaisonInput() {
+  DATA.params.vflCaSimule=parseFloat(document.getElementById('vfl-ca-simule')?.value)||0;
   DATA.params.vflEstCouple=(document.querySelector('input[name="vfl-situation-fiscale"]:checked')?.value==='commune');
   DATA.params.vflAutresRevenus=parseFloat(document.getElementById('vfl-autres-revenus')?.value)||0;
   DATA.params.vflPartsCible=parseFloat(document.getElementById('vfl-parts-cible')?.value)||0;
