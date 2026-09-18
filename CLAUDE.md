@@ -2032,6 +2032,14 @@ Faustine a demandé confirmation explicite que le chantier EI au réel était bi
 
 **Non traité, déjà documenté comme hors mandat** : `wJalonFiscal()` (dashboard, code mort, aucun site d'appel) et le toggle `eurlFiscal` (cosmétique, jamais lu par aucun calcul), signalés à Faustine, pas de lien direct avec l'EI au réel.
 
+### CHORE : nettoyage code mort `wJalonFiscal` et avertissement EURL à l'IR (2026-09-18)
+
+Suite à l'audit de complétude EI au réel ci-dessus, Faustine a tranché sur les deux points restés en suspens.
+
+- **`wJalonFiscal()` supprimée** (Option A retenue directement) : ancienne carte "🧾 Provisions" remplacée depuis par `wProvisionsSide()`/`getEcheancesAVenir()`, mais jamais retirée du code. Confirmé aucun site d'appel dans tout le dépôt avant suppression. Retirée d'`indepuls.html` et `indepuls-demo.html`.
+- **Toggle "Régime fiscal" (EURL à l'IS/IR)** : confirmé cosmétique, `eurlFiscal` n'est lu par aucun calcul (IS et IR donnent exactement les mêmes chiffres). Faustine a écarté la suppression pure du choix : sans lui, une future personne réellement à l'IR n'aurait aucun signal que ses chiffres sont faux. Décision retenue : garder les deux options, afficher un avertissement quand l'IR est sélectionné (`eurl-ir-warning`, sous les deux boutons), avec un lien `mailto:contact@indepuls.fr` pour en discuter au cas par cas. Rien d'autre ne change (les champs rémunération/coût de rémunération restent identiques, puisqu'ils ne dépendaient déjà pas d'IS/IR).
+- Vérifié en direct sur les deux fichiers : bascule IS → IR fait apparaître l'avertissement, IR → IS le masque à nouveau. 277+ tests toujours au vert (aucune fonction de calcul touchée).
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
