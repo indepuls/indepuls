@@ -2224,6 +2224,22 @@ Faustine a signalé que le choix "Si vous passiez à la TVA, vous..." (augmenter
 
 Aucune fonction de `shared/core/calculs.js` modifiée. Vérifié en direct sur les deux fichiers : virgule acceptée et correctement convertie, scénarios prudent/ambitieux strictement proportionnels (-20 %/+20 %), nouveaux libellés et infobulles affichés. 466 tests toujours au vert.
 
+### FIX : clarifier que le CA de simulation VFL est une projection fiscale, pas un doublon (2026-09-19)
+
+Faustine a demandé de préciser explicitement que le champ "CA annuel utilisé pour la simulation" représente le CA sur lequel seraient basés les impôts de l'année simulée, avec ou sans versement libératoire : sans cette précision, le champ pouvait sembler faire doublon avec les missions déjà enregistrées, alors qu'il s'agit d'une projection à part entière (nécessaire pour toute décision fiscale prise par avance sur une année pas encore terminée).
+
+**`indepuls.html` + `indepuls-demo.html`** : libellé du champ renommé "... pour [année simulée]", infobulle et texte d'aide sous le champ enrichis pour expliciter le rôle de projection fiscale (jamais une redite des missions). `ETSI_METH.vfl` mis à jour dans le même sens.
+
+Aucune fonction de `shared/core/calculs.js` modifiée. 466 tests toujours au vert.
+
+### FIX : la virgule décimale disparaissait encore en cours de frappe sur les champs "parts" (2026-09-19, correction du correctif précédent)
+
+Le passage en `type="text"` (entrée ci-dessus) permettait bien de taper une virgule, mais Faustine a testé et confirmé que le problème persistait quand même : la virgule disparaissait aussitôt tapée, avant même de pouvoir taper le chiffre suivant.
+
+**Cause réelle** : `reRenderVFLCard()` régénère le champ à chaque frappe en relisant `DATA.params.vflPartsN2`/`vflPartsCible`, déjà converti en nombre par `parseFrFloat()`. Or `parseFrFloat("4,")` vaut `4` (un nombre entier, sans trace de la virgule) : le champ regénéré affichait donc "4" et non "4,", effaçant la virgule avant même que le chiffre suivant soit tapé.
+
+**Correctif** : `reRenderVFLCard()` capture la valeur brute du champ actuellement en cours de saisie *avant* le `outerHTML`, et la restaure telle quelle après le nouveau rendu, à la place de la valeur régénérée depuis `DATA` (qui reste utilisée pour tous les autres champs). Vérifié en direct sur les deux fichiers : "2,5" et "4,5" restent affichés intégralement pendant la frappe, caractère par caractère, avec la bonne valeur numérique stockée à l'arrivée (`DATA.params.vflPartsCible === 2.5`). 466 tests toujours au vert (aucune fonction de calcul touchée).
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
