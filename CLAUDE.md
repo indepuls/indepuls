@@ -2159,6 +2159,25 @@ Trois scénarios de CA (prudent/prévu/ambitieux), demandés dans le brief initi
 
 Aucune fonction de `shared/core/calculs.js` modifiée. Vérifié en direct sur les deux fichiers (démo : prudent 29 760 €, prévu 44 064 €, ambitieux 61 200 €) : chaque bouton met à jour le champ, le résultat recalculé et le libellé "actif" du bouton correspondant. 335+ tests toujours au vert.
 
+### FEAT : simulateur du versement libératoire, étape 5/5 (2026-09-18, suite), chantier terminé
+
+Dernier volet du brief initial : le point de bascule (CA à partir duquel le versement libératoire devient avantageux) avec un curseur interactif, sur le modèle des autres curseurs de "Et si ?".
+
+**`shared/core/calculs.js`** : `getVFLPointBascule(DATA, ratioPresta, autresRevenusFoyer, parts, estCouple, caMaxRecherche)`. Recherche par dichotomie du CA où `getVFLComparaison(...).difference` change de signe, bornée à `caMaxRecherche` (le plafond du régime micro applicable, transmis par l'appelant : au-delà, le CA ne serait de toute façon plus éligible au régime micro). Repose sur une hypothèse de monotonie (l'écart croît avec le CA) vérifiée par les tests sur des cas réalistes, jamais démontrée pour toutes les combinaisons extrêmes de plafonnement/décote : si l'écart n'est pas positif à `caMaxRecherche`, la fonction renvoie `existe:false` plutôt qu'un résultat non fiable. Piège corrigé en cours de route : une sonde à 1 € pile faisait passer un écart nul (impôt et VFL arrondissent tous deux à 0 à ce niveau) pour "déjà avantageux" par pur artefact d'arrondi ; la sonde est maintenant proportionnelle au plafond recherché (`max(100, caMaxRecherche/1000)`).
+
+**Tests** (`shared/tests/vfl_comparaison.test.js`, 84 tests désormais) : un cas courant avec crossing dans la fenêtre micro (vérifié par recalcul direct du signe juste avant/après le point trouvé), un cas où le VFL est avantageux dès un CA quasi nul (conjoint en tranche à 45 %), une fenêtre de recherche volontairement trop courte pour vérifier `existe:false` plutôt qu'un résultat inventé, et les garde-fous sur `caMaxRecherche` nul ou négatif.
+
+**`indepuls.html` + `indepuls-demo.html`**, dans `etsiCardVFLHtml()` :
+- `plafondRecherche` = `getMicroPlafondInfo().plafond` (déjà existant, prend en compte le prorata d'ouverture) : le point de bascule n'est jamais cherché au-delà de ce qui resterait éligible au régime micro.
+- Phrase affichée : soit le CA de bascule trouvé, soit "avantageux dès le premier euro", soit "jamais avantageux dans la limite du régime micro".
+- Un curseur (`etsi-vfl-slider`) permet d'explorer visuellement autour de ce point : **purement exploratoire**, il ne modifie ni ne sauvegarde le CA simulé de la carte principale (même logique que "rien n'est enregistré" sur le reste de la page "Et si ?"). Contrairement au reste de la carte VFL (qui se re-rend entièrement via `outerHTML` à chaque changement), ce curseur suit le pattern déjà utilisé par les autres cartes "Et si ?" : `etsiRecalc()` met à jour un `<div>` de sortie directement par son id, sans re-rendu complet, pour garder le glisser-déposer fluide. Les paramètres fixes (ratio presta/vente, autres revenus, parts, imposition commune) transitent par des `data-attributes` sur le curseur, puisque `etsiRecalc()` n'a pas accès aux variables locales de `etsiCardVFLHtml()`.
+- `saveVFLComparaisonInput()` appelle désormais aussi `etsiRecalc()` après son `outerHTML`, pour resynchroniser le texte du curseur (recréé à chaque re-rendu de la carte).
+- `ETSI_METH.vfl` mis à jour avec la méthode ci-dessus.
+
+Vérifié en direct sur les deux fichiers : point de bascule affiché et cohérent avec le signe de l'écart recalculé de part et d'autre, curseur qui bascule correctement de rouge à vert au bon endroit, cas "jamais avantageux dans la limite du régime micro" reproduit (couple 2 parts, 0 autre revenu). 466 tests toujours au vert (total sur l'ensemble de la suite).
+
+**Chantier VFL terminé** (étapes 1 à 5) : éligibilité, comparaison avec taux effectif/décote/plafonnement du quotient familial, rappel missions + CA modifiable, scénarios prudent/prévu/ambitieux, point de bascule + curseur exploratoire.
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
