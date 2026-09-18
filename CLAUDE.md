@@ -2178,6 +2178,12 @@ Vérifié en direct sur les deux fichiers : point de bascule affiché et cohére
 
 **Chantier VFL terminé** (étapes 1 à 5) : éligibilité, comparaison avec taux effectif/décote/plafonnement du quotient familial, rappel missions + CA modifiable, scénarios prudent/prévu/ambitieux, point de bascule + curseur exploratoire.
 
+### FIX : flèches natives des champs numériques masquées, app entière (2026-09-18)
+
+Faustine a signalé ne pas pouvoir saisir précisément son RFR dans la carte VFL, seulement des flèches pour monter/descendre. La saisie au clavier a toujours fonctionné : c'est le stepper natif du navigateur (`input[type="number"]`) qui donnait l'impression du contraire, particulièrement trompeur sur un champ à `step="100"` où atteindre 25 000 en cliquant reviendrait à cliquer 250 fois.
+
+**`indepuls.html` + `indepuls-demo.html`**, section `/* === INPUTS === */` du CSS : `input[type="number"]::-webkit-outer-spin-button` et `::-webkit-inner-spin-button` masqués, `appearance:textfield` (+ préfixe `-moz-`) pour Firefox. S'applique à tous les champs numériques de l'app, pas seulement au RFR : aucun n'avait jusqu'ici cette règle. Purement cosmétique, aucune logique de saisie modifiée.
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
