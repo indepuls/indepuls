@@ -2240,6 +2240,16 @@ Le passage en `type="text"` (entrée ci-dessus) permettait bien de taper une vir
 
 **Correctif** : `reRenderVFLCard()` capture la valeur brute du champ actuellement en cours de saisie *avant* le `outerHTML`, et la restaure telle quelle après le nouveau rendu, à la place de la valeur régénérée depuis `DATA` (qui reste utilisée pour tous les autres champs). Vérifié en direct sur les deux fichiers : "2,5" et "4,5" restent affichés intégralement pendant la frappe, caractère par caractère, avec la bonne valeur numérique stockée à l'arrivée (`DATA.params.vflPartsCible === 2.5`). 466 tests toujours au vert (aucune fonction de calcul touchée).
 
+### FIX : le simulateur "Et si ?" ouvert se refermait à chaque navigation ou rechargement (2026-09-19)
+
+Faustine a signalé que la carte "Et si ?" dépliée se refermait dès qu'elle changeait de page ou rechargeait, l'obligeant à la rouvrir en permanence.
+
+**Cause** : `renderEtSiPage()` remettait `_etsiOpenKey` à `null` à chaque appel, y compris lors d'un simple retour sur la page (pas seulement à la première arrivée), et cette variable n'existait qu'en mémoire, donc perdue à chaque F5.
+
+**`indepuls.html` + `indepuls-demo.html`** : `_etsiOpenKey` initialisé depuis `localStorage.getItem('indepuls_etsi_open')` (même pattern que `missionsView` pour la vue Missions) plutôt que remis à zéro à chaque rendu, et persisté à chaque ouverture/fermeture via `etsiOuvrirSimulateur()`/`etsiFermerSimulateur()`. Choix de `localStorage` plutôt que `DATA.params` : c'est un état de navigation propre à l'appareil, pas une donnée métier à synchroniser. Garde-fou : si la clé persistée ne correspond plus à un simulateur disponible (ex. VFL sur un compte redevenu non-micro), elle est ignorée silencieusement au lieu de planter.
+
+Vérifié en direct sur les deux fichiers : simulateur ouvert conservé après navigation vers une autre page puis retour, et après un rechargement complet (F5) ; fermeture manuelle efface bien la persistance. 466 tests toujours au vert (aucune fonction de calcul touchée).
+
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
 
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
