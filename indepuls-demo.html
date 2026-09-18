@@ -15416,7 +15416,7 @@ function etsiCardVFLHtml() {
       <input type="range" id="etsi-vfl-slider" min="0" max="${plafondRecherche}" step="500" value="${sliderInitial}" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)" data-ratio-presta="${ratioPresta}" data-autres-revenus="${autresRevenus}" data-parts="${partsCible}" data-est-couple="${estCouple?1:0}">
       <div class="ts mt4" id="etsi-vfl-slider-out"></div>
     </div>`;
-    const resultatHtml=`<div class="alert ${comp.avantageux?'al-ok':'al-err'} mt10" style="font-size:12px;line-height:1.7">
+    const resultatHtml=`<div class="alert ${comp.avantageux?'al-ok':'al-err'} mt10" style="font-size:12px;line-height:2.1">
       ${comp.avantageux?'🟢':'🔴'} <span><strong>Le versement libératoire serait ${comp.avantageux?'avantageux':'perdant'}</strong> dans cette situation, à ce niveau de CA.<br>
       Sans VFL, impôt du foyer estimé : <strong>${fmtE(comp.irSansVFL)}</strong>.<br>
       Avec VFL : ${fmtE(comp.vflSurCA)} de versement libératoire sur votre CA${comp.irAutresRevenusAvecVFL>0?` + ${fmtE(comp.irAutresRevenusAvecVFL)} d'impôt sur le reste du foyer (taux effectif ${fmt(comp.tauxEffectif*100,1)} %)`:''} = <strong>${fmtE(comp.coutAvecVFL)}</strong>.<br>
