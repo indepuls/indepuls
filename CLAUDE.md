@@ -2145,6 +2145,22 @@ Faustine avait initialement demandé un rappel de vérifier ses dépenses avant 
 
 Aucune fonction de `shared/core/calculs.js` modifiée (uniquement l'interface : le CA utilisé, réel ou simulé, est calculé côté HTML avant d'être passé à `getVFLComparaison`, qui reste inchangée). Vérifié en direct sur les deux fichiers : saisie d'un CA de 60 000 € → recalcul correct de l'écart VFL/barème ; champ vidé → retour exact au CA réel annualisé (44 064 €). 335+ tests toujours au vert.
 
+### FEAT : simulateur du versement libératoire, étape 4/5 (2026-09-18, suite)
+
+Trois scénarios de CA (prudent/prévu/ambitieux), demandés dans le brief initial, ajoutés au champ de CA modifiable de l'étape 3. Aucune saisie nouvelle : les trois valeurs sont dérivées des données déjà enregistrées.
+
+**Méthode retenue** : "Prévu" reste le CA annualisé réel déjà utilisé (moyenne des 12 derniers mois glissants). "Prudent" et "ambitieux" reprennent le mois le plus bas et le plus haut réellement facturés parmi ces mêmes 12 mois glissants, annualisés. Volontairement pas un pourcentage arbitraire (+/-15 % par exemple) : un mois réellement vécu est plus honnête et plus facile à justifier qu'une variation inventée, dans un outil qui manipule déjà beaucoup d'hypothèses fiscales. Ces deux scénarios ne s'affichent qu'à partir de 3 mois d'activité réalisés (message explicite sinon).
+
+**`indepuls.html` + `indepuls-demo.html`**, dans `etsiCardVFLHtml()` :
+- `moisCATotaux` : CA de chaque mois de la fenêtre roulante (`rentRoulante.mks`), splitté presta/vente si activité mixte.
+- `caPrudent`/`caAmbitieux` : min/max de `moisCATotaux`, annualisés.
+- 3 boutons au-dessus du champ de CA simulé (même pattern que les autres boutons à bascule de l'app, `btn btn-xs` + `btn-pri`/`btn-out` selon sélection) : cliquer dessus remplit le champ `vfl-ca-simule` déjà existant (étape 3) avec la valeur du scénario, ou le vide pour "Prévu". Aucune nouvelle logique de calcul : les 3 scénarios réutilisent exactement le même chemin que la saisie manuelle (redistribution presta/vente au même ratio, `getVFLComparaison` inchangée).
+- `ETSI_METH.vfl` mis à jour avec la méthode ci-dessus.
+
+Aucune fonction de `shared/core/calculs.js` modifiée. Vérifié en direct sur les deux fichiers (démo : prudent 29 760 €, prévu 44 064 €, ambitieux 61 200 €) : chaque bouton met à jour le champ, le résultat recalculé et le libellé "actif" du bouton correspondant. 335+ tests toujours au vert.
+
+**Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
+
 **Vérifié en direct** (les deux fichiers, mêmes scénarios) : reproduction exacte du bug signalé (bascule EURL → EI au réel → bloc "Régime fiscal" caché), calculateur d'objectifs (8 283,50 €/mois pour un objectif net de 4 320 €, cohérent avec `getTrajectoireAnnuelleInfo` : 66 268 €/an sur 8 mois actifs), menu "Livre des recettes" masqué, statut inchangé après "Uniquement des produits". 21 tests dédiés + 277+ tests globaux toujours au vert (2 nouveaux tests sur `getRevenuNetMois`).
 
 ## Points d'attention
