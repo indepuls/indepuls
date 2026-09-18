@@ -133,6 +133,7 @@ export const getAbattementMicro       = (caP, caV) => C.getAbattementMicro(DATA,
 export const getRevenuImposableMicro  = (caP, caV) => C.getRevenuImposableMicro(DATA, caP, caV);
 export const getImpotEstimeMicro      = (caP, caV) => C.getImpotEstimeMicro(DATA, caP, caV);
 export const getTauxVFLPourNature     = (nature) => C.getTauxVFLPourNature(DATA, nature);
+export const getVFLEligibilite        = ()       => C.getVFLEligibilite(DATA);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
 
 // ── AFFAIRES ─────────────────────────────────────────────────

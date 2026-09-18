@@ -48,6 +48,13 @@ export const TAUX_VFL = {
   'micro-achat': { presta: 2.2, vente: 1.0 },
 };
 
+// Plafond d'éligibilité au versement libératoire 2026 (source : DGFIP), en euros par part de
+// quotient familial. Condition d'accès : le revenu fiscal de référence (RFR) du foyer de l'année
+// N-2 par rapport à l'année pour laquelle on déclare, divisé par le nombre de parts de cette même
+// année N-2, ne doit pas dépasser ce montant. Distinct du barème de l'impôt (tranches) : c'est une
+// condition d'accès au régime, pas un taux d'imposition.
+export const PLAFOND_VFL_PAR_PART = 29579;
+
 // Plafonds du régime micro 2026 (source : DGFIP)
 // Distincts des seuils de franchise TVA — ne pas confondre.
 //   TVA franchise prestation : 37 500 €  (dans TVA_SEUILS)

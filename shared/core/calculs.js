@@ -8,7 +8,7 @@
 // avec le reste du code existant (ex: getRevenuNetMois(mk) au lieu de
 // calculs.getRevenuNetMois(DATA, mk)).
 
-import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL } from './taux.js';
+import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART } from './taux.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -1274,6 +1274,23 @@ export function getTauxVFLPourNature(DATA, nature) {
   if (isSASU(DATA)) return 0;
   const t = TAUX_VFL[DATA.params.statut] || TAUX_VFL['micro-bnc'];
   return nature === 'vente' ? t.vente : t.presta;
+}
+
+// ── SIMULATEUR VFL : ÉLIGIBILITÉ (chantier 2026-09-18, étape 1/5) ─────────
+// Condition d'accès au VFL, distincte de son intérêt financier (voir CLAUDE.md) : le revenu
+// fiscal de référence (RFR) du foyer de l'année N-2 par rapport à l'année simulée, divisé par le
+// nombre de parts de cette même année N-2, ne doit pas dépasser PLAFOND_VFL_PAR_PART. Saisis par
+// l'utilisatrice (DATA.params.vflRfrN2/vflPartsN2), pas déductibles d'ailleurs dans Indépuls.
+export function getVFLEligibilite(DATA) {
+  const rfr = DATA.params.vflRfrN2 || 0;
+  const parts = DATA.params.vflPartsN2 || 0;
+  if (!(rfr > 0) || !(parts > 0)) {
+    return { renseigne: false, eligible: null, rfr, parts, rfrParPart: 0, plafondParPart: PLAFOND_VFL_PAR_PART, plafondFoyer: 0, marge: 0 };
+  }
+  const rfrParPart = rfr / parts;
+  const eligible = rfrParPart <= PLAFOND_VFL_PAR_PART;
+  const plafondFoyer = PLAFOND_VFL_PAR_PART * parts;
+  return { renseigne: true, eligible, rfr, parts, rfrParPart, plafondParPart: PLAFOND_VFL_PAR_PART, plafondFoyer, marge: plafondFoyer - rfr };
 }
 
 // Impôt estimé. Deux mécanismes distincts (retour Faustine 2026-09-17) :
