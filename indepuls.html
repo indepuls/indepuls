@@ -15618,12 +15618,40 @@ function etsiCardVFLHtml() {
     ${comparaisonHtml}
   </div>`;
 }
+// Un outerHTML=... recrée entièrement le noeud DOM, ce qui fait perdre le focus du champ en cours
+// de saisie (retour Faustine 2026-09-19 : "le curseur s'enlève de la case" après chaque chiffre).
+// On restaure le focus juste après le nouveau rendu, et la position du curseur quand le type de
+// champ le permet (pas type="number", qui ne supporte pas setSelectionRange).
+function reRenderVFLCard() {
+  const active=document.activeElement;
+  const activeId=active&&active.id;
+  const wasNumber=active&&active.type==='number';
+  const selStart=active&&typeof active.selectionStart==='number'?active.selectionStart:null;
+  const selEnd=active&&typeof active.selectionEnd==='number'?active.selectionEnd:null;
+  const zone=document.getElementById('etsi-card-vfl');
+  if(zone) zone.outerHTML=etsiCardVFLHtml();
+  etsiRecalc(); // resynchronise le texte du curseur "point de bascule", recréé par le outerHTML ci-dessus
+  if(activeId){
+    const el=document.getElementById(activeId);
+    if(el){
+      el.focus();
+      if(selStart!==null){
+        try{ el.setSelectionRange(selStart,selEnd); }catch(e){}
+      } else if(wasNumber&&el.type==='number'){
+        // type="number" ne supporte pas setSelectionRange : bascule temporaire en "text" pour
+        // placer le curseur en fin de valeur, sinon le navigateur le remet au tout début, ce qui
+        // inverserait l'ordre des chiffres tapés à la suite (325 devenant 523).
+        try{ el.type='text'; el.setSelectionRange(el.value.length,el.value.length); el.type='number'; }
+        catch(e){ el.type='number'; }
+      }
+    }
+  }
+}
 function saveVFLEligibiliteInput() {
   DATA.params.vflRfrN2=parseFloat(document.getElementById('vfl-rfr-n2')?.value)||0;
   DATA.params.vflPartsN2=parseFloat(document.getElementById('vfl-parts-n2')?.value)||0;
   saveData();
-  const zone=document.getElementById('etsi-card-vfl');
-  if(zone) zone.outerHTML=etsiCardVFLHtml();
+  reRenderVFLCard();
 }
 function saveVFLComparaisonInput() {
   DATA.params.vflCaSimule=parseFloat(document.getElementById('vfl-ca-simule')?.value)||0;
@@ -15632,9 +15660,7 @@ function saveVFLComparaisonInput() {
   DATA.params.vflPartsCible=parseFloat(document.getElementById('vfl-parts-cible')?.value)||0;
   DATA.params.vflSituationParticuliere=!!document.getElementById('vfl-situation-particuliere')?.checked;
   saveData();
-  const zone=document.getElementById('etsi-card-vfl');
-  if(zone) zone.outerHTML=etsiCardVFLHtml();
-  etsiRecalc(); // resynchronise le texte du curseur "point de bascule", recréé par le outerHTML ci-dessus
+  reRenderVFLCard();
 }
 function renderEtSiPage() {
   const zone=document.getElementById('etsi-content');
