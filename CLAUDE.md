@@ -2262,6 +2262,16 @@ Demande Faustine : une alerte pour tous les comptes micro invitant à revérifie
 
 Vérifié en direct sur les deux fichiers (date système du jour de test : 18/19 septembre 2026) : alerte visible pour un compte micro, absente pour un compte non-micro (implicite via `isMicro()`), clic sur le lien ouvre bien la carte VFL de la galerie "Et si ?", masquage permanent confirmé (`DATA.echeancesPayees.vfl_rappel_2027`). 466 tests toujours au vert (aucune fonction de calcul touchée).
 
+### FIX : avertir explicitement quand le CA simulé VFL dépasse le plafond micro (2026-09-19)
+
+Faustine a demandé confirmation que le point de bascule ne peut jamais dépasser le plafond micro (déjà le cas : `getVFLPointBascule` est bornée à `caMaxRecherche = getMicroPlafondInfo().plafond`, ne peut structurellement pas renvoyer plus). Question de suivi : le scénario "ambitieux" (+20 % du CA prévu) peut, lui, dépasser ce même plafond sans qu'aucun garde-fou ne le signale, puisqu'il n'est pas borné comme le point de bascule.
+
+**`indepuls.html` + `indepuls-demo.html`** : deux ajouts, généralisés à n'importe quelle source de CA simulé (bouton scénario ou saisie manuelle), pas seulement "ambitieux" :
+- Un `⚠️` s'ajoute directement sur le libellé de chaque bouton (prudent/prévu/ambitieux) dont le montant dépasse `plafondRecherche` (le plafond déjà calculé pour le point de bascule, propre à l'activité BNC/BIC/vente).
+- Un nouvel avertissement dans le résultat de comparaison si le CA réellement utilisé (`caSimule`, quelle que soit son origine) dépasse ce plafond : au-delà, le compte ne serait de toute façon plus en micro-entreprise, donc plus éligible au VFL, rendant le résultat purement indicatif.
+
+`ETSI_METH.vfl` mis à jour dans le même sens. Aucune fonction de `shared/core/calculs.js` modifiée. Vérifié en direct sur les deux fichiers : CA saisi à 90 000 € (plafond à 55 733 € pour ce compte) déclenche bien l'avertissement. 466 tests toujours au vert.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
