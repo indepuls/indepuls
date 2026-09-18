@@ -8,7 +8,7 @@
 // 3 277 €), repérée manquante lors d'une relecture externe (ChatGPT) du premier jet de ce
 // moteur, vérifiée indépendamment ici avant correction.
 
-import { getImpotBaremeProgressif, getDecoteIR, getImpotAvecPlafonnementQF, getVFLComparaison } from '../core/calculs.js';
+import { getImpotBaremeProgressif, getDecoteIR, getImpotAvecPlafonnementQF, getVFLComparaison, getVFLPointBascule } from '../core/calculs.js';
 
 let passed = 0, failed = 0;
 
@@ -198,6 +198,47 @@ section('getVFLComparaison : hors micro (SASU) → tout à 0, jamais de fuite ve
   const c = getVFLComparaison(D, 40000, 0, 0, 1, false);
   testEq('bénéfice micro = 0 (SASU n\'a pas de bénéfice forfaitaire)', c.beneficeMicro, 0);
   testEq('VFL sur CA = 0 (SASU n\'a pas accès au VFL)', c.vflSurCA, 0);
+}
+
+section('getVFLPointBascule : personne seule, sans autre revenu, micro-bnc (cas courant, crossing attendu dans la fenêtre micro)');
+{
+  const D = mkData({ statut: 'micro-bnc' });
+  const plafondBnc = 83600;
+  const b = getVFLPointBascule(D, 1, 0, 1, false, plafondBnc);
+  testEq('un point de bascule existe dans la limite du plafond micro-bnc', b.existe, true);
+  if (b.existe && b.caBascule > 0) {
+    const avant = getVFLComparaison(D, Math.max(0, b.caBascule - 2000), 0, 0, 1, false);
+    const apres = getVFLComparaison(D, b.caBascule, 0, 0, 1, false);
+    testEq('juste avant le point de bascule, le VFL est désavantageux', avant.avantageux, false);
+    testEq('au point de bascule, le VFL est avantageux (ou à l\'équilibre)', apres.avantageux || apres.difference === 0, true);
+  }
+}
+
+section('getVFLPointBascule : conjoint à très hauts revenus (tranche à 45 %) → VFL avantageux dès un CA quasi nul');
+{
+  const D = mkData({ statut: 'micro-bnc' });
+  const b = getVFLPointBascule(D, 1, 300000, 2, true, 83600);
+  testEq('un point de bascule existe', b.existe, true);
+  testEq('point de bascule quasi nul (sous 1 000 €, avantageux dès un CA symbolique)', b.caBascule < 1000, true);
+  const c = getVFLComparaison(D, 1000, 0, 300000, 2, true);
+  testEq('vérification directe : dès 1 000 € de CA, le VFL est déjà avantageux', c.avantageux, true);
+}
+
+section('getVFLPointBascule : fenêtre de recherche trop courte → aucun point de bascule trouvé (existe:false), jamais un résultat inventé');
+{
+  const D = mkData({ statut: 'micro-bnc' });
+  const caMaxCourt = 3000; // largement sous le CA nécessaire pour dépasser l'abattement + décote
+  const b = getVFLPointBascule(D, 1, 0, 1, false, caMaxCourt);
+  testEq('aucun point de bascule trouvé sous 3 000 € de CA', b.existe, false);
+  const c = getVFLComparaison(D, caMaxCourt, 0, 0, 1, false);
+  testEq('vérification directe : le VFL est toujours désavantageux à ce niveau de CA', c.avantageux, false);
+}
+
+section('getVFLPointBascule : garde-fou, caMaxRecherche nul ou négatif → existe:false sans tenter le calcul');
+{
+  const D = mkData({ statut: 'micro-bnc' });
+  testEq('caMaxRecherche = 0', getVFLPointBascule(D, 1, 0, 1, false, 0).existe, false);
+  testEq('caMaxRecherche négatif', getVFLPointBascule(D, 1, 0, 1, false, -1000).existe, false);
 }
 
 // ── Résumé ────────────────────────────────────────────────────

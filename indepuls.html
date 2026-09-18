@@ -15294,7 +15294,7 @@ const ETSI_METH = {
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
   delegation: `<strong>Données ·</strong> Le temps que vous avez passé sur les catégories cochées, sur les 3 derniers mois (moyenne mensuelle), et votre taux horaire net réel (revenu net ÷ heures, sur vos 12 derniers mois glissants — le même "TH réel net" qu'ailleurs).<br><strong>Calcul ·</strong> Budget = heures/mois libérées × taux horaire NET. On prend le net (ce que vous gardez vraiment) et pas le brut (ce que vous facturez), parce que le budget est une dépense réelle : la facture du prestataire. C'est un plafond à coût neutre, jusqu'auquel déléguer ne vous coûte rien si vous revendez le temps libéré.<br><strong>Garde-fou ·</strong> Ce budget ne se réalise que si vous revendez réellement le temps gagné. En dessous de 80 % de remplissage, on vous prévient : libérer du temps ne crée pas de CA tant que votre agenda facturable n'est pas plein. Si votre calendrier n'est pas renseigné, on affiche quand même le budget mais on ne peut pas vérifier votre saturation.`,
   statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> Micro : CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut — le même calcul que "Combien facturer ?". Micro avec TVA : dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total" — si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses — réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur le montant réel de vos dépenses (la case "TVA déductible" n'existe pas encore sur un compte sans TVA). EI au réel : (CA − dépenses) − cotisations sociales − impôt, les deux calculés directement sur ce bénéfice (CA moins dépenses), sans aucun abattement contrairement à la micro, avec le taux de cotisations et le TMI pris depuis Paramètres › Fiscalité. EURL/SASU : (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire — 45 % EURL, 82 % SASU) — ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><strong>Estimation indicative</strong> à CA et dépenses constants — ne modélise pas dividendes, IS réel, ni protection sociale, ni régularisation N+1 des cotisations TNS.`,
-  vfl: `<strong>1. Éligibilité</strong><br><strong>Données ·</strong> Le revenu fiscal de référence (RFR) et le nombre de parts fiscales que vous saisissez, tous deux relatifs à l'année N-2 par rapport à l'année pour laquelle l'éligibilité est vérifiée.<br><strong>Calcul ·</strong> RFR ÷ nombre de parts = RFR par part. Éligible si ce montant ne dépasse pas le plafond légal par part (29 579 € en 2026).<br><br><strong>2. Intérêt financier</strong><br><strong>Données ·</strong> Votre CA annualisé réel (moyenne des 12 derniers mois), votre situation fiscale (imposition individuelle ou commune), les autres revenus nets imposables de votre foyer et le nombre de parts pour l'année simulée.<br><strong>Calcul ·</strong> Mécanisme du "taux effectif" (source DGFIP/BOFiP) : sous versement libératoire, votre bénéfice micro (après abattement) n'est pas réimposé au barème, mais reste intégré au revenu du foyer pour déterminer le taux moyen appliqué aux AUTRES revenus. Indépuls calcule donc l'impôt du foyer entier avec et sans versement libératoire (barème progressif, quotient familial, plafonnement du quotient familial pour les enfants à charge classique, puis décote), jamais une comparaison isolée du seul bénéfice micro contre le seul CA.<br><strong>Scénarios prudent/prévu/ambitieux ·</strong> "Prévu" est votre CA annualisé réel. "Prudent" et "ambitieux" reprennent le mois le plus bas et le plus haut réellement facturés parmi ces mêmes 12 mois glissants, annualisés : des niveaux de CA que vous avez déjà atteints, jamais un pourcentage arbitraire. Vous pouvez aussi saisir n'importe quel autre montant à la main. Disponibles à partir de 3 mois d'activité réalisés.<br><strong>Limites ·</strong> Estimation basée sur le barème le plus récent disponible, pas nécessairement celui de l'année simulée. Les situations de parent isolé, garde alternée, invalidité, ancien combattant ou veuvage ne sont pas prises en charge précisément (plafonds spécifiques différents) : si vous cochez "situation particulière", le résultat reste indicatif mais moins fiable.`,
+  vfl: `<strong>1. Éligibilité</strong><br><strong>Données ·</strong> Le revenu fiscal de référence (RFR) et le nombre de parts fiscales que vous saisissez, tous deux relatifs à l'année N-2 par rapport à l'année pour laquelle l'éligibilité est vérifiée.<br><strong>Calcul ·</strong> RFR ÷ nombre de parts = RFR par part. Éligible si ce montant ne dépasse pas le plafond légal par part (29 579 € en 2026).<br><br><strong>2. Intérêt financier</strong><br><strong>Données ·</strong> Votre CA annualisé réel (moyenne des 12 derniers mois), votre situation fiscale (imposition individuelle ou commune), les autres revenus nets imposables de votre foyer et le nombre de parts pour l'année simulée.<br><strong>Calcul ·</strong> Mécanisme du "taux effectif" (source DGFIP/BOFiP) : sous versement libératoire, votre bénéfice micro (après abattement) n'est pas réimposé au barème, mais reste intégré au revenu du foyer pour déterminer le taux moyen appliqué aux AUTRES revenus. Indépuls calcule donc l'impôt du foyer entier avec et sans versement libératoire (barème progressif, quotient familial, plafonnement du quotient familial pour les enfants à charge classique, puis décote), jamais une comparaison isolée du seul bénéfice micro contre le seul CA.<br><strong>Scénarios prudent/prévu/ambitieux ·</strong> "Prévu" est votre CA annualisé réel. "Prudent" et "ambitieux" reprennent le mois le plus bas et le plus haut réellement facturés parmi ces mêmes 12 mois glissants, annualisés : des niveaux de CA que vous avez déjà atteints, jamais un pourcentage arbitraire. Vous pouvez aussi saisir n'importe quel autre montant à la main. Disponibles à partir de 3 mois d'activité réalisés.<br><strong>Point de bascule ·</strong> À situation fiscale fixée (autres revenus, parts, imposition commune), Indépuls recherche le CA à partir duquel le versement libératoire devient avantageux, dans la limite du plafond du régime micro. Le curseur qui l'accompagne est purement exploratoire : il ne modifie ni ne sauvegarde votre simulation principale.<br><strong>Limites ·</strong> Estimation basée sur le barème le plus récent disponible, pas nécessairement celui de l'année simulée. Les situations de parent isolé, garde alternée, invalidité, ancien combattant ou veuvage ne sont pas prises en charge précisément (plafonds spécifiques différents) : si vous cochez "situation particulière", le résultat reste indicatif mais moins fiable.`,
 };
 // Lien contextuel depuis le dashboard vers une carte "Et si ?" précise (retour Faustine
 // 2026-08-01 : relier une alerte à la simulation qui répond directement à ce qu'elle soulève,
@@ -15525,6 +15525,23 @@ function etsiCardVFLHtml() {
     const partsCible=DATA.params.vflPartsCible||DATA.params.vflPartsN2||1;
     const autresRevenus=DATA.params.vflAutresRevenus||0;
     const comp=getVFLComparaison(caPrestaUtilise,caVenteUtilise,autresRevenus,partsCible,estCouple);
+    // Point de bascule (étape 5, 2026-09-18) : CA à partir duquel le VFL devient avantageux, à
+    // situation fiscale fixée. Recherché dans la limite du plafond micro applicable (au-delà, ce
+    // CA ne serait de toute façon plus éligible au régime micro).
+    const microInfo=getMicroPlafondInfo();
+    const plafondRecherche=(microInfo&&microInfo.plafond>0)?microInfo.plafond:83600;
+    const bascule=getVFLPointBascule(ratioPresta,autresRevenus,partsCible,estCouple,plafondRecherche);
+    const basculeHtml=bascule.existe
+      ?(bascule.caBascule<=0
+        ?`🟢 Dans votre situation, le versement libératoire est avantageux dès le premier euro de CA facturé.`
+        :`📍 Dans votre situation, le versement libératoire devient avantageux à partir de <strong>${fmtE(bascule.caBascule)}</strong> de CA annuel.`)
+      :`Dans votre situation, le versement libératoire ne devient pas avantageux dans la limite du régime micro (jusqu'à ${fmtE(plafondRecherche)} de CA).`;
+    const sliderInitial=bascule.existe?bascule.caBascule:Math.round(plafondRecherche/2);
+    const basculeSliderHtml=`<div class="fgroup mt10">
+      <label class="flabel">Explorer autour du point de bascule <span class="info-tip" title="Ce curseur est purement exploratoire : il ne modifie ni ne sauvegarde le CA simulé ci-dessus.">?</span></label>
+      <input type="range" id="etsi-vfl-slider" min="0" max="${plafondRecherche}" step="500" value="${sliderInitial}" oninput="etsiRecalc()" style="width:100%;accent-color:var(--pri)" data-ratio-presta="${ratioPresta}" data-autres-revenus="${autresRevenus}" data-parts="${partsCible}" data-est-couple="${estCouple?1:0}">
+      <div class="ts mt4" id="etsi-vfl-slider-out"></div>
+    </div>`;
     const resultatHtml=`<div class="alert ${comp.avantageux?'al-ok':'al-err'} mt10" style="font-size:12px;line-height:1.7">
       ${comp.avantageux?'🟢':'🔴'} <strong>Le versement libératoire serait ${comp.avantageux?'avantageux':'perdant'}</strong> dans cette situation, à ce niveau de CA.<br>
       Sans VFL, impôt du foyer estimé : <strong>${fmtE(comp.irSansVFL)}</strong>.<br>
@@ -15571,6 +15588,11 @@ function etsiCardVFLHtml() {
         <span class="info-tip" title="Parent isolé, garde alternée, invalidité, carte d'ancien combattant, ou veuvage avec personne à charge. Ces situations ont des règles de plafonnement du quotient familial différentes, non prises en charge ici.">?</span>
       </div>
       <div id="vfl-comparaison-result">${resultatHtml}</div>
+      <div style="border-top:1px solid var(--brd);margin-top:14px;padding-top:14px">
+        <div class="card-sub mb8" style="font-weight:700">🎯 Point de bascule</div>
+        <div class="ts" style="color:var(--tl)">${basculeHtml}</div>
+        ${basculeSliderHtml}
+      </div>
     </div>`;
   }
 
@@ -15607,6 +15629,7 @@ function saveVFLComparaisonInput() {
   saveData();
   const zone=document.getElementById('etsi-card-vfl');
   if(zone) zone.outerHTML=etsiCardVFLHtml();
+  etsiRecalc(); // resynchronise le texte du curseur "point de bascule", recréé par le outerHTML ci-dessus
 }
 function renderEtSiPage() {
   const zone=document.getElementById('etsi-content');
@@ -15774,6 +15797,23 @@ function etsiRecalc() {
         interpEl.innerHTML=poidsPct>0?`→ <strong>${sur10} € sur 10</strong> de votre CA dépend actuellement de ${esc(m.client)}.`:'';
       }
     }
+  }
+
+  // Curseur "point de bascule" VFL (étape 5, 2026-09-18) : purement exploratoire, ne modifie ni
+  // ne sauvegarde le CA simulé de la carte principale (même logique que les autres curseurs "Et
+  // si ?", rien n'est enregistré). Les paramètres fixes (ratio presta/vente, autres revenus,
+  // parts, imposition commune) transitent par des data-attributes plutôt que par une variable
+  // partagée : etsiRecalc() n'a pas accès aux variables locales de etsiCardVFLHtml().
+  const vflSliderEl=document.getElementById('etsi-vfl-slider');
+  if(vflSliderEl){
+    const caTotal=parseFloat(vflSliderEl.value)||0;
+    const ratioPresta=parseFloat(vflSliderEl.dataset.ratioPresta)||0;
+    const autresRevenus=parseFloat(vflSliderEl.dataset.autresRevenus)||0;
+    const parts=parseFloat(vflSliderEl.dataset.parts)||1;
+    const estCouple=vflSliderEl.dataset.estCouple==='1';
+    const caPresta=Math.round(caTotal*ratioPresta), caVente=Math.round(caTotal*(1-ratioPresta));
+    const c=getVFLComparaison(caPresta,caVente,autresRevenus,parts,estCouple);
+    document.getElementById('etsi-vfl-slider-out').innerHTML=`À <strong>${fmtE(caTotal)}</strong> de CA : écart de <strong>${c.difference>=0?'+':''}${fmtE(c.difference)}/an</strong> ${c.avantageux?'<span style="color:var(--ok)">🟢 en faveur du versement libératoire</span>':'<span style="color:var(--err)">🔴 en faveur du barème classique</span>'}.`;
   }
 }
 
@@ -16171,6 +16211,7 @@ document.addEventListener('keydown', function(e) {
   window.getTauxVFLPourNature      = (nature) => { sync(); return Mode.getTauxVFLPourNature(nature); };
   window.getVFLEligibilite         = ()       => { sync(); return Mode.getVFLEligibilite(); };
   window.getVFLComparaison         = (caPresta,caVente,autresRevenusFoyer,parts,estCouple) => { sync(); return Mode.getVFLComparaison(caPresta,caVente,autresRevenusFoyer,parts,estCouple); };
+  window.getVFLPointBascule        = (ratioPresta,autresRevenusFoyer,parts,estCouple,caMaxRecherche) => { sync(); return Mode.getVFLPointBascule(ratioPresta,autresRevenusFoyer,parts,estCouple,caMaxRecherche); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
   window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
   window.getTauxRemplissageMois    = (mk)        => { sync(); return Mode.getTauxRemplissageMois(mk); };

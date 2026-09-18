@@ -1403,6 +1403,35 @@ export function getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, p
   };
 }
 
+// Point de bascule (étape 5, 2026-09-18) : le CA total annuel à partir duquel le versement
+// libératoire devient avantageux, situation fiscale fixée (autres revenus, parts, imposition
+// commune ou non). Recherche par dichotomie de l'écart getVFLComparaison(...).difference, borné
+// à [1, caMaxRecherche] (le plafond micro applicable, transmis par l'appelant : au-delà, le CA
+// ne serait de toute façon plus éligible au régime micro, donc chercher plus loin n'aurait pas
+// de sens). Repose sur une hypothèse de monotonie (l'écart croît avec le CA, jamais démontrée
+// mathématiquement pour toutes les combinaisons extrêmes de plafonnement/décote, mais vérifiée
+// par les tests sur les cas réalistes) : si l'écart n'est pas déjà positif à caMaxRecherche,
+// aucun point de bascule n'est trouvé dans la fenêtre de recherche (existe:false), plutôt que de
+// renvoyer un résultat non fiable.
+export function getVFLPointBascule(DATA, ratioPresta, autresRevenusFoyer, parts, estCouple, caMaxRecherche) {
+  if (!(caMaxRecherche > 0)) return { existe: false };
+  const ecartAt = (caTotal) => {
+    const caPresta = Math.round(caTotal * ratioPresta), caVente = Math.round(caTotal * (1 - ratioPresta));
+    return getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts, estCouple).difference;
+  };
+  if (ecartAt(caMaxRecherche) < 0) return { existe: false };
+  // Sonde à un CA symbolique (jamais 1 € pile : à ce niveau, VFL et impôt arrondissent tous les
+  // deux à 0, ce qui ferait passer un écart nul pour "déjà avantageux" par pur artefact d'arrondi).
+  const probe = Math.max(100, caMaxRecherche / 1000);
+  if (ecartAt(probe) >= 0) return { existe: true, caBascule: 0 };
+  let lo = probe, hi = caMaxRecherche;
+  for (let i = 0; i < 50; i++) {
+    const mid = (lo + hi) / 2;
+    if (ecartAt(mid) < 0) lo = mid; else hi = mid;
+  }
+  return { existe: true, caBascule: Math.round(hi) };
+}
+
 // Impôt estimé. Deux mécanismes distincts (retour Faustine 2026-09-17) :
 // - Versement libératoire : taux fixe légal (TAUX_VFL) directement sur le CA BRUT, sans
 //   abattement forfaitaire (l'abattement ne s'applique qu'au barème classique).

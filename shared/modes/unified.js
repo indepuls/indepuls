@@ -138,6 +138,7 @@ export const getImpotBaremeProgressif = (revenuImposable, parts) => C.getImpotBa
 export const getDecoteIR              = (impotBrut, estCouple) => C.getDecoteIR(impotBrut, estCouple);
 export const getImpotAvecPlafonnementQF = (revenuImposable, parts, estCouple) => C.getImpotAvecPlafonnementQF(revenuImposable, parts, estCouple);
 export const getVFLComparaison        = (caPresta, caVente, autresRevenusFoyer, parts, estCouple) => C.getVFLComparaison(DATA, caPresta, caVente, autresRevenusFoyer, parts, estCouple);
+export const getVFLPointBascule       = (ratioPresta, autresRevenusFoyer, parts, estCouple, caMaxRecherche) => C.getVFLPointBascule(DATA, ratioPresta, autresRevenusFoyer, parts, estCouple, caMaxRecherche);
 export const getMicroPlafondInfo      = ()         => C.getMicroPlafondInfo(DATA);
 
 // ── AFFAIRES ─────────────────────────────────────────────────
