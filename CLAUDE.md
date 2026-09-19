@@ -2308,6 +2308,14 @@ En repoussant le push du chantier précédent (verrouillage des simulateurs en d
 
 Vérifié en direct sur les deux fichiers, les 3 scénarios distincts : (1) démo anonyme (`isExample:true`, pas de `_ownerUid`) → verrouillé ; (2) nouvel abonné réel en onboarding (`isExample:true` ET `_ownerUid` posé) → accès complet, "Créer un devis" ouvre bien le vrai générateur ; (3) compte réel établi (`isExample:false`) → accès complet. 466 tests toujours au vert (aucune fonction de calcul touchée).
 
+### FEAT : lien vers le simulateur VFL depuis le toggle "versement fiscal libératoire" (2026-09-19)
+
+Demande Faustine : quelqu'un hésitant à cocher "Je suis au versement fiscal libératoire" dans Paramètres devrait pouvoir être renvoyé vers le simulateur "Et si ?" dédié plutôt que de devoir le retrouver seul dans le menu.
+
+**`indepuls.html` + `indepuls-demo.html`** : un lien "Besoin d'aide pour choisir ? → Simuler avec le versement libératoire" ajouté juste sous le toggle (`#vfl-help-link`), visible dans les mêmes conditions que le toggle lui-même (`isMicro()`, géré dans `renderVFLDetail()`), qu'il soit coché ou non. Utilise `irVersEtSi('vfl')`, déjà existant. Respecte naturellement le verrouillage démo mis en place juste avant (`isVraiDemoAnonyme()`, testé) : verrouillé pour la démo anonyme, ouvert pour un vrai compte.
+
+Vérifié en direct sur les deux fichiers. Aucune fonction de `shared/core/calculs.js` modifiée. 466 tests toujours au vert.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
