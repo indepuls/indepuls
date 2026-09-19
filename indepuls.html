@@ -1172,6 +1172,7 @@ html,body{overflow-x:hidden;}
           <span style="font-weight:600">Je suis au versement fiscal libératoire</span>
           <span class="info-tip" title="Option du régime micro-entreprise : vous payez un taux fixe légal directement sur votre CA à chaque déclaration Urssaf (1 % vente, 1,7 % BIC service, 2,2 % BNC), sans abattement, au lieu de l'impôt calculé en fin d'année sur le barème progressif. Non disponible en SASU/EURL. Indépuls ne vérifie pas votre éligibilité (revenu fiscal de référence du foyer) ni les dates de bascule : renseignez-vous auprès de l'Urssaf.">?</span>
         </div>
+        <div class="ts mb16" id="vfl-help-link" style="display:none;color:var(--tl)">Besoin d'aide pour choisir ? <span class="step-cta" onclick="irVersEtSi('vfl')">→ Simuler avec le versement libératoire</span></div>
         <div class="ts mb16" id="vfl-detail" style="display:none;color:var(--tl);line-height:1.5"></div>
         <div class="fgroup" id="tmi-field">
           <label class="flabel"><span id="tmi-label">Taux d'impôt estimé ou versement libératoire (%, facultatif)</span> <span class="info-tip" id="tmi-info-tip" title="">?</span></label>
@@ -11710,6 +11711,8 @@ function renderVFLDetail() {
   const toggleRow=document.getElementById('vfl-toggle-row');
   const micro=isMicro();
   if(toggleRow) toggleRow.style.display=micro?'':'none';
+  const helpLink=document.getElementById('vfl-help-link');
+  if(helpLink) helpLink.style.display=micro?'':'none';
   const on=micro&&!!DATA.params.versementLiberatoire;
   const vflSw=document.getElementById('p-vfl-sw');
   if(vflSw) vflSw.checked=on;
