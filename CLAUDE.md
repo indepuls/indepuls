@@ -2372,6 +2372,20 @@ Demande Faustine : la carte tournait uniquement à CA et dépenses réels consta
 
 Vérifié en direct : baisse/hausse du CA et ajout d'une dépense ponctuelle recalculent bien les 5 colonnes en temps réel, le champ CA revient au réel une fois vidé, la frappe au clavier ne perd ni le focus ni les caractères déjà tapés.
 
+### FEAT : alerte dashboard "passer à l'EI au réel" quand les dépenses pèsent lourd (2026-09-19)
+
+Demande Faustine : détecter quand les dépenses réelles pèsent assez pour qu'un compte micro ait intérêt à envisager l'EI au réel, et le signaler proactivement sur le tableau de bord plutôt que d'attendre que la personne pense à consulter "Et si je changeais de statut ?". Toujours formulé "à creuser avec un comptable", jamais "changez de statut".
+
+**Calcul** : réutilise `getComparateurStatuts()` (le même que la carte "Et si ?", jamais une approximation séparée par pourcentage de charges, qui risquerait de diverger du calcul réel affiché ailleurs). Comparaison entre la valeur actuelle (`microAvecTVA` ou `microSansTVA` selon `DATA.params.tva`) et `eiReel`, sur la moyenne roulante réelle (`getRentabiliteRoulante()`), jamais sur les CA/dépenses simulés de la carte "Et si ?" (`statutCaSimule`/`statutDepensePonctuelle`, propres à cette carte).
+
+**Seuil de déclenchement** : volontairement haut, `max(150 €/mois, 15 % de la valeur actuelle)`. La carte elle-même considère un écart de moins de 5 €/mois comme négligeable, mais ce seuil convient à une simulation qu'on consulte volontairement, pas à une alerte non sollicitée, qui doit rester rare pour garder sa valeur. Nécessite aussi au moins 3 mois de recul (`rentRoulante.nbMois>=3`) pour ne pas alerter sur un tout nouveau compte aux données encore trop parcellaires.
+
+**Masquage à deux vitesses** (retour Faustine : le masquage 15 jours de l'alerte de dépendance client ferait "harcèlement" ici, une situation financière stable ne se résout pas en 2 semaines comme un nouveau client signé) :
+- "🔕 Dans un mois" : snooze 30 jours, même mécanique que `DATA.alertsDismissed` mais avec une fenêtre propre à cette alerte (`DATA.alertsDismissed.statutEiReel`), pour quelqu'un qui n'a pas encore tranché.
+- "Ne plus jamais afficher" : nouveau flag permanent `DATA.alerteStatutEiReelDesactivee`, pour quelqu'un qui a déjà décidé. Si le compte finit par réellement changer de statut, l'alerte s'éteint d'elle-même (`isMicro()` devient faux) : le flag permanent n'a jamais besoin d'être réinitialisé.
+
+Ajoutée dans `wScoreSante()` (juste après le rappel annuel VFL), identique sur `indepuls.html` et `indepuls-demo.html`. Logique 100 % HTML (pas de nouvelle fonction `shared/core`, `getComparateurStatuts` déjà couvert par ses propres tests), vérifiée en direct : déclenchement avec une grosse dépense fictive (+636 €/mois annoncés), absence pour un statut non-micro, snooze 30 jours (réapparition confirmée après simulation du délai), et désactivation permanente (persistée en compte réel, correctement non persistée en démo anonyme comme prévu).
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
