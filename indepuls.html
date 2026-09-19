@@ -688,8 +688,8 @@ html,body{overflow-x:hidden;}
   <div class="nav-item" onclick="navigate('depenses')"><span class="nav-icon">🧾</span> Dépenses</div>
   <div class="nav-section">Outils</div>
   <div class="nav-item" id="nav-simulateur" onclick="navigate('simulateur')"><span class="nav-icon">🧮</span> <span id="nav-simulateur-label">Combien facturer ?</span></div>
-  <div class="nav-item" onclick="navigate('etsi')"><span class="nav-icon">🔮</span> Et si ?</div>
-  <div class="nav-item" onclick="ouvrirGenerateurDevisVierge()"><span class="nav-icon">📄</span> Créer un devis</div>
+  <div class="nav-item" id="nav-etsi" onclick="navigate('etsi')"><span class="nav-icon">🔮</span> Et si ?</div>
+  <div class="nav-item" id="nav-devis" onclick="ouvrirGenerateurDevisVierge()"><span class="nav-icon">📄</span> Créer un devis</div>
   <div class="nav-item nav-locked" id="nav-recettes" onclick="navRecettesClick()" title="À activer dans Paramètres > Fiscalité &amp; charges"><span class="nav-icon">📒</span> Livre des recettes <span style="font-size:11px;opacity:.7">🔒</span></div>
   <div class="nav-item" id="nav-retours" onclick="navigate('retours')" style="display:none"><span class="nav-icon">↩️</span> Retours clients</div>
   <div class="nav-section">Paramètres</div>
@@ -2851,6 +2851,19 @@ html,body{overflow-x:hidden;}
     <div class="modal-body" id="etsi-meth-body" style="padding-top:4px;font-size:12px;color:var(--tl);line-height:1.6"></div>
   </div>
 </div>
+<div class="modal-ov hidden" id="modal-locked-demo" onclick="if(event.target===this)closeModal('modal-locked-demo')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <div class="modal-title">🔒 Réservé aux abonné·es</div>
+      <button class="modal-close" onclick="closeModal('modal-locked-demo')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:4px;font-size:13px;color:var(--tl);line-height:1.6">
+      <p>« <strong id="locked-demo-feature" style="color:var(--text)"></strong> » fait partie de l'abonnement Indépuls. Vous pouvez explorer librement le reste de la démo (missions, revenus, dépenses, paramètres...) pour vous familiariser avec l'outil.</p>
+      <p>Les inscriptions payantes ouvrent bientôt : rejoignez la liste d'attente pour garantir votre place au tarif de lancement.</p>
+      <a href="https://indepuls.fr/tarifs/" target="_blank" rel="noopener" class="btn btn-acc" style="display:block;text-align:center;margin-top:14px">Rejoindre la liste d'attente →</a>
+    </div>
+  </div>
+</div>
 <div class="modal-ov hidden" id="modal-pilier" onclick="if(event.target===this)closeModal('modal-pilier')">
   <div class="modal" style="max-width:500px">
     <div class="modal-head">
@@ -4399,6 +4412,14 @@ function updateDemoUI() {
       ctxBar.innerHTML = '';
     }
   }
+  // Verrouillage des simulateurs en démo (retour Faustine 2026-09-19) : Combien facturer, Et si ?
+  // et Créer un devis restent visibles mais grisés, pour un effet "teaser" plutôt qu'un accès
+  // complet qui n'incite pas à s'inscrire. Le reste (missions, revenus, dépenses, paramètres...)
+  // reste librement utilisable pour se familiariser avec l'outil.
+  ['nav-simulateur','nav-etsi','nav-devis'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('nav-locked', !!DATA.isExample);
+  });
 }
 
 function renderDemoContextBar(page) {
@@ -5254,7 +5275,20 @@ function updateNavRetours() {
   if (!el) return;
   el.style.display = DATA.params.modules?.objectif === 'marge_commande' ? '' : 'none';
 }
+// Verrouillage des simulateurs en démo (retour Faustine 2026-09-19) : "Combien facturer ?", "Et
+// si ?" et "Créer un devis" (le savoir-faire de calcul, le vrai différenciant du produit) restent
+// visibles mais inaccessibles en mode démo, pour un effet teaser plutôt qu'un accès complet qui
+// n'incite pas à s'inscrire. Le reste de l'app (missions, revenus, dépenses, paramètres...) reste
+// librement utilisable : c'est la gestion au quotidien, pas le calcul, qui se découvre sans risque.
+function openLockedDemoModal(feature) {
+  document.getElementById('locked-demo-feature').textContent = feature;
+  openModal('modal-locked-demo');
+}
 function navigate(page) {
+  if (DATA.isExample && (page === 'simulateur' || page === 'etsi')) {
+    openLockedDemoModal(page === 'simulateur' ? 'Combien facturer ?' : 'Et si ?');
+    return;
+  }
   if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -12056,6 +12090,9 @@ function _devisFormToDoc() {
   };
 }
 function ouvrirGenerateurDevis(prefill = {}, brouillon = null, opts = {}) {
+  // Verrouillé en démo (voir openLockedDemoModal) : chokepoint unique, tous les points d'entrée
+  // (nav, mission, "Combien facturer ?", duplication/avenant d'un devis existant) y passent.
+  if (DATA.isExample) { openLockedDemoModal('Créer un devis'); return; }
   // Mode avenant (étape 4) : chaque point d'entrée le fixe via opts, donc il est TOUJOURS remis à
   // plat ici (pas d'état résiduel d'une ouverture précédente). Doit être défini avant renderLignesDevis.
   _devisModeAvenant = !!opts.avenant;
