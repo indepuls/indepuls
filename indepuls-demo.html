@@ -1024,6 +1024,18 @@ html,body{overflow-x:hidden;}
           </div>
         </div>
       </div>
+      <div class="card mt16">
+        <div class="card-title mb4">Avis clients</div>
+        <div class="ts mb12" style="color:var(--tl)">Optionnel, utilisé pour pré-remplir le message proposé quand vous passez une mission ponctuelle en "Facturé". Rien n'est envoyé automatiquement, ni suivi.</div>
+        <div class="fgroup">
+          <label class="flabel">Vos liens d'avis (Google, Trustpilot...) <span class="info-tip" title="Un lien par ligne, avec le nom de la plateforme si vous le souhaitez (ex. « Google : https://... »). Laissez vide si vous n'avez pas encore de page d'avis, un message de repli sera utilisé à la place.">?</span></label>
+          <textarea id="p-avis-liens" rows="2" placeholder="Ex : Google : https://g.page/r/...&#10;Trustpilot : https://trustpilot.com/..." style="width:100%;resize:vertical" oninput="saveParam('avisLiens',this.value)"></textarea>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Message personnalisé (optionnel) <span class="info-tip" title="Laissez vide pour utiliser le message par défaut d'Indépuls. Si vous rédigez le vôtre, utilisez {client} à l'endroit où insérer le nom du client, vous pourrez toujours ajuster le texte au moment de l'envoi.">?</span></label>
+          <textarea id="p-avis-message" rows="4" placeholder="Ex : Bonjour {client}, merci pour votre confiance..." style="width:100%;resize:vertical" oninput="saveParam('avisMessageTemplate',this.value)"></textarea>
+        </div>
+      </div>
     </div>
 
     <!-- FISCALITÉ & CHARGES -->
@@ -2598,6 +2610,25 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL DEMANDE D'AVIS (2026-09-14, nudge ponctuel et jetable, pas de tracking, voir CLAUDE.md) -->
+<div class="modal-ov hidden" id="modal-avis">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title mb4" id="avis-modal-title">Demander un avis ?</div>
+    <div class="ts mb12" style="color:var(--tl)">Un message tout prêt, à copier ou envoyer par mail si vous le souhaitez. Rien n'est suivi ni renvoyé automatiquement.</div>
+    <div class="fgroup">
+      <label class="flabel">Message</label>
+      <textarea id="avis-message" rows="7" style="width:100%;resize:vertical"></textarea>
+    </div>
+    <div class="modal-foot" style="flex-direction:column;gap:8px">
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="btn btn-out" style="flex:1;justify-content:center" onclick="copierMessageAvis()">📋 Copier le message</button>
+        <button class="btn btn-acc" style="flex:1;justify-content:center" onclick="ouvrirMailtoAvis()">✉️ Ouvrir dans mon email</button>
+      </div>
+      <button class="btn" style="width:100%;justify-content:center;color:var(--tl);background:transparent;border:none" onclick="closeModal('modal-avis')">Non merci</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL IMPORT INVALIDE -->
 <div class="modal-ov hidden" id="modal-import-error">
   <div class="modal">
@@ -3141,6 +3172,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-09-14', titre:'Une fois une mission ponctuelle passée en "Facturé", Indépuls vous propose un message prêt à l\'emploi pour demander un avis à votre client, à copier ou envoyer directement par email, toujours modifiable avant l\'envoi. Personnalisez vos liens d\'avis (Google, Trustpilot...) et votre propre message dans Paramètres > Mon activité.', icon:'⭐', merci:null },
   { date:'2026-08-14', titre:'Dans la barre latérale, le chrono devient un vrai sélecteur : choisissez une mission (ou "Mon entreprise"), puis cliquez sur Démarrer. Cochez "Toutes mes missions" pour retrouver aussi celles déjà facturées ou pas encore validées.', icon:'▶️', merci:'Merci à Orianne pour l\'avoir signalé en testant en direct 🙏' },
   { date:'2026-08-14', titre:'Sur la fiche mission, un nouvel historique mensuel (dépliable) affiche, pour une mission récurrente, le temps réel et le temps prévu mois par mois depuis le début du contrat, consultable à tout moment, même une fois la mission terminée.', icon:'📆', merci:null },
   { date:'2026-08-14', titre:'Sur la fiche mission, le champ "Temps réservé" (anciennement "Temps planifié estimatif") se distingue enfin de "Temps total estimé" juste en dessous : le premier sert à votre taux de remplissage, le second à comparer prévu et réel, une phrase l\'explique directement sous le champ.', icon:'💡', merci:'Merci aux bêta-testeuses OBM, qui ont buté sur la distinction en testant en direct 🙏' },
@@ -4464,6 +4496,9 @@ function getDefaultData() {
       acreActif:false, acreDateDebut:'', acreDateFin:'',
       // Plusieurs dirigeants (2026-09-08) : purement cosmétique (vocabulaire), voir toggleDirigeants().
       plusieursDirigeants:false,
+      // Demande d'avis (2026-09-14) : voir genererMessageAvis()/maybeProposerAvis(). Aucun des deux
+      // n'est requis pour que le nudge fonctionne (repli sur un message générique si vides).
+      avisLiens:'', avisMessageTemplate:'',
       // Devis (chantier 2026-07-30) : optionnel, jamais requis, sert uniquement à pré-remplir
       // un devis généré depuis le Simulateur ou une fiche mission — voir CLAUDE.md.
       siret:'', logoDataUrl:'', devisConditionsDefaut:'', devisModalitesDefaut:''
@@ -4565,6 +4600,16 @@ function applyDefaults(data) {
   if (!data.categories) data.categories = def.categories;
   if (!data.missions) data.missions = def.missions;
   if (!data.revenus) data.revenus = {};
+  // Phase 2 de l'onboarding (2026-09-15) : champ neuf, jamais défini sur un compte préexistant.
+  // Sans ce garde-fou, tout bêta-testeur ayant déjà des missions ou des revenus verrait cette
+  // phase apparaître à sa prochaine connexion (bug remonté par Faustine, repéré sur le compte de
+  // son mari, utilisateur de longue date). Même principe que emailHebdoActif un peu plus haut :
+  // un champ neuf ne doit jamais changer rétroactivement le vécu d'un compte déjà en place.
+  if (data.onboardingSkipped === undefined) {
+    const _hasMissionsDeja = (data.missions||[]).some(m => !m.isManagement);
+    const _hasRevenuDeja = Object.keys(data.revenus||{}).length > 0;
+    data.onboardingSkipped = _hasMissionsDeja || _hasRevenuDeja;
+  }
   if (!data.depenses) data.depenses = [];
   if (!data.archives) data.archives = {};
   if (!data.bilans) data.bilans = {};
@@ -10180,6 +10225,9 @@ function updateFactTempsPrevuComparaison() {
 }
 function confirmFacturation() {
   const m=DATA.missions.find(x=>x.id===pendingFactId);
+  // Capturé AVANT d'écraser m.statut, indispensable pour détecter une vraie transition vers
+  // "fact" juste en dessous (nudge demande d'avis, 2026-09-14), après coup ce serait toujours 'fact'.
+  const ancienStatut=m?m.statut:null;
   if(m){
     m.statut='fact'; m.dateFact=document.getElementById('fact-date-input').value||today();
     const h=parseInt(document.getElementById('fact-temps-h').value)||0;
@@ -10191,6 +10239,59 @@ function confirmFacturation() {
     }
   }
   saveData(); closeModal('modal-fact-confirm'); renderMissions(); renderDashboard();
+  if(m) maybeProposerAvis(m, ancienStatut);
+}
+// ── DEMANDE D'AVIS (2026-09-14) ───────────────────────────────
+// Nudge ponctuel et jetable, jamais un système de suivi : Indépuls prépare un message, la
+// personne fait le dernier geste elle-même (copier ou envoyer depuis son propre client mail).
+// mission.avisPropose empêche seulement une réapparition, il ne dit jamais si l'avis a été
+// envoyé ou obtenu (pas de champ dédié, pas de tableau de bord, hors périmètre volontairement).
+// Jamais déclenché rétroactivement (chargement, migration) : uniquement en sortie de
+// confirmFacturation(), sur une vraie transition vers "fact".
+let _avisMissionId=null;
+function maybeProposerAvis(m, ancienStatut) {
+  if(m.isManagement||m.isRecurring) return;
+  if(ancienStatut==='fact') return; // pas une vraie transition, déjà facturée avant
+  if(m.avisPropose) return;
+  m.avisPropose=true; saveData(); // posé dès l'affichage, quelle que soit l'action ensuite
+  _avisMissionId=m.id;
+  document.getElementById('avis-modal-title').textContent=`Demander un avis${m.client?' à '+esc(m.client):''} ?`;
+  document.getElementById('avis-message').value=genererMessageAvis(m);
+  openModal('modal-avis');
+}
+// Message par défaut si aucun template personnalisé : {client} n'est utile que dans un template
+// personnalisé (Paramètres), ici le nom est directement composé dans la formule de politesse.
+// Client vide (mission sans nom saisi) → pas de "Bonjour ," disgracieux, juste "Bonjour,".
+function genererMessageAvis(m) {
+  const clientLabel=m.client||'';
+  const liens=(DATA.params.avisLiens||'').trim();
+  const custom=(DATA.params.avisMessageTemplate||'').trim();
+  if(custom) return custom.replace(/\{client\}/g,clientLabel);
+  const itemLabel=(tVocabMasculin()?'ce ':'cette ')+tVocab('item').toLowerCase();
+  const greeting=clientLabel?`Bonjour ${clientLabel},`:'Bonjour,';
+  const corps=liens
+    ?`Merci pour votre confiance sur ${itemLabel}. Si vous avez été satisfait(e), un avis prendrait quelques secondes et m'aiderait beaucoup :\n${liens}`
+    :`Merci pour votre confiance sur ${itemLabel}. Si vous avez apprécié le travail, un petit mot que je pourrais partager sur mes réseaux ou mon site me ferait très plaisir.`;
+  return `${greeting}\n\n${corps}\n\nMerci encore !`;
+}
+// Même logique que la reprise d'adresse/SIRET du dernier devis d'une mission (2026-09-01) :
+// le document le plus récent portant un clientEmail non vide, jamais une recherche transverse.
+function sourceAvisEmail(m) {
+  const doc=(m.documents||[]).slice().reverse().find(d=>d.clientEmail);
+  return doc?doc.clientEmail:'';
+}
+function copierMessageAvis() {
+  const txt=document.getElementById('avis-message').value;
+  navigator.clipboard.writeText(txt)
+    .then(()=>showToast('✅ Message copié.'))
+    .catch(()=>showToast('⚠️ Impossible de copier automatiquement, sélectionnez le texte manuellement.'));
+}
+function ouvrirMailtoAvis() {
+  const m=DATA.missions.find(x=>x.id===_avisMissionId);
+  const email=m?sourceAvisEmail(m):'';
+  const body=document.getElementById('avis-message').value;
+  const subject='Votre avis compte pour moi';
+  window.location.href=`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 function confirmRefus() {
   const id=document.getElementById('ref-motif-id').value;
@@ -12521,6 +12622,10 @@ function renderParams() {
   document.getElementById('p-metier').value=p.metier||'';
   const pSiretEl=document.getElementById('p-siret');
   if(pSiretEl) pSiretEl.value=p.siret||'';
+  const pAvisLiensEl=document.getElementById('p-avis-liens');
+  if(pAvisLiensEl) pAvisLiensEl.value=p.avisLiens||'';
+  const pAvisMsgEl=document.getElementById('p-avis-message');
+  if(pAvisMsgEl) pAvisMsgEl.value=p.avisMessageTemplate||'';
   const pLogoPreview=document.getElementById('p-logo-preview'), pLogoRemove=document.getElementById('p-logo-remove');
   if(pLogoPreview){
     if(p.logoDataUrl){ pLogoPreview.src=p.logoDataUrl; pLogoPreview.style.display=''; if(pLogoRemove) pLogoRemove.style.display=''; }
