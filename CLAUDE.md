@@ -2280,6 +2280,24 @@ Faustine a signalé un exemple où "Ce mois-ci : TJM de 167 €/j, en dessous de
 
 Vérifié en direct sur les deux fichiers. Aucune fonction de `shared/core/calculs.js` modifiée, aucun calcul changé. 466 tests toujours au vert.
 
+### FEAT : verrouillage des simulateurs en mode démo (2026-09-19)
+
+Demande Faustine : la démo (accessible depuis le site, vrai accès complet décidé le 2026-09-10) donne accès à tout, y compris le savoir-sauvoir de calcul (simulateurs). Elle veut un effet "teaser" : voir que la fonctionnalité existe, mais ne pas pouvoir l'utiliser sans s'inscrire.
+
+**Clarification obtenue avant de coder** (le découpage initial proposé était inversé par rapport à son intention réelle) : ce qui se verrouille, c'est le savoir-faire de calcul, pas la gestion au quotidien.
+- **Verrouillé** : "Combien facturer ?", "Et si ?", "Créer un devis".
+- **Reste ouvert** : Tableau de bord, Historique, Missions, Revenus, Dépenses, Paramètres, Livre des recettes, Guide & glossaire (tout le reste).
+
+**Contexte produit vérifié avant de construire** : pas d'abonnement payant actif aujourd'hui (page Tarifs en liste d'attente, "les inscriptions payantes ouvrent bientôt"), donc le CTA du verrou renvoie vers `/tarifs/` (liste d'attente), pas vers une création de compte ou un paiement.
+
+**`indepuls.html` + `indepuls-demo.html`** :
+- Deux chokepoints uniques plutôt qu'un patch de chaque lien : `navigate(page)` intercepte `'simulateur'`/`'etsi'` en tête de fonction (avant toute mutation d'état, donc aucune navigation partielle visible), `ouvrirGenerateurDevis(prefill, brouillon, opts)` intercepte en tête aussi (seul point d'entrée réel : nav, mission, "Combien facturer ?", duplication/avenant d'un devis existant y passent tous). Couvre aussi bien les 3 items de nav directs que tous les liens indirects (ex. `irVersEtSi('vfl')` depuis une alerte du tableau de bord), sans avoir à traquer chaque `onclick`.
+- `openLockedDemoModal(feature)` : réutilise le pattern de modale déjà existant (`openModal`/`.modal-ov`, même structure que "Comment c'est calculé ?"), pas un simple toast (`showToast` n'affiche que du texte brut, sans lien cliquable, insuffisant pour un vrai CTA).
+- `updateDemoUI()` : grise (`.nav-locked`, déjà utilisé pour "Livre des recettes" quand elle n'est pas activée) les 3 items de nav quand `DATA.isExample`, sans toucher aux autres.
+- Aucun effet hors démo : vérifié que `DATA.isExample=false` restaure la navigation normale (nav actif, pas de modale, pas de blocage).
+
+Vérifié en direct sur les deux fichiers : les 3 accès (nav direct, `ouvrirGenerateurDevisVierge`, lien indirect `irVersEtSi`) déclenchent bien la modale sans navigation partielle ; un compte réel (`isExample:false`) n'est pas affecté. Aucune fonction de `shared/core/calculs.js` modifiée. 466 tests toujours au vert.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
