@@ -2718,7 +2718,7 @@ html,body{overflow-x:hidden;}
     </div>
     <div style="background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left">
       <div style="font-size:12px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Quand vous serez prêt</div>
-      <div style="font-size:13px;color:var(--text);line-height:1.6">Cliquez sur <strong>"Commencer avec mes données"</strong> dans la barre de démo. Vos paramètres seront conservés, toutes les données fictives disparaîtront.</div>
+      <div id="welcome-ready-msg" style="font-size:13px;color:var(--text);line-height:1.6">Cliquez sur <strong>"Commencer avec mes données"</strong> dans la barre de démo. Vos paramètres seront conservés, toutes les données fictives disparaîtront.</div>
     </div>
     <div style="background:#fffbec;border:1px solid #f0e080;border-radius:10px;padding:12px 16px;margin-bottom:24px;text-align:left">
       <div style="font-size:12px;font-weight:700;color:#8a7a00;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">💡 Conseil</div>
@@ -3211,15 +3211,6 @@ function applyVocabUI() {
   if (sub) sub.textContent = 'Mes ' + tVocab('items').toLowerCase() + ' en cours, à venir ou en attente';
   const thClient = document.getElementById('missions-th-client');
   if (thClient) thClient.textContent = tVocab('clientField');
-  // Onboarding
-  const ob3title = document.getElementById('onboarding-step3-title');
-  if (ob3title) ob3title.textContent = tVocab('firstItem');
-  const ob3desc = document.getElementById('onboarding-step3-desc');
-  if (ob3desc) ob3desc.textContent = `Ajoutez un ${tVocab('client').toLowerCase()} dès la création de votre ${tVocab('item').toLowerCase()}. Suivez votre temps avec le chronomètre intégré.`;
-  const obCta1 = document.getElementById('onboarding-cta-1');
-  if (obCta1) obCta1.textContent = tVocab('goTo');
-  const obCta2 = document.getElementById('onboarding-cta-2');
-  if (obCta2) obCta2.textContent = tVocab('goTo');
   // Revenus — sous-titre carte + label mobile CSS
   const revSub = document.getElementById('rev-card-sub');
   if (revSub) revSub.textContent = 'CA ' + tVocab('items').toLowerCase() + ' calculé automatiquement · Revenus ponctuels à saisir par ligne';
@@ -4331,7 +4322,23 @@ function loadDemoWithCurrentParams(skipWelcome) {
   document.body.setAttribute('data-theme', theme);
   renderAll();
   applyVocabUI();
-  if (!skipWelcome) openModal('modal-welcome');
+  if (!skipWelcome) {
+    // Le message par défaut ("vos paramètres seront conservés") suppose un compte déjà créé
+    // (onboarding d'un vrai abonné, pickerStep1Next) : pour une session "Essayer sans créer de
+    // compte", cliquer sur "Commencer avec mes données" ouvre d'abord la création de compte
+    // (voir openClearExampleModal) plutôt que de garder directement les réglages (retour
+    // Faustine 2026-09-19, ce même écran de bienvenue étant partagé entre les deux parcours).
+    // isAnonymousDemoSession n'existe que sur indepuls-demo.html (le bouton "Continuer en mode
+    // démo" d'indepuls.html est réservé au développement local, jamais atteint par un vrai
+    // visiteur anonyme) : ici le texte "vrai abonné" reste donc toujours affiché.
+    var readyMsg = document.getElementById('welcome-ready-msg');
+    if (readyMsg) {
+      readyMsg.innerHTML = (typeof isAnonymousDemoSession !== 'undefined' && isAnonymousDemoSession)
+        ? 'Cliquez sur <strong>"Commencer avec mes données"</strong> dans la barre de démo pour créer gratuitement votre compte. Vos réglages seront conservés, les données d\'exemple disparaîtront.'
+        : 'Cliquez sur <strong>"Commencer avec mes données"</strong> dans la barre de démo. Vos paramètres seront conservés, toutes les données fictives disparaîtront.';
+    }
+    openModal('modal-welcome');
+  }
 }
 
 function openClearExampleModal() {
@@ -17017,6 +17024,11 @@ document.addEventListener('keydown', function(e) {
     };
     window.authLoadDemo = function() {
       hideOverlay();
+      // Repart toujours d'un DATA vierge (retour Faustine 2026-09-19, corrigé en premier sur
+      // indepuls-demo.html : le SIRET et le logo d'un compte réel resté en cache localStorage
+      // sur cet appareil se retrouvaient tels quels dans la démo anonyme, loadDemoWithCurrentParams()
+      // préservant volontairement DATA.params existant pour l'onboarding d'un vrai abonné).
+      if (typeof getDefaultData === 'function') DATA = getDefaultData();
       if (typeof loadDemoWithCurrentParams === 'function') {
         loadDemoWithCurrentParams();
       } else {
