@@ -2298,6 +2298,16 @@ Demande Faustine : la démo (accessible depuis le site, vrai accès complet déc
 
 Vérifié en direct sur les deux fichiers : les 3 accès (nav direct, `ouvrirGenerateurDevisVierge`, lien indirect `irVersEtSi`) déclenchent bien la modale sans navigation partielle ; un compte réel (`isExample:false`) n'est pas affecté. Aucune fonction de `shared/core/calculs.js` modifiée. 466 tests toujours au vert.
 
+### FIX : le verrou démo aurait aussi bloqué un vrai nouvel abonné en onboarding (2026-09-19, correction du chantier précédent)
+
+En repoussant le push du chantier précédent (verrouillage des simulateurs en démo), Faustine a demandé confirmation que seule la démo publique anonyme était concernée, "pas le vrai mode démo pour les abonnés". Bonne question : en vérifiant, un tout nouvel abonné qui vient de créer un compte réel passe LUI AUSSI par un état `DATA.isExample=true` le temps de choisir son profil d'activité (`pickerStep1Next()` → `loadDemoWithCurrentParams()`), avant de cliquer "Commencer avec mes données". Le verrou précédent, branché uniquement sur `DATA.isExample`, aurait donc aussi bloqué les 3 outils pour un vrai abonné pendant son onboarding, ce qui n'était pas du tout l'intention.
+
+**Distinction trouvée sans ajouter de nouveau mécanisme fragile** : `DATA._ownerUid`, déjà posé par `loadFromCloud(user)` dès qu'un vrai compte Supabase se connecte (y compris tout neuf, sans aucune donnée cloud), et jamais posé par la démo anonyme (`authLoadDemo`, sans authentification). Posé avant que l'app ne devienne cliquable (l'overlay de connexion ne se ferme qu'après `loadFromCloud`), donc pas de fenêtre de course où un vrai abonné serait pris pour un anonyme.
+
+**`indepuls.html` + `indepuls-demo.html`** : nouvelle fonction `isVraiDemoAnonyme()` = `DATA.isExample && !DATA._ownerUid`, remplace les 3 vérifications directes sur `DATA.isExample` (dans `navigate()`, `ouvrirGenerateurDevis()`, `updateDemoUI()`).
+
+Vérifié en direct sur les deux fichiers, les 3 scénarios distincts : (1) démo anonyme (`isExample:true`, pas de `_ownerUid`) → verrouillé ; (2) nouvel abonné réel en onboarding (`isExample:true` ET `_ownerUid` posé) → accès complet, "Créer un devis" ouvre bien le vrai générateur ; (3) compte réel établi (`isExample:false`) → accès complet. 466 tests toujours au vert (aucune fonction de calcul touchée).
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
