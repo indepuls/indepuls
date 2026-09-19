@@ -691,8 +691,8 @@ function _depensesTvaMoyenneMensuelle(DATA, mks) {
 //   est basculé temporairement le temps de l'appel (même pattern que le changement d'année pour
 //   les Archives) puis restauré — synchrone, aucun risque de réentrance.
 // Estimation indicative à CA et dépenses constants — le message est porté par l'UI, pas ici.
-export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true, mks, microSousType) {
-  const dep = getDepensesMoyenneMensuelle(DATA) + (DATA.params.chargesAnnuellesCompl || 0) / 12 + (DATA.params.chargesSalariales || 0);
+export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true, mks, microSousType, depensesSupplementaires = 0) {
+  const dep = getDepensesMoyenneMensuelle(DATA) + (DATA.params.chargesAnnuellesCompl || 0) / 12 + (DATA.params.chargesSalariales || 0) + depensesSupplementaires;
   const tauxChargesMicro = ((DATA.params.tauxURSSAF || 0) + (DATA.params.tauxCFP || 0)) / 100;
   const sousType = ABATTEMENTS_MICRO[microSousType] ? microSousType : (ABATTEMENTS_MICRO[DATA.params.statut] ? DATA.params.statut : 'micro-bnc');
   const impotMicroMensuel = (caHTPourImpot) => {
@@ -734,7 +734,11 @@ export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true,
   const cotisTNS = beneficeReelMensuel > 0 ? beneficeReelMensuel * getTauxChargesTNS(DATA) : 0;
   const impotEIReel = (beneficeReelMensuel > 0 && getImpotsTaux(DATA) > 0) ? beneficeReelMensuel * getImpotsTaux(DATA) : 0;
   const eiReel = beneficeReelMensuel - cotisTNS - impotEIReel;
-  return { microSansTVA, microAvecTVA, eurl, sasu, eiReel, tvaCollectee, tvaRecuperee };
+  // depensesUtilisees exposé pour l'affichage (retour Faustine 2026-09-19 : afficher le montant
+  // sur lequel se base l'estimation) plutôt que recalculé séparément côté HTML, qui dupliquerait
+  // ce même calcul et risquerait de diverger silencieusement (ex. l'exclusion des dépenses
+  // rattachées à une affaire, déjà oubliée une fois dans une copie locale du même calcul).
+  return { microSansTVA, microAvecTVA, eurl, sasu, eiReel, tvaCollectee, tvaRecuperee, depensesUtilisees: dep };
 }
 
 // ── RENTABILITÉ BRUTE (TH/TJM RÉEL) ───────────────────────────

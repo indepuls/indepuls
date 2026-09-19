@@ -220,6 +220,16 @@ section('getComparateurStatuts : CA positif mais inférieur aux dépenses, défi
   test('SASU = -700 / 1.82 (négatif, pas 0)', c.sasu, -700 / 1.82);
   test('EI au réel = -700 (perte nette, aucune cotisation ni impôt prélevés)', c.eiReel, -700);
 }
+section('getComparateurStatuts : dépense ponctuelle simulée (retour Faustine 2026-09-19, ex. une formation)');
+{
+  const D = { params: baseParams(), depenses: [{ recurrence: 'mensuelle', montant: 400 }] };
+  const cSansPonctuelle = getComparateurStatuts(D, 4000);
+  const cAvecPonctuelle = getComparateurStatuts(D, 4000, true, undefined, undefined, 3000);
+  test('depensesUtilisees expose le total réel sans dépense ponctuelle', cSansPonctuelle.depensesUtilisees, 400);
+  test('depensesUtilisees inclut la dépense ponctuelle ajoutée', cAvecPonctuelle.depensesUtilisees, 3400);
+  test('EURL diminue du montant de la dépense ponctuelle (mensualisée telle quelle)', cAvecPonctuelle.eurl, cSansPonctuelle.eurl - 3000 / 1.45);
+  test('EI au réel diminue directement du montant de la dépense ponctuelle', cAvecPonctuelle.eiReel < cSansPonctuelle.eiReel, true);
+}
 
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`Résultat : ${passed} tests passés, ${failed} échoués`);
