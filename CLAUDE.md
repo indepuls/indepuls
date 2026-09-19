@@ -2272,6 +2272,14 @@ Faustine a demandé confirmation que le point de bascule ne peut jamais dépasse
 
 `ETSI_METH.vfl` mis à jour dans le même sens. Aucune fonction de `shared/core/calculs.js` modifiée. Vérifié en direct sur les deux fichiers : CA saisi à 90 000 € (plafond à 55 733 € pour ce compte) déclenche bien l'avertissement. 466 tests toujours au vert.
 
+### FIX : clarifier pourquoi "Ce mois-ci" (Ma rentabilité) peut chuter sans vraie baisse de rentabilité (2026-09-19)
+
+Faustine a signalé un exemple où "Ce mois-ci : TJM de 167 €/j, en dessous de votre seuil minimum" semblait faux au vu du chantier réel (1 159,7 €/j cumulé, largement rentable). Vérifié : `curMk` pointe bien sur le mois calendaire réel, pas de bug de mois. La cause réelle : `getRentabiliteMois(mk)` compte le CA du mois via les **encaissements datés dans le mois** (`encaissementsComptes` filtré sur `mk`), pas le travail effectué. Un chantier déjà largement encaissé un mois donné (gros acompte reçu tôt) fait mécaniquement chuter le TJM/TH/marge du mois suivant si aucun nouvel encaissement n'y est daté, même si les heures continuent de s'y accumuler normalement et que le chantier reste très rentable dans son ensemble.
+
+**`indepuls.html` + `indepuls-demo.html`**, dans `wScoreSante()` : une infobulle `?` ajoutée sur les 3 variantes de la phrase "Ce mois-ci" (marge, TJM, TH) expliquant ce mécanisme. Choix délibéré d'une infobulle statique plutôt qu'une détection conditionnelle du cas précis (encaissement lag) : plus simple, sans risque de faux positif/négatif sur un vrai mois faible.
+
+Vérifié en direct sur les deux fichiers. Aucune fonction de `shared/core/calculs.js` modifiée, aucun calcul changé. 466 tests toujours au vert.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
