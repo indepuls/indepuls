@@ -2358,6 +2358,20 @@ Deux différences de commentaires datées du 2026-09-16 (simulateur : suffixe mo
 
 Vérifié en direct : nudge "Demander un avis" déclenché sur une vraie mission de la démo (message généré correctement, avec et sans template personnalisé), champs Paramètres présents, entrée Nouveautés affichée en tête de liste, garde-fou `onboardingSkipped` testé sur un compte fictif avec et sans données préexistantes.
 
+### FEAT : CA/dépenses modifiables sur "Et si je changeais de statut ?" (2026-09-19)
+
+Demande Faustine : la carte tournait uniquement à CA et dépenses réels constants, sans jamais dire lequel, et sans pouvoir tester l'impact d'une dépense ponctuelle à venir (ex. une formation à 3 000 €). Même principe que le CA simulé du simulateur "Versement libératoire" (`vflCaSimule`) : persisté dans `DATA.params`, jamais deviné, "vide" = retour à la valeur réelle.
+
+**`shared/core/calculs.js`, `getComparateurStatuts`** : nouveau 6ème paramètre optionnel `depensesSupplementaires = 0`, ajouté à `dep`. La fonction renvoie désormais aussi `depensesUtilisees` (le total réellement utilisé, dépense ponctuelle comprise) : affiché tel quel côté HTML plutôt que recalculé séparément, pour ne jamais dupliquer ce calcul et risquer une divergence silencieuse (l'exclusion des dépenses rattachées à une affaire, par exemple, a déjà été oubliée une fois dans une copie locale de ce même calcul, voir `indepuls.html:5136`).
+
+**`shared/modes/unified.js` + bridges `window.getComparateurStatuts`** (les deux fichiers) : signature étendue en conséquence.
+
+**`indepuls.html` + `indepuls-demo.html`, `etsiCard4Html()`** : deux nouveaux champs, "CA mensuel utilisé (€)" (`DATA.params.statutCaSimule`) et "Dépense ponctuelle à tester (€)" (`DATA.params.statutDepensePonctuelle`), avec une ligne explicite "Basé sur un CA de X €/mois et Y €/mois de dépenses" juste en dessous (montre le réel quand rien n'est modifié, montre les deux quand une simulation est en cours). `reRenderEtsiCard4()` ajoutée, même trick de préservation du focus/caret que `reRenderVFLCard()`. `toggleEtsiPrixHypothese()` réutilise désormais cette même fonction plutôt que de dupliquer le `outerHTML` swap.
+
+**`shared/tests/etsi_simulateur.test.js`** : nouvelle section vérifiant `depensesUtilisees` (avec et sans dépense ponctuelle) et l'impact sur EURL/EI au réel. 39 tests dans ce fichier, suite complète toujours au vert.
+
+Vérifié en direct : baisse/hausse du CA et ajout d'une dépense ponctuelle recalculent bien les 5 colonnes en temps réel, le champ CA revient au réel une fois vidé, la frappe au clavier ne perd ni le focus ni les caractères déjà tapés.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
