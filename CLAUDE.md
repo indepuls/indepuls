@@ -2316,6 +2316,16 @@ Demande Faustine : quelqu'un hésitant à cocher "Je suis au versement fiscal li
 
 Vérifié en direct sur les deux fichiers. Aucune fonction de `shared/core/calculs.js` modifiée. 466 tests toujours au vert.
 
+### FIX : `getComparateurStatuts` affichait 0 € au lieu d'un déficit pour EI/EURL/SASU quand le CA est nul ou inférieur aux dépenses (2026-09-19)
+
+Retour Faustine : capture d'écran avec CA = 0 et des dépenses réelles enregistrées. La carte "Et si je changeais de statut ?" affichait correctement un revenu négatif en Micro (ex. -404 €/mois) mais 0 € en EI au réel, EURL et SASU, laissant croire à tort qu'il n'y avait aucun impact.
+
+**`shared/core/calculs.js`, `getComparateurStatuts`** : `disponibleEntreprise` était plafonné à 0 via `Math.max(0, caBrutMensuel - dep)`, alors que les formules Micro n'avaient aucun plancher équivalent. Retiré ce plancher (ainsi que celui sur `eiReel` final) : les 5 colonnes (Micro sans/avec TVA, EI au réel, EURL, SASU) doivent rester comparables entre elles, jamais certaines plafonnées et d'autres non. Les cotisations TNS et l'impôt de l'EI au réel ne s'appliquent désormais qu'à un bénéfice réellement positif (rien à cotiser ni à imposer sur une perte), mais la perte elle-même reste affichée telle quelle plutôt que d'être ramenée à 0.
+
+**`shared/tests/etsi_simulateur.test.js`** : deux nouvelles sections ajoutées (CA nul avec dépenses réelles ; CA positif mais inférieur aux dépenses), vérifiant que Micro, EI au réel, EURL et SASU affichent tous un déficit négatif cohérent, sans qu'aucune colonne ne soit artificiellement plafonnée à 0.
+
+Aucune modification HTML nécessaire (le correctif vit entièrement dans `shared/core/calculs.js`, importé par les deux fichiers via le système de modules). 35 tests dans `etsi_simulateur.test.js`, suite complète toujours au vert.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
