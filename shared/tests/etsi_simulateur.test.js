@@ -201,6 +201,25 @@ section('getComparateurStatuts — dépenses réelles réduisent le disponible E
   const c2 = getComparateurStatuts(D2, 4000);
   test('dépenses réelles réduisent le net EURL simulé', c2.eurl < c1.eurl, true);
 }
+section('getComparateurStatuts : CA nul avec dépenses réelles, aucune colonne plafonnée à 0 (retour Faustine 2026-09-19)');
+{
+  const D = { params: baseParams(), depenses: [{ recurrence: 'mensuelle', montant: 400 }] };
+  const c = getComparateurStatuts(D, 0);
+  test('EURL reflète le déficit (négatif), pas plafonné à 0', c.eurl < 0, true);
+  test('EURL = -400 / 1.45', c.eurl, -400 / 1.45);
+  test('SASU reflète le déficit (négatif), pas plafonné à 0', c.sasu < 0, true);
+  test('SASU = -400 / 1.82', c.sasu, -400 / 1.82);
+  test('EI au réel reflète le déficit tel quel (aucune cotisation/impôt sur une perte)', c.eiReel, -400);
+  test('Micro sans TVA également négatif (cohérence entre les 5 colonnes)', c.microSansTVA < 0, true);
+}
+section('getComparateurStatuts : CA positif mais inférieur aux dépenses, déficit visible partout, pas de 0 trompeur');
+{
+  const D = { params: baseParams(), depenses: [{ recurrence: 'mensuelle', montant: 1000 }] };
+  const c = getComparateurStatuts(D, 300);
+  test('EURL = -700 / 1.45 (négatif, pas 0)', c.eurl, -700 / 1.45);
+  test('SASU = -700 / 1.82 (négatif, pas 0)', c.sasu, -700 / 1.82);
+  test('EI au réel = -700 (perte nette, aucune cotisation ni impôt prélevés)', c.eiReel, -700);
+}
 
 console.log(`\n${'─'.repeat(50)}`);
 console.log(`Résultat : ${passed} tests passés, ${failed} échoués`);

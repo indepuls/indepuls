@@ -717,17 +717,23 @@ export function getComparateurStatuts(DATA, caBrutMensuel, prixAugmentes = true,
     tvaCollectee = caBrutMensuel - caHT;
     microAvecTVA = (tauxChargesMicro < 1 ? caHT * (1 - tauxChargesMicro) - impotMicroMensuel(caHT) - dep : 0) + tvaRecuperee;
   }
-  const disponibleEntreprise = Math.max(0, caBrutMensuel - dep);
+  // Pas de plancher à 0 (retour Faustine 2026-09-19) : avant ce correctif, un CA nul/faible face à
+  // de vraies dépenses affichait un déficit correct en Micro (ex. -404 €/mois, jamais plafonné)
+  // mais un 0 € trompeur en EI au réel/EURL/SASU (Math.max(0, ...) masquait le même déficit), les
+  // 5 colonnes doivent rester comparables entre elles, jamais certaines plafonnées et d'autres non.
+  const disponibleEntreprise = caBrutMensuel - dep;
   const eurl = disponibleEntreprise / (1 + 45 / 100);
   const sasu = disponibleEntreprise / (1 + 82 / 100);
   // EI au réel : pas d'abattement, cotisations TNS ET impôt portent directement sur le bénéfice
   // réel (CA - dépenses), pas sur le CA brut comme en micro (voir getCotisationsTNSEstimees/
   // getImpotEIReel). Utilise le taux TNS et le TMI déjà configurés sur le compte, même quand le
-  // statut simulé n'est pas le statut réel (comparateur "et si ?").
+  // statut simulé n'est pas le statut réel (comparateur "et si ?"). Cotisations et impôt ne
+  // s'appliquent qu'à un bénéfice positif (rien à cotiser ni à imposer sur une perte), mais la
+  // perte elle-même reste visible telle quelle, jamais ramenée à 0.
   const beneficeReelMensuel = disponibleEntreprise;
-  const cotisTNS = beneficeReelMensuel * getTauxChargesTNS(DATA);
-  const impotEIReel = getImpotsTaux(DATA) > 0 ? beneficeReelMensuel * getImpotsTaux(DATA) : 0;
-  const eiReel = Math.max(0, beneficeReelMensuel - cotisTNS - impotEIReel);
+  const cotisTNS = beneficeReelMensuel > 0 ? beneficeReelMensuel * getTauxChargesTNS(DATA) : 0;
+  const impotEIReel = (beneficeReelMensuel > 0 && getImpotsTaux(DATA) > 0) ? beneficeReelMensuel * getImpotsTaux(DATA) : 0;
+  const eiReel = beneficeReelMensuel - cotisTNS - impotEIReel;
   return { microSansTVA, microAvecTVA, eurl, sasu, eiReel, tvaCollectee, tvaRecuperee };
 }
 
