@@ -6966,7 +6966,7 @@ function wScoreSante(d) {
   if(_rentIsMarge){
     if(_margePctMois!==null){
       const okMois=_margePctMois>=_seuilMargePct;
-      diagRentMois=`Ce mois-ci : marge de <strong>${_margePctMois}%</strong>${okMois?', au-dessus du seuil recommandé':', en dessous du seuil recommandé'}.`;
+      diagRentMois=`Ce mois-ci : marge de <strong>${_margePctMois}%</strong>${okMois?', au-dessus du seuil recommandé':', en dessous du seuil recommandé'}. <span class="info-tip" title="Basé sur les encaissements datés ce mois-ci, pas sur le travail effectué : un chantier déjà bien avancé (ou déjà largement encaissé) peut faire chuter ce chiffre sans que sa rentabilité réelle n'ait changé.">?</span>`;
       rowRentMois={lbl:'Marge brute (ce mois)',val:_margePctMois+'%',c:okMois?'var(--ok)':'var(--err)'};
     }
   } else if(_rentIsChantier){
@@ -6974,7 +6974,7 @@ function wScoreSante(d) {
     // (CA − coûts) ÷ heures explose (bug remonté par Faustine : TJM à plusieurs millions).
     if(hMoisTotal>=1){
       const okMois=tjmMin>0?tjmMoisBrut>=tjmMin:null;
-      diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?', au-dessus de mon seuil minimum':', en dessous de votre seuil minimum'}.`;
+      diagRentMois=`Ce mois-ci : TJM de <strong>${fmtE(tjmMoisBrut,0)}/j</strong>${okMois===null?'':okMois?', au-dessus de mon seuil minimum':', en dessous de votre seuil minimum'}. <span class="info-tip" title="Basé sur les encaissements datés ce mois-ci, pas sur le temps travaillé : un chantier déjà bien avancé (ou déjà largement encaissé) peut faire chuter ce chiffre sans que sa rentabilité réelle n'ait changé.">?</span>`;
       rowRentMois={lbl:'TJM réel (ce mois)',val:fmtE(tjmMoisBrut,0)+'/j',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   } else {
@@ -6982,7 +6982,7 @@ function wScoreSante(d) {
     // (division par un temps quasi nul), on ne l'affiche pas.
     if(hMoisTotal>=1){
       const okMois=thMin>0?thMoisBrut>=thMin:null;
-      diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?', au-dessus de mon seuil minimum':', en dessous de votre seuil minimum'}.`;
+      diagRentMois=`Ce mois-ci : TH de <strong>${fmtE(thMoisBrut,0)}/h</strong>${okMois===null?'':okMois?', au-dessus de mon seuil minimum':', en dessous de votre seuil minimum'}. <span class="info-tip" title="Basé sur les encaissements datés ce mois-ci, pas sur le temps travaillé : une mission déjà bien avancée (ou déjà largement encaissée) peut faire chuter ce chiffre sans que sa rentabilité réelle n'ait changé.">?</span>`;
       rowRentMois={lbl:'TH réel (ce mois)',val:fmtE(thMoisBrut,0)+'/h',c:okMois===null?'var(--tl)':okMois?'var(--ok)':'var(--err)'};
     }
   }
