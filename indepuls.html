@@ -4418,7 +4418,7 @@ function updateDemoUI() {
   // reste librement utilisable pour se familiariser avec l'outil.
   ['nav-simulateur','nav-etsi','nav-devis'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el) el.classList.toggle('nav-locked', !!DATA.isExample);
+    if(el) el.classList.toggle('nav-locked', isVraiDemoAnonyme());
   });
 }
 
@@ -5277,15 +5277,29 @@ function updateNavRetours() {
 }
 // Verrouillage des simulateurs en démo (retour Faustine 2026-09-19) : "Combien facturer ?", "Et
 // si ?" et "Créer un devis" (le savoir-faire de calcul, le vrai différenciant du produit) restent
-// visibles mais inaccessibles en mode démo, pour un effet teaser plutôt qu'un accès complet qui
-// n'incite pas à s'inscrire. Le reste de l'app (missions, revenus, dépenses, paramètres...) reste
-// librement utilisable : c'est la gestion au quotidien, pas le calcul, qui se découvre sans risque.
+// visibles mais inaccessibles pour la démo PUBLIQUE ANONYME uniquement, pour un effet teaser
+// plutôt qu'un accès complet qui n'incite pas à s'inscrire. Le reste de l'app (missions, revenus,
+// dépenses, paramètres...) reste librement utilisable : c'est la gestion au quotidien, pas le
+// calcul, qui se découvre sans risque.
+//
+// Correction importante (retour Faustine) : un tout nouvel abonné passe LUI AUSSI par un état
+// DATA.isExample=true le temps de choisir son profil (pickerStep1Next → loadDemoWithCurrentParams),
+// avant de cliquer "Commencer avec mes données". Ce cas doit rester ENTIÈREMENT ouvert (accès
+// complet), seule la démo anonyme (jamais connectée, "Essayer sans créer de compte") doit être
+// verrouillée. Distingués via DATA._ownerUid : posé dès qu'un vrai compte Supabase se connecte
+// (loadFromCloud), y compris tout neuf sans données cloud, et JAMAIS posé pour la démo anonyme
+// (authLoadDemo, aucune authentification). Posé avant que l'app ne devienne cliquable (l'overlay
+// de connexion ne se ferme qu'après loadFromCloud), donc pas de fenêtre où un vrai abonné serait
+// pris pour un anonyme.
+function isVraiDemoAnonyme() {
+  return !!DATA.isExample && !DATA._ownerUid;
+}
 function openLockedDemoModal(feature) {
   document.getElementById('locked-demo-feature').textContent = feature;
   openModal('modal-locked-demo');
 }
 function navigate(page) {
-  if (DATA.isExample && (page === 'simulateur' || page === 'etsi')) {
+  if (isVraiDemoAnonyme() && (page === 'simulateur' || page === 'etsi')) {
     openLockedDemoModal(page === 'simulateur' ? 'Combien facturer ?' : 'Et si ?');
     return;
   }
@@ -12092,7 +12106,7 @@ function _devisFormToDoc() {
 function ouvrirGenerateurDevis(prefill = {}, brouillon = null, opts = {}) {
   // Verrouillé en démo (voir openLockedDemoModal) : chokepoint unique, tous les points d'entrée
   // (nav, mission, "Combien facturer ?", duplication/avenant d'un devis existant) y passent.
-  if (DATA.isExample) { openLockedDemoModal('Créer un devis'); return; }
+  if (isVraiDemoAnonyme()) { openLockedDemoModal('Créer un devis'); return; }
   // Mode avenant (étape 4) : chaque point d'entrée le fixe via opts, donc il est TOUJOURS remis à
   // plat ici (pas d'état résiduel d'une ouverture précédente). Doit être défini avant renderLignesDevis.
   _devisModeAvenant = !!opts.avenant;
