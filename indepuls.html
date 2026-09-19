@@ -7578,6 +7578,37 @@ function wScoreSante(d) {
       }
     }
   } catch(e){reportError('rappelVFL',e);}
+  // Alerte "passer à l'EI au réel" (retour Faustine 2026-09-19) : quand les dépenses réelles
+  // pèsent assez lourd pour que l'EI au réel batte durablement la micro, sans jamais dire
+  // "changez", juste "creusez avec un comptable" (comme la carte "Et si je changeais de statut ?",
+  // dont cette alerte réutilise le même calcul réel, jamais une approximation séparée qui
+  // risquerait de diverger). Seuil volontairement haut (150 €/mois ou 15 % du net actuel, le plus
+  // grand des deux) : contrairement à la carte elle-même (simple curiosité qu'on va consulter),
+  // une alerte non sollicitée doit rester rare, sinon elle perd toute valeur d'alerte. Masquage à
+  // deux vitesses (retour Faustine : l'alerte de dépendance client à 15 jours ferait harcèlement
+  // ici, une situation stable ne se résout pas en 2 semaines comme un nouveau client) : un mois
+  // pour qui hésite encore, définitif pour qui a déjà tranché. Si le compte finit par vraiment
+  // changer de statut, l'alerte s'éteint d'elle-même (isMicro() devient faux), le flag définitif
+  // n'a jamais besoin d'être réinitialisé.
+  try {
+    if(isMicro()&&!DATA.alerteStatutEiReelDesactivee){
+      const _rentRoulanteAlerte=getRentabiliteRoulante();
+      if(_rentRoulanteAlerte.nbMois>=3){
+        const _snoozeTsEiReel=DATA.alertsDismissed?.statutEiReel;
+        const _snoozedEiReel=!!(_snoozeTsEiReel&&(Date.now()-_snoozeTsEiReel<30*24*60*60*1000));
+        if(!_snoozedEiReel){
+          const _caReelMensuelAlerte=_rentRoulanteAlerte.caBrut/Math.max(1,_rentRoulanteAlerte.nbMois);
+          const _compAlerte=getComparateurStatuts(_caReelMensuelAlerte,true,_rentRoulanteAlerte.mks,DATA.params.statut);
+          const _valActuelAlerte=DATA.params.tva?_compAlerte.microAvecTVA:_compAlerte.microSansTVA;
+          const _gapEiReel=_compAlerte.eiReel-_valActuelAlerte;
+          const _seuilEiReel=Math.max(150,_valActuelAlerte*0.15);
+          if(_gapEiReel>=_seuilEiReel){
+            alertLines.push(`<div class="alert al-info" style="font-size:12px;margin-bottom:6px"><span style="flex:1">💡 Vos dépenses professionnelles pèsent suffisamment lourd pour qu'être à l'EI au réel vous laisserait environ <strong>${fmtE(Math.round(_gapEiReel))}/mois</strong> de plus qu'en micro actuellement. À creuser avec un comptable ou un fiscaliste avant toute décision.<br><span class="step-cta" style="margin-top:4px" onclick="irVersEtSi('statut')">Comparer les statuts en détail</span></span><div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0"><button type="button" class="btn btn-out btn-xs" onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.statutEiReel=Date.now();saveData();renderDashboard();" title="Réapparaîtra dans un mois si toujours d'actualité.">🔕 Dans un mois</button><button type="button" class="btn btn-out btn-xs" onclick="DATA.alerteStatutEiReelDesactivee=true;saveData();renderDashboard();" title="Vous ne reverrez plus cette alerte.">Ne plus jamais afficher</button></div></div>`);
+          }
+        }
+      }
+    }
+  } catch(e){reportError('alerteStatutEiReel',e);}
   // Pattern (catégorie ou tranche de montant, retour Faustine 2026-08-01, doc de vision "Couche
   // 4 — Patterns") : Statistiques affiche les 2 axes s'ils existent (patternsInsightHtml), mais
   // le Brief ne remonte que le plus marquant des deux (getMeilleurPatternPhrase) pour ne jamais
