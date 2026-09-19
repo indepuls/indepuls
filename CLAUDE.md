@@ -2340,6 +2340,24 @@ Retour Faustine, capture d'écran à l'appui, quatre points distincts constatés
 
 Aucun test automatisé concerné (uniquement de la logique d'affichage/auth spécifique aux fichiers HTML, hors `shared/core`). Vérifié en direct sur `indepuls-demo.html` : contenu de "Guide & glossaire" identique aux deux fichiers, texte de bienvenue vérifié dans les deux branches (anonyme/abonné), fuite de données confirmée corrigée.
 
+### FIX : audit complet du miroir indepuls.html/-demo.html, fonctionnalité "Demander un avis" jamais portée (2026-09-19)
+
+Suite au chantier précédent, Faustine a demandé une vérification plus systématique plutôt qu'un simple recoupement des 4 points déjà signalés. Un diff des fonctions top-level entre les deux fichiers (`grep -oP '^function \K[A-Za-z0-9_]+' fichier.html | sort -u`, puis `comm`) a révélé 6 fonctions présentes uniquement sur `indepuls.html`.
+
+**Confirmé volontaire par Faustine, à ne pas porter** : `pickerStep1NextReal()` et le bouton "Commencer avec mes données →" sur l'écran de choix de métier (permet de sauter la démo et démarrer directement en réel). `indepuls-demo.html` ne doit garder que "Découvrir Indépuls →" (démo d'abord). Voir la mémoire dédiée au miroir des deux fichiers pour cette exception.
+
+**Confirmé à porter** : toute la fonctionnalité "Demander un avis" (datée du 2026-09-14, un jour avant le chantier Guide & glossaire, jamais synchronisée depuis). Portée à l'identique sur `indepuls-demo.html` :
+- `maybeProposerAvis()`, `genererMessageAvis()`, `sourceAvisEmail()`, `copierMessageAvis()`, `ouvrirMailtoAvis()`, la variable `_avisMissionId`, et le déclenchement `if(m) maybeProposerAvis(m, ancienStatut);` dans `confirmFacturation()` (avec capture de `ancienStatut` AVANT d'écraser `m.statut`, indispensable pour détecter une vraie transition vers "fact").
+- La modale `#modal-avis`.
+- Les champs Paramètres > Mon activité (`avisLiens`, `avisMessageTemplate`), leur population dans `renderParams()`, et leurs défauts dans `getDefaultData()`.
+- L'entrée du 2026-09-14 dans le tableau `NOUVEAUTES`, elle aussi absente d'`indepuls-demo.html`.
+
+**Bug additionnel trouvé au passage, corrigé avant qu'il ne morde** : en portant le déclenchement de la phase B de l'onboarding (chantier précédent du jour même), le garde-fou anti-rétroactivité de `applyDefaults()` n'avait pas suivi. Sans lui, `data.onboardingSkipped` serait resté `undefined` pour tout compte réel préexistant (avec missions/revenus déjà enregistrés) se connectant via `indepuls-demo.html`, et la phase B facultative de l'onboarding aurait ressurgi à sa prochaine connexion, exactement le bug déjà corrigé sur `indepuls.html` le 2026-09-15 ("repéré sur le compte du mari de Faustine, utilisateur de longue date"). Porté sur `indepuls-demo.html` : `data.onboardingSkipped` déduit de la présence de missions/revenus déjà enregistrés quand le champ est absent, jamais réévalué ensuite.
+
+Deux différences de commentaires datées du 2026-09-16 (simulateur : suffixe monétaire dynamique, résolution presta/vente en activité mixte) ont aussi été vérifiées : le code lui-même était déjà identique sur les deux fichiers, seul le commentaire expliquant le contexte manquait sur `indepuls-demo.html`. Non corrigé (aucun risque fonctionnel), à documenter si l'occasion se présente.
+
+Vérifié en direct : nudge "Demander un avis" déclenché sur une vraie mission de la démo (message généré correctement, avec et sans template personnalisé), champs Paramètres présents, entrée Nouveautés affichée en tête de liste, garde-fou `onboardingSkipped` testé sur un compte fictif avec et sans données préexistantes.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
