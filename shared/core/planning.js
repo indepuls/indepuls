@@ -241,8 +241,13 @@ export function getMissionsSessionDay(DATA, dateStr) {
 // remplace la copie locale d'indepuls.html (audit externe 2026-07-26 : les deux copies avaient
 // déjà divergé une fois — un statut 'ref' exclu dans l'une, pas dans l'autre, pendant un temps ;
 // voir "duplication A" dans CLAUDE.md et le test dédié dans shared/tests/planning.test.js).
+// 'att' exclue au même titre que 'ref' (retour Faustine 2026-09-21) : une mission "en attente"
+// n'a jamais été confirmée, dateDebutRec n'y est qu'une date de début proposée, pas un
+// engagement réel. La compter comme active faussait le widget "Missions en cours" du tableau de
+// bord et le pilier Mon Horizon (visibilité commerciale), qui l'annonçaient comme une mission
+// active alors que le statut affiché sur la fiche était bien "En attente".
 export function isRecurringStillActive(m) {
-  if (m.statut === 'ref') return false;
+  if (m.statut === 'ref' || m.statut === 'att') return false;
   if (!m.isRecurring || !m.dateDebutRec) return false;
   if (!m.nbMoisRec || m.nbMoisRec <= 0) return true;
   const [sy, sm] = m.dateDebutRec.split('-').map(Number);

@@ -7195,15 +7195,13 @@ function wScoreSante(d) {
   // ── PILIER 4 : COMMERCIAL (25 pts) ───────────────────────────
   // Mesure la visibilité commerciale future, pas les ventes passées.
   // Actives = ponctuelles att/cours + récurrentes dont la période n'est pas terminée.
+  // Récurrentes : passe désormais par isRecurringStillActive() (retour Faustine 2026-09-21) au
+  // lieu d'une copie locale, qui ne l'excluait jamais explicitement et comptait donc une
+  // récurrente "en attente" (jamais confirmée) comme une mission active, faussant "Mon Horizon".
   const _today=new Date(),_todayMs=_today.getTime();
   const activesM=DATA.missions.filter(m=>{
     if(m.isManagement) return false;
-    if(m.isRecurring){
-      if(!m.dateDebutRec) return false;
-      const [sy,sm]=m.dateDebutRec.split('-').map(Number);
-      if(!m.nbMoisRec||m.nbMoisRec<=0) return true;
-      return new Date(sy,sm-1+m.nbMoisRec,1)>_today;
-    }
+    if(m.isRecurring) return isRecurringStillActive(m);
     return m.statut==='att'||m.statut==='cours';
   });
   const nbActives=activesM.length;

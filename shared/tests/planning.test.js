@@ -189,6 +189,12 @@ function makeData(overrides = {}) {
     P.isRecurringStillActive({ isRecurring: true, statut: 'fact', dateDebutRec: futureDate, nbMoisRec: 120 }), true);
   assertEq('récurrente avec fenêtre expirée → false',
     P.isRecurringStillActive({ isRecurring: true, statut: 'fact', dateDebutRec: '2020-01', nbMoisRec: 2 }), false);
+  // 'att' exclue au même titre que 'ref' (retour Faustine 2026-09-21) : une mission "en attente"
+  // n'a jamais été confirmée, dateDebutRec n'y est qu'une date proposée, pas un engagement réel.
+  assertEq('statut att → toujours false, même sans nbMoisRec',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'att', dateDebutRec: '2020-01', nbMoisRec: null }), false);
+  assertEq('statut att → false même avec une fenêtre de dates encore valide',
+    P.isRecurringStillActive({ isRecurring: true, statut: 'att', dateDebutRec: futureDate, nbMoisRec: 120 }), false);
 }
 
 // ── getTauxRemplissageMois ────────────────────────────────────
