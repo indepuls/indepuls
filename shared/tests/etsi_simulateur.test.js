@@ -175,6 +175,15 @@ section('getComparateurStatuts — prixAugmentes=true (défaut) : TVA collectée
   test('tvaCollectee = 0 quand les prix augmentent', c.tvaCollectee, 0);
   test('tvaRecuperee exposée même sans dépenses (0 ici)', c.tvaRecuperee, 0);
 }
+section('getComparateurStatuts : TVA récupérable estimée exclut les dépenses Assurances & prévoyance (retour Faustine 2026-09-21)');
+{
+  const D1 = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }), depenses: [{ recurrence: 'mensuelle', montant: 100, categorie: 'Logiciels & abonnements' }] };
+  const D2 = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0 }), depenses: [{ recurrence: 'mensuelle', montant: 100, categorie: 'Assurances & prévoyance' }] };
+  const cLogiciel = getComparateurStatuts(D1, 3000, true);
+  const cAssurance = getComparateurStatuts(D2, 3000, true);
+  test('une dépense logiciel génère bien de la TVA récupérable estimée', cLogiciel.tvaRecuperee > 0, true);
+  test('une dépense assurance/prévoyance identique ne génère aucune TVA récupérable (toujours exonérée)', cAssurance.tvaRecuperee, 0);
+}
 section('getComparateurStatuts — prixAugmentes=false (prix absorbés, clientèle de particuliers) : le CA HT réel diminue');
 {
   const D = { params: baseParams({ tauxURSSAF: 20, tauxCFP: 0, impotsTaux: 0, tauxTVA: 20 }), depenses: [] };

@@ -650,11 +650,17 @@ function _depensesTvaMoyenneMensuelle(DATA, mks) {
   }
   const taux = (DATA.params.tauxTVA || 20) / 100;
   const facteurExtraction = taux / (1 + taux); // TVA déjà contenue dans un montant TTC
+  // Assurances & prévoyance exclue de l'estimation (retour Faustine 2026-09-21) : une assurance
+  // est toujours exonérée de TVA par nature (article 261 C du CGI), jamais un cas par cas comme
+  // le reste des catégories. Appliquer le taux forfaitaire dessus surestimait nettement la TVA
+  // récupérable pour qui a de gros postes mutuelle/prévoyance, sans qu'aucune case "TVA
+  // déductible" ne permette de le corriger tant que le compte n'est pas encore assujetti.
+  const estDeductible = d => d.categorie !== 'Assurances & prévoyance';
   const recurrentes = DATA.depenses
-    .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId)
+    .filter(d => d.recurrence !== 'ponctuelle' && !d.chantierId && estDeductible(d))
     .reduce((s, d) => s + (d.recurrence === 'annuelle' ? (d.montant || 0) / actMois : (d.montant || 0)), 0);
   const ponctuelles = DATA.depenses
-    .filter(d => d.recurrence === 'ponctuelle' && d.date && fenetre.includes(d.date.slice(0, 7)))
+    .filter(d => d.recurrence === 'ponctuelle' && d.date && fenetre.includes(d.date.slice(0, 7)) && estDeductible(d))
     .reduce((s, d) => s + (d.montant || 0), 0) / fenetre.length;
   return (recurrentes + ponctuelles) * facteurExtraction;
 }
