@@ -2386,6 +2386,20 @@ Demande Faustine : détecter quand les dépenses réelles pèsent assez pour qu'
 
 Ajoutée dans `wScoreSante()` (juste après le rappel annuel VFL), identique sur `indepuls.html` et `indepuls-demo.html`. Logique 100 % HTML (pas de nouvelle fonction `shared/core`, `getComparateurStatuts` déjà couvert par ses propres tests), vérifiée en direct : déclenchement avec une grosse dépense fictive (+636 €/mois annoncés), absence pour un statut non-micro, snooze 30 jours (réapparition confirmée après simulation du délai), et désactivation permanente (persistée en compte réel, correctement non persistée en démo anonyme comme prévu).
 
+### FIX : TVA récupérable estimée surestimée (assurances/prévoyance), tirets cadratins sur "Et si je changeais de statut ?" (2026-09-21)
+
+Retour Faustine, en testant la carte en production : le calcul de TVA récupérable estimée (compte pas encore assujetti à la TVA) appliquait le taux forfaitaire (20 % par défaut) à la totalité des dépenses, y compris les grosses lignes assurance/mutuelle/prévoyance, qui sont pourtant toujours exonérées de TVA par nature (article 261 C du CGI, jamais un cas par cas comme le reste des catégories de dépenses).
+
+**`shared/core/calculs.js`, `_depensesTvaMoyenneMensuelle`** : la branche d'estimation (compte sans TVA) exclut désormais les dépenses de catégorie `Assurances & prévoyance`, récurrentes comme ponctuelles. La branche "TVA réellement suivie" (compte déjà assujetti, `DATA.params.tva`) n'a pas besoin de ce correctif : elle se base déjà sur le champ `tvaDeductible` saisi dépense par dépense, jamais un forfait par catégorie.
+
+**`shared/tests/etsi_simulateur.test.js`** : nouvelle section vérifiant qu'une dépense "Logiciels & abonnements" génère de la TVA récupérable estimée, mais qu'une dépense "Assurances & prévoyance" de même montant n'en génère aucune. 41 tests dans ce fichier, suite complète toujours au vert.
+
+**Tirets cadratins** : nettoyés sur tout le texte visible de la page "Et si ?" (modale `ETSI_METH` des 5 simulateurs, intro de la carte "changement de statut", séparateur client dans le sélecteur de "Perdre un client"), reformulés en phrases séparées ou virgules plutôt qu'un simple remplacement visuel. Les tirets cadratins restants dans cette zone sont uniquement des commentaires de code, jamais vus par une utilisatrice, donc hors périmètre de ce nettoyage (la vague 2 pour le reste du fichier reste en attente).
+
+**Exemples de dépense ponctuelle enrichis** (retour Faustine : mobilier et équipement électronique sont, avec les formations, les postes les plus fréquents) : l'info-bulle du champ "Dépense ponctuelle à tester" mentionne désormais ces deux exemples en plus de la formation.
+
+Vérifié en direct : une dépense assurance ajoutée augmente bien `depensesUtilisees` (coût réel visible) sans augmenter `tvaRecuperee` (aucune TVA à récupérer dessus), la modale "Comment c'est calculé ?" mentionne l'exclusion, aucun tiret cadratin restant dans le texte affiché de la carte ni de la modale.
+
 **Point de maintenance annuelle à ne pas oublier** : `shared/core/taux.js` porte déjà en en-tête "Mise à jour annuelle : modifier ce seul fichier", qui couvre aussi les constantes ajoutées ce chantier VFL (`PLAFOND_VFL_PAR_PART`, `BAREME_IR`, la décote codée en dur dans `getDecoteIR`, le plafond du quotient familial `PLAFOND_QF_PAR_DEMI_PART`) : à remettre à jour dès que les nouveaux montants légaux sont publiés (généralement en fin d'année civile pour application l'année suivante), sinon toutes les fonctions VFL restent silencieusement calées sur les montants de l'année précédente.
 
 **Reste à construire (étape 5)** : point de bascule (CA de basculement où le versement libératoire devient avantageux/désavantageux) avec un curseur interactif, sur le modèle des autres cartes "Et si ?".
