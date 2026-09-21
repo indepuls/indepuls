@@ -4463,3 +4463,17 @@ Contexte : réflexion sur le positionnement du site vitrine ("à qui s'adresse I
 - **Confirmé dans le code** : le statut juridique (`#p-statut`, `DATA.params.statut`) ne propose que `micro-bnc`, `micro-bic`, `EURL`, `SASU` — aucune option pour une SAS à plusieurs associés. Toute la logique de rémunération (`isSASU()`, "Disponible pour l'entreprise" vs "pour moi", `remunerationNette`) suppose un dirigeant unique. Cette bêtatesteuse utilise donc Indépuls sous le statut "SASU" par approximation, sans que la répartition entre associés soit réellement modélisée.
 - **Décision pour le site vitrine** : ne jamais utiliser la forme juridique comme critère de positionnement ("à qui s'adresse Indépuls", FAQ + section "Ce qu'Indépuls refuse" de l'accueil) — le vrai critère est fonctionnel : est-ce vous qui pilotez et suivez vos propres chiffres au quotidien (pas de contrôleur de gestion ni d'équipe interne dédiée) ? Un expert-comptable externe ne disqualifie pas, c'est le cas de la quasi-totalité des indépendants.
 - **Non fait, à garder en tête pour la roadmap** : si les demandes de structures à plusieurs associés se multiplient en bêta, ce sera un vrai chantier produit (répartition rémunération/capital entre associés), pas un simple ajout de statut dans un menu déroulant.
+
+### 2026-09-21 : Mon Horizon comptait une mission récurrente "en attente" comme active
+
+Retour Faustine : le tableau de bord affichait "une seule mission active" alors que l'unique mission du compte (récurrente, "Mona") était au statut "En attente" sur sa fiche. Deux causes distinctes trouvées.
+
+**`shared/core/planning.js`, `isRecurringStillActive()`** : n'excluait explicitement que `statut==='ref'`, jamais `statut==='att'`. Une récurrente "en attente" (jamais confirmée, `dateDebutRec` n'y est qu'une date de début proposée, pas un engagement réel) était donc comptée comme active tant que sa fenêtre de dates théorique n'était pas dépassée. Corrigé : `'att'` exclue au même titre que `'ref'`.
+
+**"Duplication B" trouvée au passage** : `wScoreSante()` (PILIER 4, Commercial) avait sa propre copie locale de cette même logique, non synchronisée avec `isRecurringStillActive()` (qui elle-même remplaçait déjà une "duplication A" documentée plus haut dans ce fichier, audit externe 2026-07-26). Cette copie locale ne testait aucun statut d'exclusion du tout, ni `'ref'` ni `'att'`. Remplacée par un appel direct à `isRecurringStillActive(m)`, sur `indepuls.html` et `indepuls-demo.html` (identique, pas de fichier séparé pour ce pilier).
+
+**`shared/tests/planning.test.js`** : 2 nouveaux cas pour `statut==='att'` (avec et sans fenêtre de dates valide). 156/156 assertions au vert, suite complète sans régression.
+
+Vérifié en direct : une récurrente "en attente" fait désormais tomber "Mon Horizon" sur "Aucune activité future identifiée" (au lieu de "une seule mission active"), un passage à "En cours" refait immédiatement remonter le pilier comme avant, aucune erreur console.
+
+**Note pour la vigilance future** : deux "duplications" de cette même logique ont maintenant été trouvées et corrigées à des dates différentes. Si un troisième endroit du code recalcule "une récurrente est-elle active" sans passer par `isRecurringStillActive()`, il vaut la peine de le chercher explicitement (`grep -n "isRecurring" indepuls.html indepuls-demo.html`) plutôt que d'attendre un nouveau signalement.
