@@ -4534,3 +4534,11 @@ Retour Faustine : pour la SASU/EURL, le solde réel ne se met à jour que depuis
 **`indepuls.html` + `indepuls-demo.html`, `renderSasuCard()`** : la ligne `row(soldeLabel, fmtE(soldeBase), '')` (générique, sans place pour un bouton) remplacée par un bloc dédié reprenant le même style visuel, avec un bouton ✏️ appelant `openTresoAnchorForm()` (même modale partagée que partout ailleurs). Le champ "Trésorerie de sécurité" reste masqué pour la SASU/EURL via `isSASU()`, comportement déjà en place.
 
 Vérifié en direct : crayon présent dans le détail déplié de la carte, ouvre la bonne modale (champ sécurité bien masqué), la saisie (6 000 €) est enregistrée et réaffichée correctement dans le détail au rendu suivant, aucune erreur console.
+
+### 2026-09-29 (suite) : le constat de déficit/marge fragile passe en tête du diagnostic "Ma Trésorerie"
+
+Retour Faustine, immédiatement après la correction précédente : le score baissait bien (8/25), mais la phrase affichée commençait toujours par "Aucun risque identifié sur ma trésorerie." (le texte de base, basé sur les impayés), suivie seulement ensuite du constat de déficit. Cause : `diagTreso += ...` ajoutait le nouveau message à la fin, sans jamais le faire passer devant.
+
+**`indepuls.html` + `indepuls-demo.html`, `wScoreSante()`** : en déficit ou marge fragile, le message passe désormais en tête (`diagTreso = nouveauMessage + '<br>' + diagTreso`), exactement comme le fait déjà la SASU/EURL juste au-dessus dans le même fichier (que je n'avais pas suivie à la lettre la première fois). Cas confortable inchangé (ajouté à la fin, l'ordre n'a pas d'importance quand les deux messages sont positifs).
+
+Vérifié en direct : déficit et marge fragile affichent désormais le constat lié au solde réel en première phrase du diagnostic, aucune erreur console.
