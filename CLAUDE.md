@@ -4509,3 +4509,20 @@ Brainstorm produit (skill `indepuls-copilote`) puis implémentation : Faustine v
 **Idée écartée pour l'instant, à rouvrir plus tard** : import CSV du relevé bancaire pour mettre à jour dépenses/encaissements/solde automatiquement. Sur la roadmap produit, la connexion bancaire est déjà positionnée en Phase 3 (lecture seule) ; un CSV manuel n'évite pas le vrai coût (rapprochement/dédoublonnage avec les saisies existantes, catégorisation de lignes bancaires opaques), qui se rapproche de la "gestion bancaire automatique"/"comptabilité complète" explicitement exclues de la philosophie produit. Faustine souhaite qu'on y revienne avec une validation manuelle systématique, et demande une estimation du coût financier (API bancaire type Bridge/Powens/Budget Insight) le moment venu.
 
 Vérifié en direct : solde 3 500 € + sécurité 1 000 € + à conserver 1 487 € → 1 013 € disponibles (calcul confirmé) ; solde insuffisant (500 €) → -1 987 € affiché en rouge sans être plafonné ; masqué correctement pour la SASU ; réinitialisation du solde conserve la trésorerie de sécurité (une préférence indépendante) ; score du pilier inchangé dans les deux cas ; aucune erreur console.
+
+### 2026-09-29 (suite) : le solde réel impacte désormais le score "Ma Trésorerie" pour Micro/EI, comme la SASU
+
+Retour Faustine en test réel : score "Ma Trésorerie" à 25/25 avec le message "Aucun risque identifié", alors que juste en dessous, "Disponible pour rémunération" affichait -858 € en rouge. Paradoxe repéré immédiatement par Faustine. Cause : la décision prise quelques heures plus tôt (voir entrée précédente) de laisser `sTreso` volontairement inchangé, par analogie avec le principe déjà appliqué à ce pilier pour Micro/BNC/BIC ("score basé sur les impayés, diagnostic enrichi séparément"). Mauvaise référence : la SASU/EURL, elle, fait déjà l'inverse juste au-dessus dans le même fichier, sa projection de trésorerie réelle (`_proj<0`) plafonnant son score à 8/25.
+
+**Nouveau raisonnement, tranché avec Faustine** : renseigner son solde réel n'est pas une saisie à traiter comme neutre, c'est une information plus fiable que l'estimation par défaut. Une fois connue, l'ignorer dans le score serait aveugle. Qui ne renseigne rien garde le score actuel (basé sur les impayés, aucun changement) ; qui renseigne son solde et découvre un déficit doit voir ce déficit peser sur son score, à l'identique de la SASU/EURL.
+
+**`indepuls.html` + `indepuls-demo.html`, `wScoreSante()` (branche Micro/EI du pilier Trésorerie)** : mêmes 2 paliers que la SASU/EURL juste au-dessus.
+- `_dispo < 0` (déficit) → `sTreso = min(sTreso, 8)`, icône ▼.
+- `0 ≤ _dispo < totalAConserver` (marge fragile, moins d'un mois de charges en réserve au-delà de l'immédiat, seuil analogue à `_depMoy` côté SASU) → `sTreso = min(sTreso, 16)`, icône ◐.
+- `_dispo ≥ totalAConserver` (confortable) → score inchangé, icône ▲.
+
+Icônes alignées sur celles déjà utilisées par la SASU/EURL (▼/◐/▲) plutôt que les 🔴/🟢 du premier jet, pour une seule grammaire visuelle de l'état de trésorerie dans tout le pilier. Même code couleur (rouge/orange/vert) repris sur la carte "Disponible pour rémunération" d'"Argent à mettre de côté", qui n'avait jusqu'ici que 2 couleurs (vert/rouge) sans le palier intermédiaire.
+
+Aucun changement dans `getDisponiblePourRemuneration()` (`shared/core/calculs.js`) : la fonction reste pure et ne connaît pas la notion de palier, seule la consommation de son résultat côté HTML a changé. Pas de nouveau test `shared/core` (logique de plafonnement du score entièrement en HTML, comme celle, déjà non testée, de la SASU/EURL juste au-dessus).
+
+Vérifié en direct sur les 3 paliers : déficit (solde 800 €, à conserver 1 487 €) → 8/25 avec le message ▼ ; marge fragile (solde 2 187 €, dispo 700 € < 1 487 €) → 16/25 avec le message ◐ ; confortable (solde 5 000 €, dispo 3 513 € ≥ 1 487 €) → 25/25 avec le message ▲. Aucune erreur console.
