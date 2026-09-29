@@ -2880,18 +2880,22 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-treso-anchor" onclick="if(event.target===this)closeModal('modal-treso-anchor')">
   <div class="modal" style="max-width:360px">
     <div class="modal-head">
-      <div><div class="modal-title">🏦 Mettre à jour la trésorerie</div><div class="modal-sub">Saisissez le solde réel de votre compte société</div></div>
+      <div><div class="modal-title">🏦 Mettre à jour la trésorerie</div><div class="modal-sub">Saisissez le solde réel de votre compte professionnel</div></div>
       <button class="modal-close" onclick="closeModal('modal-treso-anchor')">✕</button>
     </div>
     <div class="modal-body" style="padding-top:8px">
       <div style="font-size:12px;color:var(--tl);margin-bottom:10px">Solde réel au <span id="treso-anchor-date-label"></span> :</div>
       <input id="treso-anchor-input" type="number" step="100" placeholder="Ex : 4 200" style="width:100%;padding:9px 12px;border:1px solid var(--brd);border-radius:8px;font-size:15px;background:var(--bg);color:var(--tx);box-sizing:border-box">
+      <div id="treso-securite-row" style="display:none;margin-top:14px">
+        <label class="flabel" style="font-size:12px;color:var(--tl);display:block;margin-bottom:6px">Trésorerie de sécurité à toujours garder de côté (optionnel) <span class="info-tip" title="Un montant que vous ne voulez jamais toucher, au-delà de vos charges à venir déjà provisionnées. Laissez vide si vous n'en voulez pas.">?</span></label>
+        <input id="treso-securite-input" type="number" step="100" placeholder="Ex : 2 000" style="width:100%;padding:9px 12px;border:1px solid var(--brd);border-radius:8px;font-size:15px;background:var(--bg);color:var(--tx);box-sizing:border-box">
+      </div>
       <div style="display:flex;gap:8px;margin-top:12px">
         <button onclick="confirmTresoAnchor()" style="flex:1;padding:9px;background:var(--pri);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Enregistrer</button>
         <button onclick="closeModal('modal-treso-anchor')" style="padding:9px 16px;background:none;border:1px solid var(--brd);border-radius:8px;cursor:pointer;font-size:13px">Annuler</button>
       </div>
       <div id="treso-anchor-reset-row" style="display:none;margin-top:10px;text-align:center">
-        <button onclick="deleteSasuSoldeReel()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--tl);text-decoration:underline">Réinitialiser (revenir au calcul automatique)</button>
+        <button onclick="deleteSoldeReel()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--tl);text-decoration:underline">Réinitialiser (revenir au calcul automatique)</button>
       </div>
     </div>
   </div>
@@ -5128,12 +5132,14 @@ function saveChargeParam(field, val) {
 // getSasuCoutRemuMensuel → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // getSasuSoldeActuelEstime → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // getSasuProjectionFinAnnee → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
-function saveSasuSoldeReel(val) {
+// Généralisé à tous les statuts (retour Faustine 2026-09-29) : un solde bancaire réel n'a aucune
+// raison de dépendre du statut juridique simulé, seule la SASU/EURL pouvait le saisir jusqu'ici.
+function saveSoldeReel(val) {
   DATA.params.soldeReel=val;
   DATA.params.soldeReelDate=getCurrentMk();
   saveData();renderDashboard();
 }
-function deleteSasuSoldeReel() {
+function deleteSoldeReel() {
   delete DATA.params.soldeReel;
   delete DATA.params.soldeReelDate;
   saveData();closeModal('modal-treso-anchor');renderDashboard();
@@ -5145,10 +5151,30 @@ function openTresoAnchorForm(){
   if(inp){inp.value=DATA.params.soldeReel!=null?DATA.params.soldeReel:'';}
   const rst=document.getElementById('treso-anchor-reset-row');
   if(rst) rst.style.display=DATA.params.soldeReel!=null?'block':'none';
+  // Trésorerie de sécurité (retour Faustine 2026-09-29) : n'a de sens que combinée au calcul
+  // "disponible pour rémunération", propre à Micro/EI au réel pour l'instant (la SASU/EURL a déjà
+  // sa propre logique de rémunération via getSasuCoutRemuMensuel/getSasuProjectionFinAnnee),
+  // masqué plutôt que proposé sans effet visible, qui laisserait croire à une saisie sans suite.
+  const secRow=document.getElementById('treso-securite-row');
+  const isSasuNow=typeof isSASU==='function'&&isSASU();
+  if(secRow) secRow.style.display=isSasuNow?'none':'block';
+  const inpSec=document.getElementById('treso-securite-input');
+  if(inpSec){inpSec.value=DATA.params.tresorerieSecurite!=null?DATA.params.tresorerieSecurite:'';}
   openModal('modal-treso-anchor');
   if(inp) setTimeout(()=>inp.focus(),50);
 }
-function confirmTresoAnchor(){const v=parseFloat(document.getElementById('treso-anchor-input').value);if(!isNaN(v)){saveSasuSoldeReel(v);closeModal('modal-treso-anchor');}}
+function confirmTresoAnchor(){
+  const v=parseFloat(document.getElementById('treso-anchor-input').value);
+  if(!isNaN(v)) saveSoldeReel(v);
+  const secRow=document.getElementById('treso-securite-row');
+  if(secRow&&secRow.style.display!=='none'){
+    const vSec=parseFloat(document.getElementById('treso-securite-input').value);
+    if(!isNaN(vSec)&&vSec>0) DATA.params.tresorerieSecurite=vSec; else delete DATA.params.tresorerieSecurite;
+    saveData();
+  }
+  closeModal('modal-treso-anchor');
+  renderDashboard();
+}
 function getSasuTresorerieEstimee() {
   const dep=getCurrentYearMonths().reduce((s,mk)=>s+getDepensesMois(mk),0);
   // Entrées hors-CA (remboursements, indemnités…) : pas de charges mais cash réel
@@ -6061,6 +6087,28 @@ function wProvisionsSide(d) {
       if(caMoisBrut>=totalAConserver*0.5)
         return '<div style="font-size:12px;color:var(--warn);margin-bottom:10px;display:flex;gap:6px"><span>🟠</span><span><strong>À surveiller</strong> : les revenus du mois ne couvrent qu\'une partie des provisions à constituer.</span></div>';
       return '<div style="font-size:12px;color:var(--err);margin-bottom:10px;display:flex;gap:6px"><span>🔴</span><span><strong>Vigilance</strong> : vos prochaines échéances risquent de peser sur votre trésorerie.</span></div>';
+    })()
+    +(()=>{
+      // Disponible pour rémunération (retour Faustine 2026-09-29) : réservé à Micro/EI au réel, la
+      // SASU/EURL a déjà sa propre carte dédiée (renderSasuCard) avec le même DATA.params.soldeReel.
+      if(isSASU()) return '';
+      if(DATA.params.soldeReel==null){
+        return '<div style="font-size:11px;color:var(--tl);margin-bottom:10px;padding:8px 10px;background:var(--bg);border-radius:6px;border-left:2px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:8px">'
+          +'<span>Renseignez votre solde bancaire pour savoir combien vous pouvez vous verser sans risque.</span>'
+          +'<button onclick="openTresoAnchorForm()" style="background:none;border:1px solid var(--brd);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px;color:var(--text);white-space:nowrap;flex-shrink:0">Renseigner</button>'
+        +'</div>';
+      }
+      const _tresorerieSecurite=DATA.params.tresorerieSecurite||0;
+      const _dispo=getDisponiblePourRemuneration(totalAConserver);
+      const _dispoColor=_dispo>=0?'var(--ok)':'var(--err)';
+      return '<div style="background:'+(_dispo>=0?'rgba(42,122,42,.07)':'rgba(200,50,50,.07)')+';border-radius:10px;padding:14px 16px;border-left:3px solid '+_dispoColor+';margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">'
+        +'<div>'
+          +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">Disponible pour rémunération</div>'
+          +'<div style="font-size:26px;font-weight:900;color:'+_dispoColor+';line-height:1">'+fmtE(_dispo)+'</div>'
+          +'<div style="font-size:10px;color:var(--tl);margin-top:4px">Solde du '+(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')+' : '+fmtE(DATA.params.soldeReel,0)+(_tresorerieSecurite>0?' · '+fmtE(_tresorerieSecurite)+' de sécurité conservés':'')+'</div>'
+        +'</div>'
+        +'<button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--tl);flex-shrink:0" title="Mettre à jour mon solde">✏️</button>'
+      +'</div>';
     })()
     +(repartRows.length?'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:6px">Répartition</div>'+rowHtml:'')
     +(()=>{
@@ -7216,6 +7264,30 @@ function wScoreSante(d) {
       diagTreso+=`<br>+ <strong>${fmtE(_argentProbable)}</strong> probables à facturer sur mes ${tVocab('items').toLowerCase()} en cours (non garantis).`;
     }
     if(_argentProbable>0) _tresoExtraRows.push({lbl:'Probable non garanti (en cours)', val:fmtE(_argentProbable), c:'var(--tl)'});
+    // Disponible pour rémunération (retour Faustine 2026-09-29) : généralise à Micro/EI au réel le
+    // même DATA.params.soldeReel que la SASU/EURL ci-dessus (un solde bancaire réel ne dépend pas
+    // du statut juridique simulé), jamais deviné, n'apparaît que si la personne l'a renseigné.
+    // Score sTreso volontairement inchangé (voir commentaire "Micro/BNC/BIC" plus haut) : soldeReel
+    // est une saisie optionnelle, la même situation réelle ne doit pas produire un score différent
+    // selon que la personne a pris le temps de le renseigner ou non, uniquement un enrichissement
+    // du diagnostic, jamais mélangé aux 3 autres montants déjà distincts (dû/probable/échéances).
+    const _anchorMicro=DATA.params.soldeReel!=null;
+    const _soldeLabelMicro=_anchorMicro
+      ?`Solde réel du ${(DATA.params.soldeReelDate||'').replace(/(\d{4})-(\d{2})/,'$2/$1')} : <strong>${fmtE(DATA.params.soldeReel,0)}</strong>`
+      :'Solde bancaire non renseigné';
+    extraTresoHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--tl);margin-bottom:6px;padding:8px 10px;background:var(--bg);border-radius:6px">
+      <span>${_soldeLabelMicro}</span>
+      <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--tl);flex-shrink:0" title="Saisir mon solde bancaire actuel">✏️</button>
+    </div>`;
+    if(_anchorMicro){
+      const _tresorerieSecurite=DATA.params.tresorerieSecurite||0;
+      const _dispo=getDisponiblePourRemuneration(_ech.total);
+      const _secTxt=_tresorerieSecurite>0?` (dont ${fmtE(_tresorerieSecurite)} de trésorerie de sécurité conservée)`:'';
+      diagTreso+=_dispo>=0
+        ?`<br>🟢 Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci sans mettre en risque vos prochaines échéances${_secTxt}.`
+        :`<br>🔴 Votre solde actuel ne couvre pas vos prochaines échéances${_secTxt} : il manquerait <strong>${fmtE(Math.abs(_dispo))}</strong> pour vous verser une rémunération sans risque ce mois-ci.`;
+      _tresoExtraRows.push({lbl:'Disponible pour rémunération',val:fmtE(_dispo),c:_dispo>=0?'var(--ok)':'var(--err)'});
+    }
   }
 
   // ── PILIER 4 : COMMERCIAL (25 pts) ───────────────────────────
@@ -16537,6 +16609,7 @@ document.addEventListener('keydown', function(e) {
   window.getSasuCoutRemuMensuel = ()   => { sync(); return Mode.getSasuCoutRemuMensuel(); };
   window.getSasuCoutMensuelDepuisNet = (net) => { sync(); return Mode.getSasuCoutMensuelDepuisNet(net); };
   window.getSasuProjectionFinAnnee = () => { sync(); return Mode.getSasuProjectionFinAnnee(); };
+  window.getDisponiblePourRemuneration = (totalAConserver) => { sync(); return Mode.getDisponiblePourRemuneration(totalAConserver); };
   window.getTvaAVenirFinAnnee = () => { sync(); return Mode.getTvaAVenirFinAnnee(); };
   window.getSasuSoldeActuelEstime  = () => { sync(); return Mode.getSasuSoldeActuelEstime(); };
   window.getTVACollecteeAnnuelle   = () => { sync(); return Mode.getTVACollecteeAnnuelle(); };

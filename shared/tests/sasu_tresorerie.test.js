@@ -10,6 +10,7 @@ import {
   getSasuCoutRemuMensuel,
   getTresorerieDepart,
   getSasuSoldeActuelEstime,
+  getDisponiblePourRemuneration,
 } from '../core/calculs.js';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -86,6 +87,36 @@ section('getSasuSoldeActuelEstime — sans CA ni dépense, seule la rémunérati
   });
   const attendu = 10000 - 1160 * moisEcoules; // 800 × 1,45 = 1160
   test('EURL — même formule avec coutRemunerationPct=45%', getSasuSoldeActuelEstime(D_EURL), attendu);
+}
+
+// ── 6. Disponible pour rémunération (généralisé à tous les statuts, 2026-09-29) ─
+// DATA.params.soldeReel/tresorerieSecurite, jusqu'ici réservés à la projection SASU/EURL
+// ci-dessus, sont désormais aussi utilisés par Micro/EI au réel (retour Faustine) : cette
+// fonction ne connaît pas le statut, elle se contente de soustraire, vérifié ici pour
+// plusieurs statuts, pas seulement SASU.
+
+section('getDisponiblePourRemuneration : jamais deviné, jamais plafonné');
+{
+  const D = mkData({ params: { statut: 'micro-bnc' } });
+  const r = getDisponiblePourRemuneration(D, 1000);
+  if (r === null) { console.log('  ✅ soldeReel non renseigné -> null (jamais deviné)'); passed++; }
+  else { console.error(`  ❌ soldeReel non renseigné -> null (jamais deviné) : attendu null, obtenu ${r}`); failed++; }
+}
+{
+  const D = mkData({ params: { statut: 'micro-bnc', soldeReel: 5000 } });
+  test('solde 5000, à conserver 2000, pas de sécurité -> 3000', getDisponiblePourRemuneration(D, 2000), 3000);
+}
+{
+  const D = mkData({ params: { statut: 'ei-reel', soldeReel: 5000, tresorerieSecurite: 1000 } });
+  test('solde 5000, à conserver 2000, sécurité 1000 -> 2000', getDisponiblePourRemuneration(D, 2000), 2000);
+}
+{
+  const D = mkData({ params: { statut: 'micro-bnc', soldeReel: 1000 } });
+  test('à conserver > solde -> déficit négatif, jamais plafonné à 0', getDisponiblePourRemuneration(D, 3000), -2000);
+}
+{
+  const D = mkData({ params: { statut: 'sasu', soldeReel: 10000, tresorerieSecurite: 2000 } });
+  test('fonctionne aussi pour SASU (fonction pure, aucune branche par statut)', getDisponiblePourRemuneration(D, 1000), 7000);
 }
 
 // ── Résumé ────────────────────────────────────────────────────

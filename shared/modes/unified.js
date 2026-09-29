@@ -101,6 +101,7 @@ export const getSasuCoutMensuelDepuisNet = (net) => C.getSasuCoutMensuelDepuisNe
 export const getTresorerieDepart      = () => C.getTresorerieDepart(DATA);
 export const getSasuSoldeActuelEstime = () => C.getSasuSoldeActuelEstime(DATA);
 export const getSasuProjectionFinAnnee = () => C.getSasuProjectionFinAnnee(DATA);
+export const getDisponiblePourRemuneration = (totalAConserver) => C.getDisponiblePourRemuneration(DATA, totalAConserver);
 export const getTvaAVenirFinAnnee     = () => C.getTvaAVenirFinAnnee(DATA);
 
 export const getBeneficeReelMois      = (mk) => C.getBeneficeReelMois(DATA, mk);

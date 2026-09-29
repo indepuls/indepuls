@@ -920,6 +920,18 @@ export function getSasuProjectionFinAnnee(DATA) {
   return Math.round(base + (caAvg - depAvg - getSasuCoutRemuMensuel(DATA)) * moisRestants - tvaAVenir);
 }
 
+// Combien puis-je me verser ce mois-ci sans mettre en risque mes prochaines échéances ? (retour
+// Faustine 2026-09-29). Généralise DATA.params.soldeReel (jusqu'ici réservé à la projection
+// SASU/EURL ci-dessus) aux statuts Micro/EI au réel : un solde bancaire réel n'a aucune raison de
+// dépendre du statut juridique simulé. Ne s'active jamais tant que soldeReel n'est pas renseigné
+// (jamais deviné) : totalAConserver est passé par l'appelant (déjà calculé par
+// getEcheancesAVenir() côté HTML) plutôt que recalculé ici, pour ne jamais dupliquer cette
+// logique (échéances URSSAF/TVA + provisions + dépenses à venir).
+export function getDisponiblePourRemuneration(DATA, totalAConserver) {
+  if (DATA.params.soldeReel == null) return null;
+  return Math.round(DATA.params.soldeReel - totalAConserver - (DATA.params.tresorerieSecurite || 0));
+}
+
 // ── ENCAISSEMENTS ────────────────────────────────────────────
 
 export function getTotalEncaisse(m) {
