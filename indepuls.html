@@ -7278,12 +7278,16 @@ function wScoreSante(d) {
       const _tresorerieSecurite=DATA.params.tresorerieSecurite||0;
       const _dispo=getDisponiblePourRemuneration(_ech.total);
       const _secTxt=_tresorerieSecurite>0?` (dont ${fmtE(_tresorerieSecurite)} de trésorerie de sécurité conservée)`:'';
+      // Même ordre que la SASU/EURL ci-dessus (retour Faustine : le score baissait déjà, mais le
+      // "Aucun risque identifié" resté en tête de phrase contredisait le message qui suivait) :
+      // en déficit ou marge fragile, ce constat passe EN TÊTE du diagnostic, jamais après un
+      // "aucun risque" qui daterait d'avant la prise en compte du solde réel.
       if(_dispo<0){
         sTreso=Math.min(sTreso,8);
-        diagTreso+=`<br>▼ Votre solde actuel ne couvre pas vos prochaines échéances${_secTxt} : il manquerait <strong>${fmtE(Math.abs(_dispo))}</strong> pour vous verser une rémunération sans risque ce mois-ci.`;
+        diagTreso=`▼ Votre solde actuel ne couvre pas vos prochaines échéances${_secTxt} : il manquerait <strong>${fmtE(Math.abs(_dispo))}</strong> pour vous verser une rémunération sans risque ce mois-ci.<br>${diagTreso}`;
       } else if(_dispo<_ech.total){
         sTreso=Math.min(sTreso,16);
-        diagTreso+=`<br>◐ Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci${_secTxt}, mais la marge est faible : moins d'un mois de charges en réserve au-delà de l'immédiat, surveillez vos entrées.`;
+        diagTreso=`◐ Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci${_secTxt}, mais la marge est faible : moins d'un mois de charges en réserve au-delà de l'immédiat, surveillez vos entrées.<br>${diagTreso}`;
       } else {
         diagTreso+=`<br>▲ Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci sans mettre en risque vos prochaines échéances${_secTxt}.`;
       }
