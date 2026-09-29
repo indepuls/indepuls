@@ -5955,15 +5955,40 @@ function getEcheancesAVenir(d) {
   }
   const urssafAmt=(echURSSAF&&echURSSAF.montant>0)?echURSSAF.montant:0;
   const tvaAmt=(echTVA&&echTVA.montant>0)?echTVA.montant:0;
-  const total=urssafAmt+tvaAmt+provImpots+provCotisTNS;
-  return {echURSSAF,echTVA,provImpots,impotSubW,provCotisTNS,cotisTNSSubW,total,urssafAmt,tvaAmt,isMicro:_isMicro,isEIReel:_isEIReel,impotsTaux};
+  // Dépenses prévues le mois prochain (retour Faustine 2026-09-29) : "Argent à mettre de côté" ne
+  // couvrait que les charges sociales/fiscales, jamais les dépenses professionnelles à venir
+  // (abonnements récurrents, mais aussi une dépense ponctuelle ou annuelle déjà planifiée pour le
+  // mois suivant, ex. une formation ou un renouvellement d'assurance). getDepensesMois(mk) couvre
+  // déjà les 3 cas en un seul appel (mensuelle active ce mois-là, annuelle dont l'anniversaire
+  // tombe ce mois-ci, ponctuelle datée ce mois précis) : jamais une deuxième logique de filtrage
+  // par récurrence recréée ici.
+  const curMk=getCurrentMk();
+  const [cyD,cmD]=curMk.split('-').map(Number);
+  const moisSuivantDate=new Date(cyD,cmD,1); // cmD est déjà 1-indexé (janvier=1) : Date() avance donc d'un mois
+  const moisSuivantMk=`${moisSuivantDate.getFullYear()}-${String(moisSuivantDate.getMonth()+1).padStart(2,'0')}`;
+  const moisSuivantLabel=moisSuivantDate.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const depensesAVenir=getDepensesMois(moisSuivantMk);
+  let depensesAVenirSub=null;
+  if(depensesAVenir>0){
+    // Jamais de boîte noire : si des lignes non récurrentes (ponctuelle/annuelle) pèsent dans ce
+    // total, les nommer explicitement plutôt que de livrer un chiffre agrégé opaque.
+    const lignesAVenir=getDepensesLignesMois(moisSuivantMk);
+    const recurrentTotal=lignesAVenir.filter(l=>l.recurrence==='mensuelle').reduce((s,l)=>s+(l.montant||0),0);
+    const ponctuellesEtAnnuelles=lignesAVenir.filter(l=>l.recurrence!=='mensuelle');
+    const parts=[];
+    if(recurrentTotal>0) parts.push(`${fmtE(recurrentTotal)} récurrentes`);
+    if(ponctuellesEtAnnuelles.length) parts.push(ponctuellesEtAnnuelles.map(l=>`${esc(l.libelle||l.categorie||'dépense')} (${fmtE(l.montant||0)})`).join(', '));
+    depensesAVenirSub=parts.join(' + ')||null;
+  }
+  const total=urssafAmt+tvaAmt+provImpots+provCotisTNS+depensesAVenir;
+  return {echURSSAF,echTVA,provImpots,impotSubW,provCotisTNS,cotisTNSSubW,total,urssafAmt,tvaAmt,isMicro:_isMicro,isEIReel:_isEIReel,impotsTaux,depensesAVenir,depensesAVenirSub,moisSuivantLabel};
 }
 function wProvisionsSide(d) {
   const curMk=getCurrentMk();
   const [cy,cm]=curMk.split('-');
   const moisLabel=new Date(+cy,+cm-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
 
-  const {echURSSAF,echTVA,provImpots,impotSubW:_impotSubW,provCotisTNS,cotisTNSSubW,total:totalAConserver,urssafAmt,tvaAmt,isMicro:_isMicro,isEIReel:_isEIReel,impotsTaux}=getEcheancesAVenir(d);
+  const {echURSSAF,echTVA,provImpots,impotSubW:_impotSubW,provCotisTNS,cotisTNSSubW,total:totalAConserver,urssafAmt,tvaAmt,isMicro:_isMicro,isEIReel:_isEIReel,impotsTaux,depensesAVenir,depensesAVenirSub,moisSuivantLabel}=getEcheancesAVenir(d);
   // netAnnuel supprimé (case Disponible retirée)
 
   // Urgence bordure
@@ -5989,7 +6014,8 @@ function wProvisionsSide(d) {
     urssafAmt>0?{lbl:echURSSAF.label,val:urssafAmt,days:echURSSAF.daysLeft,sub:null}:null,
     tvaRow,
     provCotisTNS>0?{lbl:'Cotisations sociales · provision '+moisLabel,val:provCotisTNS,days:null,sub:cotisTNSSubW}:null,
-    provImpots>0?{lbl:'Impôts — provision '+moisLabel,val:provImpots,days:null,sub:_impotSubW}:null,
+    provImpots>0?{lbl:'Impôts · provision '+moisLabel,val:provImpots,days:null,sub:_impotSubW}:null,
+    depensesAVenir>0?{lbl:'Dépenses professionnelles · '+moisSuivantLabel,val:depensesAVenir,days:null,sub:depensesAVenirSub}:null,
   ].filter(Boolean);
 
   const rowHtml=repartRows.map(r=>{
