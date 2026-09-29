@@ -6100,8 +6100,11 @@ function wProvisionsSide(d) {
       }
       const _tresorerieSecurite=DATA.params.tresorerieSecurite||0;
       const _dispo=getDisponiblePourRemuneration(totalAConserver);
-      const _dispoColor=_dispo>=0?'var(--ok)':'var(--err)';
-      return '<div style="background:'+(_dispo>=0?'rgba(42,122,42,.07)':'rgba(200,50,50,.07)')+';border-radius:10px;padding:14px 16px;border-left:3px solid '+_dispoColor+';margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">'
+      // Mêmes 2 paliers que le pilier "Ma Trésorerie" (voir wScoreSante) : déficit / marge fragile
+      // (moins d'un mois de charges en réserve au-delà de l'immédiat) / confortable.
+      const _dispoColor=_dispo<0?'var(--err)':_dispo<totalAConserver?'var(--warn)':'var(--ok)';
+      const _dispoBg=_dispo<0?'rgba(200,50,50,.07)':_dispo<totalAConserver?'rgba(201,115,22,.07)':'rgba(42,122,42,.07)';
+      return '<div style="background:'+_dispoBg+';border-radius:10px;padding:14px 16px;border-left:3px solid '+_dispoColor+';margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">'
         +'<div>'
           +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tl);font-weight:700;margin-bottom:4px">Disponible pour rémunération</div>'
           +'<div style="font-size:26px;font-weight:900;color:'+_dispoColor+';line-height:1">'+fmtE(_dispo)+'</div>'
@@ -7280,13 +7283,26 @@ function wScoreSante(d) {
       <button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--tl);flex-shrink:0" title="Saisir mon solde bancaire actuel">✏️</button>
     </div>`;
     if(_anchorMicro){
+      // Score impacté par le solde réel, à l'image de la SASU/EURL ci-dessus (retour Faustine
+      // 2026-09-29, suite au paradoxe "25/25" alors que le solde réel révélait un déficit) :
+      // renseigner son solde n'est pas une pénalité, c'est une information plus fiable : une fois
+      // connue, l'ignorer dans le score serait aveugle, pas "juste" envers qui ne l'a pas saisi.
+      // Qui ne renseigne rien garde le score actuel (basé sur les impayés), sans changement.
+      // Mêmes 2 paliers que la SASU (déficit → 8, marge fragile → 16), seuil "fragile" analogue à
+      // _depMoy côté SASU : moins d'un mois de charges à venir en réserve au-delà de l'immédiat.
       const _tresorerieSecurite=DATA.params.tresorerieSecurite||0;
       const _dispo=getDisponiblePourRemuneration(_ech.total);
       const _secTxt=_tresorerieSecurite>0?` (dont ${fmtE(_tresorerieSecurite)} de trésorerie de sécurité conservée)`:'';
-      diagTreso+=_dispo>=0
-        ?`<br>🟢 Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci sans mettre en risque vos prochaines échéances${_secTxt}.`
-        :`<br>🔴 Votre solde actuel ne couvre pas vos prochaines échéances${_secTxt} : il manquerait <strong>${fmtE(Math.abs(_dispo))}</strong> pour vous verser une rémunération sans risque ce mois-ci.`;
-      _tresoExtraRows.push({lbl:'Disponible pour rémunération',val:fmtE(_dispo),c:_dispo>=0?'var(--ok)':'var(--err)'});
+      if(_dispo<0){
+        sTreso=Math.min(sTreso,8);
+        diagTreso+=`<br>▼ Votre solde actuel ne couvre pas vos prochaines échéances${_secTxt} : il manquerait <strong>${fmtE(Math.abs(_dispo))}</strong> pour vous verser une rémunération sans risque ce mois-ci.`;
+      } else if(_dispo<_ech.total){
+        sTreso=Math.min(sTreso,16);
+        diagTreso+=`<br>◐ Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci${_secTxt}, mais la marge est faible : moins d'un mois de charges en réserve au-delà de l'immédiat, surveillez vos entrées.`;
+      } else {
+        diagTreso+=`<br>▲ Vous pourriez vous verser jusqu'à <strong>${fmtE(_dispo)}</strong> ce mois-ci sans mettre en risque vos prochaines échéances${_secTxt}.`;
+      }
+      _tresoExtraRows.push({lbl:'Disponible pour rémunération',val:fmtE(_dispo),c:_dispo<0?'var(--err)':_dispo<_ech.total?'var(--warn)':'var(--ok)'});
     }
   }
 
