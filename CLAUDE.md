@@ -4477,3 +4477,17 @@ Retour Faustine : le tableau de bord affichait "une seule mission active" alors 
 Vérifié en direct : une récurrente "en attente" fait désormais tomber "Mon Horizon" sur "Aucune activité future identifiée" (au lieu de "une seule mission active"), un passage à "En cours" refait immédiatement remonter le pilier comme avant, aucune erreur console.
 
 **Note pour la vigilance future** : deux "duplications" de cette même logique ont maintenant été trouvées et corrigées à des dates différentes. Si un troisième endroit du code recalcule "une récurrente est-elle active" sans passer par `isRecurringStillActive()`, il vaut la peine de le chercher explicitement (`grep -n "isRecurring" indepuls.html indepuls-demo.html`) plutôt que d'attendre un nouveau signalement.
+
+### 2026-09-29 : "Argent à mettre de côté" intègre désormais les dépenses professionnelles à venir
+
+Demande Faustine : le widget ne provisionnait que les charges sociales/fiscales (URSSAF, TVA, cotisations, impôts), jamais les dépenses professionnelles réelles à venir (abonnements récurrents, mais aussi une dépense ponctuelle ou annuelle déjà planifiée pour le mois suivant, ex. une formation ou un renouvellement d'assurance).
+
+**`indepuls.html` + `indepuls-demo.html`, `getEcheancesAVenir(d)`** : calcule le mois suivant (`moisSuivantMk`) à partir du mois courant, puis appelle `getDepensesMois(moisSuivantMk)` (`shared/core/calculs.js`, déjà existante), qui couvre en un seul appel les 3 cas demandés : une dépense mensuelle active ce mois-là, une annuelle dont l'anniversaire tombe ce mois-ci, une ponctuelle datée précisément ce mois. Aucune nouvelle logique de filtrage par récurrence recréée ici, jamais une deuxième copie de ce que `getDepensesMois` fait déjà.
+
+Le résultat (`depensesAVenir`) s'ajoute au `total` du widget. Pour rester transparent ("jamais de boîte noire") sur ce que recouvre ce chiffre, `depensesAVenirSub` détaille la composition via `getDepensesLignesMois()` : le total des dépenses récurrentes d'un côté, puis chaque dépense ponctuelle/annuelle nommée individuellement (libellé + montant) si elle contribue au total.
+
+Une nouvelle ligne "Dépenses professionnelles · [mois suivant]" apparaît dans la répartition de `wProvisionsSide()`, uniquement si `depensesAVenir > 0`. Le pilier "Ma Trésorerie" du Score de Santé (`wScoreSante`, second appel à `getEcheancesAVenir`) en bénéficie automatiquement puisqu'il consomme le même `total`, sans modification supplémentaire nécessaire : la comparaison "ce qui m'est dû couvre-t-il mes prochaines échéances ?" prend maintenant en compte les dépenses à venir, pas seulement les charges sociales/fiscales.
+
+Profité du passage pour corriger deux tirets cadratins pré-existants : "Impôts — provision {mois}" devient "Impôts · provision {mois}" (cohérence avec la ligne cotisations juste au-dessus, qui utilisait déjà "·").
+
+Aucun test automatisé ajouté (logique 100 % HTML consommant des fonctions `shared/core` déjà couvertes par leurs propres tests ; `getEcheancesAVenir` elle-même est locale, non exportée, jamais unitairement testée, comme le reste des fonctions de widget dashboard). Vérifié en direct : une dépense ponctuelle (3 500 €) et une dépense annuelle (250 €) datées sur le mois suivant, plus des dépenses récurrentes (171 €/mois), remontent bien dans le total (3 921 € au lieu de 0) avec le détail nommé correctement affiché ; la ligne disparaît proprement quand aucune dépense n'est à venir ; aucune erreur console.
