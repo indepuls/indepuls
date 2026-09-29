@@ -4526,3 +4526,11 @@ Icônes alignées sur celles déjà utilisées par la SASU/EURL (▼/◐/▲) pl
 Aucun changement dans `getDisponiblePourRemuneration()` (`shared/core/calculs.js`) : la fonction reste pure et ne connaît pas la notion de palier, seule la consommation de son résultat côté HTML a changé. Pas de nouveau test `shared/core` (logique de plafonnement du score entièrement en HTML, comme celle, déjà non testée, de la SASU/EURL juste au-dessus).
 
 Vérifié en direct sur les 3 paliers : déficit (solde 800 €, à conserver 1 487 €) → 8/25 avec le message ▼ ; marge fragile (solde 2 187 €, dispo 700 € < 1 487 €) → 16/25 avec le message ◐ ; confortable (solde 5 000 €, dispo 3 513 € ≥ 1 487 €) → 25/25 avec le message ▲. Aucune erreur console.
+
+### 2026-09-29 (suite) : crayon de mise à jour du solde ajouté sur la carte "Rémunération recommandée" (SASU/EURL)
+
+Retour Faustine : pour la SASU/EURL, le solde réel ne se met à jour que depuis le pilier "Ma Trésorerie" (Score de Santé), jamais depuis la carte dédiée "Rémunération recommandée" (`renderSasuCard()`), qui ne fait qu'afficher la valeur en lecture seule dans son détail. Pour Micro/EI, la même commodité existe à deux endroits (pilier + carte "Argent à mettre de côté") depuis les entrées précédentes du jour. Alignement demandé.
+
+**`indepuls.html` + `indepuls-demo.html`, `renderSasuCard()`** : la ligne `row(soldeLabel, fmtE(soldeBase), '')` (générique, sans place pour un bouton) remplacée par un bloc dédié reprenant le même style visuel, avec un bouton ✏️ appelant `openTresoAnchorForm()` (même modale partagée que partout ailleurs). Le champ "Trésorerie de sécurité" reste masqué pour la SASU/EURL via `isSASU()`, comportement déjà en place.
+
+Vérifié en direct : crayon présent dans le détail déplié de la carte, ouvre la bonne modale (champ sécurité bien masqué), la saisie (6 000 €) est enregistrée et réaffichée correctement dans le détail au rendu suivant, aucune erreur console.
