@@ -96,8 +96,9 @@
   /* Score de santé mockup */
   .santemock{background:#fff; border-radius:16px; padding:22px; border:1px solid #e4ddd0; box-shadow:0 8px 30px rgba(20,21,56,.06);}
   .pillars{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(max-width:480px){ .pillars{grid-template-columns:1fr;} }
   .pillar{border:1px solid #e4ddd0; border-radius:10px; padding:14px; border-left:4px solid var(--ok);}
-  .pillar .ptitle{font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#7a7a8a; font-weight:700; display:flex; justify-content:space-between;}
+  .pillar .ptitle{font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:#7a7a8a; font-weight:700; display:flex; justify-content:space-between; gap:8px;}
   .pillar .ptitle b{color:var(--ok); font-size:13px;}
   .pillar .pbar{height:5px; border-radius:99px; background:#e4ddd0; margin:8px 0 10px; overflow:hidden;}
   .pillar .pbar i{display:block; height:100%; background:var(--ok); border-radius:99px;}
