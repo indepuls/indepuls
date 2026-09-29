@@ -13187,7 +13187,10 @@ function renderSasuCard(d) {
       <div style="font-size:10px;color:var(--tl);opacity:.8;margin-top:5px">Calculée sur les mois déjà complets, le mois en cours s'intègre automatiquement une fois terminé.</div>
       <div id="${detailId}" style="display:none;margin-top:10px;border:1px solid var(--brd);border-radius:8px;padding:2px 12px">
         ${!anchor?row('Solde au 1er janvier (départ)',fmtE(depart,0),''):''}
-        ${row(soldeLabel,fmtE(soldeBase),'')}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px">
+          <span style="color:var(--tl)">${soldeLabel}</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="font-weight:700">${fmtE(soldeBase)}</span><button onclick="openTresoAnchorForm()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--tl);padding:0;line-height:1" title="${anchor?'Mettre à jour mon solde':'Saisir mon solde bancaire actuel'}">✏️</button></span>
+        </div>
         ${row(`CA projeté (moy. ${fmtE(caAvg,0)}/mois × ${moisRestants} mois restant${moisRestants>1?'s':''})`,fmtE(Math.round(caAvg*moisRestants),0),'+')}
         ${row(`Dépenses projetées (moy. ${fmtE(depAvg,0)}/mois × ${moisRestants})`,fmtE(Math.round(depAvg*moisRestants),0),'−')}
         ${row(`Rémunération (${fmtE(coutRemuMensuel,0)}/mois × ${moisRestants})`,fmtE(Math.round(coutRemuMensuel*moisRestants),0),'−')}
