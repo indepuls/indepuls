@@ -31,6 +31,12 @@ create policy "profiles: accès à son propre profil"
   on public.profiles for all
   using (auth.uid() = id);
 
+-- GRANT explicite requis depuis le changement de politique Supabase du 30/10/2026 :
+-- les nouvelles tables ne reçoivent plus automatiquement les droits de base.
+-- Le RLS ci-dessus filtre les lignes, mais sans ce GRANT la requête est bloquée
+-- avant même d'atteindre le RLS (erreur Postgres 42501).
+grant select, insert, update, delete on public.profiles to authenticated;
+
 -- ── TABLE USAGE_EVENTS ──────────────────────────────────────
 create table if not exists public.usage_events (
   id           bigint generated always as identity primary key,
@@ -47,8 +53,13 @@ create policy "usage_events: insert ses propres événements"
   on public.usage_events for insert
   with check (auth.uid() = user_id);
 
+-- GRANT explicite requis depuis le changement de politique Supabase du 30/10/2026 :
+-- les nouvelles tables ne reçoivent plus automatiquement les droits de base.
+grant insert on public.usage_events to authenticated;
+
 -- Lecture réservée au service_role (tableau de bord admin futur)
 -- Pour requêtes analytics, utiliser la clé service_role côté serveur.
+grant select on public.usage_events to service_role;
 
 -- Index pour performance des requêtes analytics
 create index if not exists idx_usage_events_user_id    on public.usage_events(user_id);
