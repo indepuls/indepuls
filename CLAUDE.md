@@ -4562,3 +4562,17 @@ Supabase a annoncé par email qu'à partir du 30 octobre 2026, les nouvelles tab
 Vérification faite : `profiles` et `usage_events` (créées via `supabase/analytics.sql`) et `user_data` existent déjà en prod et fonctionnent, donc rien à faire dessus aujourd'hui.
 
 Correctif préventif appliqué uniquement au fichier `supabase/analytics.sql` lui-même (pas exécuté en base, RAS pour la prod actuelle) : ajout de `grant select, insert, update, delete on public.profiles to authenticated;` et de `grant insert on public.usage_events to authenticated;` / `grant select on public.usage_events to service_role;`, pour que ce script reste rejouable tel quel (nouveau projet Supabase, environnement de test) après le 30 octobre sans tomber sur l'erreur `42501 permission denied` déjà rencontrée une fois cet été avec `user_data`/`service_role` (voir plus haut, "Deuxième bug, même symptôme, cause différente"). Confirme le réflexe déjà noté : toute table destinée à être appelée via l'API Supabase (`anon`/`authenticated`/`service_role`) doit désormais avoir RLS + GRANT explicites dans le même script, jamais l'un sans l'autre.
+
+### 2026-09-30 : Vercel Web Analytics activé sur le site vitrine et l'appli
+
+Faustine cherchait à suivre le nombre de visiteurs sur indepuls.fr. Comparaison faite avec Plausible et Google Analytics avant de choisir :
+
+- **Vercel Web Analytics retenu** (option la plus simple, 80/20) : déjà inclus gratuitement sur l'hébergement Vercel existant, cookieless (aucun cookie de tracking, donc pas de bandeau de consentement RGPD à ajouter), cohérent avec le positionnement confiance/transparence du produit face à Google Analytics (qui nécessite un bandeau de consentement et une dépendance à Google).
+- **Plausible** écarté pour l'instant (paiement mensuel, ~9€/mois) mais reste l'option de repli si un suivi d'objectifs/tunnel plus fin devient nécessaire (ex. taux de clic "Essayer" puis inscription) : migration simple, un seul script à remplacer.
+- **Google Analytics** écarté : cookies + bandeau RGPD + dépendance Google, en tension avec le discours produit sur le respect des données des utilisateurs.
+
+Mise en oeuvre technique : le site est en HTML/CSS/JS vanilla sans étape de build, donc la méthode `npm i @vercel/analytics` (pensée pour Next.js/React) ne s'applique pas. Utilisée à la place la variante statique officielle : `<script defer src="/_vercel/insights/script.js"></script>` ajouté juste avant `</body>` sur chaque page HTML (Vercel sert cet endpoint automatiquement sur les projets qu'il héberge, aucune configuration serveur nécessaire).
+
+Périmètre : les 22 pages du site vitrine (y compris les 4 pages légales `cgu.html`/`mentions-legales.html`/`politique-confidentialite.html`/`securite.html`, sinon exclues du tracking) ainsi que `indepuls.html` et `indepuls-demo.html` (l'appli et sa démo publique). Non couverts intentionnellement : les fichiers `Audit/*.html` et les Bibles (`Indepuls_Bible_Site_Vitrine*.html`, `Indepuls_Ecosysteme_Site*.html`, `Indepuls_Brand_Bible*.html`), documents internes non publiés/non navigables, ainsi que les fichiers de vérification Google Search Console (`google*.html`).
+
+Les données remontent dès le prochain déploiement Vercel (webhook indepuls.fr), consultables dans l'onglet Analytics du dashboard Vercel du projet.
