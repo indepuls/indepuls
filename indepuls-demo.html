@@ -17246,6 +17246,11 @@ document.addEventListener('keydown', function(e) {
       // connecté sur ce même navigateur. Réinitialiser ici avant tout garantit qu'une démo
       // anonyme ne part jamais que de zéro.
       if (typeof getDefaultData === 'function') DATA = getDefaultData();
+      // Le impotsTaux:0 de getDefaultData() écrasait celui de getExampleData() lors de la fusion
+      // de loadDemoWithCurrentParams() : la démo affichait "Aucun taux d'impôt renseigné" (2026-10-01).
+      // Retiré ici seulement (démo anonyme) : un vrai compte en onboarding ne doit jamais hériter
+      // d'un taux d'impôt qu'il n'a pas choisi.
+      if (DATA && DATA.params) delete DATA.params.impotsTaux;
       if (typeof loadDemoWithCurrentParams === 'function') {
         // Reproduit la préparation faite par pickerStep1Next() (métier + statut par défaut)
         // avant de charger la démo — sans ça, DATA.params reste vierge et le dashboard

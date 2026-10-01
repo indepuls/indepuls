@@ -17228,6 +17228,11 @@ document.addEventListener('keydown', function(e) {
       // sur cet appareil se retrouvaient tels quels dans la démo anonyme, loadDemoWithCurrentParams()
       // préservant volontairement DATA.params existant pour l'onboarding d'un vrai abonné).
       if (typeof getDefaultData === 'function') DATA = getDefaultData();
+      // Le impotsTaux:0 de getDefaultData() écrasait celui de getExampleData() lors de la fusion
+      // de loadDemoWithCurrentParams() : la démo affichait "Aucun taux d'impôt renseigné" (2026-10-01).
+      // Retiré ici seulement (démo anonyme) : un vrai compte en onboarding ne doit jamais hériter
+      // d'un taux d'impôt qu'il n'a pas choisi.
+      if (DATA && DATA.params) delete DATA.params.impotsTaux;
       if (typeof loadDemoWithCurrentParams === 'function') {
         loadDemoWithCurrentParams();
       } else {
