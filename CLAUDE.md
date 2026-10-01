@@ -4618,3 +4618,14 @@ Suite au benchmark Ça compte ! (doc "Benchmark Ça compte ! vs Indépuls"), Fau
 **Retiré** : intro plein écran "scrolle", "Est-ce que ça va ?", curseur de hausse de prix, liste barrée "Indépuls n'est pas…", bouton "Créer mon compte". **⚠️ À réintégrer au lancement officiel** : le bouton "Créer mon compte" (l'accès bêta se fait uniquement sur invitation de Faustine d'ici là).
 
 **Points d'attention** : les visuels de l'appli sont des reconstitutions HTML fidèles (légende "Données fictives de la démo"), pas des captures ; si les chiffres de `getExampleData()` changent, mettre à jour les chiffres en dur de l'accueil. Les dates d'échéance sont volontairement relatives ("dans 30 jours") pour ne pas vieillir.
+
+### Démo anonyme : les boutons "Créer mon compte" mènent à la liste d'attente (2026-10-01, temporaire jusqu'au lancement)
+
+Constat de Faustine : dans `indepuls-demo.html` ("Essayer sans créer de compte"), les boutons "Créer mon compte" (bandeaux) et "Créer mon espace de travail" (barre latérale) ne faisaient rien. Cause : `openClearExampleModal()` appelait `showLoginForm()` + `authShowSignup()`, alors que l'inscription est volontairement masquée avant le lancement (accès bêta sur invitation uniquement).
+
+- `openClearExampleModal()` (branche `isAnonymousDemoSession`) → `window.location.href = '/tarifs/index.html#waitlist-form'`.
+- Libellés de la démo anonyme : "Rejoindre la liste d'attente →" (bandeau slim + barre de contexte), "📝 Rejoindre la liste d'attente" (barre latérale), message de bienvenue et toast `saveData()` réécrits sans "créez un compte".
+- `tarifs/index.html` : `#waitlist-form{scroll-margin-top:110px}` pour que le formulaire ne passe pas sous la barre de menu fixe à l'arrivée par l'ancre.
+- **Seul `indepuls-demo.html` est concerné** : `indepuls.html` n'a pas de parcours démo anonyme (`isAnonymousDemoSession` n'y apparaît qu'en commentaire).
+- **⚠️ AU LANCEMENT OFFICIEL** : rétablir `showLoginForm()` + `authShowSignup()` dans `openClearExampleModal()` et les libellés "Créer mon compte" / "Créer mon espace de travail" (en même temps que le bouton "Créer mon compte" de l'accueil, voir la refonte de l'accueil ci-dessus).
+- Non traité (accepté par Faustine) : la notice "Vos données sont enregistrées sur cet appareil uniquement" peut encore apparaître en démo anonyme.
