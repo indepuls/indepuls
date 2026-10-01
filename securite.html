@@ -28,7 +28,7 @@
 <div class="wrap">
   <a class="back" href="/">← Retour à Indépuls</a>
   <h1>Sécurité</h1>
-  <div class="maj">Dernière mise à jour : août 2026</div>
+  <div class="maj">Dernière mise à jour : octobre 2026</div>
 
   <p>Comment vos données sont-elles protégées ? Cette page décrit, simplement et sans jargon, les mécanismes réellement en place, rien de plus que ce qui existe aujourd'hui.</p>
 
@@ -54,7 +54,15 @@
     <div class="ico">🧱</div>
     <div>
       <div class="titre">Isolation entre utilisateurs</div>
-      <div class="desc">Chaque compte est cloisonné techniquement des autres au niveau de la base de données (Row Level Security) : une règle d'accès empêche qu'un compte puisse lire ou modifier les données d'un autre compte, quelle que soit la façon dont la base est interrogée. Ce point est vérifié directement dans la configuration de la base de données.</div>
+      <div class="desc">Chaque compte est cloisonné techniquement des autres au niveau de la base de données (Row Level Security) : une règle d'accès empêche qu'un compte puisse lire ou modifier les données d'un autre compte via l'application, y compris si quelqu'un tentait d'interroger directement l'API depuis l'extérieur. Ce point est vérifié directement dans la configuration de la base de données.</div>
+    </div>
+  </div>
+
+  <div class="point">
+    <div class="ico">👁️</div>
+    <div>
+      <div class="titre">Accès administrateur</div>
+      <div class="desc">Comme pour la quasi-totalité des services en ligne, l'administratrice d'Indépuls dispose d'un accès technique à la base de données, nécessaire à sa maintenance. Cet accès n'est jamais utilisé pour consulter le contenu d'un compte, sauf à votre demande explicite (par exemple pour résoudre un problème que vous signalez) ou en cas d'obligation légale. En dehors de ces deux cas, vos données ne sont jamais consultées, analysées individuellement, exportées ou partagées.</div>
     </div>
   </div>
 
