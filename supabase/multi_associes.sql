@@ -31,6 +31,14 @@ create table if not exists public.comptes_membres (
 
 alter table public.comptes_membres enable row level security;
 
+-- Sans ces droits, les rôles anon/authenticated n'ont AUCUN accès à la table, quelles que
+-- soient les règles RLS ci-dessous : Postgres refuse avant même de les évaluer. Une table créée
+-- via l'éditeur SQL (contrairement à une table créée depuis l'interface Table Editor) ne reçoit
+-- ces droits que si on les donne explicitement, ce qui n'avait pas été fait dans la 1ʳᵉ version
+-- de ce script (bug trouvé par Faustine en test réel, 2026-10-01 : "Erreur lors de l'invitation"
+-- malgré des règles RLS correctes).
+grant select, insert, update, delete on public.comptes_membres to authenticated;
+
 -- Le propriétaire du compte peut créer, voir et gérer ses propres invitations.
 create policy "comptes_membres_owner_all" on public.comptes_membres
   for all
