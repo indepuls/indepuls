@@ -1065,7 +1065,7 @@ html,body{overflow-x:hidden;}
             <span style="font-weight:600">Plusieurs dirigeants (SAS)</span>
             <span class="info-tip" title="Indépuls suit une seule rémunération et un seul taux de charges cumulés pour tous les dirigeants. Vous pouvez en plus inviter un·e associé·e à accéder au même compte juste en dessous, ou continuer à n'utiliser cette case que pour le vocabulaire si vous préférez.">?</span>
           </div>
-          <div id="associes-wrap" style="display:none;margin-bottom:16px">
+          <div id="associes-wrap" style="display:none;margin-bottom:16px;padding:16px;border:1px solid var(--brd);border-top:4px solid var(--acc);border-radius:10px;background:var(--bg)">
             <div class="card-sub mb10" style="font-weight:700">🤝 Associés</div>
             <div class="ts mb10">Invitez un·e associé·e à accéder à ce même compte Indépuls. <span class="info-tip" title="Votre associé·e devra se connecter ou créer son compte avec EXACTEMENT l'adresse email que vous indiquez ici. Si quelqu'un d'autre tombe sur le lien d'invitation, il ne pourra pas l'utiliser : seul le titulaire de cette boîte mail peut l'accepter.">?</span></div>
             <div class="frow">
@@ -11958,6 +11958,14 @@ async function inviterAssocie() {
     }
     const lien = `${location.origin}${location.pathname}?invite=${data.token}`;
     ouvrirMailtoInvitationAssocie(email, lien);
+    // Copie systématique du lien en plus du mailto (retour Faustine, 2026-10-01) : si aucun
+    // client mail n'est configuré par défaut, le mailto ne mène nulle part et il n'existait
+    // jusqu'ici aucun autre moyen de récupérer le lien pour l'envoyer autrement.
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(lien)
+        .then(() => showToast('✅ Invitation créée. Le lien a aussi été copié : collez-le où vous voulez l\'envoyer si votre client mail ne s\'est pas ouvert.'))
+        .catch(() => {});
+    }
     if (emailInput) emailInput.value = '';
     renderAssociesListe();
   } catch (e) {
@@ -11982,15 +11990,25 @@ async function renderAssociesListe() {
     const sess = await window._sb.auth.getSession();
     const user = sess.data?.session?.user;
     if (!user) return;
-    const { data } = await window._sb.from('comptes_membres').select('invited_email, statut, created_at').eq('compte_owner_id', user.id).order('created_at', { ascending: false });
+    const { data } = await window._sb.from('comptes_membres').select('invited_email, statut, created_at, token').eq('compte_owner_id', user.id).order('created_at', { ascending: false });
     if (!data || !data.length) { el.innerHTML = '<div class="ts">Aucun·e associé·e invité·e pour l\'instant.</div>'; return; }
     const statutLabel = { actif: '✅ Actif', revoque: '❌ Révoqué', invite: '⏳ Invitation envoyée' };
     el.innerHTML = data.map(m => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)">
         <div><strong>${esc(m.invited_email)}</strong> <span class="ts">${statutLabel[m.statut] || m.statut}</span></div>
-        ${m.statut !== 'revoque' ? `<button class="btn btn-out btn-sm" onclick="revoquerAssocie('${esc(m.invited_email)}')">Révoquer</button>` : ''}
+        <div style="display:flex;gap:8px">
+          ${m.statut === 'invite' ? `<button class="btn btn-out btn-sm" onclick="copierLienInvitation('${esc(m.token)}')">📋 Copier le lien</button>` : ''}
+          ${m.statut !== 'revoque' ? `<button class="btn btn-out btn-sm" onclick="revoquerAssocie('${esc(m.invited_email)}')">Révoquer</button>` : ''}
+        </div>
       </div>`).join('');
   } catch (e) { console.warn('renderAssociesListe failed:', e); }
+}
+
+function copierLienInvitation(token) {
+  const lien = `${location.origin}${location.pathname}?invite=${token}`;
+  navigator.clipboard.writeText(lien)
+    .then(() => showToast('✅ Lien copié.'))
+    .catch(() => showToast('⚠️ Impossible de copier automatiquement.', 'var(--err)'));
 }
 
 async function revoquerAssocie(email) {
