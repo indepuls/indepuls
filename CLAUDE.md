@@ -4576,3 +4576,19 @@ Mise en oeuvre technique : le site est en HTML/CSS/JS vanilla sans étape de bui
 Périmètre : les 22 pages du site vitrine (y compris les 4 pages légales `cgu.html`/`mentions-legales.html`/`politique-confidentialite.html`/`securite.html`, sinon exclues du tracking) ainsi que `indepuls.html` et `indepuls-demo.html` (l'appli et sa démo publique). Non couverts intentionnellement : les fichiers `Audit/*.html` et les Bibles (`Indepuls_Bible_Site_Vitrine*.html`, `Indepuls_Ecosysteme_Site*.html`, `Indepuls_Brand_Bible*.html`), documents internes non publiés/non navigables, ainsi que les fichiers de vérification Google Search Console (`google*.html`).
 
 Les données remontent dès le prochain déploiement Vercel (webhook indepuls.fr), consultables dans l'onglet Analytics du dashboard Vercel du projet.
+
+### 2026-10-01 : politique de confidentialité corrigée sur l'accès administrateur aux données
+
+Une bêta-testeuse de la phase 2 a demandé confirmation que Faustine n'a techniquement aucun accès aux données des autres comptes. Vérification faite avant de répondre : c'est faux dans l'architecture actuelle.
+
+Le RLS (Row Level Security) activé sur `user_data` protège uniquement "utilisateur contre utilisateur" et "public contre tous" via l'API normale de l'application (rôles `anon`/`authenticated`). Il ne bloque pas :
+- le rôle `postgres` utilisé par le SQL Editor du dashboard Supabase (accès de Faustine), qui contourne le RLS,
+- la clé secrète (`service_role`) utilisée côté serveur par `api/brief-hebdo.js`, qui contourne aussi le RLS et lit déjà `user_data` en clair pour calculer les signaux du récapitulatif hebdomadaire.
+
+Concrètement, Faustine peut aujourd'hui exécuter une requête SQL et lire en clair le contenu de n'importe quel compte (missions, CA, temps passé, clients, montants, paramètres), ainsi que les 20 dernières versions sauvegardées de chaque compte (`user_data_backups`).
+
+Deux textes existants surclamaient cette protection : `politique-confidentialite.html` ("seul votre compte peut y accéder") et `securite.html` ("quelle que soit la façon dont la base est interrogée" pour l'isolation entre utilisateurs, formulation trop large car fausse pour un accès administrateur).
+
+**Option écartée** : chiffrement de bout en bout (E2EE) pour rendre la protection techniquement totale. Casserait la récupération de mot de passe (clé dérivée du mot de passe = perte de données si mot de passe oublié, sauf système de clé de récupération à construire) et le récapitulatif hebdomadaire par email (qui a besoin de lire les données en clair côté serveur). Chantier disproportionné par rapport au risque réel pour une bêta à quelques comptes.
+
+**Option retenue** : honnêteté explicite plutôt que fausse promesse technique. `politique-confidentialite.html` ("Qui a accès à ces données" et le résumé en tête de page) et `securite.html` (nouvelle carte "Accès administrateur", correction de la carte "Isolation entre utilisateurs") disent maintenant que l'accès technique existe (comme pour la quasi-totalité des services en ligne), mais qu'il est encadré par un engagement écrit précis : jamais de consultation individuelle, sauf demande explicite de l'utilisateur (ex. support sur un bug signalé) ou obligation légale. Aucune autre page HTML ne duplique ce texte (vérifié par grep sur `indepuls.html`/`indepuls-demo.html`, aucune occurrence).
