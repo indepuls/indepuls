@@ -639,8 +639,10 @@
     setInterval(function(){
       thoughts[ti].classList.remove('on');
       ti = (ti + 1) % thoughts.length;
-      thoughts[ti].classList.add('on');
-    }, 2800);
+      // La suivante n'apparaît qu'une fois la précédente effacée (jamais deux textes superposés)
+      var next = thoughts[ti];
+      setTimeout(function(){ next.classList.add('on'); }, 650);
+    }, 3200);
   }
 
   // Constat : les phrases apparaissent une fois, à l'arrivée à l'écran
