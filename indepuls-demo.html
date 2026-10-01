@@ -1060,6 +1060,11 @@ html,body{overflow-x:hidden;}
         <div id="sasu-params-block" style="display:none">
           <div class="divider"></div>
           <div id="sasu-pilotage-label" class="card-sub mb12" style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px">🏢 Pilotage SASU</div>
+          <!-- Multi-associés, palier A (2026-10-01) : volontairement NON porté dans indepuls-demo.html.
+               La démo est anonyme (pas d'email authentifié, pas de session Supabase réelle) : une
+               invitation d'associé n'a aucun sens ici. Infobulle ci-dessous volontairement gardée
+               telle quelle (toujours exacte en démo), ne pas la "synchroniser" avec celle
+               d'indepuls.html. Voir [[feedback_indepuls_mirroring_html]]. -->
           <div class="sw-wrap mb12" id="dirigeants-sw-wrap">
             <label class="sw"><input type="checkbox" id="p-dirigeants-sw" onchange="toggleDirigeants(this.checked)"><span class="sw-sl"></span></label>
             <span style="font-weight:600">Plusieurs dirigeants (SAS)</span>

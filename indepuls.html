@@ -1063,7 +1063,21 @@ html,body{overflow-x:hidden;}
           <div class="sw-wrap mb12" id="dirigeants-sw-wrap">
             <label class="sw"><input type="checkbox" id="p-dirigeants-sw" onchange="toggleDirigeants(this.checked)"><span class="sw-sl"></span></label>
             <span style="font-weight:600">Plusieurs dirigeants (SAS)</span>
-            <span class="info-tip" title="Indépuls suit une seule rémunération et un seul taux de charges, pas de compte partagé ni de suivi individuel par dirigeant. Si vous êtes plusieurs présidents/dirigeants à vous verser un salaire, indiquez le montant cumulé de toutes les rémunérations (le taux de charges reste le même pour tous en SAS, assimilé salarié).">?</span>
+            <span class="info-tip" title="Indépuls suit une seule rémunération et un seul taux de charges cumulés pour tous les dirigeants. Vous pouvez en plus inviter un·e associé·e à accéder au même compte juste en dessous, ou continuer à n'utiliser cette case que pour le vocabulaire si vous préférez.">?</span>
+          </div>
+          <div id="associes-wrap" style="display:none;margin-bottom:16px">
+            <div class="card-sub mb10" style="font-weight:700">🤝 Associés</div>
+            <div class="ts mb10">Invitez un·e associé·e à accéder à ce même compte Indépuls. <span class="info-tip" title="Votre associé·e devra se connecter ou créer son compte avec EXACTEMENT l'adresse email que vous indiquez ici. Si quelqu'un d'autre tombe sur le lien d'invitation, il ne pourra pas l'utiliser : seul le titulaire de cette boîte mail peut l'accepter.">?</span></div>
+            <div class="frow">
+              <div class="fgroup">
+                <label class="flabel">Email de votre associé·e</label>
+                <input type="email" id="associe-email-input" placeholder="prenom@email.fr">
+              </div>
+              <div class="fgroup" style="display:flex;align-items:flex-end">
+                <button class="btn btn-acc btn-sm" onclick="inviterAssocie()">✉️ Envoyer une invitation</button>
+              </div>
+            </div>
+            <div id="associes-liste" class="mt12"></div>
           </div>
           <div class="frow">
             <div class="fgroup">
@@ -11910,6 +11924,115 @@ function toggleDirigeants(val) {
   saveParam('plusieursDirigeants', val);
   renderParams();
 }
+
+// ── MULTI-ASSOCIÉS, PALIER A, invitation (2026-10-01, retour bêta Florence) ────────────────
+// Écrit/lit uniquement la table comptes_membres (nouvelle, isolée). Ne touche JAMAIS
+// loadFromCloud()/syncToCloud() : faire passer un membre actif à "voit réellement les données
+// du compte" est une étape distincte, volontairement non traitée ici (voir CLAUDE.md). Ces deux
+// fonctions sont les plus sensibles du projet, déjà corrigées plusieurs fois contre des
+// contaminations de données entre comptes, pas le bon endroit pour une 1ʳᵉ itération.
+//
+// La sécurité ne vient jamais du lien d'invitation lui-même (copiable, transférable), mais de la
+// vérification stricte de l'email à l'acceptation (voir verifierInvitationEnAttente) : un lien qui
+// atterrit entre de mauvaises mains ne peut rien activer, seul le titulaire de la boîte mail
+// invitée peut l'utiliser.
+async function inviterAssocie() {
+  const emailInput = document.getElementById('associe-email-input');
+  const email = (emailInput?.value || '').trim().toLowerCase();
+  if (!email || !email.includes('@')) { showToast('⚠️ Adresse email invalide.', 'var(--err)'); return; }
+  if (typeof sb === 'undefined') { showToast('⚠️ Invitation disponible uniquement connecté·e.', 'var(--err)'); return; }
+  try {
+    const sess = await sb.auth.getSession();
+    const user = sess.data?.session?.user;
+    if (!user) { showToast('⚠️ Connectez-vous pour inviter un·e associé·e.', 'var(--err)'); return; }
+    if (email === (user.email || '').toLowerCase()) { showToast('⚠️ Vous ne pouvez pas vous inviter vous-même.', 'var(--err)'); return; }
+    const { data, error } = await sb.from('comptes_membres')
+      .insert({ compte_owner_id: user.id, invited_email: email })
+      .select('token')
+      .single();
+    if (error) {
+      // Code 23505 = violation de la contrainte unique (compte_owner_id, invited_email) :
+      // une invitation existe déjà pour cet email, pas la peine d'en recréer une.
+      showToast(error.code === '23505' ? '⚠️ Une invitation est déjà en cours pour cet email.' : '⚠️ Erreur lors de l\'invitation.', 'var(--err)');
+      return;
+    }
+    const lien = `${location.origin}${location.pathname}?invite=${data.token}`;
+    ouvrirMailtoInvitationAssocie(email, lien);
+    if (emailInput) emailInput.value = '';
+    renderAssociesListe();
+  } catch (e) {
+    console.warn('inviterAssocie failed:', e);
+    showToast('⚠️ Erreur lors de l\'invitation.', 'var(--err)');
+  }
+}
+
+// mailto plutôt qu'un envoi serveur (Brevo) : même pattern déjà en place pour "Demander un avis",
+// zéro nouvelle dépendance, et la sécurité ne dépend pas du canal d'envoi (voir plus haut).
+function ouvrirMailtoInvitationAssocie(email, lien) {
+  const monNom = DATA.params.nom || 'Votre associé·e';
+  const sujet = `${monNom} vous invite à rejoindre son compte Indépuls`;
+  const corps = `Bonjour,\n\n${monNom} vous invite à accéder au même compte Indépuls, pour suivre ensemble l'activité de votre société.\n\nPour accepter, connectez-vous ou créez votre compte avec CETTE adresse email exactement (${email}) en cliquant sur ce lien :\n${lien}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez simplement ce message.`;
+  window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+}
+
+async function renderAssociesListe() {
+  const el = document.getElementById('associes-liste');
+  if (!el || typeof sb === 'undefined') return;
+  try {
+    const sess = await sb.auth.getSession();
+    const user = sess.data?.session?.user;
+    if (!user) return;
+    const { data } = await sb.from('comptes_membres').select('invited_email, statut, created_at').eq('compte_owner_id', user.id).order('created_at', { ascending: false });
+    if (!data || !data.length) { el.innerHTML = '<div class="ts">Aucun·e associé·e invité·e pour l\'instant.</div>'; return; }
+    const statutLabel = { actif: '✅ Actif', revoque: '❌ Révoqué', invite: '⏳ Invitation envoyée' };
+    el.innerHTML = data.map(m => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)">
+        <div><strong>${esc(m.invited_email)}</strong> <span class="ts">${statutLabel[m.statut] || m.statut}</span></div>
+        ${m.statut !== 'revoque' ? `<button class="btn btn-out btn-sm" onclick="revoquerAssocie('${esc(m.invited_email)}')">Révoquer</button>` : ''}
+      </div>`).join('');
+  } catch (e) { console.warn('renderAssociesListe failed:', e); }
+}
+
+async function revoquerAssocie(email) {
+  if (!confirm(`Révoquer l'accès de ${email} ? Cette personne ne pourra plus accéder à vos données.`)) return;
+  try {
+    const sess = await sb.auth.getSession();
+    const user = sess.data?.session?.user;
+    if (!user) return;
+    await sb.from('comptes_membres').update({ statut: 'revoque' }).eq('compte_owner_id', user.id).eq('invited_email', email);
+    showToast('✅ Accès révoqué.');
+    renderAssociesListe();
+  } catch (e) { console.warn('revoquerAssocie failed:', e); }
+}
+
+// Appelée une fois après le chargement normal du compte (voir _enterApp, après loadFromCloud),
+// jamais interleavée dans loadFromCloud elle-même. Ne fait QUE valider/activer la ligne
+// comptes_membres : ne charge jamais les données du compte propriétaire (palier A non terminé,
+// voir le commentaire en tête de section).
+async function verifierInvitationEnAttente(user) {
+  try {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('invite');
+    if (!token || typeof sb === 'undefined') return;
+    const res = await sb.from('comptes_membres').select('id, invited_email, statut').eq('token', token).maybeSingle();
+    if (!res.data) { showToast('⚠️ Cette invitation n\'existe plus ou le lien est incorrect.', 'var(--err)'); return; }
+    const invite = res.data;
+    if (invite.statut === 'revoque') { showToast('⚠️ Cette invitation a été révoquée.', 'var(--err)'); return; }
+    // Vérification stricte : c'est elle, et seulement elle, qui protège réellement l'invitation
+    // contre un lien transféré ou copié-collé à la mauvaise personne (voir commentaire d'en-tête).
+    if ((invite.invited_email || '').toLowerCase() !== (user.email || '').toLowerCase()) {
+      showToast('⚠️ Cette invitation est réservée à une autre adresse email. Connectez-vous avec l\'adresse qui a reçu l\'invitation.', 'var(--err)');
+      return;
+    }
+    if (invite.statut === 'actif') { showToast('✅ Vous avez déjà accepté cette invitation.'); history.replaceState(null, '', location.pathname); return; }
+    await sb.from('comptes_membres').update({ membre_id: user.id, statut: 'actif', accepted_at: new Date().toISOString() }).eq('id', invite.id);
+    // L'accès réel aux données partagées (palier A, 2e partie) n'est pas encore câblé : la
+    // personne reste sur son propre compte pour l'instant, le lien est volontairement honnête
+    // plutôt que de prétendre que l'accès est déjà effectif.
+    showToast('✅ Invitation acceptée ! L\'accès aux données partagées sera activé dans une prochaine mise à jour.');
+    history.replaceState(null, '', location.pathname);
+  } catch (e) { console.warn('verifierInvitationEnAttente failed:', e); }
+}
 // ── LOGO DEVIS (chantier 2026-07-30) ───────────────────────────
 // Redimensionné et compressé côté navigateur avant stockage (canvas, aucune nouvelle dépendance),
 // tout le reste de DATA est synchronisé en JSON à chaque sauvegarde ; un fichier image non
@@ -12840,6 +12963,10 @@ function renderParams() {
     const plusieurs=!isEurl&&!!DATA.params.plusieursDirigeants;
     const dSwWrap=document.getElementById('dirigeants-sw-wrap'); if(dSwWrap) dSwWrap.style.display=isEurl?'none':'';
     const dSw=document.getElementById('p-dirigeants-sw'); if(dSw) dSw.checked=plusieurs;
+    // Associés (2026-10-01, palier A multi-associés) : n'a de sens que si la case "Plusieurs
+    // dirigeants" est cochée, jamais en EURL (même raisonnement que plusieurs ci-dessus).
+    const associesWrap=document.getElementById('associes-wrap');
+    if(associesWrap){ associesWrap.style.display=plusieurs?'':'none'; if(plusieurs) renderAssociesListe(); }
     document.getElementById('sasu-pilotage-label').textContent=isEurl?'🏢 Pilotage EURL':`🏢 Pilotage SASU${plusieurs?'/SAS':''}`;
     document.getElementById('sasu-remu-label').textContent=plusieurs
       ? 'Rémunération nette totale des dirigeants / mois (€)'
@@ -17327,7 +17454,7 @@ document.addEventListener('keydown', function(e) {
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }
       setTimeout(addLogoutButton, 200);
-      loadFromCloud(user).then(hideOverlay);
+      loadFromCloud(user).then(function(){ hideOverlay(); verifierInvitationEnAttente(user); });
     });
   }
 
