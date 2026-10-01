@@ -6,351 +6,265 @@
 <link rel="icon" type="image/png" sizes="16x16" href="https://indepuls.fr/assets/favicon-16.png">
 <link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Indépuls · Est-ce que ça va ?</title>
-<meta name="description" content="Vous n'avez plus besoin de vous demander si votre entreprise va bien. Indépuls vous le montre.">
+<title>Indépuls · Sachez ce que vous gagnez réellement</title>
+<meta name="description" content="Indépuls calcule en continu ce que votre temps vous rapporte, l'argent à prévoir pour vos charges et vos prochaines échéances, puis vous aide à décider au bon moment. Pour les freelances, consultants, coachs et artisans.">
 <link rel="canonical" href="https://indepuls.fr/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root{
     --navy:#141538; --prune:#5B2C4A; --cream:#F1EFEA; --beige:#BB9E81;
+    --ok:#2d7a4f; --warn:#c97316; --err:#b91c1c; --line:#e4ddd0; --muted:#6b6b6b;
     --ease: cubic-bezier(0.16, 1, 0.3, 1);
   }
   *{box-sizing:border-box;}
-  html{scroll-behavior:auto;}
-  body{
-    margin:0; background:var(--navy); color:var(--cream);
-    font-family:'Lato',sans-serif; overflow-x:hidden;
-  }
+  body{margin:0; background:var(--cream); color:var(--navy); font-family:'Lato',sans-serif; overflow-x:hidden; line-height:1.55;}
   section{position:relative;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  h1,h2,h3{font-family:'Playfair Display',serif; margin:0;}
+  a{color:inherit;}
+
+  /* ---------- Boutons ---------- */
+  .btn{display:inline-block; text-decoration:none; border-radius:999px; font-weight:700; font-family:'Lato',sans-serif; transition:transform .25s var(--ease), box-shadow .25s var(--ease);}
+  .btn-primary{background:var(--prune); color:#fff; padding:16px 34px; font-size:16px; box-shadow:0 4px 22px rgba(91,44,74,.35);}
+  .btn-primary:hover{transform:translateY(-2px); box-shadow:0 8px 28px rgba(91,44,74,.5);}
+  .link-soft{font-size:14px; text-decoration:none; border-bottom:1px solid currentColor; padding-bottom:2px; opacity:.85;}
+  .link-soft:hover{opacity:1;}
 
   /* ---------- Nav ---------- */
   .nav{
-    position:fixed; top:18px; right:18px; z-index:50;
-    font-size:14px;
-  }
-  .nav a{
-    color:var(--cream); text-decoration:none; opacity:.8;
-    border-bottom:1px solid rgba(241,239,234,.4); padding-bottom:2px;
-    transition:opacity .3s var(--ease);
-  }
-  .nav a:hover{opacity:1;}
-  .nav.enriched{
+    position:fixed; top:18px; right:18px; z-index:50; font-size:14px;
     display:flex; gap:22px; align-items:center;
-    background:rgba(20,21,56,.72); backdrop-filter:blur(6px);
+    background:rgba(20,21,56,.78); backdrop-filter:blur(6px);
     padding:10px 18px; border-radius:999px;
     max-width:calc(100vw - 36px); flex-wrap:wrap; justify-content:flex-end;
   }
-  @media(max-width:640px){
-    .nav.enriched{gap:10px 14px; font-size:12.5px; padding:9px 14px;}
-    .nav.enriched.menuOpen{border-radius:22px;}
-  }
-  .nav.dark-mode a{color:var(--navy); border-bottom-color:rgba(20,21,56,.35);}
-  .nav .brand{
-    font-family:'Playfair Display',serif; font-weight:700; font-size:15px;
-    opacity:1 !important; border-bottom:none !important; display:none;
-  }
-  .nav:not(.enriched) #skipLink{margin-left:16px;}
-  .nav.enriched #skipLink{display:none;}
-  .nav.enriched .brand{display:inline;}
-  .nav.enriched .extra{display:inline;}
-  .nav .extra{display:none;}
+  .nav a{color:var(--cream); text-decoration:none; opacity:.8; border-bottom:1px solid rgba(241,239,234,.4); padding-bottom:2px; transition:opacity .3s var(--ease);}
+  .nav a:hover{opacity:1;}
+  .nav .brand{font-family:'Playfair Display',serif; font-weight:700; font-size:15px; color:var(--cream);}
   .navGroup{display:contents;}
-  .menuToggle{display:none;}
-  .menuToggle{-webkit-tap-highlight-color:transparent; appearance:none; -webkit-appearance:none; background:none;}
+  .menuToggle{display:none; -webkit-tap-highlight-color:transparent; appearance:none; -webkit-appearance:none; background:none;}
   .menuToggle:focus{outline:none;}
   .menuToggle:focus-visible{outline:2px solid currentColor; outline-offset:3px; border-radius:6px;}
-  @media(max-width:640px){
-    .nav.enriched .menuToggle{display:inline-flex; align-items:center; justify-content:center; background:none; border:none; color:var(--cream); font-size:18px; line-height:1; cursor:pointer; padding:2px 4px; order:1;}
-    .nav.enriched .brand{order:0;}
-    .nav.enriched a[href="indepuls.html"]{order:2;}
-    .nav.enriched .navGroup{
-      display:none; order:4; flex-basis:100%; width:100%;
-      flex-direction:column; align-items:flex-start; gap:12px;
-      margin-top:12px; padding-top:12px; border-top:1px solid rgba(241,239,234,.25);
-    }
-    .nav.enriched .navGroup.open{display:flex;}
-    .nav.enriched .navGroup .dropdown{width:100%;}
-    .nav.enriched .navGroup .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; background:none; padding:6px 0 0 14px; margin-top:6px; display:none; min-width:0;}
-    .nav.enriched .navGroup .dropdown.open .dropmenu{display:flex; flex-direction:column; gap:8px;}
-    .nav.enriched .navGroup .dropmenu a{color:var(--cream); opacity:.8; padding:0;}
-  }
-  .nav .dropdown{position:relative;}
-  .nav.enriched .dropdown{display:inline-flex; align-items:center;}
+  .nav .dropdown{position:relative; display:inline-flex; align-items:center;}
   .nav .dropbtn{background:none; border:none; font-family:'Lato',sans-serif; font-size:14px; color:var(--cream); opacity:.8; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:0 0 2px; border-bottom:1px solid rgba(241,239,234,.4); -webkit-tap-highlight-color:transparent; appearance:none; -webkit-appearance:none;}
   .nav .dropbtn:hover, .nav .dropdown.open .dropbtn{opacity:1;}
   .nav .dropbtn:focus{outline:none;}
   .nav .dropbtn:focus-visible{outline:2px solid currentColor; outline-offset:3px; border-radius:4px;}
   .nav .dropbtn .caret{font-size:9px; transition:transform .2s var(--ease);}
   .nav .dropdown.open .dropbtn .caret{transform:rotate(180deg);}
-  .nav .dropmenu{position:absolute; top:calc(100% + 12px); right:0; background:#fff; border:1px solid #e4ddd0; border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.3); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
+  .nav .dropmenu{position:absolute; top:calc(100% + 12px); right:0; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 34px rgba(0,0,0,.3); padding:8px; min-width:210px; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .2s var(--ease), transform .2s var(--ease), visibility .2s; z-index:60;}
   .nav .dropdown.open .dropmenu{opacity:1; visibility:visible; transform:translateY(0);}
   .nav .dropmenu a{display:block; padding:9px 12px; border-radius:8px; font-size:14px; color:var(--navy); opacity:1; white-space:nowrap; border-bottom:none;}
-  .nav .dropmenu a:hover{background:var(--cream); opacity:1;}
-
-  /* ---------- Section 1 : Le bruit ---------- */
-  #s1{height:240vh; background:var(--navy);}
-  #s1 .stage{
-    position:sticky; top:0; height:100vh; overflow:hidden;
-    display:flex; align-items:center; justify-content:center;
-  }
-  #s1 .frag{
-    position:absolute; font-family:'Playfair Display',serif; font-style:italic;
-    color:var(--beige); white-space:nowrap; opacity:0; will-change:opacity, transform;
-  }
-  #s1 .closer{
-    position:absolute; font-family:'Playfair Display',serif; font-size:clamp(22px,4vw,36px);
-    color:var(--cream); text-align:center; opacity:0; max-width:80vw;
-    transition:opacity .6s var(--ease);
-  }
-  #s1 .hint{
-    position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
-    font-size:12px; letter-spacing:.5px; color:var(--beige); opacity:.6;
-  }
-  #s1 .hint .arrow{display:inline-block; animation:bob 1.8s ease-in-out infinite;}
-  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
-
-  /* ---------- Section 2 : La bascule (fondu radial doux, piloté dans le temps, rejoué une fois) ---------- */
-  #s2{background:var(--navy); padding:24px; text-align:center; position:relative; overflow:hidden; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;}
-  #s2 .bg-wash{
-    position:absolute; inset:0; z-index:0;
-    background:radial-gradient(circle at 50% 50%, var(--cream) 0%, var(--cream) var(--wash,0%), var(--navy) calc(var(--wash,0%) + 18%));
-  }
-  #s2 .logo{
-    position:relative; z-index:2; font-family:'Playfair Display',serif; font-weight:800; letter-spacing:1px; color:var(--cream);
-    font-size:clamp(38px,8vw,72px); margin:0; opacity:0; transform:translateY(10px);
-    transition:opacity 1s var(--ease), transform 1s var(--ease), color .6s var(--ease) 1s;
-  }
-  #s2 .tagline{
-    position:relative; z-index:2; font-family:'Lato',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:2px;
-    color:var(--cream); font-size:clamp(11px,1.6vw,13px); margin:22px 0 0; opacity:0; transform:translateY(8px);
-    transition:opacity .8s var(--ease) .3s, transform .8s var(--ease) .3s, color .6s var(--ease) 1.05s;
-  }
-  #s2 .script{
-    position:relative; z-index:2; font-family:'Dancing Script',cursive; font-style:italic; color:var(--cream);
-    font-size:clamp(18px,3vw,26px); margin:24px 0 50px; opacity:0; transform:translateY(10px);
-    transition:opacity 1s var(--ease) .5s, transform 1s var(--ease) .5s, color .6s var(--ease) 1.2s;
-  }
-  #s2 .question{
-    position:relative; z-index:2; font-family:'Playfair Display',serif; font-weight:800; font-style:italic; color:var(--cream);
-    font-size:clamp(30px,5.4vw,50px); margin:0 0 50px; opacity:0;
-    transition:opacity .8s var(--ease) 1.2s, color .6s var(--ease) 1.4s;
-  }
-  #s2 .promise{
-    position:relative; z-index:2; font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(20px,3.2vw,32px); line-height:1.6;
-    max-width:640px; margin:0 auto; opacity:0; transform:translateY(10px);
-    transition:opacity 1s var(--ease) 2.4s, transform 1s var(--ease) 2.4s;
-  }
-  #s2 .promise u{color:var(--prune); text-decoration:none; border-bottom:2px solid var(--prune);}
-  #s2.play .logo, #s2.play .tagline, #s2.play .script, #s2.play .promise{opacity:1; transform:translateY(0);}
-  #s2.play .question{opacity:1;}
-  #s2.play .logo, #s2.play .question, #s2.play .tagline{color:var(--navy);}
-  #s2.play .script{color:var(--prune);}
-
-  /* ---------- Section 3 : Le miroir (les phrases s'accumulent puis s'estompent, la dernière reste au focus) ---------- */
-  @keyframes lineFocus{
-    0%{opacity:0; transform:translateY(14px) scale(.97);}
-    25%{opacity:1; transform:translateY(0) scale(1);}
-    100%{opacity:.4; transform:translateY(0) scale(.97);}
-  }
-  @keyframes lineFocusFinal{
-    0%{opacity:0; transform:translateY(14px) scale(.97);}
-    25%{opacity:1; transform:translateY(0) scale(1);}
-    100%{opacity:1; transform:translateY(0) scale(1);}
-  }
-  #s3{background:var(--cream); padding:60px 24px 90px; text-align:center;}
-  #s3 .line{
-    font-family:'Playfair Display',serif; color:var(--navy); margin:0 auto 22px;
-    font-size:clamp(17px,2.4vw,25px); max-width:680px; line-height:1.38;
-    opacity:0; animation-duration:2s; animation-timing-function:var(--ease); animation-fill-mode:forwards;
-  }
-  #s3 .line:last-child{margin-bottom:0;}
-  #s3.play .line{animation-name:lineFocus;}
-  #s3.play .line:last-child{animation-name:lineFocusFinal;}
-  #s3.play .line:nth-child(1){animation-delay:0s;}
-  #s3.play .line:nth-child(2){animation-delay:1.2s;}
-  #s3.play .line:nth-child(3){animation-delay:2.4s;}
-  #s3.play .line:nth-child(4){animation-delay:3.6s;}
-  #s3.play .line:nth-child(5){animation-delay:4.8s;}
-
-  /* ---------- Section 4 : La révélation ---------- */
-  #s4{background:var(--cream); padding:90px 24px 60px; text-align:center;}
-  #s4 .score-block{max-width:600px; margin:0 auto;}
-  #s4 .ring-wrap{position:relative; display:inline-block; border-radius:50%;}
-  #s4 svg{width:min(52vw,280px); height:min(52vw,280px); display:block;}
-  #s4 .ring-num{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-family:'Playfair Display',serif; font-weight:800; color:var(--navy); font-size:clamp(44px,7.5vw,72px);
-  }
-  #s4 .ring-sub{margin-top:16px; color:var(--navy); font-size:15px; letter-spacing:.2px; opacity:1; transition:opacity .8s var(--ease);}
-  #s4 .proof-lead{font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(19px,2.6vw,26px); max-width:600px; margin:40px auto 0; opacity:1; transition:opacity .8s var(--ease) .15s;}
-  #s4 .kpi-glimpse{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:22px 0 0; opacity:1; transition:opacity .8s var(--ease) .15s;}
-  #s4 .kpi-glimpse .chip{background:#fff; border:1px solid #e4ddd0; border-radius:999px; padding:8px 16px; font-size:12.5px; color:#6b6b6b;}
-  #s4 .kpi-glimpse .chip b{color:var(--navy); font-weight:700; margin-left:4px;}
-
-  /* ---------- Section 4 : Le calcul, visible sans clic ---------- */
-  #s4 .proof{
-    max-width:520px; margin:26px auto 0; background:#fff; border-radius:14px;
-    padding:22px 26px; text-align:left; border:1px solid #e4ddd0;
-    opacity:1; transition:opacity .8s var(--ease) .3s;
-  }
-  #s4 .proof dl{display:grid; grid-template-columns:auto 1fr; gap:8px 16px; margin:0;}
-  #s4 .proof dt{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--beige); font-weight:700; align-self:center;}
-  #s4 .proof dd{margin:0; color:var(--navy); font-weight:700; font-size:15px;}
-  #s4 .proof .formula{margin-top:14px; padding-top:14px; border-top:1px dashed #e4ddd0; font-size:13.5px; color:#6b6b6b; font-family:monospace;}
-
-  /* ---------- Section 4 : "Pourquoi ce score ?" (le niveau de détail en plus, au clic) ---------- */
-  #s4 .why-btn{
-    display:block; margin:16px auto 0; background:none; border:none; padding:0 0 2px;
-    font-family:'Lato',sans-serif; font-size:12.5px; font-weight:700; color:var(--prune);
-    cursor:pointer; border-bottom:1px solid rgba(91,44,74,.35);
-  }
-  #s4 .why-btn:hover{border-bottom-color:var(--prune);}
-  #s4 .why-detail{
-    max-height:0; opacity:0; overflow:hidden;
-    transition:max-height .5s var(--ease), opacity .35s var(--ease), margin-top .5s var(--ease);
-  }
-  #s4 .why-detail.open{max-height:400px; opacity:1; margin-top:16px;}
-  #s4 .why-detail p{font-size:12.5px; color:#5a5a72; line-height:1.6; margin:0 0 10px;}
-  #s4 .why-detail p:last-child{margin-bottom:0;}
-  #s4 .why-detail b{color:var(--navy);}
-
-  /* ---------- Section 6 : Le "et si" ---------- */
-  #s6{background:var(--cream); padding:70px 24px 90px; text-align:center;}
-  #s6 .lead{font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(19px,2.6vw,26px); max-width:560px; margin:0 auto 34px;}
-  #s6 .card{max-width:640px; margin:0 auto; background:#fff; border:1px solid #e4ddd0; border-radius:20px; padding:40px 34px;}
-  #s6 .phrase{font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(20px,3.4vw,32px); max-width:680px; margin:0 auto 8px; line-height:1.5;}
-  #s6 .phrase b{color:var(--prune); font-weight:700;}
-  #s6 .reinforce{margin-top:18px; font-family:'Playfair Display',serif; font-style:italic; color:var(--prune); font-size:clamp(16px,2.2vw,20px); opacity:0; transition:opacity .5s var(--ease);}
-  #s6 .reinforce.show{opacity:1;}
-  #s6 .slider-wrap{max-width:420px; margin:46px auto 0;}
-  #s6 input[type=range]{
-    width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:99px;
-    background:linear-gradient(to right, var(--beige) 0%, var(--beige) var(--pct,40%), #ddd3c2 var(--pct,40%), #ddd3c2 100%);
-    outline:none;
-  }
-  #s6 input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none; width:30px; height:30px; border-radius:50%; background:var(--prune);
-    border:4px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:grab; transition:transform .15s var(--ease);
-  }
-  #s6 input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15);}
-  #s6 input[type=range]::-moz-range-thumb{
-    width:30px; height:30px; border-radius:50%; background:var(--prune); border:4px solid #fff;
-    box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:grab;
-  }
-  #s6 .slider-label{margin-top:10px; font-size:13px; color:#6b6b6b;}
-
-  /* ---------- Section 7 : Ce qu'Indépuls refuse ---------- */
-  #s7{background:var(--cream); padding:130px 24px; text-align:center; min-height:70vh; display:flex; align-items:center; justify-content:center;}
-  #s7 .inner{max-width:640px; margin:0 auto;}
-  #s7 .neg{
-    font-family:'Playfair Display',serif; color:var(--navy); font-size:clamp(19px,2.8vw,27px);
-    margin:0 0 22px; opacity:0;
-    text-decoration-line:line-through; text-decoration-thickness:2px; text-decoration-color:transparent;
-    transition:text-decoration-color .6s var(--ease);
-  }
-  #s7 .neg.struck{text-decoration-color:var(--navy);}
-  #s7 .final{
-    font-family:'Playfair Display',serif; color:var(--prune); font-size:clamp(22px,3.4vw,32px);
-    margin-top:36px; opacity:0; line-height:1.5;
+  .nav .dropmenu a:hover{background:var(--cream);}
+  @media(max-width:640px){
+    .nav{gap:10px 14px; font-size:12.5px; padding:9px 14px; left:12px; right:12px; top:12px; max-width:none; justify-content:space-between;}
+    .nav.menuOpen{border-radius:22px;}
+    .menuToggle{display:inline-flex; align-items:center; justify-content:center; border:none; color:var(--cream); font-size:18px; line-height:1; cursor:pointer; padding:2px 4px; order:1;}
+    .nav .brand{order:0;}
+    .nav a.espace{order:2;}
+    .navGroup{display:none; order:4; flex-basis:100%; width:100%; flex-direction:column; align-items:flex-start; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(241,239,234,.25);}
+    .navGroup.open{display:flex;}
+    .navGroup .dropdown{width:100%; flex-direction:column; align-items:flex-start;}
+    .navGroup .dropmenu{position:static; opacity:1; visibility:visible; transform:none; box-shadow:none; border:none; background:none; padding:6px 0 0 14px; margin-top:6px; display:none; min-width:0;}
+    .navGroup .dropdown.open .dropmenu{display:flex; flex-direction:column; gap:8px;}
+    .navGroup .dropmenu a{color:var(--cream); opacity:.8; padding:0;}
   }
 
-  /* ---------- Témoignages ---------- */
-  #stm{background:var(--cream); padding:50px 24px 100px; text-align:center;}
-  .tmfounder{display:flex; flex-direction:column; align-items:center; gap:16px; max-width:480px; margin:0 auto 44px;}
-  .tmfounder-photo{width:112px; height:112px; border-radius:50%; object-fit:cover; border:4px solid #fff; box-shadow:0 8px 24px rgba(20,21,56,.2);}
-  .tmfounder-quote{font-family:'Playfair Display',serif; font-style:italic; color:var(--navy); font-size:18px; line-height:1.5; text-align:center; margin:0;}
-  .tmfounder-link{color:var(--prune); font-weight:700; font-size:13.5px; text-decoration:none; border-bottom:1px solid rgba(91,44,74,.35); padding-bottom:2px;}
-  .tmfounder-link:hover{border-bottom-color:var(--prune);}
-  .tmsection .tmscript{font-family:'Dancing Script',cursive; font-size:clamp(20px,2.4vw,26px); color:var(--prune); margin:0 0 6px;}
-  .tmsection .tmtitle{font-family:'Playfair Display',serif; color:var(--navy); font-weight:600; font-size:clamp(24px,3vw,34px); margin:0 0 14px;}
-  .tmgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:22px; max-width:1040px; margin:0 auto;}
-  .tmcard{background:#fff; border:1px solid #e7e0d3; border-radius:18px; padding:28px 26px; text-align:left; box-shadow:0 12px 34px rgba(20,21,56,.07); display:flex; flex-direction:column;}
-  .tmcard .quote{font-size:16px; line-height:1.62; color:var(--navy); margin:0 0 22px; flex:1;}
+  /* ---------- 1. En-tête ---------- */
+  #hero{background:var(--navy); color:var(--cream); padding:130px 0 90px; min-height:92vh; display:flex; align-items:center;}
+  #hero .grid{display:grid; grid-template-columns:1.15fr .85fr; gap:56px; align-items:center;}
+  .thoughts{position:relative; height:30px; margin-bottom:22px;}
+  .thought{position:absolute; left:0; top:0; font-family:'Playfair Display',serif; font-style:italic; color:var(--beige); font-size:clamp(16px,1.9vw,20px); opacity:0; transform:translateY(6px); transition:opacity .7s var(--ease), transform .7s var(--ease); white-space:nowrap;}
+  .thought.on{opacity:1; transform:translateY(0);}
+  #hero h1{font-weight:800; font-size:clamp(34px,4.6vw,56px); line-height:1.12; color:var(--cream);}
+  #hero h1 .second{display:block; font-style:italic; font-weight:600; color:var(--beige);}
+  #hero .sub{font-size:clamp(16px,1.6vw,18.5px); line-height:1.65; color:#d9d5e6; max-width:560px; margin:24px 0 34px;}
+  #hero .sub strong{color:var(--cream);}
+  #hero .ctas{display:flex; align-items:center; gap:22px; flex-wrap:wrap;}
+  #hero .link-soft{color:var(--beige);}
+  #hero .beta{margin-top:22px; font-size:12.5px; letter-spacing:.4px; color:#9c98bd;}
+  #hero .beta::before{content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:#84cc16; margin-right:8px; vertical-align:1px;}
+
+  /* Aperçu du tableau de bord (reconstitution fidèle de la démo) */
+  .appcard{background:#fff; color:var(--navy); border-radius:20px; padding:22px; box-shadow:0 24px 60px rgba(0,0,0,.35);}
+  .appcard .bar{display:flex; justify-content:space-between; align-items:center; font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--beige); font-weight:700; margin-bottom:16px;}
+  .appcard .bar .demo{background:var(--cream); color:var(--prune); border-radius:999px; padding:3px 9px; letter-spacing:.4px;}
+  .appcard .scoreRow{display:flex; gap:16px; align-items:center; padding-bottom:16px; border-bottom:1px solid var(--line);}
+  .mini-ring{position:relative; width:78px; height:78px; flex-shrink:0;}
+  .mini-ring svg{width:78px; height:78px; display:block;}
+  .mini-ring b{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:24px; color:var(--ok);}
+  .appcard .scoreRow p{margin:0; font-size:13.5px; line-height:1.5;}
+  .appcard .kpis{display:grid; gap:10px; margin-top:16px;}
+  .appcard .kpi{display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13.5px;}
+  .appcard .kpi span{color:var(--muted);}
+  .appcard .kpi b{font-size:16px; white-space:nowrap;}
+  .appcard .kpi small{display:block; font-size:11.5px; color:var(--muted); font-weight:400; text-align:right;}
+  .appcard .alert{margin-top:16px; background:#eef4fb; border-left:3px solid #4a7cc0; border-radius:8px; padding:10px 12px; font-size:12.5px; line-height:1.5;}
+  .caption{font-size:11.5px; color:#9c98bd; margin-top:10px; text-align:center;}
+
+  @media(max-width:860px){
+    #hero{padding:110px 0 70px; min-height:auto;}
+    #hero .grid{grid-template-columns:1fr; gap:44px;}
+    .thought{white-space:normal;}
+    .thoughts{height:52px;}
+  }
+
+  /* ---------- 2. Constat ---------- */
+  @keyframes lineIn{0%{opacity:0; transform:translateY(12px);}100%{opacity:1; transform:translateY(0);}}
+  #constat{padding:80px 24px 70px; text-align:center;}
+  #constat .line{font-family:'Playfair Display',serif; font-size:clamp(18px,2.4vw,25px); max-width:680px; margin:0 auto 16px; line-height:1.4; opacity:0;}
+  #constat .line.last{color:var(--prune); font-style:italic; margin-top:28px;}
+  #constat.play .line{animation:lineIn 1s var(--ease) forwards;}
+  #constat.play .line:nth-child(2){animation-delay:.5s;}
+  #constat.play .line:nth-child(3){animation-delay:1s;}
+  #constat.play .line:nth-child(4){animation-delay:1.7s;}
+
+  /* ---------- 3. Preuves ---------- */
+  #preuves{padding:30px 0 90px;}
+  .section-title{font-size:clamp(26px,3.4vw,38px); text-align:center; font-weight:700; line-height:1.25;}
+  .section-script{font-family:'Dancing Script',cursive; color:var(--prune); font-size:clamp(20px,2.4vw,26px); text-align:center; margin:0 0 6px;}
+  .proofrow{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; margin-top:70px;}
+  .proofrow.flip .visual{order:-1;}
+  .kicker{font-size:12px; text-transform:uppercase; letter-spacing:1.2px; font-weight:700; color:var(--beige); margin:0 0 10px;}
+  .proofrow h3{font-size:clamp(23px,2.6vw,30px); line-height:1.25; font-weight:700;}
+  .proofrow .text p{font-size:16.5px; line-height:1.7; margin:16px 0 0; color:#33345a;}
+  .proofrow .figure{font-family:'Playfair Display',serif; font-style:italic; color:var(--prune); font-size:18px; line-height:1.5;}
+  .panel{background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px 24px; box-shadow:0 14px 40px rgba(20,21,56,.08);}
+  .panel .ptitle{display:flex; justify-content:space-between; align-items:center; font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:700; color:var(--muted);}
+  .panel .ptitle b{font-size:20px; color:var(--ok); letter-spacing:0;}
+  .panel .meter{height:5px; border-radius:99px; background:#eee8dc; margin:10px 0 16px; overflow:hidden;}
+  .panel .meter i{display:block; height:100%; background:var(--ok); border-radius:99px;}
+  .panel dl{display:grid; grid-template-columns:1fr auto; gap:9px 16px; margin:0; font-size:14.5px;}
+  .panel dt{color:var(--muted);}
+  .panel dd{margin:0; font-weight:700; text-align:right;}
+  .panel .method{margin-top:14px; padding-top:12px; border-top:1px dashed var(--line); font-size:12.5px; color:var(--muted); line-height:1.5;}
+  .keep{background:#fbf3e6; border-left:3px solid var(--warn); border-radius:10px; padding:14px 16px; margin:12px 0 14px;}
+  .keep span{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); font-weight:700;}
+  .keep b{display:block; font-size:30px; color:var(--warn); font-family:'Playfair Display',serif; line-height:1.2; margin-top:4px;}
+  .panel .ok-line{font-size:13px; color:var(--ok); margin:0 0 12px;}
+  .panel .alert{margin-top:14px; background:#eef4fb; border-left:3px solid #4a7cc0; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.5;}
+
+  /* Curseur "jours par semaine" */
+  .sim{background:#fff; border:1px solid var(--line); border-radius:18px; padding:28px 26px; box-shadow:0 14px 40px rgba(20,21,56,.08);}
+  .sim .q{font-family:'Playfair Display',serif; font-size:19px; font-weight:700; margin:0 0 18px;}
+  .sim input[type=range]{width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:99px; background:linear-gradient(to right, var(--beige) 0%, var(--beige) var(--pct,50%), #ddd3c2 var(--pct,50%), #ddd3c2 100%); outline:none;}
+  .sim input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:30px; height:30px; border-radius:50%; background:var(--prune); border:4px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:grab;}
+  .sim input[type=range]::-moz-range-thumb{width:30px; height:30px; border-radius:50%; background:var(--prune); border:4px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:grab;}
+  .sim .ticks{display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); margin-top:8px;}
+  .sim .answer{font-family:'Playfair Display',serif; font-size:clamp(18px,2vw,21px); line-height:1.55; margin:22px 0 0;}
+  .sim .answer b{color:var(--prune);}
+  .sim .hyp{font-size:12.5px; color:var(--muted); line-height:1.55; margin:16px 0 0;}
+  .also{font-size:14.5px; color:#33345a; margin-top:18px; line-height:1.65;}
+
+  @media(max-width:860px){
+    .proofrow{grid-template-columns:1fr; gap:28px; margin-top:56px;}
+    .proofrow.flip .visual{order:0;}
+  }
+
+  /* ---------- 4. Score de Santé ---------- */
+  #score{background:#fff; padding:90px 24px; text-align:center; border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  #score .section-title{max-width:720px; margin:0 auto;}
+  .score-block{max-width:560px; margin:36px auto 0;}
+  .ring-wrap{position:relative; display:inline-block;}
+  .ring-wrap svg{width:min(48vw,230px); height:min(48vw,230px); display:block;}
+  .ring-num{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-weight:800; color:var(--ok); font-size:clamp(42px,6vw,60px); line-height:1;}
+  .ring-num small{font-size:14px; color:var(--muted); font-family:'Lato',sans-serif; font-weight:400; margin-top:6px;}
+  .ring-sub{margin:16px auto 0; font-size:15.5px; max-width:460px;}
+  .pillars{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:28px 0 0; text-align:left;}
+  .pillar{background:var(--cream); border-radius:12px; padding:12px 12px 10px;}
+  .pillar span{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; font-weight:700; color:var(--muted);}
+  .pillar b{display:block; font-size:17px; margin-top:4px;}
+  .pillar i{display:block; height:4px; border-radius:99px; background:#e4ddd0; margin-top:8px; overflow:hidden;}
+  .pillar i::after{content:''; display:block; height:100%; width:var(--w); background:var(--c); border-radius:99px;}
+  .action{margin-top:16px; text-align:left; background:var(--cream); border-left:3px solid var(--prune); border-radius:10px; padding:14px 16px; font-size:14.5px; line-height:1.6;}
+  .action span{display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; font-weight:700; color:var(--prune); margin-bottom:4px;}
+  .why-btn{display:block; margin:18px auto 0; background:none; border:none; padding:0 0 2px; font-family:'Lato',sans-serif; font-size:13px; font-weight:700; color:var(--prune); cursor:pointer; border-bottom:1px solid rgba(91,44,74,.35);}
+  .why-detail{max-height:0; opacity:0; overflow:hidden; text-align:left; transition:max-height .5s var(--ease), opacity .35s var(--ease), margin-top .5s var(--ease);}
+  .why-detail.open{max-height:520px; opacity:1; margin-top:16px;}
+  .why-detail p{font-size:13px; color:#5a5a72; line-height:1.6; margin:0 0 8px;}
+  .why-detail b{color:var(--navy);}
+  @media(max-width:560px){ .pillars{grid-template-columns:repeat(2,1fr);} }
+
+  /* ---------- 5. Témoignages ---------- */
+  #temoignages{padding:90px 24px; text-align:center;}
+  .tmgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:22px; max-width:900px; margin:34px auto 0;}
+  .tmcard{background:#fff; border:1px solid #e7e0d3; border-radius:18px; padding:28px 26px; text-align:left; box-shadow:0 12px 34px rgba(20,21,56,.07); display:flex; flex-direction:column; margin:0;}
+  .tmcard .quote{font-size:16px; line-height:1.62; margin:0 0 22px; flex:1;}
   .tmcard .quote::before{content:'\201C'; font-family:'Playfair Display',serif; color:var(--beige); font-size:46px; line-height:0; vertical-align:-18px; margin-right:2px;}
   .tmcard .name{font-family:'Dancing Script',cursive; font-size:22px; color:var(--prune); display:block; line-height:1.15;}
   .tmcard .role{font-size:13px; color:#8a7d6a;}
-  @media(max-width:820px){ .tmgrid{grid-template-columns:1fr; max-width:460px;} #stm{padding:80px 20px 90px;} }
+  @media(max-width:820px){ .tmgrid{grid-template-columns:1fr; max-width:460px;} }
 
-  /* ---------- Section 8 : La démo libre ---------- */
-  #s8{background:var(--navy); padding:80px 24px; text-align:center;}
-  #s8 .inner{max-width:520px; margin:0 auto;}
-  #s8 p.lead{font-size:clamp(17px,2.2vw,20px); color:#e7e2f2; margin:0 0 40px;}
-  #s8 .btn{
-    display:inline-block; text-decoration:none; border-radius:999px; font-weight:700;
-    font-family:'Lato',sans-serif; transition:transform .25s var(--ease), box-shadow .25s var(--ease);
+  /* ---------- 6. Fondatrice ---------- */
+  #fondatrice{background:#fff; padding:90px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  #fondatrice .grid{display:grid; grid-template-columns:240px 1fr; gap:56px; align-items:center; max-width:900px; margin:0 auto;}
+  #fondatrice img{width:240px; height:240px; border-radius:50%; object-fit:cover; border:6px solid var(--cream); box-shadow:0 14px 40px rgba(20,21,56,.15);}
+  #fondatrice h2{font-size:clamp(24px,3vw,34px); line-height:1.25; font-weight:700;}
+  #fondatrice p{font-size:16.5px; line-height:1.75; color:#33345a; margin:18px 0 0;}
+  #fondatrice .sign{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:22px;}
+  #fondatrice .sign .name{font-family:'Dancing Script',cursive; font-size:26px; color:var(--prune);}
+  #fondatrice .sign a{color:var(--prune); font-weight:700; font-size:14px; text-decoration:none; border-bottom:1px solid rgba(91,44,74,.35); padding-bottom:2px;}
+  @media(max-width:760px){
+    #fondatrice .grid{grid-template-columns:1fr; gap:28px; text-align:left;}
+    #fondatrice img{width:150px; height:150px;}
   }
-  #s8 .btn-primary{
-    background:var(--prune); color:#fff; padding:17px 40px; font-size:16px;
-    box-shadow:0 4px 22px rgba(91,44,74,.4); animation:pulse 3.2s ease-in-out infinite;
-  }
-  #s8 .btn-primary:hover{transform:translateY(-2px);}
-  @keyframes pulse{0%,100%{box-shadow:0 4px 22px rgba(91,44,74,.4);}50%{box-shadow:0 6px 30px rgba(91,44,74,.65);}}
-  #s8 .btn-secondary{color:var(--beige); font-size:14px; margin-top:22px; opacity:.85; border-bottom:1px solid rgba(187,158,129,.4); padding-bottom:2px;}
-  #s8 .btn-secondary:hover{opacity:1;}
 
-  /* ---------- Section 9 : Le silence ---------- */
-  #s9{background:var(--navy); text-align:center; padding:50px 24px 70px;}
-  #s9 .closing{font-family:'Dancing Script',cursive; font-style:italic; color:var(--beige); font-size:clamp(20px,3vw,28px); opacity:0; transition:opacity 1s var(--ease);}
-  #s9.play .closing{opacity:1;}
+  /* ---------- 7. Pour qui ---------- */
+  #pourqui{padding:90px 0;}
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:34px;}
+  .tile{display:block; background:#fff; border:1px solid var(--line); border-radius:16px; padding:22px 18px; text-decoration:none; font-weight:700; font-size:15.5px; line-height:1.35; transition:transform .25s var(--ease), box-shadow .25s var(--ease);}
+  .tile:hover{transform:translateY(-3px); box-shadow:0 12px 30px rgba(20,21,56,.1);}
+  .tile small{display:block; font-weight:400; color:var(--prune); font-size:13px; margin-top:8px;}
+  .also-products{text-align:center; margin:30px auto 0; max-width:680px; font-size:15.5px; line-height:1.7; color:#33345a;}
+  .also-products a{color:var(--prune); font-weight:700;}
+  .notfor{max-width:680px; margin:30px auto 0; background:#fff; border:1px dashed #d8cfbf; border-radius:14px; padding:18px 22px; font-size:15px; line-height:1.65; color:#33345a; text-align:center;}
+  @media(max-width:860px){ .tiles{grid-template-columns:repeat(2,1fr);} }
 
-  footer{
-    background:var(--navy); color:#7d7aa0; text-align:center; padding:30px 24px 50px;
-    font-size:12.5px;
-  }
-  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px;}
+  /* ---------- 8. Prix + questions ---------- */
+  #prix{background:#fff; padding:90px 0; border-top:1px solid var(--line);}
+  #prix .grid{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start;}
+  .pricebox{background:var(--cream); border-radius:20px; padding:34px 32px;}
+  .pricebox h2{font-size:clamp(26px,3vw,34px); font-weight:800; line-height:1.2;}
+  .pricebox .perday{display:block; font-family:'Playfair Display',serif; font-style:italic; color:var(--prune); font-size:clamp(18px,2vw,21px); font-weight:600; margin-top:8px;}
+  .pricebox p{font-size:15.5px; margin:22px 0 10px;}
+  .pricebox ul{margin:0; padding:0; list-style:none;}
+  .pricebox li{position:relative; padding-left:26px; margin:0 0 10px; font-size:15.5px; line-height:1.55;}
+  .pricebox li::before{content:'✓'; position:absolute; left:0; top:0; color:var(--ok); font-weight:700;}
+  .pricebox .plus{font-size:15.5px; margin:6px 0 0;}
+  .pricebox .lock{font-size:13.5px; color:var(--prune); font-weight:700; margin:22px 0 20px;}
+  .faq h2{font-size:clamp(22px,2.6vw,28px); font-weight:700; margin-bottom:16px;}
+  .faq details{border-bottom:1px solid var(--line); padding:16px 0;}
+  .faq summary{cursor:pointer; font-weight:700; font-size:16px; list-style:none; display:flex; justify-content:space-between; gap:16px;}
+  .faq summary::-webkit-details-marker{display:none;}
+  .faq summary::after{content:'+'; color:var(--prune); font-size:20px; line-height:1; transition:transform .2s var(--ease);}
+  .faq details[open] summary::after{transform:rotate(45deg);}
+  .faq details p{margin:10px 0 0; font-size:15px; line-height:1.7; color:#33345a;}
+  .faq details a{color:var(--prune); font-weight:700;}
+  @media(max-width:860px){ #prix .grid{grid-template-columns:1fr; gap:44px;} }
+
+  /* ---------- 9. Appel final ---------- */
+  #final{background:var(--navy); color:var(--cream); text-align:center; padding:90px 24px;}
+  #final h2{font-family:'Dancing Script',cursive; font-weight:700; color:var(--beige); font-size:clamp(28px,4vw,42px);}
+  #final p{color:#d9d5e6; font-size:16.5px; max-width:520px; margin:16px auto 32px; line-height:1.65;}
+  #final .link-soft{display:inline-block; color:var(--beige); margin-top:22px;}
+
+  footer{background:var(--navy); color:#7d7aa0; text-align:center; padding:10px 24px 50px; font-size:12.5px; border-top:1px solid rgba(241,239,234,.08);}
+  footer nav{padding-top:24px;}
+  footer a{color:#a9a3c9; text-decoration:none; margin:0 10px; line-height:2;}
   footer a:hover{color:var(--cream);}
 
-  @media(max-width:640px){
-    #s1{height:210vh;}
-    #s1 .frag{left:50% !important; width:82vw; margin-left:-41vw; white-space:normal; text-align:center;}
-    /* Repositionnement vertical dédié mobile (retour Faustine 2026-09-29) : les data-y d'origine
-       sont pensées pour un scatter 2D (desktop), où la séparation horizontale évite toute
-       collision même quand 2 fragments sont visibles en même temps (leurs fenêtres de fondu se
-       chevauchent largement par construction, voir fragWindow/fragSpacing plus haut). Sur mobile,
-       tous les fragments sont recentrés sur une seule colonne (left:50% ci-dessus) : sans cette
-       redistribution, les fragments consécutifs dans le DOM (donc temporellement les plus
-       susceptibles d'être visibles ensemble) tombent l'un sur l'autre. Alternance haute/basse par
-       ordre d'apparition dans le DOM, pour écarter au maximum les paires qui se chevauchent le
-       plus dans le temps (i et i+1).
-    */
-    #s1 .frag:nth-of-type(1){top:8% !important;}
-    #s1 .frag:nth-of-type(2){top:58% !important;}
-    #s1 .frag:nth-of-type(3){top:15% !important;}
-    #s1 .frag:nth-of-type(4){top:65% !important;}
-    #s1 .frag:nth-of-type(5){top:22% !important;}
-    #s1 .frag:nth-of-type(6){top:72% !important;}
-    #s1 .frag:nth-of-type(7){top:29% !important;}
-    #s1 .frag:nth-of-type(8){top:79% !important;}
-    #s1 .frag:nth-of-type(9){top:36% !important;}
-    #s1 .frag:nth-of-type(10){top:86% !important;}
-    #s1 .frag:nth-of-type(11){top:42% !important;}
-    #s1 .frag:nth-of-type(12){top:92% !important;}
-  }
-
-  /* ---------- Reduced motion fallback ---------- */
   @media (prefers-reduced-motion: reduce){
-    #s1{height:auto;} #s1 .stage{position:static; height:auto; padding:90px 24px; flex-direction:column; gap:14px;}
-    #s1 .frag{position:static; opacity:.5 !important; display:block; transform:none !important; white-space:normal !important; max-width:88vw; margin-left:0 !important; text-align:center;}
-    #s1 .closer{position:static; opacity:1 !important; margin-top:20px;}
-    #s1 .hint{display:none;}
-    #s2 .bg-wash{--wash:150% !important;}
-    #s2 .logo, #s2 .question, #s2 .tagline{color:var(--navy) !important;}
-    #s2 .script{color:var(--prune) !important;}
-    #s2 .logo, #s2 .tagline, #s2 .script, #s2 .question, #s2 .promise{opacity:1 !important; transform:none !important;}
-    #s3 .line{opacity:1 !important; transform:none !important; animation:none !important;}
-    #s4 .ring-sub, #s4 .proof-lead, #s4 .kpi-glimpse, #s4 .proof{opacity:1 !important;}
-    #s6 .reinforce{opacity:1;}
-    #s7 .neg{opacity:1 !important; text-decoration-color:var(--navy) !important;}
-    #s7 .final{opacity:1 !important;}
-    #s9 .closing{opacity:1 !important;}
+    .thought{transition:none;}
+    #constat .line{opacity:1 !important; animation:none !important;}
+    .btn, .tile{transition:none;}
   }
 </style>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Indépuls">
 <meta property="og:locale" content="fr_FR">
-<meta property="og:title" content="Indépuls · Est-ce que ça va ?">
-<meta property="og:description" content="Vous n'avez plus besoin de vous demander si votre entreprise va bien. Indépuls vous le montre.">
+<meta property="og:title" content="Indépuls · Sachez ce que vous gagnez réellement. Gardez un coup d'avance.">
+<meta property="og:description" content="Ce que votre temps vous rapporte, l'argent à prévoir pour vos charges et vos échéances, et la bonne décision au bon moment. Pour les freelances, consultants, coachs et artisans.">
 <meta property="og:url" content="https://indepuls.fr/">
 <meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -365,7 +279,7 @@
   "operatingSystem": "Web",
   "url": "https://indepuls.fr/",
   "inLanguage": "fr",
-  "description": "Indépuls est un logiciel de rentabilité pour les indépendants (freelances, artisans, revendeurs). Il calcule un Score de Santé à partir de l'activité réelle et répond à une seule question : est-ce que ça va ?",
+  "description": "Indépuls est un logiciel de pilotage pour les indépendants qui vendent leur temps (freelances, consultants, coachs, artisans). Il calcule en continu ce que leur temps leur rapporte, l'argent à prévoir pour leurs charges et leurs échéances, et les aide à décider au bon moment.",
   "image": "https://indepuls.fr/assets/og-image.png",
   "offers": {
     "@type": "Offer",
@@ -381,11 +295,11 @@
   <span class="brand">Indépuls</span>
   <button type="button" class="menuToggle" id="menuToggle" aria-haspopup="true" aria-expanded="false" aria-controls="navGroup" aria-label="Menu">☰</button>
   <div class="navGroup" id="navGroup">
-    <a href="fonctionnalites/index.html" class="extra">Fonctionnalités</a>
-    <a href="tarifs/index.html" class="extra">Tarifs</a>
-    <a href="demo/index.html" class="extra">Démo</a>
-    <a href="faq/index.html" class="extra">FAQ</a>
-    <div class="dropdown extra" id="metierDropdown">
+    <a href="fonctionnalites/index.html">Fonctionnalités</a>
+    <a href="tarifs/index.html">Tarifs</a>
+    <a href="demo/index.html">Démo</a>
+    <a href="faq/index.html">FAQ</a>
+    <div class="dropdown" id="metierDropdown">
       <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Métiers <span class="caret">▾</span></button>
       <div class="dropmenu">
         <a href="pour/artisans-batiment/index.html">Artisans du bâtiment</a>
@@ -395,14 +309,14 @@
         <a href="pour/achat-revente/index.html">Achat &amp; revente</a>
       </div>
     </div>
-    <div class="dropdown extra" id="outilsDropdown">
+    <div class="dropdown" id="outilsDropdown">
       <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Outils <span class="caret">▾</span></button>
       <div class="dropmenu">
         <a href="outils-gratuits/combien-facturer/index.html">Combien facturer&nbsp;?</a>
         <a href="outils-gratuits/calculateur-rentabilite/index.html">Calculateur de rentabilité</a>
       </div>
     </div>
-    <div class="dropdown extra" id="ressourcesDropdown">
+    <div class="dropdown" id="ressourcesDropdown">
       <button type="button" class="dropbtn" aria-haspopup="true" aria-expanded="false">Ressources <span class="caret">▾</span></button>
       <div class="dropmenu">
         <a href="ressources/savoir-si-son-activite-est-rentable/index.html">Guide de la rentabilité</a>
@@ -412,98 +326,163 @@
       </div>
     </div>
   </div>
-  <a href="indepuls.html" target="_blank" rel="noopener">Mon espace</a>
-  <a href="#s8" id="skipLink">Aller à l'essentiel →</a>
+  <a href="indepuls.html" class="espace" target="_blank" rel="noopener">Mon espace</a>
 </nav>
 
-<!-- SECTION 1 : LE BRUIT -->
-<section id="s1" aria-label="Introduction">
-  <div class="stage">
-    <span class="frag" data-x="14" data-y="22" data-size="24">Est-ce que j'ai pensé à l'URSSAF&nbsp;?</span>
-    <span class="frag" data-x="60" data-y="14" data-size="19">Pourquoi mon compte est vide alors que j'ai facturé&nbsp;?</span>
-    <span class="frag" data-x="8" data-y="52" data-size="29">J'aurais peut-être dû accepter ce devis.</span>
-    <span class="frag" data-x="56" data-y="58" data-size="21">J'ai encore travaillé ce week-end.</span>
-    <span class="frag" data-x="28" data-y="74" data-size="26">Et si ce client s'en va&nbsp;?</span>
-    <span class="frag" data-x="44" data-y="36" data-size="34">Ça va aller.</span>
-    <span class="frag echo" data-x="72" data-y="42" data-size="15">Est-ce que j'ai pensé à l'URSSAF&nbsp;?</span>
-    <span class="frag echo" data-x="18" data-y="64" data-size="14">Pourquoi mon compte est vide alors que j'ai facturé&nbsp;?</span>
-    <span class="frag echo" data-x="64" data-y="78" data-size="17">J'aurais peut-être dû accepter ce devis.</span>
-    <span class="frag echo" data-x="6" data-y="30" data-size="15">J'ai encore travaillé ce week-end.</span>
-    <span class="frag echo" data-x="48" data-y="8" data-size="16">Et si ce client s'en va&nbsp;?</span>
-    <span class="frag echo" data-x="16" data-y="88" data-size="20">Ça va aller.</span>
-    <p class="closer">Vous n'êtes pas seul(e) à vous poser ces questions.</p>
-    <div class="hint"><span class="arrow">↓</span>&nbsp; scrolle</div>
+<!-- 1. EN-TÊTE : les pensées, la promesse, l'action -->
+<section id="hero" aria-label="Indépuls">
+  <div class="wrap grid">
+    <div>
+      <div class="thoughts" aria-hidden="true">
+        <span class="thought on">Est-ce que j'ai pensé à l'URSSAF&nbsp;?</span>
+        <span class="thought">Pourquoi mon compte est vide alors que j'ai facturé&nbsp;?</span>
+        <span class="thought">J'ai encore travaillé ce week-end.</span>
+        <span class="thought">Et si ce client s'en va&nbsp;?</span>
+      </div>
+      <h1>Sachez ce que vous gagnez réellement. <span class="second">Gardez un coup d'avance.</span></h1>
+      <p class="sub">Indépuls calcule en continu <strong>ce que votre temps vous rapporte</strong>, <strong>l'argent à prévoir</strong> pour vos charges et vos prochaines échéances, puis vous aide à <strong>décider au bon moment</strong>. Pour les freelances, consultants, coachs et artisans.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="tarifs/index.html#waitlist-form">Rejoindre la liste d'attente →</a>
+        <a class="link-soft" href="demo/index.html">ou explorer la démo, sans compte</a>
+      </div>
+      <p class="beta">Bêta en cours</p>
+    </div>
+    <div>
+      <div class="appcard" aria-label="Aperçu du tableau de bord Indépuls">
+        <div class="bar"><span>Mon tableau de bord</span><span class="demo">Démo</span></div>
+        <div class="scoreRow">
+          <div class="mini-ring">
+            <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="33" fill="none" stroke="#e4ddd0" stroke-width="7"/><circle cx="40" cy="40" r="33" fill="none" stroke="#2d7a4f" stroke-width="7" stroke-linecap="round" stroke-dasharray="207.3" stroke-dashoffset="41.5" transform="rotate(-90 40 40)"/></svg>
+            <b>80</b>
+          </div>
+          <p><strong>Activité globalement saine.</strong><br>Un point mérite votre attention cette semaine&nbsp;: le remplissage.</p>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><span>Taux horaire réel</span><b>136&nbsp;€/h <small>seuil minimum 71&nbsp;€/h</small></b></div>
+          <div class="kpi"><span>À garder sur le compte</span><b>1&nbsp;797&nbsp;€</b></div>
+        </div>
+        <div class="alert">URSSAF&nbsp;: <strong>1&nbsp;316&nbsp;€</strong> à payer dans 30&nbsp;jours.</div>
+      </div>
+      <p class="caption">Données fictives de la démo</p>
+    </div>
   </div>
 </section>
 
-<!-- SECTION 2 : LA BASCULE (apparition déclenchée dès l'arrivée à l'écran) -->
-<section id="s2" aria-label="La promesse">
-  <div class="bg-wash"></div>
-  <h1 class="logo">Indépuls</h1>
-  <p class="tagline">Le logiciel de pilotage pour indépendants</p>
-  <p class="script">Il n'y a qu'une question qui compte.</p>
-  <p class="question">Est-ce que ça va&nbsp;?</p>
-  <p class="promise">Vous n'avez plus besoin de vous demander si votre entreprise va bien.<br>Indépuls <u>vous le montre</u>.</p>
-</section>
-
-<!-- SECTION 3 : LE MIROIR DU QUOTIDIEN (apparition déclenchée, en séquence rapide) -->
-<section id="s3" aria-label="Le quotidien d'un indépendant">
+<!-- 2. LE CONSTAT -->
+<section id="constat" aria-label="Le quotidien d'un indépendant">
   <p class="line">Vous facturez. Vous encaissez. Vous recommencez.</p>
   <p class="line">Le doute, lui, ne bouge pas.</p>
   <p class="line">Personne ne vous a jamais appris à lire vos propres chiffres.</p>
-  <p class="line">Vous avancez au feeling.</p>
-  <p class="line">Et si vous n'aviez qu'une seule chose à regarder&nbsp;?</p>
+  <p class="line last">Indépuls les lit pour vous.</p>
 </section>
 
-<!-- SECTION 4 : LA RÉVÉLATION + LA PREUVE (score unique, le calcul est déjà là) -->
-<section id="s4" aria-label="Le score">
-  <div class="score-block">
-    <div class="ring-wrap">
-      <svg viewBox="0 0 200 200">
-        <circle cx="100" cy="100" r="86" fill="none" stroke="#e4ddd0" stroke-width="14"/>
-        <circle id="ringProgress" cx="100" cy="100" r="86" fill="none" stroke="#2d7a4f" stroke-width="14"
-          stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="16.2"
-          transform="rotate(-90 100 100)" style="transition:stroke .3s var(--ease)"/>
-      </svg>
-      <div class="ring-num" id="ringNum" style="transition:color .3s var(--ease); color:#2d7a4f">97</div>
+<!-- 3. LES 3 RÉPONSES (reprennent le sous-titre, dans le même ordre) -->
+<section id="preuves" aria-label="Ce que vous voyez dans Indépuls">
+  <div class="wrap">
+    <h2 class="section-title">Concrètement, voici ce que vous voyez.</h2>
+
+    <div class="proofrow">
+      <div class="text">
+        <p class="kicker">Ce que votre temps vous rapporte</p>
+        <h3>Votre taux horaire réel, calculé sur vos heures réelles.</h3>
+        <p>Indépuls compte tout le temps passé, y compris celui que vous ne facturez pas, et le compare au seuil en dessous duquel votre objectif de revenu ne tient plus.</p>
+        <p class="figure">136&nbsp;€/h ce mois-ci, pour un seuil minimum de 71&nbsp;€/h.</p>
+      </div>
+      <div class="visual">
+        <div class="panel">
+          <div class="ptitle"><span>Ma rentabilité</span><b>25<small style="font-size:12px;color:var(--muted)">/25</small></b></div>
+          <div class="meter"><i style="width:100%"></i></div>
+          <dl>
+            <dt>Taux horaire réel, ce mois-ci</dt><dd>136&nbsp;€/h</dd>
+            <dt>Seuil minimum</dt><dd>71&nbsp;€/h</dd>
+            <dt>Écart</dt><dd style="color:var(--ok)">+65&nbsp;€/h</dd>
+          </dl>
+          <div class="method">Méthode&nbsp;: chiffre d'affaires encaissé ÷ toutes vos heures, facturées ou non. Le seuil vient de votre objectif de revenu, après cotisations et impôt.</div>
+        </div>
+      </div>
     </div>
-    <p class="ring-sub" id="ringSub">Votre activité tourne très bien aujourd'hui.</p>
-    <p class="proof-lead">Zéro boîte noire. Vous voyez toujours le calcul.</p>
-    <div class="kpi-glimpse">
-      <span class="chip">TJM réel <b>245&nbsp;€/j</b></span>
-      <span class="chip">Trésorerie <b>3&nbsp;200&nbsp;€</b></span>
-      <span class="chip">Prochaine échéance <b>12&nbsp;j</b></span>
+
+    <div class="proofrow flip">
+      <div class="text">
+        <p class="kicker">L'argent à prévoir et vos échéances</p>
+        <h3>Vous savez ce qui doit rester sur le compte, et jusqu'à quand.</h3>
+        <p>Cotisations, impôt, TVA, dépenses à venir&nbsp;: Indépuls met de côté ce qui ne vous appartient pas encore et vous prévient avant chaque échéance.</p>
+        <p class="figure">1&nbsp;797&nbsp;€ à garder sur le compte&nbsp;: 1&nbsp;316&nbsp;€ d'URSSAF, 310&nbsp;€ d'impôt et 171&nbsp;€ de dépenses.</p>
+      </div>
+      <div class="visual">
+        <div class="panel">
+          <div class="ptitle"><span>Argent à mettre de côté</span></div>
+          <div class="keep"><span>À conserver sur le compte</span><b>1&nbsp;797&nbsp;€</b></div>
+          <p class="ok-line">Situation confortable&nbsp;: les revenus du mois couvrent les provisions à venir.</p>
+          <dl>
+            <dt>URSSAF</dt><dd>1&nbsp;316&nbsp;€</dd>
+            <dt>Impôt (provision du mois)</dt><dd>310&nbsp;€</dd>
+            <dt>Dépenses professionnelles</dt><dd>171&nbsp;€</dd>
+          </dl>
+          <div class="alert">URSSAF&nbsp;: <strong>1&nbsp;316&nbsp;€</strong> à payer dans 30&nbsp;jours.</div>
+        </div>
+      </div>
     </div>
-    <div class="proof">
-      <dl>
-        <dt>TJM réel</dt><dd>245&nbsp;€/j</dd>
-        <dt>Seuil minimum</dt><dd>210&nbsp;€/j</dd>
-        <dt>Écart</dt><dd>+35&nbsp;€/j (+17&nbsp;%)</dd>
-        <dt>Méthode</dt><dd style="font-weight:400; font-size:14px;">CA encaissé ÷ jours facturés</dd>
-      </dl>
-      <div class="formula">3 675&nbsp;€ ÷ 15&nbsp;j = 245&nbsp;€/j</div>
-      <button class="why-btn" id="whyBtn" aria-expanded="false" aria-controls="whyDetail">Pourquoi ce score ?</button>
-      <div class="why-detail" id="whyDetail">
-        <p><b>Comparaison</b> · TJM réel vs seuil minimum, calculé depuis votre objectif de revenu.</p>
-        <p><b>Points pour ce pilier, sur 25</b> · ≥&nbsp;100&nbsp;% du seuil → 25&nbsp;pts &nbsp;·&nbsp; ≥&nbsp;85&nbsp;% → 19&nbsp;pts &nbsp;·&nbsp; ≥&nbsp;65&nbsp;% → 11&nbsp;pts &nbsp;·&nbsp; &lt;&nbsp;65&nbsp;% → 4&nbsp;pts</p>
-        <p>La rentabilité est l'un des 4 piliers qui composent votre Score de Santé : chacun vaut 25 points, pour un total sur 100. Les 3 autres sont le remplissage, la trésorerie et l'horizon.</p>
+
+    <div class="proofrow">
+      <div class="text">
+        <p class="kicker">Décider au bon moment</p>
+        <h3>Testez une décision avant de la prendre.</h3>
+        <p>Augmenter vos prix, perdre un client, changer de statut, opter pour le versement libératoire&nbsp;: vous voyez l'effet en euros, sans toucher à vos données.</p>
+        <p class="also">Essayez avec la question que tout indépendant se pose un jour&nbsp;: et si je travaillais moins&nbsp;?</p>
+      </div>
+      <div class="visual">
+        <div class="sim">
+          <p class="q">Combien facturer pour vivre au rythme que vous voulez&nbsp;?</p>
+          <input type="range" id="daysSlider" min="3" max="5" step="1" value="4" aria-label="Jours travaillés par semaine">
+          <div class="ticks"><span>3 jours</span><span>4 jours</span><span>5 jours</span></div>
+          <p class="answer" id="daysAnswer" aria-live="polite">Pour vous verser <b>3&nbsp;000&nbsp;€ nets par mois</b> en travaillant <b>4&nbsp;jours par semaine</b>, avec 6&nbsp;semaines de vacances&nbsp;: facturez au moins <b>292&nbsp;€ par jour</b>, soit environ 42&nbsp;€ de l'heure.</p>
+          <p class="hyp">Hypothèses&nbsp;: micro-entreprise libérale, cotisations URSSAF et impôt inclus, journées de 7&nbsp;h. Dans Indépuls, le calcul se fait avec vos propres chiffres. Rien n'est enregistré ici.</p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- SECTION 5 (La preuve) fusionnée dans la section 4 -->
-
-<!-- SECTION 4bis : LA PREUVE PAR LES PAIRS -->
-<section id="stm" class="tmsection" aria-label="Ils utilisent Indépuls">
-  <div class="tmfounder">
-    <img src="assets/faustine-avatar.jpg" alt="Faustine, fondatrice d'Indépuls" class="tmfounder-photo" loading="lazy">
-    <p class="tmfounder-quote">« Indépuls, c'est l'outil que j'aurais aimé avoir, pour moi et pour mon mari artisan. »</p>
-    <a href="a-propos/index.html" class="tmfounder-link">Faustine, fondatrice d'Indépuls →</a>
+<!-- 4. LE SCORE DE SANTÉ -->
+<section id="score" aria-label="Le Score de Santé">
+  <h2 class="section-title">Et pour savoir où vous en êtes d'un coup d'œil&nbsp;: une note sur 100.</h2>
+  <div class="score-block">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="86" fill="none" stroke="#e4ddd0" stroke-width="14"/>
+        <circle id="ringProgress" cx="100" cy="100" r="86" fill="none" stroke="#2d7a4f" stroke-width="14" stroke-linecap="round" stroke-dasharray="540.35" stroke-dashoffset="108.07" transform="rotate(-90 100 100)"/>
+      </svg>
+      <div class="ring-num"><span id="ringNum">80</span><small>/100</small></div>
+    </div>
+    <p class="ring-sub">Votre activité est globalement saine. Un point mérite votre attention cette semaine&nbsp;: le remplissage.</p>
+    <div class="pillars">
+      <div class="pillar"><span>Rentabilité</span><b>25/25</b><i style="--w:100%;--c:#2d7a4f"></i></div>
+      <div class="pillar"><span>Remplissage</span><b>5/25</b><i style="--w:20%;--c:#b91c1c"></i></div>
+      <div class="pillar"><span>Trésorerie</span><b>25/25</b><i style="--w:100%;--c:#2d7a4f"></i></div>
+      <div class="pillar"><span>Horizon</span><b>25/25</b><i style="--w:100%;--c:#2d7a4f"></i></div>
+    </div>
+    <div class="action"><span>Action recommandée</span>Combler 6&nbsp;h supplémentaires par semaine suffirait à sécuriser votre objectif de revenu. Commencez par relancer votre mission en attente.</div>
+    <button class="why-btn" id="whyBtn" aria-expanded="false" aria-controls="whyDetail">Comment la note est calculée&nbsp;?</button>
+    <div class="why-detail" id="whyDetail">
+      <p>Quatre piliers de 25 points chacun, calculés sur vos vraies données&nbsp;:</p>
+      <p><b>Rentabilité</b> · votre taux horaire réel comparé au seuil tiré de votre objectif de revenu.</p>
+      <p><b>Remplissage</b> · le temps planifié sur vos missions comparé à votre capacité de travail.</p>
+      <p><b>Trésorerie</b> · les factures en retard de paiement et le montant facturé non encaissé.</p>
+      <p><b>Horizon</b> · les missions et devis à venir, pour savoir si les prochains mois sont assurés.</p>
+    </div>
   </div>
-  <p class="tmscript">Ils l'ont testé avant tout le monde</p>
-  <h2 class="tmtitle">Leurs premiers retours</h2>
+</section>
+
+<!-- 5. TÉMOIGNAGES -->
+<section id="temoignages" aria-label="Ils ont testé Indépuls">
+  <p class="section-script">Ils l'ont testé avant tout le monde</p>
+  <h2 class="section-title">Leurs premiers retours</h2>
   <div class="tmgrid">
+    <figure class="tmcard">
+      <blockquote class="quote">Le point qui m'a le plus marquée : la simplicité du paramétrage. Tout est intuitif, on est prêt en quelques minutes. Les cartes du tableau de bord permettent de prendre des décisions et d'ajuster. Ce n'est pas juste du suivi, c'est un vrai outil de pilotage.</blockquote>
+      <figcaption><span class="name">Florence</span><span class="role">Consultante QSE et no-code</span></figcaption>
+    </figure>
     <figure class="tmcard">
       <blockquote class="quote">Tu as conçu un super outil ! Je vais l'utiliser régulièrement sur le temps passé pour mes clients : je manque de visibilité sur mon temps passé, et même sur mon temps improductif.</blockquote>
       <figcaption><span class="name">Prescillia</span><span class="role">Online Business Manager</span></figcaption>
@@ -519,55 +498,100 @@
   </div>
 </section>
 
-<!-- SECTION 6 : LE "ET SI" -->
-<section id="s6" aria-label="Simulateur">
-  <p class="lead">Avant de décider, on aimerait savoir. Maintenant, on peut.</p>
-  <div class="card">
-    <p class="phrase">Si vous augmentiez vos prix de <b id="pctOut">12&nbsp;%</b>, vous gagneriez le même revenu en travaillant <b id="hoursOut">3h de moins</b> chaque semaine.</p>
-    <p class="reinforce" id="reinforce">Ça représente environ <span id="monthlyOut">12</span>&nbsp;heures de plus pour vous, chaque mois.</p>
-    <div class="slider-wrap">
-      <input type="range" id="pctSlider" min="0" max="30" value="12" step="1" aria-label="Augmentation de prix en pourcentage">
-      <div class="slider-label">Déplacez le curseur, aucune donnée n'est enregistrée</div>
+<!-- 6. LA FONDATRICE -->
+<section id="fondatrice" aria-label="Qui a créé Indépuls">
+  <div class="wrap">
+    <div class="grid">
+      <img src="assets/faustine-avatar.jpg" alt="Faustine, fondatrice d'Indépuls" loading="lazy">
+      <div>
+        <h2>Avant d'être un logiciel, Indépuls était un fichier Excel.</h2>
+        <p>Mon mari est artisan à son compte, sans comptable. Depuis quatre ans, c'est moi qui suis sa rentabilité, chantier par chantier, sur un tableur. Quand je me suis lancée comme OBM, j'ai retrouvé le même tableur, et la même envie&nbsp;: qu'on me dise, simplement, si ça allait.</p>
+        <p>Je n'ai rien trouvé qui me convienne, alors je l'ai construit. Avant ça, j'ai été infirmière, puis cadre dans le médico-social. Je pilotais des équipes, un budget, des plannings, et l'accompagnement des usagers. Mon fil conducteur n'a pas changé&nbsp;: aider, et améliorer ce qui existe.</p>
+        <div class="sign"><span class="name">Faustine, fondatrice d'Indépuls</span><a href="a-propos/index.html">Lire mon histoire →</a></div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- SECTION 7 : CE QU'INDÉPULS REFUSE -->
-<section id="s7" aria-label="Ce qu'Indépuls n'est pas">
-  <div class="inner">
-    <p class="neg" data-i="0">Indépuls n'est pas un logiciel de facturation.</p><br>
-    <p class="neg" data-i="1">Indépuls n'est pas un CRM.</p><br>
-    <p class="neg" data-i="2">Indépuls n'est pas un logiciel de comptabilité.</p><br>
-    <p class="neg" data-i="3">Indépuls n'est pas fait pour une équipe déjà pilotée.</p>
-    <p class="final">Indépuls est le seul endroit où vous savez, en une minute, si vous allez bien.</p>
+<!-- 7. POUR QUI -->
+<section id="pourqui" aria-label="Pour qui">
+  <div class="wrap">
+    <h2 class="section-title">Indépuls est fait pour les indépendants qui vendent leur temps.</h2>
+    <div class="tiles">
+      <a class="tile" href="pour/services-creatifs/index.html">Prestataires et consultants<small>Voir ce que ça change →</small></a>
+      <a class="tile" href="pour/services-creatifs/index.html">Créatifs et communication<small>Voir ce que ça change →</small></a>
+      <a class="tile" href="pour/evenementiel/index.html">Événementiel<small>Voir ce que ça change →</small></a>
+      <a class="tile" href="pour/artisans-batiment/index.html">Artisans du bâtiment<small>Voir ce que ça change →</small></a>
+    </div>
+    <p class="also-products">Vous vendez aussi des produits&nbsp;? Indépuls suit vos ventes et vos marges, sans gérer votre stock. <a href="pour/artisans-fabricants/index.html">Fabricants</a> · <a href="pour/achat-revente/index.html">Achat-revente</a></p>
+    <p class="notfor"><strong>Indépuls n'est pas fait pour vous si</strong> vous cherchez un logiciel de comptabilité ou de facturation, ou si votre entreprise a déjà une équipe qui pilote les chiffres.</p>
   </div>
 </section>
 
-<!-- SECTION 8 : LA DÉMO LIBRE -->
-<section id="s8" aria-label="Essayer Indépuls">
-  <div class="inner">
-    <p class="lead">Pas de compte à créer. Pas de carte bancaire.<br>Juste vous, et vos vrais chiffres, quand vous serez prêt(e).</p>
-    <a class="btn btn-primary" href="demo/index.html">Explorer la démo</a><br>
-    <a class="btn btn-secondary" href="indepuls.html" target="_blank" rel="noopener">Créer mon compte</a>
+<!-- 8. PRIX + QUESTIONS -->
+<section id="prix" aria-label="Prix et questions fréquentes">
+  <div class="wrap grid">
+    <div class="pricebox">
+      <h2>19&nbsp;€ par mois.</h2>
+      <span class="perday">62 centimes par jour, moins qu'une baguette.</span>
+      <p>Pour ce prix, Indépuls vous évite&nbsp;:</p>
+      <ul>
+        <li>l'échéance URSSAF ou l'impôt que vous n'aviez pas mis de côté&nbsp;;</li>
+        <li>les clients qui vous prennent plus de temps qu'ils ne vous rapportent&nbsp;;</li>
+        <li>la soirée à rassembler vos chiffres avant le rendez-vous avec votre comptable.</li>
+      </ul>
+      <p class="plus">Et il vous montre, semaine après semaine, où passe votre temps.</p>
+      <p class="lock">🔒 Prix garanti à vie pour les inscrits de la liste d'attente.</p>
+      <a class="btn btn-primary" href="tarifs/index.html#waitlist-form">Rejoindre la liste d'attente →</a>
+    </div>
+    <div class="faq">
+      <h2>Les questions qu'on se pose avant de s'inscrire</h2>
+      <details>
+        <summary>Est-ce que ça remplace mon comptable&nbsp;?</summary>
+        <p>Non. Indépuls ne fait ni votre comptabilité ni vos déclarations. Il vous aide à piloter au quotidien, entre deux rendez-vous avec votre comptable, ou à y voir clair si vous n'en avez pas.</p>
+      </details>
+      <details>
+        <summary>Je ne suis pas à l'aise avec les chiffres.</summary>
+        <p>Indépuls est fait pour ça. Il traduit vos chiffres en phrases («&nbsp;vous pouvez vous verser…&nbsp;», «&nbsp;mettez de côté…&nbsp;») et chaque calcul montre sa méthode, si vous voulez comprendre.</p>
+      </details>
+      <details>
+        <summary>Je suis en SASU ou en EURL, ça fonctionne&nbsp;?</summary>
+        <p>Oui. Indépuls gère la micro-entreprise, l'EI au réel, l'EURL et la SASU. En société, il parle rémunération et trésorerie de la société.</p>
+      </details>
+      <details>
+        <summary>Mes données sont-elles en sécurité&nbsp;?</summary>
+        <p>Elles sont chiffrées, jamais partagées avec un tiers et jamais utilisées pour entraîner une IA. <a href="securite.html">En savoir plus →</a></p>
+      </details>
+      <details>
+        <summary>Pourquoi une liste d'attente&nbsp;?</summary>
+        <p>Indépuls est en bêta, avec quelques utilisatrices que j'accompagne personnellement. Les inscrits sont prévenus en priorité à l'ouverture et gardent le prix de 19&nbsp;€ par mois.</p>
+      </details>
+    </div>
   </div>
 </section>
 
-<!-- SECTION 9 : LE RETOUR AU SILENCE -->
-<section id="s9" aria-label="Fermeture">
-  <p class="closing" id="closingLine">Vous n'avez plus besoin de deviner.</p>
+<!-- 9. APPEL FINAL -->
+<section id="final" aria-label="Rejoindre Indépuls">
+  <h2>Vous n'avez plus besoin de deviner.</h2>
+  <p>Inscrivez-vous sur la liste d'attente&nbsp;: vous serez prévenu(e) en priorité, avec votre prix garanti.</p>
+  <a class="btn btn-primary" href="tarifs/index.html#waitlist-form">Rejoindre la liste d'attente →</a><br>
+  <a class="link-soft" href="demo/index.html">ou explorer la démo, sans compte ni carte bancaire</a>
 </section>
 
 <footer>
-  <a href="a-propos/index.html">À propos</a>
-  <a href="glossaire/index.html">Glossaire</a>
-  <a href="politique-confidentialite.html">Confidentialité</a>
-  <a href="cgu.html">CGU</a>
-  <a href="securite.html">Sécurité</a>
-  <a href="mentions-legales.html">Mentions légales</a>
+  <nav aria-label="Liens légaux">
+    <a href="a-propos/index.html">À propos</a>
+    <a href="glossaire/index.html">Glossaire</a>
+    <a href="politique-confidentialite.html">Confidentialité</a>
+    <a href="cgu.html">CGU</a>
+    <a href="securite.html">Sécurité</a>
+    <a href="mentions-legales.html">Mentions légales</a>
+  </nav>
   <span style="display:block; margin-top:14px; opacity:.6;">Indépuls © 2026</span>
 </footer>
 
 <script>
+// Menu : listes déroulantes + menu mobile
 (function(){
   var dds = document.querySelectorAll('.dropdown');
   var menuToggle = document.getElementById('menuToggle');
@@ -585,7 +609,7 @@
       e.stopPropagation();
       var willOpen = !dd.classList.contains('open');
       dds.forEach(function(o){ if (o !== dd) { o.classList.remove('open'); o.querySelector('.dropbtn').setAttribute('aria-expanded','false'); } });
-      if (willOpen) { dd.classList.add('open'); btn.setAttribute('aria-expanded','true'); } else { dd.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+      dd.classList.toggle('open', willOpen); btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     });
   });
   var openScrollY = null;
@@ -594,151 +618,67 @@
       e.stopPropagation();
       var willOpen = !navGroup.classList.contains('open');
       closeAll();
-      if (willOpen) { navGroup.classList.add('open'); menuToggle.setAttribute('aria-expanded','true'); if (mainNavEl) mainNavEl.classList.add('menuOpen'); openScrollY = window.scrollY; }
+      if (willOpen) { navGroup.classList.add('open'); menuToggle.setAttribute('aria-expanded','true'); mainNavEl.classList.add('menuOpen'); openScrollY = window.scrollY; }
     });
     navGroup.addEventListener('click', function(e){ e.stopPropagation(); });
   }
   document.addEventListener('click', closeAll);
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeAll(); });
   window.addEventListener('scroll', function(){
-    if (openScrollY !== null && navGroup && navGroup.classList.contains('open') && Math.abs(window.scrollY - openScrollY) > 40) {
-      closeAll();
-      openScrollY = null;
-    }
+    if (openScrollY !== null && navGroup.classList.contains('open') && Math.abs(window.scrollY - openScrollY) > 40) { closeAll(); openScrollY = null; }
   }, {passive:true});
 })();
+
 (function(){
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  function progress(el, extra){
-    var r = el.getBoundingClientRect();
-    var vh = window.innerHeight;
-    var total = r.height - vh;
-    if (total <= 0) return 1;
-    var p = (-r.top) / total;
-    return Math.max(0, Math.min(1, p));
-  }
-  function clamp01(v){ return Math.max(0, Math.min(1, v)); }
-  function lerp(a,b,t){ return a + (b-a)*t; }
-  function scoreColor(score){
-    return score>=80?'#2d7a4f':score>=60?'#84cc16':score>=40?'#c97316':score>=20?'#f97316':'#b91c1c';
+  // En-tête : une pensée à la fois
+  var thoughts = document.querySelectorAll('.thought');
+  if (thoughts.length > 1 && !reduced) {
+    var ti = 0;
+    setInterval(function(){
+      thoughts[ti].classList.remove('on');
+      ti = (ti + 1) % thoughts.length;
+      thoughts[ti].classList.add('on');
+    }, 2800);
   }
 
-  var nav = document.getElementById('mainNav');
-  var s2 = document.getElementById('s2');
+  // Constat : les phrases apparaissent une fois, à l'arrivée à l'écran
+  var constat = document.getElementById('constat');
+  if (constat) {
+    if (reduced || !('IntersectionObserver' in window)) constat.classList.add('play');
+    else {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ if (e.isIntersecting) { constat.classList.add('play'); io.disconnect(); } });
+      }, {threshold:0.3});
+      io.observe(constat);
+    }
+  }
 
-  var s1 = document.getElementById('s1');
-  var frags = s1 ? Array.prototype.slice.call(s1.querySelectorAll('.frag')) : [];
-  var closer = s1 ? s1.querySelector('.closer') : null;
-  var hint = s1 ? s1.querySelector('.hint') : null;
-
-  var fragSpacing = frags.length ? 0.66 / frags.length : 0;
-  // Sur mobile, les fragments sont forcés sur une seule colonne centrée (voir la règle
-  // #s1 .frag{left:50% !important} plus bas) : le scatter 2D qui les séparait sur desktop
-  // disparaît, donc les laisser visibles aussi longtemps les uns que les autres les fait se
-  // chevaucher visuellement (retour Faustine 2026-09-29, "j'aurais dû accepter ce devis"
-  // recouvrant "j'ai encore travaillé ce week-end"). Fenêtre de visibilité réduite sur mobile
-  // pour qu'un nombre de fragments simultanément visibles soit plus faible, combinée à un
-  // repositionnement vertical dédié (voir la même media query) pour les fragments consécutifs.
-  var isNarrowScreen = window.matchMedia && window.matchMedia('(max-width:640px)').matches;
-  var fragWindow = isNarrowScreen ? 0.12 : 0.24;
-  frags.forEach(function(f, i){
-    f.style.left = f.dataset.x + '%';
-    f.style.top = f.dataset.y + '%';
-    f.style.fontSize = f.dataset.size + 'px';
-    var isEcho = f.classList.contains('echo');
-    var size = parseFloat(f.dataset.size);
-    var t = isEcho ? clamp01((size - 14) / (20 - 14)) : clamp01((size - 19) / (34 - 19));
-    f.dataset.baseOpacity = isEcho ? lerp(0.14, 0.34, t) : lerp(0.42, 0.72, t);
-    f.dataset.rotate = ((i * 37) % 9) - 4;
-    f.dataset.winStart = (i * fragSpacing).toFixed(3);
-  });
-
-  var s3 = document.getElementById('s3');
-
-  var s4 = document.getElementById('s4');
-  var ringProgress = document.getElementById('ringProgress');
+  // Score : compteur 0 -> 80 à l'arrivée
+  var score = document.getElementById('score');
+  var ring = document.getElementById('ringProgress');
   var ringNum = document.getElementById('ringNum');
-  var ringSub = document.getElementById('ringSub');
-  var CIRC = 540.35;
-
-  var s7 = document.getElementById('s7');
-  var negs = s7 ? Array.prototype.slice.call(s7.querySelectorAll('.neg')) : [];
-  var finalLine = s7 ? s7.querySelector('.final') : null;
-
-  var s9 = document.getElementById('s9');
-  var closingLine = document.getElementById('closingLine');
-
-  function render(){
-    // Nav enriches into a full menu once section 4 is reached, reverts if scrolled back above it
-    if (s4) {
-      var r4nav = s4.getBoundingClientRect();
-      if (r4nav.top < window.innerHeight * 0.6) nav.classList.add('enriched');
-      else nav.classList.remove('enriched');
-    }
-
-    // Section 1
-    if (s1) {
-      var p1 = progress(s1);
-      var t = Date.now() / 6000;
-      frags.forEach(function(f, i){
-        var start = parseFloat(f.dataset.winStart);
-        var local = (p1 - start) / fragWindow;
-        var op = 0;
-        if (local >= 0 && local <= 1) {
-          var edge = 0.3;
-          if (local < edge) op = local / edge;
-          else if (local > 1 - edge) op = (1 - local) / edge;
-          else op = 1;
-        }
-        op = clamp01(op) * parseFloat(f.dataset.baseOpacity);
-        var driftX = Math.sin(t + i) * 9;
-        var driftY = Math.cos(t * 0.8 + i) * 7;
-        var rot = f.dataset.rotate;
-        f.style.opacity = op;
-        f.style.transform = 'translate(' + driftX + 'px,' + driftY + 'px) rotate(' + rot + 'deg)';
+  var CIRC = 540.35, TARGET = 80;
+  if (score && ring && ringNum && !reduced && 'IntersectionObserver' in window) {
+    var paint = function(v){ ring.setAttribute('stroke-dashoffset', CIRC - CIRC * (v / 100)); ringNum.textContent = v; };
+    paint(0);
+    var io4 = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (!e.isIntersecting) return;
+        io4.disconnect();
+        var t0 = null;
+        var step = function(ts){
+          if (t0 === null) t0 = ts;
+          var t = Math.min(1, (ts - t0) / 1500);
+          paint(Math.round(TARGET * (1 - Math.pow(1 - t, 3))));
+          if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
       });
-      if (closer) {
-        var closerOp = clamp01((p1 - 0.74) / 0.14);
-        closer.style.opacity = closerOp;
-      }
-      if (hint) hint.style.opacity = (1 - clamp01(p1 / 0.05)) * 0.6;
-    }
-
-    // Sections 2 et 3 : apparition déclenchée une fois à l'arrivée à l'écran (voir playOnce plus bas)
-
-    // Section 4 : le score est animé par un compteur déclenché à l'arrivée (voir plus bas)
-
-    // Section 7
-    if (s7 && negs.length) {
-      var r7 = s7.getBoundingClientRect();
-      var vis = clamp01((window.innerHeight - r7.top) / (window.innerHeight * 0.8));
-      var stepCount = negs.length + 1;
-      negs.forEach(function(n, i){
-        var thresh = (i / stepCount);
-        if (vis > thresh + 0.05) n.style.opacity = 1;
-        if (vis > thresh + 0.15) n.classList.add('struck');
-      });
-      if (finalLine && vis > (negs.length / stepCount) + 0.1) finalLine.style.opacity = 1;
-    }
-
+    }, {threshold:0.4});
+    io4.observe(score);
   }
-
-  function loop(){
-    render();
-    rafId = requestAnimationFrame(loop);
-  }
-
-  var rafId = null;
-  if (!reduced) {
-    loop();
-    window.addEventListener('scroll', render, {passive:true});
-    window.addEventListener('resize', render);
-  } else {
-    nav.classList.add('enriched');
-  }
-
-  // Section 4 : le calcul est visible sans clic ; "Pourquoi ce score ?" ajoute le niveau de détail (barème)
   var whyBtn = document.getElementById('whyBtn');
   var whyDetail = document.getElementById('whyDetail');
   if (whyBtn && whyDetail) {
@@ -748,129 +688,26 @@
     });
   }
 
-  // Section 4 : compteur déclenché à l'arrivée (0 -> 97), puis le score se pose
-  if (s4 && ringProgress && ringNum && !reduced) {
-    var paint4 = function(v){
-      ringProgress.setAttribute('stroke-dashoffset', CIRC - CIRC * (v / 100));
-      ringNum.textContent = v;
-      var c = scoreColor(v);
-      ringProgress.setAttribute('stroke', c);
-      ringNum.style.color = c;
-    };
-    paint4(0);
-    s4.classList.add('counting');
-    var started4 = false;
-    var runCount4 = function(){
-      if (started4) return; started4 = true;
-      var t0 = null, dur = 1500;
-      var stepCount = function(ts){
-        if (t0 === null) t0 = ts;
-        var t = clamp01((ts - t0) / dur);
-        var eased = 1 - Math.pow(1 - t, 3);
-        paint4(Math.round(97 * eased));
-        if (t < 1) requestAnimationFrame(stepCount);
-        else { paint4(97); s4.classList.remove('counting'); }
-      };
-      requestAnimationFrame(stepCount);
-    };
-    if ('IntersectionObserver' in window) {
-      var io4 = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){ if (e.isIntersecting) { runCount4(); io4.disconnect(); } });
-      }, {threshold:0.45});
-      io4.observe(s4);
-    } else {
-      runCount4();
-    }
+  // Curseur "jours par semaine" : même formule que le simulateur "Rythme de travail" de l'application
+  // (getTauxHoraireMinCibleSimule, micro-BNC, sans dépenses) : CA = net ÷ (1 − cotisations − impôt effectif).
+  // Cotisations micro-BNC 25,6 % + CFP 0,2 % ; impôt 11 % après abattement de 34 % = 7,26 % du CA.
+  var slider = document.getElementById('daysSlider');
+  var answer = document.getElementById('daysAnswer');
+  var NET = 3000, RATIO = 1 - 0.258 - 0.11 * 0.66, WEEKS = 46, HOURS = 7;
+  function fmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function updateDays(){
+    var d = parseInt(slider.value, 10);
+    var tjm = Math.round(NET * 12 / RATIO / (WEEKS * d));
+    var th = Math.round(tjm / HOURS);
+    answer.innerHTML = 'Pour vous verser <b>3 000 € nets par mois</b> en travaillant <b>' + d + ' jours par semaine</b>, avec 6 semaines de vacances : facturez au moins <b>' + fmt(tjm) + ' € par jour</b>, soit environ ' + th + ' € de l\'heure.';
+    slider.style.setProperty('--pct', ((d - 3) / 2 * 100) + '%');
   }
-
-  // Sections 2 et 3 : se jouent une fois, dès qu'elles arrivent à l'écran (plus de scroll figé)
-  function playOnce(el, threshold, triggerEl){
-    if (!el) return;
-    var target = triggerEl || el;
-    if (reduced || !('IntersectionObserver' in window)) { el.classList.add('play'); return; }
-    var fired = false;
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if (e.isIntersecting && !fired) {
-          fired = true;
-          // Double rAF : laisse le navigateur peindre l'état initial (opacité 0, point à taille 0)
-          // au moins une fois avant d'ajouter .play : sinon les deux styles sont fusionnés dans la
-          // même image et la transition CSS saute directement au résultat final, sans s'animer.
-          requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('play'); }); });
-          io.disconnect();
-        }
-      });
-    }, {threshold: threshold || 0.35});
-    io.observe(target);
-  }
-  // Section 2 : fondu radial doux (dégradé, pas une forme à bord net), piloté image par image
-  // pour un rythme régulier et une apparition qui reste discrète tant qu'une partie visible
-  // de la section n'est pas réellement à l'écran (un dégradé plein cadre reste cohérent même
-  // déclenché tôt, contrairement à une forme centrée qui pouvait naître hors champ).
-  (function(){
-    if (!s2) return;
-    var bgWash = s2.querySelector('.bg-wash');
-    function playS2(){
-      s2.classList.add('play');
-      if (!bgWash) return;
-      var start = null, dur = 2200;
-      function step(ts){
-        if (start === null) start = ts;
-        var t = clamp01((ts - start) / dur);
-        var eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        bgWash.style.setProperty('--wash', (eased * 150) + '%');
-        if (t < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }
-    if (reduced || !('IntersectionObserver' in window)) { playS2(); return; }
-    var fired2 = false;
-    var io2 = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if (e.isIntersecting && !fired2) {
-          fired2 = true;
-          requestAnimationFrame(function(){ requestAnimationFrame(playS2); });
-          io2.disconnect();
-        }
-      });
-    }, {threshold: 0.15});
-    io2.observe(s2);
-  })();
-  playOnce(s3, 0.15);
-  playOnce(s9, 0.15);
-
-  // Section 6 : slider
-  var slider = document.getElementById('pctSlider');
-  var pctOut = document.getElementById('pctOut');
-  var hoursOut = document.getElementById('hoursOut');
-  var monthlyOut = document.getElementById('monthlyOut');
-  var reinforce = document.getElementById('reinforce');
-  var idleTimer = null;
-  var BASE_HOURS = 28;
-
-  function updateSlider(){
-    var pct = parseInt(slider.value, 10);
-    var p = pct / 100;
-    var hoursSaved = BASE_HOURS * p / (1 + p);
-    var rounded = Math.round(hoursSaved * 2) / 2;
-    pctOut.textContent = pct + ' %';
-    hoursOut.textContent = rounded <= 0 ? 'sans changer votre rythme' : (rounded % 1 === 0 ? rounded : rounded.toFixed(1)) + 'h de moins';
-    monthlyOut.textContent = Math.round(hoursSaved * 4);
-    slider.style.setProperty('--pct', (pct / 30 * 100) + '%');
-    if (reinforce) reinforce.classList.remove('show');
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(function(){
-      if (reinforce && pct > 0) reinforce.classList.add('show');
-    }, 1500);
-  }
-  if (slider) {
-    slider.addEventListener('input', updateSlider);
-    updateSlider();
-  }
+  if (slider && answer) { slider.addEventListener('input', updateDays); updateDays(); }
 })();
 </script>
 
 <script>
+// Navigateur intégré d'Instagram/Facebook : ouvrir l'application dans le même onglet
 (function(){
   var ua = navigator.userAgent || '';
   if(!/Instagram|FBAN|FBAV/i.test(ua)) return;

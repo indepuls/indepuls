@@ -4600,3 +4600,21 @@ Repéré en préparant les captures du site vitrine (chantier conversion) : la c
 - **Cause** : `authLoadDemo()` repart de `getDefaultData()` (`impotsTaux:0`), puis `loadDemoWithCurrentParams()` fusionne `{...demoData.params, ...savedParams}` : le 0 des params vierges écrasait le 11 de la démo (même mécanisme que le cas `dateOuverture` déjà géré dans cette fonction).
 - **Fix** (`indepuls.html` ET `indepuls-demo.html`, dans `authLoadDemo()` uniquement) : `delete DATA.params.impotsTaux` juste après `getDefaultData()`, pour que la valeur de `getExampleData()` survive à la fusion. Volontairement **pas** dans `loadDemoWithCurrentParams()` : sur le parcours d'onboarding d'un vrai compte, les params sont conservés à la création de l'espace, et un vrai utilisateur ne doit jamais hériter d'un taux d'impôt qu'il n'a pas choisi.
 - **Vérifié** : démo locale, `DATA.params.impotsTaux === 11`, la carte affiche URSSAF 1 316 € + Impôts 310 € + Dépenses 171 € = 1 797 € à conserver ; `cloud_sync_guard.test.js` OK.
+
+### REFONTE — Page d'accueil du site vitrine orientée conversion (2026-10-01)
+
+Suite au benchmark Ça compte ! (doc "Benchmark Ça compte ! vs Indépuls"), Faustine a décidé de passer d'un site "beau et émotionnel" à un site "qui vend et qui convertit". `index.html` entièrement réécrit, section par section validée avec elle :
+
+1. **En-tête** (fond marine) : 4 pensées qui défilent une à une (URSSAF, compte vide, week-end, client qui s'en va), promesse "Sachez ce que vous gagnez réellement. Gardez un coup d'avance." + sous-titre, bouton "Rejoindre la liste d'attente →" vers `tarifs/index.html#waitlist-form`, lien démo, "Bêta en cours", aperçu reconstitué du tableau de bord (chiffres de la démo prestataire).
+2. **Constat** (3 phrases + "Indépuls les lit pour vous.").
+3. **3 preuves** reprenant le sous-titre : taux horaire réel (136 €/h vs seuil 71 €/h), argent à garder (1 797 € = URSSAF 1 316 + impôt 310 + dépenses 171), curseur "jours par semaine" (3 à 5 j, 3 000 € nets, 6 semaines de congés, micro-BNC : 390 / 292 / 234 €/j). La formule du curseur reproduit `getTauxHoraireMinCibleSimule()` sans dépenses : CA = net ÷ (1 − 25,8 % − 11 % × 66 %).
+4. **Score de Santé** aligné sur la démo (80/100, piliers 25/5/25/25, action recommandée).
+5. **Témoignages** (4, dont Florence, consultante QSE et no-code, ajoutée le 2026-10-01).
+6. **Fondatrice** (angle "fichier Excel", infirmière puis cadre dans le médico-social ; photo provisoire `faustine-avatar.jpg`, nouvelle photo à venir).
+7. **Pour qui / pas pour qui** (les 2 premières vignettes pointent provisoirement vers `pour/services-creatifs`).
+8. **Prix** ("62 centimes par jour, moins qu'une baguette") + 5 questions fréquentes.
+9. **Appel final** + footer.
+
+**Retiré** : intro plein écran "scrolle", "Est-ce que ça va ?", curseur de hausse de prix, liste barrée "Indépuls n'est pas…", bouton "Créer mon compte". **⚠️ À réintégrer au lancement officiel** : le bouton "Créer mon compte" (l'accès bêta se fait uniquement sur invitation de Faustine d'ici là).
+
+**Points d'attention** : les visuels de l'appli sont des reconstitutions HTML fidèles (légende "Données fictives de la démo"), pas des captures ; si les chiffres de `getExampleData()` changent, mettre à jour les chiffres en dur de l'accueil. Les dates d'échéance sont volontairement relatives ("dans 30 jours") pour ne pas vieillir.
