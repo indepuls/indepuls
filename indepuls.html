@@ -11946,17 +11946,36 @@ async function inviterAssocie() {
     const user = sess.data?.session?.user;
     if (!user) { showToast('⚠️ Connectez-vous pour inviter un·e associé·e.', 'var(--err)'); return; }
     if (email === (user.email || '').toLowerCase()) { showToast('⚠️ Vous ne pouvez pas vous inviter vous-même.', 'var(--err)'); return; }
-    const { data, error } = await window._sb.from('comptes_membres')
-      .insert({ compte_owner_id: user.id, invited_email: email })
-      .select('token')
-      .single();
-    if (error) {
-      // Code 23505 = violation de la contrainte unique (compte_owner_id, invited_email) :
-      // une invitation existe déjà pour cet email, pas la peine d'en recréer une.
-      showToast(error.code === '23505' ? '⚠️ Une invitation est déjà en cours pour cet email.' : '⚠️ Erreur lors de l\'invitation.', 'var(--err)');
-      return;
+    // Une invitation déjà "révoquée" pour cet email ne doit jamais bloquer une nouvelle
+    // invitation (contrainte unique sur compte_owner_id+invited_email, qui ne distingue pas le
+    // statut) : on réactive la ligne existante avec un nouveau jeton plutôt que la recréer.
+    // Retour Faustine, 2026-10-01 : révoquée puis réinvitée, bloquée par erreur.
+    const existing = await window._sb.from('comptes_membres').select('id, statut').eq('compte_owner_id', user.id).eq('invited_email', email).maybeSingle();
+    let token;
+    if (existing.data) {
+      if (existing.data.statut !== 'revoque') {
+        showToast(existing.data.statut === 'actif' ? '⚠️ Cette personne a déjà accès à votre compte.' : '⚠️ Une invitation est déjà en cours pour cet email.', 'var(--err)');
+        return;
+      }
+      token = crypto.randomUUID();
+      const { error } = await window._sb.from('comptes_membres')
+        .update({ token, statut: 'invite', membre_id: null, accepted_at: null })
+        .eq('id', existing.data.id);
+      if (error) { showToast('⚠️ Erreur lors de l\'invitation.', 'var(--err)'); return; }
+    } else {
+      const { data, error } = await window._sb.from('comptes_membres')
+        .insert({ compte_owner_id: user.id, invited_email: email })
+        .select('token')
+        .single();
+      if (error) {
+        // Code 23505 = violation de la contrainte unique : filet de sécurité si la vérification
+        // ci-dessus a raté une course entre deux clics rapides, pas le chemin normal attendu.
+        showToast(error.code === '23505' ? '⚠️ Une invitation est déjà en cours pour cet email.' : '⚠️ Erreur lors de l\'invitation.', 'var(--err)');
+        return;
+      }
+      token = data.token;
     }
-    const lien = `${location.origin}${location.pathname}?invite=${data.token}`;
+    const lien = `${location.origin}${location.pathname}?invite=${token}`;
     ouvrirMailtoInvitationAssocie(email, lien);
     // Copie systématique du lien en plus du mailto (retour Faustine, 2026-10-01) : si aucun
     // client mail n'est configuré par défaut, le mailto ne mène nulle part et il n'existait
