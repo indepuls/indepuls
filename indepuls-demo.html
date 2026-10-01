@@ -4336,7 +4336,7 @@ function loadDemoWithCurrentParams(skipWelcome) {
     var readyMsg = document.getElementById('welcome-ready-msg');
     if (readyMsg) {
       readyMsg.innerHTML = isAnonymousDemoSession
-        ? 'Cliquez sur <strong>"Commencer avec mes données"</strong> dans la barre de démo pour créer gratuitement votre compte. Vos réglages seront conservés, les données d\'exemple disparaîtront.'
+        ? 'Indépuls ouvre bientôt. Si l\'outil vous plaît, cliquez sur <strong>"Rejoindre la liste d\'attente"</strong> dans la barre de démo : vous serez prévenu(e) en priorité, avec le prix de lancement garanti.'
         : 'Cliquez sur <strong>"Commencer avec mes données"</strong> dans la barre de démo. Vos paramètres seront conservés, toutes les données fictives disparaîtront.';
     }
     openModal('modal-welcome');
@@ -4347,9 +4347,11 @@ function openClearExampleModal() {
   // Une session démo anonyme n'a pas de compte auquel rattacher de vraies données : on
   // redirige vers la création de compte plutôt que de laisser "Continuer" écrire des données
   // réelles orphelines dans le localStorage (voir isAnonymousDemoSession plus haut).
+  // Avant le lancement officiel (2026-10-01), l'inscription est masquée (accès bêta sur invitation
+  // uniquement) : ouvrir le formulaire d'inscription ne montrait rien, le bouton semblait cassé.
+  // On envoie vers la liste d'attente. AU LANCEMENT : rétablir showLoginForm() + authShowSignup().
   if (isAnonymousDemoSession) {
-    if (typeof showLoginForm === 'function') showLoginForm();
-    if (typeof authShowSignup === 'function') authShowSignup();
+    window.location.href = '/tarifs/index.html#waitlist-form';
     return;
   }
   openModal('modal-clear-example');
@@ -4386,9 +4388,9 @@ function renderDemoBanner() {
   const paramsLine = isAnonymousDemoSession
     ? `Rien n'est enregistré dans ce mode : tout se réinitialise si vous rechargez la page.`
     : `Vos paramètres sont déjà les vôtres.`;
-  const ctaLabel = isAnonymousDemoSession ? 'Créer mon compte' : 'Commencer avec mes données';
+  const ctaLabel = isAnonymousDemoSession ? 'Rejoindre la liste d\'attente →' : 'Commencer avec mes données';
   const ctaCaption = isAnonymousDemoSession
-    ? `Vos réglages ne sont gardés qu'une fois votre compte créé.`
+    ? `Indépuls ouvre bientôt : soyez prévenu(e) en priorité.`
     : `Vos paramètres sont conservés, les données fictives disparaissent.`;
   return `<div class="demo-slim-bar">
     <div style="font-size:18px;flex-shrink:0">🟡</div>
@@ -4409,7 +4411,7 @@ function renderDemoBanner() {
 function renderDemoSidebar() {
   return `<div class="demo-sb-block">
     <div class="demo-sb-label">Mode démonstration</div>
-    <button class="demo-sb-btn" onclick="openClearExampleModal()">🚀 Créer mon espace de travail</button>
+    <button class="demo-sb-btn" onclick="openClearExampleModal()">${isAnonymousDemoSession ? '📝 Rejoindre la liste d\'attente' : '🚀 Créer mon espace de travail'}</button>
   </div>`;
 }
 
@@ -4454,12 +4456,12 @@ function renderDemoContextBar(page) {
   const icon  = isParams && !isAnonymousDemoSession ? '✅' : '🟡';
   const msg   = isAnonymousDemoSession
     ? (isParams
-        ? `<strong>Rien n'est enregistré</strong> — créez un compte pour garder ces réglages, tout se réinitialise si vous rechargez la page.`
-        : `<strong>Mode démonstration</strong> — Ces données sont fictives et rien n'est enregistré. Créez un compte pour garder vos réglages.`)
+        ? `<strong>Rien n'est enregistré</strong> : testez librement, tout se réinitialise si vous rechargez la page.`
+        : `<strong>Mode démonstration</strong> : ces données sont fictives et rien n'est enregistré. Testez librement.`)
     : (isParams
         ? '<strong>Ces paramètres sont les vôtres</strong> — ils seront conservés lors de la création de votre espace de travail.'
         : `<strong>Mode démonstration</strong> — Ces données sont fictives. Vous pouvez les modifier, les supprimer ou les tester librement. <strong>Elles seront supprimées</strong> lorsque vous créerez votre espace de travail.`);
-  const ctaLabel = isAnonymousDemoSession ? 'Créer mon compte' : 'Commencer avec mes données';
+  const ctaLabel = isAnonymousDemoSession ? 'Rejoindre la liste d\'attente →' : 'Commencer avec mes données';
   return `<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:10px 16px;margin:10px 0 2px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text);line-height:1.5">
     <span style="font-size:16px;flex-shrink:0">${icon}</span>
     <span style="flex:1;min-width:180px">${msg}</span>
@@ -4852,7 +4854,7 @@ function saveData() {
     }
     if (DATA.isExample) {
       if (isAnonymousDemoSession) {
-        showToast('⚠️ Rien n\'est enregistré en mode démo sans compte — créez un compte pour garder vos réglages.', 'var(--acc)');
+        showToast('Mode démo : rien n\'est enregistré, tout se réinitialise si vous rechargez la page.', 'var(--acc)');
       } else if (currentPage === 'params') {
         showToast('✅ Ces modifications seront conservées.', 'var(--ok)');
       } else {
