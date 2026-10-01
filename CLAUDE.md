@@ -3875,6 +3875,8 @@ Retour bêta Florence (consultante QSE/no-code, SAS à deux associées, transpar
 
 **Vérifié** : nouveau fichier `shared/tests/multi_associes.test.js` (9 assertions), suite complète (25 fichiers), 0 régression. Navigateur : migration d'une mission sans `auteurId` → backfill à `null` ; mission avec `auteurId` déjà posé → préservé ; `getDataPourMembre('florence')` filtre correctement ; rendu du dashboard non affecté.
 
+**Miroir `indepuls-demo.html`** ([[feedback_indepuls_mirroring_html]]) : même backfill `auteurId` dans `applyDefaults()` et même bridge `window.getDataPourMembre` portés, pour garder le modèle de données strictement identique entre les deux fichiers, même si la fonctionnalité n'a aucun usage en démo anonyme (pas de notion de membre là-bas). Vérifié navigateur : `typeof window.getDataPourMembre === 'function'` côté démo aussi.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
