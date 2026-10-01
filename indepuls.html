@@ -11940,13 +11940,13 @@ async function inviterAssocie() {
   const emailInput = document.getElementById('associe-email-input');
   const email = (emailInput?.value || '').trim().toLowerCase();
   if (!email || !email.includes('@')) { showToast('⚠️ Adresse email invalide.', 'var(--err)'); return; }
-  if (typeof sb === 'undefined') { showToast('⚠️ Invitation disponible uniquement connecté·e.', 'var(--err)'); return; }
+  if (typeof window._sb === 'undefined') { showToast('⚠️ Invitation disponible uniquement connecté·e.', 'var(--err)'); return; }
   try {
-    const sess = await sb.auth.getSession();
+    const sess = await window._sb.auth.getSession();
     const user = sess.data?.session?.user;
     if (!user) { showToast('⚠️ Connectez-vous pour inviter un·e associé·e.', 'var(--err)'); return; }
     if (email === (user.email || '').toLowerCase()) { showToast('⚠️ Vous ne pouvez pas vous inviter vous-même.', 'var(--err)'); return; }
-    const { data, error } = await sb.from('comptes_membres')
+    const { data, error } = await window._sb.from('comptes_membres')
       .insert({ compte_owner_id: user.id, invited_email: email })
       .select('token')
       .single();
@@ -11977,12 +11977,12 @@ function ouvrirMailtoInvitationAssocie(email, lien) {
 
 async function renderAssociesListe() {
   const el = document.getElementById('associes-liste');
-  if (!el || typeof sb === 'undefined') return;
+  if (!el || typeof window._sb === 'undefined') return;
   try {
-    const sess = await sb.auth.getSession();
+    const sess = await window._sb.auth.getSession();
     const user = sess.data?.session?.user;
     if (!user) return;
-    const { data } = await sb.from('comptes_membres').select('invited_email, statut, created_at').eq('compte_owner_id', user.id).order('created_at', { ascending: false });
+    const { data } = await window._sb.from('comptes_membres').select('invited_email, statut, created_at').eq('compte_owner_id', user.id).order('created_at', { ascending: false });
     if (!data || !data.length) { el.innerHTML = '<div class="ts">Aucun·e associé·e invité·e pour l\'instant.</div>'; return; }
     const statutLabel = { actif: '✅ Actif', revoque: '❌ Révoqué', invite: '⏳ Invitation envoyée' };
     el.innerHTML = data.map(m => `
@@ -11996,10 +11996,10 @@ async function renderAssociesListe() {
 async function revoquerAssocie(email) {
   if (!confirm(`Révoquer l'accès de ${email} ? Cette personne ne pourra plus accéder à vos données.`)) return;
   try {
-    const sess = await sb.auth.getSession();
+    const sess = await window._sb.auth.getSession();
     const user = sess.data?.session?.user;
     if (!user) return;
-    await sb.from('comptes_membres').update({ statut: 'revoque' }).eq('compte_owner_id', user.id).eq('invited_email', email);
+    await window._sb.from('comptes_membres').update({ statut: 'revoque' }).eq('compte_owner_id', user.id).eq('invited_email', email);
     showToast('✅ Accès révoqué.');
     renderAssociesListe();
   } catch (e) { console.warn('revoquerAssocie failed:', e); }
@@ -12013,8 +12013,8 @@ async function verifierInvitationEnAttente(user) {
   try {
     const params = new URLSearchParams(location.search);
     const token = params.get('invite');
-    if (!token || typeof sb === 'undefined') return;
-    const res = await sb.from('comptes_membres').select('id, invited_email, statut').eq('token', token).maybeSingle();
+    if (!token || typeof window._sb === 'undefined') return;
+    const res = await window._sb.from('comptes_membres').select('id, invited_email, statut').eq('token', token).maybeSingle();
     if (!res.data) { showToast('⚠️ Cette invitation n\'existe plus ou le lien est incorrect.', 'var(--err)'); return; }
     const invite = res.data;
     if (invite.statut === 'revoque') { showToast('⚠️ Cette invitation a été révoquée.', 'var(--err)'); return; }
@@ -12025,7 +12025,7 @@ async function verifierInvitationEnAttente(user) {
       return;
     }
     if (invite.statut === 'actif') { showToast('✅ Vous avez déjà accepté cette invitation.'); history.replaceState(null, '', location.pathname); return; }
-    await sb.from('comptes_membres').update({ membre_id: user.id, statut: 'actif', accepted_at: new Date().toISOString() }).eq('id', invite.id);
+    await window._sb.from('comptes_membres').update({ membre_id: user.id, statut: 'actif', accepted_at: new Date().toISOString() }).eq('id', invite.id);
     // L'accès réel aux données partagées (palier A, 2e partie) n'est pas encore câblé : la
     // personne reste sur son propre compte pour l'instant, le lien est volontairement honnête
     // plutôt que de prétendre que l'accès est déjà effectif.
