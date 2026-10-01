@@ -140,6 +140,10 @@ export function applyDefaults(data, defaultData, deps = {}) {
     if (m.tempsAnimation === undefined)      m.tempsAnimation = 0;
     if (m.tempsSupport === undefined)        m.tempsSupport = 0;
     if (m.sessions === undefined)            m.sessions = [];
+    // auteurId (2026-10-01, palier A multi-associés, retour bêta Florence) : null pour tout le
+    // monde tant que le partage de compte n'existe pas réellement. Brique dormante, voir
+    // getDataPourMembre() dans ce même dossier (calculs.js).
+    if (m.auteurId === undefined)            m.auteurId = null;
     if (m.montantVente == null)              m.montantVente = 0;
     if (m.montantPrestation == null)         m.montantPrestation = 0;
     // Cohérence montantDevis = montantPrestation + montantVente (modèle unifié).

@@ -1524,3 +1524,25 @@ export function getMicroPlafondInfo(DATA) {
     statut,
   };
 }
+
+// ── MULTI-ASSOCIÉS (palier A, 2026-10-01, retour bêta Florence) ────────────────────────────
+// Brique dormante : aucun appelant pour l'instant (pas de partage de compte réel tant que
+// l'infrastructure d'invitation/auth partagée du palier A n'existe pas). Posée en amont pour que
+// mission.auteurId existe déjà dans le modèle de données le jour où ce chantier reprend.
+//
+// Ne filtre QUE les missions (et donc tout ce qui en dérive : CA, temps facturable, rentabilité,
+// remplissage). DATA.tempsInterne est aujourd'hui un agrégat {moisKey: ms} sans notion d'auteur
+// par entrée (voir commentaire dans getDefaultData()). Y rattacher un auteur demande de revoir
+// cette structure, décision volontairement laissée au chantier qui ouvrira réellement le partage
+// de compte, pas anticipée ici au risque de deviner une forme qui ne conviendrait pas.
+//
+// Sans membreId (ou si personne n'a jamais rien partagé), renvoie DATA tel quel : la vue globale
+// d'aujourd'hui reste strictement inchangée, aucune régression possible pour qui n'utilise pas
+// cette fonctionnalité.
+export function getDataPourMembre(DATA, membreId) {
+  if (!membreId) return DATA;
+  return {
+    ...DATA,
+    missions: (DATA.missions || []).filter(m => m.auteurId === membreId),
+  };
+}
