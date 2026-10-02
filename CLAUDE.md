@@ -3926,6 +3926,22 @@ Retour Faustine, en testant seule avec deux comptes réels ouverts dans le même
 
 **Vérifié** : suite complète (25 fichiers), 0 régression. Navigateur : `compteADejaDeLActivite` testée sur 6 formes de DATA (neuf, mission, revenu, dépense seule, démo, null). Flux complet simulé avec un faux client Supabase : compte avec activité = aucun `update` envoyé et URL nettoyée ; compte neuf = 1 `update` avec `statut:'actif'`.
 
+### 2026-10-02 — Multi-associés : inscription ouverte uniquement via un lien d'invitation, écran d'accueil dédié
+
+Retour Faustine en testant sur indepuls.fr en navigation privée : impossible de créer un compte depuis le lien d'invitation. Cause : l'inscription est fermée au public (chantier liste d'attente, 2026-10-01), par **deux verrous purement côté navigateur, basés sur le nom de domaine** : le bouton "Créer son compte" n'est pas rendu sur `indepuls.fr`, et `authSignUp()` refuse de toute façon avec "inscriptions pas encore ouvertes".
+
+**Corrigé** : nouvelle `inviteTokenEnAttente()` (jeton UUID du lien `?invite=`, sinon celui mémorisé en `localStorage` sous `indepuls_pending_invite`) et `oublierInviteEnAttente()`. Les deux verrous s'assouplissent uniquement si un jeton UUID bien formé est présent. Sans jeton, comportement strictement inchangé (inscription toujours fermée). Mémoriser le jeton est nécessaire : l'email de confirmation Supabase ramène à l'accueil sans le paramètre `?invite=` (`emailRedirectTo: window.location.origin`), `verifierInvitationEnAttente()` relit donc le jeton mémorisé après la connexion, et l'oublie dans tous les cas terminaux (introuvable, révoqué, déjà accepté, compte existant refusé, accepté). Cas email non concordant : jeton conservé, comme avant.
+
+**Écran d'accueil dédié** : avec un jeton, le formulaire de connexion affiche l'inscription en premier ("Vous avez été invité·e sur Indépuls", explication en 2 étapes : créer le compte avec exactement l'email invité, confirmer puis se connecter, l'invitation s'active toute seule), avec le lien "J'ai déjà un compte" pour basculer. Texte volontairement honnête : "l'accès aux données partagées sera ouvert dans une prochaine mise à jour".
+
+**Sécurité, ce que ça ouvre ou non** : un faux `?invite=<uuid>` affiche le formulaire d'inscription, mais ne donne rien de plus que ce que l'API Supabase permet déjà (les verrous n'étaient que cosmétiques côté navigateur). L'acceptation reste verrouillée côté base par la correspondance d'email (RLS) et par le garde-fou "compte neuf" ci-dessus.
+
+**Non fait, volontairement (niveau 2 possible)** : afficher le nom de la personne qui invite et pré-remplir/verrouiller l'email invité sur l'écran d'inscription. Demande une petite fonction SQL `security definer` appelable avant connexion (`comptes_membres` n'est pas lisible sans session), donc un script à exécuter par Faustine. À faire si les retours le justifient.
+
+**Question produit ouverte (Faustine, 2026-10-02), à trancher plus tard** : un compte partagé = 1 ou 2 accès payants ? Point technique associé : `hasAccess()` lit la table `entitlements` par `user_id`, un membre invité n'a aucun droit propre. Aujourd'hui sans effet (`PAYWALL_ENABLED=false`), mais au lancement du paywall l'invité serait bloqué, sauf à dériver son accès de celui du propriétaire ou à prévoir un siège payant distinct.
+
+**Vérifié** : suite complète (25 fichiers), 0 régression. Navigateur (serveur local, faux jeton) : écran d'invitation affiché avec l'inscription en premier ; `inviteTokenEnAttente()` relit bien le jeton mémorisé quand le paramètre disparaît, le vide après `oublierInviteEnAttente()`, refuse un jeton qui n'est pas un UUID. Non testable en local : la branche `indepuls.fr` des verrous (dépend du nom d'hôte), à confirmer par Faustine en conditions réelles.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
