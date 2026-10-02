@@ -744,6 +744,14 @@ html,body{overflow-x:hidden;}
   <div class="page active" id="page-dashboard">
     <div id="example-banner" style="display:none"></div>
     <div style="margin-bottom:14px"><span class="ts" id="current-year-label"></span></div>
+    <!-- Compte partagé (2026-10-02, palier A multi-associés) : visible seulement pour une personne
+         qui a accepté une invitation (voir afficherBanniereComptePartage). Hors de
+         #dashboard-content pour ne pas être effacée à chaque renderDashboard(). Volontairement
+         absente d'indepuls-demo.html (démo anonyme, pas de comptes). -->
+    <div id="banniere-compte-partage" style="display:none;margin-bottom:16px;padding:14px 16px;border:1px solid var(--brd);border-left:4px solid var(--acc);border-radius:10px;background:var(--card);font-size:13px;line-height:1.6">
+      <div style="font-weight:700;color:var(--pri);margin-bottom:4px">🤝 Vous avez rejoint un compte partagé</div>
+      <div style="color:var(--tl)">Une personne vous a invité·e à partager son compte Indépuls, et vous avez accepté. <strong>L'accès aux données communes n'est pas encore ouvert</strong> : pour l'instant, vous utilisez votre propre espace, séparé, qui reste le vôtre. Cet accès sera ouvert dans une prochaine mise à jour.</div>
+    </div>
     <div id="dashboard-content"></div>
   </div>
 
@@ -1068,6 +1076,7 @@ html,body{overflow-x:hidden;}
           <div id="associes-wrap" style="display:none;margin-bottom:16px;padding:16px;border:1px solid var(--brd);border-top:4px solid var(--acc);border-radius:10px;background:var(--bg)">
             <div class="card-sub mb10" style="font-weight:700">🤝 Associés</div>
             <div class="ts mb10">Invitez un·e associé·e à accéder à ce même compte Indépuls. <span class="info-tip" title="Votre associé·e devra se connecter ou créer son compte avec EXACTEMENT l'adresse email que vous indiquez ici. Si quelqu'un d'autre tombe sur le lien d'invitation, il ne pourra pas l'utiliser : seul le titulaire de cette boîte mail peut l'accepter.">?</span></div>
+            <div class="ts mb10" style="color:var(--warn)">⚠️ Fonctionnalité en cours de déploiement : une invitation acceptée ne donne pas encore accès à vos données. Cette étape arrive dans une prochaine mise à jour.</div>
             <div class="frow">
               <div class="fgroup">
                 <label class="flabel">Email de votre associé·e</label>
@@ -12108,6 +12117,19 @@ function oublierInviteEnAttente() {
   if (new URLSearchParams(location.search).has('invite')) history.replaceState(null, '', location.pathname);
 }
 
+// Affiche la bannière "compte partagé" si la personne connectée est membre actif d'un compte
+// (a accepté une invitation non révoquée). Appelée après verifierInvitationEnAttente, pour
+// refléter une acceptation toute fraîche. Silencieuse en cas d'erreur : une bannière absente vaut
+// mieux qu'un message d'erreur sur le tableau de bord.
+async function afficherBanniereComptePartage(user) {
+  const el = document.getElementById('banniere-compte-partage');
+  if (!el || !user || typeof window._sb === 'undefined') return;
+  try {
+    const { data } = await window._sb.from('comptes_membres').select('id').eq('membre_id', user.id).eq('statut', 'actif').limit(1);
+    el.style.display = (data && data.length) ? '' : 'none';
+  } catch (e) { console.warn('afficherBanniereComptePartage failed:', e); }
+}
+
 // Vrai si le compte contient de l'activité réelle (hors démo) : au moins une mission (hors "Mon
 // entreprise"), un revenu ou une dépense. Même notion que le garde `onboardingSkipped` de
 // applyDefaults(), élargie aux dépenses (un compte qui n'a saisi que des dépenses a déjà un vécu).
@@ -17613,7 +17635,7 @@ document.addEventListener('keydown', function(e) {
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }
       setTimeout(addLogoutButton, 200);
-      loadFromCloud(user).then(function(){ hideOverlay(); verifierInvitationEnAttente(user); });
+      loadFromCloud(user).then(function(){ hideOverlay(); return verifierInvitationEnAttente(user); }).then(function(){ afficherBanniereComptePartage(user); });
     });
   }
 
