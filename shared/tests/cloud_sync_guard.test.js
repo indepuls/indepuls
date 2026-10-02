@@ -107,6 +107,35 @@ portesLectureSeule.forEach(([signature, fenetre, nom]) => {
   }
 });
 
+// ── Règle 4 (2026-10-02, étape 2 multi-associés) : en mode partagé (window._partage), la ligne cloud
+// est écrite par PLUSIEURS personnes. Aucune porte d'écriture ne doit alors suivre le chemin solo
+// (upsert aveugle, rechargement brut, cache local d'un membre, import, réinitialisation) : chacune
+// doit tester window._partage AVANT d'écrire. Sans cela, une personne écraserait le travail de l'autre.
+const portesPartage = [
+  ['function saveData()', 1300, 'saveData() (pas de cache local pour un membre)'],
+  ['async function syncToCloud', 900, 'syncToCloud() (pas d\'upsert solo en mode partagé)'],
+  ['async function _verifierFraicheurCloud', 700, 'rechargement au retour sur l\'onglet (fusion, pas de rechargement brut)'],
+  ['function handleImport', 400, 'import d\'une sauvegarde'],
+  ['async function confirmReset', 600, 'réinitialisation du compte'],
+];
+portesPartage.forEach(([signature, fenetre, nom]) => {
+  const bloc = extractFunctionBlock(html, signature, fenetre);
+  if (!bloc) failures.push(nom + ' introuvable dans indepuls.html (' + signature + '). Garde-fou à mettre à jour.');
+  else if (!/window\._partage/.test(bloc)) {
+    failures.push('RÉGRESSION CRITIQUE : ' + nom + ' ne tient plus compte de window._partage. Dans un compte partagé, ' +
+      'cette porte d\'écriture écraserait en aveugle le travail des autres personnes.');
+  }
+});
+// L'upsert solo ne doit jamais précéder le test _partage dans syncToCloud.
+{
+  const bloc = extractFunctionBlock(html, 'async function syncToCloud', 4000) || '';
+  const iPartage = bloc.indexOf('window._partage');
+  const iUpsert = bloc.indexOf('.upsert(');
+  if (iPartage === -1 || iUpsert === -1 || iPartage > iUpsert) {
+    failures.push('RÉGRESSION CRITIQUE : dans syncToCloud(), le test window._partage doit précéder l\'upsert solo.');
+  }
+}
+
 if (failures.length) {
   console.error('❌ GARDE-FOU CLOUD SYNC — ' + failures.length + ' problème(s) détecté(s)\n');
   failures.forEach((f, i) => console.error(`  ${i + 1}. ${f}\n`));
