@@ -4038,6 +4038,15 @@ Décision validée avec Faustine : ouvrir l'accès aux données par la **lecture
 
 **Reste** : test réel par Faustine avec deux vrais comptes, puis éventuel retrait de la barrière `?associes=1`, accès payants (1 ou 2), onboarding du membre, emails Supabase en français.
 
+### 2026-10-02 : Retours du premier test à deux comptes (nom, auteur du temps, bandeau du propriétaire)
+
+Premier test réel de Faustine : l'écriture partagée fonctionne, le temps peut être ajouté des deux côtés. Trois corrections :
+- **Nom affiché** : il venait de l'email ("Devillefaustine"). Maintenant, à la première entrée en mode partagé, une question demande le nom à afficher (proposition tirée de l'email), enregistré dans `DATA.auteurs[id].nom`. Lien "✏️ Mon nom" dans le bandeau (`renommerAuteur`) pour le changer. Les noms déjà enregistrés ne sont pas redemandés.
+- **Qui a saisi le temps** : les saisies de temps (`tempsManuel`, chrono, ajout manuel) portent `auteurId` en compte partagé (`auteurSaisie()`), et la liste "Entrées enregistrées" affiche "par X" (`nomAuteur`). Le total mensuel du temps interne reste un compteur commun, sans détail par personne.
+- **Sélecteur absent chez le propriétaire** : `afficherBanniereComptePartage(null)`, rappelée à chaque entrée dans l'application, masquait le bandeau d'un propriétaire déjà en mode partagé. Elle réaffiche maintenant le sélecteur, et le sélecteur apparaît avant la question du nom.
+
+Piège rencontré : un retour à la ligne littéral dans une chaîne JS (`window.prompt`) casse TOUT le script principal (page blanche), et mon test de syntaxe par regex ne l'a pas vu. Vérifier avec `node --check` sur chaque segment `<script>` (lignes), pas seulement par regex.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

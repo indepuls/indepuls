@@ -9953,7 +9953,7 @@ function commitTimer(x) {
   const elapsed=Date.now()-x.timerStart;
   const entryId=uuid();
   if(!x.tempsManuel) x.tempsManuel=[];
-  x.tempsManuel.push({id:entryId, date:today(), ms:elapsed});
+  x.tempsManuel.push({id:entryId, date:today(), ms:elapsed, ...auteurSaisie()});
   ensureSessionCouvreJour(x, today());
   if(x.isManagement){
     if(!DATA.tempsInterne) DATA.tempsInterne={};
@@ -12229,6 +12229,13 @@ function nomCourtDepuisEmail(email) {
   return base ? base.charAt(0).toUpperCase() + base.slice(1) : 'Associé·e';
 }
 
+// Auteur d'une saisie de temps : seulement dans un compte partagé, rien d'ajouté sinon.
+function auteurSaisie() { return (window._partage && window._partage.userId) ? { auteurId: window._partage.userId } : {}; }
+function nomAuteur(id) {
+  if (window._partage && id === window._partage.userId) return 'vous';
+  const a = ((window._dataCompleteVue || DATA).auteurs || {})[id];
+  return (a && a.nom) || 'une autre personne';
+}
 // Chaque personne s'inscrit dans DATA.auteurs (id -> nom) pour que les autres puissent nommer ses missions.
 async function partageSeDeclarer() {
   try {
@@ -12237,13 +12244,31 @@ async function partageSeDeclarer() {
     const s = await window._sb.auth.getSession();
     const u = s.data && s.data.session && s.data.session.user;
     if (!u || u.id !== p.userId) return;
-    const nom = nomCourtDepuisEmail(u.email);
     if (!DATA.auteurs) DATA.auteurs = {};
-    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom === nom) { majBandeauPartage(); return; }
+    majBandeauPartage(); // le sélecteur apparaît tout de suite, avant la question du nom
+    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom) return;
+    // Première fois : la personne choisit le nom que verront ses associé·es (proposition tirée de l'email).
+    const propose = nomCourtDepuisEmail(u.email);
+    const saisi = window.prompt('Comment voulez-vous apparaître auprès de vos associé·es dans ce compte partagé ?\n(Votre prénom, par exemple. Modifiable ensuite depuis le bandeau en haut.)', propose);
+    const nom = (saisi || '').trim().slice(0, 30) || propose;
     DATA.auteurs[u.id] = { nom: nom };
     saveData();
     majBandeauPartage();
   } catch (e) { console.warn('partageSeDeclarer failed:', e); }
+}
+
+// Changer son nom d'affichage (visible des autres personnes du compte partagé).
+function renommerAuteur() {
+  const p = window._partage;
+  if (!p || window._vuePersonne) return;
+  const actuel = ((DATA.auteurs || {})[p.userId] || {}).nom || '';
+  const saisi = window.prompt('Votre nom dans ce compte partagé :', actuel);
+  const nom = (saisi || '').trim().slice(0, 30);
+  if (!nom || nom === actuel) return;
+  if (!DATA.auteurs) DATA.auteurs = {};
+  DATA.auteurs[p.userId] = { nom: nom };
+  saveData();
+  majBandeauPartage();
 }
 
 function choisirVuePersonne(id) {
@@ -12287,7 +12312,7 @@ function majBandeauPartage() {
   }
   const options = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0))
     .map(id => `<option value="${escapeHtml(id)}">${libelle(id)}</option>`).join('');
-  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte.</span>`
+  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte. <a href="#" onclick="renommerAuteur();return false" style="color:#fff;text-decoration:underline;font-weight:400">✏️ Mon nom</a></span>`
     + `<label style="display:flex;align-items:center;gap:6px">Voir les chiffres de :`
     + `<select onchange="choisirVuePersonne(this.value)" style="border-radius:6px;border:none;padding:3px 6px;font-size:12px"><option value="">Tout le compte</option>${options}</select></label>`;
   bande.style.display = 'flex';
@@ -12309,6 +12334,7 @@ function afficherBanniereComptePartage(etat) {
   const titre = (t) => `<div style="font-weight:700;color:var(--pri);margin-bottom:4px">${t}</div>`;
   if (!etat) {
     el.style.display = 'none'; el.innerHTML = '';
+    if (window._partage) { majBandeauPartage(); return; } // propriétaire déjà en mode partagé : on garde le sélecteur
     if (bande) { bande.style.display = 'none'; bande.innerHTML = ''; }
     return;
   }
@@ -13858,7 +13884,7 @@ function renderAddTimeLog(id) {
   if(sep) sep.style.display='';
   el.innerHTML=`<div class="card-sub mb8" style="font-weight:700">Entrées enregistrées</div>`+
     log.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--brd)">
-      <span style="font-size:13px">📅 ${e.date||'—'}${e.categorie?` · ${e.categorie}`:''} — <strong>${heuresMs(e.ms)}</strong></span>
+      <span style="font-size:13px">📅 ${e.date||'—'}${e.categorie?` · ${e.categorie}`:''} — <strong>${heuresMs(e.ms)}</strong>${e.auteurId?` <span class="ts" style="color:var(--tl)">· par ${escapeHtml(nomAuteur(e.auteurId))}</span>`:''}</span>
       <button class="btn btn-out btn-sm" style="color:var(--err);border-color:var(--err);padding:2px 8px" onclick="deleteTempsManuel('${id}','${e.id}')">🗑</button>
     </div>`).join('');
   renderAddTimeCatBreakdown(id);
@@ -13907,7 +13933,7 @@ function saveAddTime() {
   // vérité et continue d'être crédité en plus, jamais recalculé depuis tempsManuel.
   if(m.isManagement) addTempsInterne(getCurrentMk(), ms);
   if(!m.tempsManuel) m.tempsManuel=[];
-  m.tempsManuel.push({id:uuid(),date,ms,...(categorie?{categorie}:{})});
+  m.tempsManuel.push({id:uuid(),date,ms,...(categorie?{categorie}:{}),...auteurSaisie()});
   ensureSessionCouvreJour(m, date);
   document.getElementById('add-time-h').value='';
   document.getElementById('add-time-min').value='';
@@ -15262,7 +15288,7 @@ function resolveTimerGap(choice) {
       // Même datation que commitTimer (chantier "Temps prévu", Étape 4) — même anti-pattern
       // inliné ici, aucune UI nouvelle requise pour le corriger.
       if(!m.tempsManuel) m.tempsManuel=[];
-      m.tempsManuel.push({id:uuid(), date:today(), ms:workedMs});
+      m.tempsManuel.push({id:uuid(), date:today(), ms:workedMs, ...auteurSaisie()});
       ensureSessionCouvreJour(m, today());
     }
     m.timerRunning=false; m.timerStart=null;
@@ -17686,7 +17712,8 @@ document.addEventListener('keydown', function(e) {
   // Propriétaire : un compte dont le réglage est déjà actif repasse en mode partagé à chaque connexion.
   window._activerPartageProprietaireSiReglage = async function() {
     try {
-      if (window._partage || window._lectureSeule || DATA.isExample || !DATA.params || !DATA.params.ecritureMembres) return false;
+      if (window._partage) { if (typeof majBandeauPartage === 'function') majBandeauPartage(); return true; }
+    if (window._lectureSeule || DATA.isExample || !DATA.params || !DATA.params.ecritureMembres) return false;
       var s = await sb.auth.getSession();
       var u = s.data && s.data.session && s.data.session.user;
       if (!u || !_cloudLoaded || !_lastCloudUpdatedAt || (DATA._ownerUid && DATA._ownerUid !== u.id)) return false;
