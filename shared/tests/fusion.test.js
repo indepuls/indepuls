@@ -132,8 +132,15 @@ async function main() {
     const moi3 = modifie(b, (d) => { d.tempsInterne['2026-10'] += 7200000; });
     const elle3 = modifie(b, (d) => { d.tempsInterne['2026-10'] += 1800000; });
     const r3 = fus(b, moi3, elle3);
-    test('limite connue : temps interne du même mois modifié des deux côtés = conflit rapporté', 1, r3.conflits.length);
-    test('limite connue : ma valeur est conservée', 3600000 + 7200000, r3.fusion.tempsInterne['2026-10']);
+    test('temps interne du même mois ajouté des deux côtés : aucun conflit', 0, r3.conflits.length);
+    test('les deux ajouts sadditionnent', 3600000 + 7200000 + 1800000, r3.fusion.tempsInterne['2026-10']);
+    test('même résultat dans lautre sens', 3600000 + 7200000 + 1800000, fus(b, elle3, moi3).fusion.tempsInterne['2026-10']);
+    const moi4 = modifie(b, (d) => { d.tempsInterne['2026-10'] -= 3000000; });
+    const elle4 = modifie(b, (d) => { d.tempsInterne['2026-10'] -= 2000000; });
+    test('deux retraits qui dépasseraient zéro : jamais négatif', 0, fus(b, moi4, elle4).fusion.tempsInterne['2026-10']);
+    const moi5 = modifie(b, (d) => { d.tempsInterne['2026-11'] = 5000; });
+    const elle5 = modifie(b, (d) => { d.tempsInterne['2026-11'] = 7000; });
+    test('nouveau mois ajouté des deux côtés : additionné aussi', 12000, fus(b, moi5, elle5).fusion.tempsInterne['2026-11']);
   }
 
   section('Suppressions');

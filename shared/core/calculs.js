@@ -1539,10 +1539,15 @@ export function getMicroPlafondInfo(DATA) {
 // Sans membreId (ou si personne n'a jamais rien partagé), renvoie DATA tel quel : la vue globale
 // d'aujourd'hui reste strictement inchangée, aucune régression possible pour qui n'utilise pas
 // cette fonctionnalité.
-export function getDataPourMembre(DATA, membreId) {
+// proprietaireId (optionnel, compte partagé) : les missions SANS auteur (créées avant le partage, donc
+// par le propriétaire) lui sont attribuées, et la mission de gestion interne ("Mon entreprise", commune
+// à tous) reste dans toutes les vues. Sans lui, filtrage strict comme avant.
+export function getDataPourMembre(DATA, membreId, proprietaireId) {
   if (!membreId) return DATA;
+  const avecProprio = proprietaireId !== undefined && proprietaireId !== null;
   return {
     ...DATA,
-    missions: (DATA.missions || []).filter(m => m.auteurId === membreId),
+    missions: (DATA.missions || []).filter(m => m.auteurId === membreId
+      || (avecProprio && (m.isManagement || (membreId === proprietaireId && (m.auteurId === null || m.auteurId === undefined))))),
   };
 }

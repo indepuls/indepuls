@@ -4905,7 +4905,8 @@ function saveData() {
 // ── STORE — SETTERS EXPLICITES ───────────────────────────────
 // Toute mutation de DATA passe par ici ; saveData() reste à la charge de l'appelant.
 function addMission(obj) {
-  DATA.missions.push({id:uuid(),...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]});
+  // auteurId : la personne connectée dans un compte partagé (écriture par plusieurs), sinon null comme avant.
+  DATA.missions.push({id:uuid(),auteurId:(window._partage&&window._partage.userId)||null,...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]});
 }
 function removeMission(id) { DATA.missions=DATA.missions.filter(x=>x.id!==id); }
 function addDepense(obj)  { DATA.depenses.push({id:uuid(),...obj}); }
@@ -12215,6 +12216,83 @@ function notifierLectureSeule() {
     : '👁 Lecture seule : cette modification n\'est pas enregistrée.', 'var(--acc)');
 }
 
+// ── VUE PAR PERSONNE D'UN COMPTE PARTAGÉ (2026-10-02, étape 3) ──────────────────────────────
+// Dans un compte partagé, chaque mission porte son auteur (mission.auteurId, posé à la création).
+// "Mes missions" / "Missions de X" affichent les chiffres (rentabilité, remplissage, CA...) de UNE
+// personne. Mécanisme volontairement le plus sûr : la vue est une CONSULTATION en lecture seule
+// (verrou _lectureSeule + synchronisation suspendue), DATA est remplacée en mémoire par une copie
+// filtrée, la version complète est gardée de côté et restaurée au retour. Aucune écriture ne peut
+// donc partir avec des données filtrées (qui apparaîtraient comme des suppressions de missions).
+// Communs à toutes les vues : dépenses, revenus saisis à la main, temps interne.
+function nomCourtDepuisEmail(email) {
+  const base = String(email || '').split('@')[0].replace(/[._-]+/g, ' ').trim();
+  return base ? base.charAt(0).toUpperCase() + base.slice(1) : 'Associé·e';
+}
+
+// Chaque personne s'inscrit dans DATA.auteurs (id -> nom) pour que les autres puissent nommer ses missions.
+async function partageSeDeclarer() {
+  try {
+    const p = window._partage;
+    if (!p || window._vuePersonne || typeof window._sb === 'undefined') return;
+    const s = await window._sb.auth.getSession();
+    const u = s.data && s.data.session && s.data.session.user;
+    if (!u || u.id !== p.userId) return;
+    const nom = nomCourtDepuisEmail(u.email);
+    if (!DATA.auteurs) DATA.auteurs = {};
+    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom === nom) { majBandeauPartage(); return; }
+    DATA.auteurs[u.id] = { nom: nom };
+    saveData();
+    majBandeauPartage();
+  } catch (e) { console.warn('partageSeDeclarer failed:', e); }
+}
+
+function choisirVuePersonne(id) {
+  const p = window._partage;
+  if (!id) {
+    if (window._dataCompleteVue) {
+      DATA = window._dataCompleteVue; // les données complètes d'abord, le verrou ensuite
+      window._dataCompleteVue = null;
+      window._vuePersonne = null;
+      if (window._partage) window._lectureSeule = false;
+    }
+    majBandeauPartage();
+    renderAll();
+    if (window._partageSync) window._partageSync(true); // remet à jour ce qui a changé pendant la vue
+    return;
+  }
+  if (!p || DATA.isExample) return;
+  if (!window._dataCompleteVue) window._dataCompleteVue = DATA;
+  window._lectureSeule = true; // le verrou d'abord, les données filtrées ensuite
+  window._vuePersonne = id;
+  DATA = window._dataCompleteVue; // le filtre part toujours des données complètes (changement de vue d'une personne à l'autre)
+  DATA = window.getDataPourMembre(id, p.ownerId);
+  majBandeauPartage();
+  renderAll();
+}
+
+function majBandeauPartage() {
+  const bande = document.getElementById('bandeau-lecture-seule');
+  const p = window._partage;
+  if (!bande || !p) return;
+  const complet = window._dataCompleteVue || DATA;
+  const auteurs = Object.assign({}, complet.auteurs || {});
+  auteurs[p.ownerId] = auteurs[p.ownerId] || { nom: 'Propriétaire du compte' };
+  auteurs[p.userId] = auteurs[p.userId] || { nom: 'Moi' };
+  const libelle = (id) => id === p.userId ? 'Mes missions' : 'Missions de ' + escapeHtml(auteurs[id].nom || 'Associé·e');
+  if (window._vuePersonne) {
+    bande.innerHTML = `<span>👁 Vue : ${libelle(window._vuePersonne)} (lecture seule). Dépenses et temps interne restent communs à tout le compte.</span>`
+      + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="choisirVuePersonne('')">Revenir à tout le compte</button>`;
+    bande.style.display = 'flex';
+    return;
+  }
+  const options = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0))
+    .map(id => `<option value="${escapeHtml(id)}">${libelle(id)}</option>`).join('');
+  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte.</span>`
+    + `<label style="display:flex;align-items:center;gap:6px">Voir les chiffres de :`
+    + `<select onchange="choisirVuePersonne(this.value)" style="border-radius:6px;border:none;padding:3px 6px;font-size:12px"><option value="">Tout le compte</option>${options}</select></label>`;
+  bande.style.display = 'flex';
+}
+
 function basculerVueCompte(vers) {
   try {
     if (vers === 'perso') sessionStorage.setItem('indepuls_vue', 'perso');
@@ -12240,7 +12318,7 @@ function afficherBanniereComptePartage(etat) {
       + `<div style="color:var(--tl)">Ce que vous modifiez ici est enregistré dans le compte commun, visible par tous ses membres. Si deux personnes modifient la même chose en même temps, Indépuls vous prévient. Votre propre espace n'est pas touché.</div>`
       + `<div style="margin-top:10px"><button class="btn btn-out btn-sm" onclick="basculerVueCompte('perso')">Revenir à mon espace</button></div>`;
     el.style.display = '';
-    if (bande) { bande.style.display = 'none'; bande.innerHTML = ''; }
+    majBandeauPartage();
     return;
   }
   if (etat.mode === 'consultation') {
@@ -12315,6 +12393,7 @@ async function ouvrirComptePartageSiMembre(user) {
     renderAll();
     applyVocabUI();
     if (ecriture && window._partageVerifierConflits) window._partageVerifierConflits(); // conflit arbitré pendant mon absence
+    if (ecriture) partageSeDeclarer();
     return ecriture ? 'partage' : 'consultation';
   } catch (e) {
     console.warn('ouvrirComptePartageSiMembre failed:', e);
@@ -17140,7 +17219,7 @@ document.addEventListener('keydown', function(e) {
   window.getVFLComparaison         = (caPresta,caVente,autresRevenusFoyer,parts,estCouple) => { sync(); return Mode.getVFLComparaison(caPresta,caVente,autresRevenusFoyer,parts,estCouple); };
   window.getVFLPointBascule        = (ratioPresta,autresRevenusFoyer,parts,estCouple,caMaxRecherche) => { sync(); return Mode.getVFLPointBascule(ratioPresta,autresRevenusFoyer,parts,estCouple,caMaxRecherche); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
-  window.getDataPourMembre         = (membreId)  => { sync(); return Mode.getDataPourMembre(membreId); };
+  window.getDataPourMembre         = (membreId, proprietaireId)  => { sync(); return Mode.getDataPourMembre(membreId, proprietaireId); };
   window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
   window.getTauxRemplissageMois    = (mk)        => { sync(); return Mode.getTauxRemplissageMois(mk); };
   window.congeCouvreJour               = (c, ds) => { sync(); return Mode.congeCouvreJour(c, ds); };
@@ -17470,6 +17549,7 @@ document.addEventListener('keydown', function(e) {
   }
   // Applique le résultat du moteur.
   function _partageAppliquer(p, r, envoyee, silencieux) {
+    if (window._vuePersonne) return; // vue par personne ouverte pendant l'attente : on ne remplace pas DATA, la prochaine synchronisation refusionnera
     if (r.etat === 'inchange') return;
     if (r.etat === 'acces-perdu') {
       _partageVerrouiller('⚠️ Ce compte partagé n\'est plus accessible. Vous le consultez maintenant en lecture seule : plus rien n\'est enregistré.');
@@ -17498,6 +17578,7 @@ document.addEventListener('keydown', function(e) {
         else window._partage = null;
       }
       renderAll();
+      if (window._partage && typeof majBandeauPartage === 'function') majBandeauPartage(); // nouveaux noms d'associé·es
       if (r.repris && !silencieux && typeof showToast === 'function') showToast('🔄 Les modifications d\'une autre personne ont été intégrées.');
     }
     if (r.conflits && r.conflits.length) _partageMontrerConflits(p, r.conflits);
@@ -17554,7 +17635,7 @@ document.addEventListener('keydown', function(e) {
   // fois ; une saisie qui arrive pendant une exécution déclenche un nouveau tour juste après.
   async function _partageSync(rafraichir) {
     var p = window._partage;
-    if (!p || DATA.isExample) return;
+    if (!p || DATA.isExample || window._vuePersonne) return; // pas de synchronisation pendant la vue par personne (DATA y est filtrée)
     if (p.enCours) { if (!rafraichir) p.encore = true; return; }
     p.enCours = true;
     try {
@@ -17581,6 +17662,7 @@ document.addEventListener('keydown', function(e) {
     var u = s.data && s.data.session && s.data.session.user;
     if (!u) return false;
     window._partage = { ownerId: ownerId, userId: u.id, membre: !!membre, base: _partagePropre(DATA, ownerId), updatedAt: updatedAt, enCours: false, encore: false, timer: null };
+    if (typeof partageSeDeclarer === 'function') partageSeDeclarer();
     return true;
   };
   // Côté propriétaire : activation immédiate depuis la carte Associés (l'écriture solo habituelle

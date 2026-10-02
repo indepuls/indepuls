@@ -64,6 +64,17 @@ async function main() {
     test('DATA original non muté', 4, D.missions.length);
   }
 
+  section('getDataPourMembre avec propriétaire : missions sans auteur au propriétaire, gestion interne partout');
+  {
+    const D = { missions: [
+      { id: 'm1', auteurId: 'flo' }, { id: 'm2', auteurId: 'asso' }, { id: 'm3', auteurId: null },
+      { id: 'm4' }, { id: 'g', auteurId: null, isManagement: true },
+    ] };
+    test('propriétaire : ses missions + sans auteur + gestion', ['m3', 'm4', 'g'], C.getDataPourMembre(D, 'proprio', 'proprio').missions.map(m => m.id));
+    test('membre : ses missions + gestion, jamais les sans-auteur', ['m2', 'g'], C.getDataPourMembre(D, 'asso', 'proprio').missions.map(m => m.id));
+    test('sans proprietaireId : filtrage strict inchangé (gestion exclue)', ['m2'], C.getDataPourMembre(D, 'asso').missions.map(m => m.id));
+  }
+
   section('getDataPourMembre : un membre sans aucune mission renvoie une liste vide, pas une erreur');
   {
     const D = { missions: [{ id: 'm1', auteurId: 'florence' }] };

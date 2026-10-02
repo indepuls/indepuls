@@ -4026,6 +4026,18 @@ Décision validée avec Faustine : ouvrir l'accès aux données par la **lecture
 
 **Pas encore fait** : étape 3 (`auteurId` renseigné à la création, vues par personne, `tempsInterne` par auteur, qui reste en conflit si deux personnes saisissent le même jour). Le script `supabase/lecture_seule_membres.sql` doit rester NON exécuté (il retirerait le droit d'écriture des membres). Ne pas inviter Florence avant d'avoir testé en réel avec deux vrais comptes. Le trigger de sauvegarde (20 versions) tourne à chaque enregistrement : en mode partagé, il se renouvelle vite, à surveiller.
 
+### 2026-10-02 : Écriture partagée par les membres, étape 3 (auteur, vue par personne, temps interne additif)
+
+**Temps interne additif** (`shared/core/fusion.js`) : `tempsInterne[mois]` est un compteur en ms. Quand deux personnes y ajoutent du temps en même temps, la fusion ADDITIONNE les deux variations (base + ajout de moi + ajout de l'autre, jamais sous zéro) au lieu de signaler un conflit. Aucun changement de structure : le moteur de calcul lit toujours le total tel quel. L'ancienne "limite connue" est supprimée. Conséquence assumée : le temps interne reste COMMUN à tout le compte, pas attribué à une personne (pas de vue "mon temps interne").
+
+**Auteur** : `addMission()` pose `auteurId` = la personne connectée quand `window._partage` est actif, sinon `null` comme avant (comptes solo inchangés). Les dépenses n'ont pas d'auteur. Chaque personne s'inscrit dans `DATA.auteurs` (`{id: {nom}}`, nom tiré de l'email) via `partageSeDeclarer()` pour pouvoir être nommée par les autres.
+
+**Vue par personne** : bandeau en haut (`majBandeauPartage`), sélecteur "Voir les chiffres de : Tout le compte / Mes missions / Missions de X". `getDataPourMembre(DATA, membreId, proprietaireId)` (calculs.js, unified.js, pont `window.getDataPourMembre`) : les missions sans auteur (antérieures au partage) vont au propriétaire, la mission de gestion interne reste dans toutes les vues. Mécanisme le plus sûr : la vue est une CONSULTATION EN LECTURE SEULE (`_lectureSeule` posé avant la bascule, `_vuePersonne`, synchronisation suspendue, données complètes gardées dans `_dataCompleteVue` et restaurées au retour), de sorte qu'aucune donnée filtrée ne puisse être enregistrée (elle apparaîtrait comme des suppressions). Dépenses, revenus saisis à la main et temps interne restent communs dans toutes les vues.
+
+**Vérifié** : tests (fusion 56 assertions dont additivité, multi_associes 12), deux onglets avec faux Supabase : mission créée par B portée par `uB`, temps interne de A et B additionnés (1 h + 0,5 h + 2 h = 3,5 h), vue "Missions de B" / "Mes missions" / retour, rien d'écrit pendant la vue.
+
+**Reste** : test réel par Faustine avec deux vrais comptes, puis éventuel retrait de la barrière `?associes=1`, accès payants (1 ou 2), onboarding du membre, emails Supabase en français.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

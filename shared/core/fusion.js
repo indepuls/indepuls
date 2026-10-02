@@ -23,9 +23,10 @@
 //    perte silencieuse de travail) et le conflit est rapporté.
 //  - Aucune des trois entrées n'est jamais modifiée.
 //
-// Limite connue, volontaire : un nombre modifié des deux côtés (par exemple le temps interne d'un
-// même mois, `tempsInterne[mois]`) est un vrai conflit, la fusion ne sait pas qu'il faut ADDITIONNER.
-// À traiter en changeant la structure de ce champ (un total par auteur), pas ici.
+// Cas particulier, additif : le temps interne d'un mois (`tempsInterne[mois]`, un total en ms) est un
+// COMPTEUR. Si deux personnes y ajoutent du temps en même temps, ce n'est pas un conflit : les deux
+// ajouts s'additionnent (base + ajout de moi + ajout de l'autre, jamais sous zéro). Sans changer la
+// structure du champ, que le moteur de calcul lit partout tel quel.
 
 const estObjet = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
@@ -73,6 +74,11 @@ function fusionner3(base, mine, theirs, chemin, ctx) {
   }
   if (Array.isArray(mine) && Array.isArray(theirs)) {
     return fusionnerTableaux(Array.isArray(base) ? base : [], mine, theirs, chemin, ctx);
+  }
+  // Compteur de temps interne d'un mois : on additionne les deux variations, pas de conflit.
+  if (/^\.tempsInterne\.[\d-]+$/.test(chemin) && typeof mine === 'number' && typeof theirs === 'number') {
+    const b = typeof base === 'number' ? base : 0;
+    return Math.max(0, b + (mine - b) + (theirs - b));
   }
   // Valeur simple (ou types différents) modifiée des deux côtés : vrai conflit, ma version l'emporte.
   ctx.conflits.push({ chemin, type: 'valeur', miennes: copie(mine), autre: copie(theirs), resolution: 'mienne' });
