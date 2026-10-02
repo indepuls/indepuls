@@ -12314,6 +12314,7 @@ async function ouvrirComptePartageSiMembre(user) {
     document.body.setAttribute('data-theme', DATA.theme || 'obm');
     renderAll();
     applyVocabUI();
+    if (ecriture && window._partageVerifierConflits) window._partageVerifierConflits(); // conflit arbitré pendant mon absence
     return ecriture ? 'partage' : 'consultation';
   } catch (e) {
     console.warn('ouvrirComptePartageSiMembre failed:', e);
@@ -17499,19 +17500,50 @@ document.addEventListener('keydown', function(e) {
       renderAll();
       if (r.repris && !silencieux && typeof showToast === 'function') showToast('🔄 Les modifications d\'une autre personne ont été intégrées.');
     }
-    if (r.conflits && r.conflits.length) _partageMontrerConflits(r.conflits);
+    if (r.conflits && r.conflits.length) _partageMontrerConflits(p, r.conflits);
+    _partageVerifierConflits();
   }
-  function _partageMontrerConflits(conflits) {
+  function _partageAfficherPhrases(phrases) {
+    var corps = document.getElementById('conflit-partage-corps');
+    if (corps && typeof openModal === 'function') {
+      corps.innerHTML = phrases.map(function(t) { return '<li style="margin-bottom:8px">' + escapeHtml(t) + '</li>'; }).join('');
+      openModal('modal-conflit-partage');
+    } else if (typeof showToast === 'function') showToast('⚠️ ' + phrases[0], 'var(--acc)');
+  }
+  // Conflit arbitré par MA sauvegarde : je le vois tout de suite, et une trace est ajoutée au compte
+  // partagé (DATA.conflitsPartage) pour que l'AUTRE personne, dont la version a été remplacée, le
+  // voie aussi à son prochain rafraîchissement (phrase écrite de son point de vue). 20 traces au
+  // plus, 30 jours au plus.
+  function _partageMontrerConflits(p, conflits) {
     try {
       var phrases = window._Partage.decrireConflits(conflits, DATA);
       try { localStorage.setItem('indepuls_dernier_conflit', JSON.stringify({ le: new Date().toISOString(), phrases: phrases })); } catch (e) {}
-      var corps = document.getElementById('conflit-partage-corps');
-      if (corps && typeof openModal === 'function') {
-        corps.innerHTML = phrases.map(function(t) { return '<li style="margin-bottom:8px">' + escapeHtml(t) + '</li>'; }).join('');
-        openModal('modal-conflit-partage');
-      } else if (typeof showToast === 'function') showToast('⚠️ ' + phrases[0], 'var(--acc)');
+      _partageAfficherPhrases(phrases);
+      var trace = {
+        id: 'cf-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        le: new Date().toISOString(), par: p.userId,
+        phrases: window._Partage.decrireConflits(conflits, DATA, 'autre'), vu: [p.userId]
+      };
+      var recentes = (DATA.conflitsPartage || []).filter(function(c) { return Date.now() - Date.parse(c.le) < 30 * 86400000; });
+      recentes.push(trace);
+      DATA.conflitsPartage = recentes.slice(-20);
+      p.encore = true; // la trace doit être enregistrée à son tour (tour suivant de la boucle)
     } catch (e) { console.warn('_partageMontrerConflits failed:', e); }
   }
+  // Conflits arbitrés par l'AUTRE personne et pas encore vus par moi : une fenêtre, une seule fois.
+  function _partageVerifierConflits() {
+    try {
+      var p = window._partage;
+      if (!p || !DATA.conflitsPartage || document.querySelector('.modal-ov:not(.hidden)')) return;
+      var nouveaux = DATA.conflitsPartage.filter(function(c) { return c.par !== p.userId && (c.vu || []).indexOf(p.userId) < 0; });
+      if (!nouveaux.length) return;
+      var phrases = [];
+      nouveaux.forEach(function(c) { phrases = phrases.concat(c.phrases || []); c.vu = (c.vu || []).concat([p.userId]); });
+      if (phrases.length) _partageAfficherPhrases(phrases);
+      saveData(); // enregistre "vu" : la fenêtre ne reviendra pas
+    } catch (e) { console.warn('_partageVerifierConflits failed:', e); }
+  }
+  window._partageVerifierConflits = _partageVerifierConflits;
   async function _partageSessionOk(p) {
     var s = await sb.auth.getSession();
     var u = s.data && s.data.session && s.data.session.user;
@@ -17576,7 +17608,9 @@ document.addEventListener('keydown', function(e) {
       var s = await sb.auth.getSession();
       var u = s.data && s.data.session && s.data.session.user;
       if (!u || !_cloudLoaded || !_lastCloudUpdatedAt || (DATA._ownerUid && DATA._ownerUid !== u.id)) return false;
-      return window._activerPartage(u.id, false, _lastCloudUpdatedAt);
+      var ok = await window._activerPartage(u.id, false, _lastCloudUpdatedAt);
+      if (ok) _partageVerifierConflits(); // conflit arbitré pendant mon absence
+      return ok;
     } catch (e) { console.warn('_activerPartageProprietaireSiReglage failed:', e); return false; }
   };
   // Rafraîchissement régulier : seulement en mode partagé, onglet visible, hors saisie.

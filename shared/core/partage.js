@@ -106,7 +106,11 @@ function libelleElement(donnees, collection, id) {
 }
 
 // Retourne une phrase par conflit. `donnees` : version fusionnée (pour retrouver les noms).
-export function decrireConflits(conflits, donnees) {
+// pointDeVue 'moi' : la personne dont la sauvegarde a fusionné (sa version est gardée).
+// pointDeVue 'autre' : l'autre personne, dont la version a été remplacée (elle voit la phrase à son
+// prochain rafraîchissement : même conflit, vu de l'autre côté).
+export function decrireConflits(conflits, donnees, pointDeVue = 'moi') {
+  const autreCote = pointDeVue === 'autre';
   return (conflits || []).map((c) => {
     const chemin = c.chemin || '';
     let quoi = chemin;
@@ -126,9 +130,12 @@ export function decrireConflits(conflits, donnees) {
     }
     quoi = quoi.trim();
     if (c.type === 'supprime-puis-modifie') {
-      return c.cote === 'moi'
+      return (autreCote ? c.cote !== 'moi' : c.cote === 'moi')
         ? quoi + ' : vous l\'aviez supprimé pendant qu\'une autre personne le modifiait. La version modifiée a été conservée.'
         : quoi + ' : une autre personne l\'a supprimé pendant que vous le modifiiez. Votre version modifiée a été conservée.';
+    }
+    if (autreCote) {
+      return quoi + ' : vous et une autre personne avez modifié la même chose en même temps (' + abreger(c.autre) + ' contre ' + abreger(c.miennes) + '). La version de l\'autre personne a été conservée : vous pouvez la corriger si ce n\'est pas la bonne.';
     }
     return quoi + ' : vous et une autre personne avez modifié la même chose en même temps (' + abreger(c.miennes) + ' contre ' + abreger(c.autre) + '). Votre version a été conservée.';
   });

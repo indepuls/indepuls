@@ -153,6 +153,15 @@ async function main() {
     test('paramètre', 'Paramètre « objectif » : vous et une autre personne avez modifié la même chose en même temps (4000 contre 5000). Votre version a été conservée.',
       d([{ chemin: '.params.objectif', type: 'valeur', miennes: 4000, autre: 5000 }], donnees)[0]);
     test('aucun conflit : aucune phrase', [], d([], donnees));
+    test("vu de l'autre personne : valeurs dans son ordre, sa version remplacée",
+      "Dépense « Logiciel » : le montant : vous et une autre personne avez modifié la même chose en même temps (30 contre 20). La version de l'autre personne a été conservée : vous pouvez la corriger si ce n'est pas la bonne.",
+      d([{ chemin: '.depenses[d1].montant', type: 'valeur', miennes: 20, autre: 30 }], donnees, 'autre')[0]);
+    test("vu de l'autre : supprimé par moi puis modifié par l'autre",
+      "« Dupont » : une autre personne l'a supprimé pendant que vous le modifiiez. Votre version modifiée a été conservée.",
+      d([{ chemin: '.missions[m1]', type: 'supprime-puis-modifie', cote: 'moi' }], donnees, 'autre')[0]);
+    test("vu de l'autre : supprimé par l'autre puis modifié par moi",
+      "« Dupont » : vous l'aviez supprimé pendant qu'une autre personne le modifiait. La version modifiée a été conservée.",
+      d([{ chemin: '.missions[m1]', type: 'supprime-puis-modifie', cote: 'autre' }], donnees, 'autre')[0]);
     vrai('un chemin inconnu reste lisible (jamais d\'erreur)', d([{ chemin: '.x.y', type: 'valeur', miennes: 1, autre: 2 }], donnees)[0].includes('.x.y'));
   }
 
