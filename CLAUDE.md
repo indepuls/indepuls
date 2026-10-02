@@ -3916,6 +3916,16 @@ Suite directe de l'entrée précédente (même jour). Décisions prises avec Fau
 
 **Vérifié** : suite complète (25 fichiers), 0 régression. Navigateur : `inviterAssocie` et `crypto.randomUUID` chargés sans erreur, aucune nouvelle erreur console. **À confirmer par Faustine** : réinviter l'email qu'elle avait révoqué fonctionne maintenant.
 
+### 2026-10-02 — Multi-associés : garde-fou "compte déjà existant" à l'acceptation d'une invitation
+
+Retour Faustine, en testant seule avec deux comptes réels ouverts dans le même navigateur : elle a pu accepter l'invitation avec un compte qui avait déjà ses propres données (aucune donnée perdue, fausse alerte initiale, vérifié des deux côtés). Mais la règle décidée en amont ("un email qui a déjà un compte Indépuls avec des données ne peut pas rejoindre un compte partagé, pas de fusion de deux historiques") n'avait jamais été codée : seule la correspondance d'email était vérifiée dans `verifierInvitationEnAttente()`.
+
+**Corrigé** : nouvelle fonction `compteADejaDeLActivite(d)` (vrai si hors démo avec au moins une mission hors "Mon entreprise", un revenu ou une dépense, même notion que le garde `onboardingSkipped` de `applyDefaults()`, élargie aux dépenses). `verifierInvitationEnAttente()` l'appelle sur `DATA` (déjà chargé, cet appel suit `loadFromCloud`) juste avant d'activer la ligne `comptes_membres` : si le compte a déjà de l'activité, l'invitation n'est PAS activée, un message explicite renvoie vers contact@indepuls.fr, l'URL est nettoyée. Seul un compte neuf peut accepter. Pas de self-service pour le cas compliqué, comme décidé.
+
+**À savoir, point de vigilance sur les tests** : la règle RLS `user_data_membre_actif` (déjà en base) donne à tout membre `actif` un accès DB à la ligne `user_data` du propriétaire, même si l'app ne l'exploite pas encore. Une invitation de test acceptée avant ce garde-fou (compte de test de Faustine) doit donc être **révoquée** depuis la carte "Associés", pour ne laisser aucun accès actif inutile.
+
+**Vérifié** : suite complète (25 fichiers), 0 régression. Navigateur : `compteADejaDeLActivite` testée sur 6 formes de DATA (neuf, mission, revenu, dépense seule, démo, null). Flux complet simulé avec un faux client Supabase : compte avec activité = aucun `update` envoyé et URL nettoyée ; compte neuf = 1 `update` avec `statut:'actif'`.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

@@ -12042,6 +12042,16 @@ async function revoquerAssocie(email) {
   } catch (e) { console.warn('revoquerAssocie failed:', e); }
 }
 
+// Vrai si le compte contient de l'activité réelle (hors démo) : au moins une mission (hors "Mon
+// entreprise"), un revenu ou une dépense. Même notion que le garde `onboardingSkipped` de
+// applyDefaults(), élargie aux dépenses (un compte qui n'a saisi que des dépenses a déjà un vécu).
+function compteADejaDeLActivite(d) {
+  if (!d || d.isExample) return false;
+  return (d.missions || []).some(m => !m.isManagement)
+    || Object.keys(d.revenus || {}).length > 0
+    || (d.depenses || []).length > 0;
+}
+
 // Appelée une fois après le chargement normal du compte (voir _enterApp, après loadFromCloud),
 // jamais interleavée dans loadFromCloud elle-même. Ne fait QUE valider/activer la ligne
 // comptes_membres : ne charge jamais les données du compte propriétaire (palier A non terminé,
@@ -12062,6 +12072,15 @@ async function verifierInvitationEnAttente(user) {
       return;
     }
     if (invite.statut === 'actif') { showToast('✅ Vous avez déjà accepté cette invitation.'); history.replaceState(null, '', location.pathname); return; }
+    // Garde-fou "compte déjà existant" (retour Faustine, 2026-10-02) : une invitation ne peut être
+    // acceptée que par un compte neuf. DATA est déjà chargé ici (cet appel suit loadFromCloud).
+    // Un compte qui a déjà de l'activité réelle ne rejoint jamais un compte partagé, jamais de
+    // fusion de deux historiques : même règle que celle posée pour l'inscription, hors self-service.
+    if (compteADejaDeLActivite(DATA)) {
+      showToast('⚠️ Cette adresse email a déjà un compte Indépuls avec des données. Pour éviter tout mélange, une invitation ne peut être acceptée qu\'avec un compte neuf. Écrivez-nous à contact@indepuls.fr si besoin.', 'var(--err)');
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
     await window._sb.from('comptes_membres').update({ membre_id: user.id, statut: 'actif', accepted_at: new Date().toISOString() }).eq('id', invite.id);
     // L'accès réel aux données partagées (palier A, 2e partie) n'est pas encore câblé : la
     // personne reste sur son propre compte pour l'instant, le lien est volontairement honnête
