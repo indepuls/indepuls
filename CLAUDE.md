@@ -4047,6 +4047,11 @@ Premier test réel de Faustine : l'écriture partagée fonctionne, le temps peut
 
 Piège rencontré : un retour à la ligne littéral dans une chaîne JS (`window.prompt`) casse TOUT le script principal (page blanche), et mon test de syntaxe par regex ne l'a pas vu. Vérifier avec `node --check` sur chaque segment `<script>` (lignes), pas seulement par regex.
 
+### 2026-10-02 : Compte partagé, prénom des paramètres et tableau "Par personne"
+
+- **Nom affiché = prénom des paramètres** (`params.nom`, libellé "Prénom") de la personne : le sien pour le propriétaire, celui de SON propre espace pour un membre (lu dans `ouvrirComptePartageSiMembre` avant le remplacement de DATA, gardé dans `window._monPrenom`). À défaut, nom tiré de l'email. Plus de question au premier passage, plus de crayon dans le bandeau (`renommerAuteur` reste dans le code, non appelée).
+- **Bouton "📊 Comparer"** dans le bandeau (`ouvrirStatsPersonnes`, modale `modal-stats-personnes`) : par personne, pour l'année en cours : missions, encaissé (même calcul que le tableau de bord, appliqué à la copie filtrée de chaque personne, DATA restaurée ensuite), heures sur ses missions, heures saisies par elle (`tempsManuel.auteurId`, uniquement depuis le partage). `auteursDuCompte` inclut aussi toute personne qui a déjà créé une mission ou saisi du temps sans nom enregistré. Dépenses communes.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

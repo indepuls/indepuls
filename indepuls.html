@@ -2791,6 +2791,16 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<!-- MODAL STATISTIQUES PAR PERSONNE (compte partagé) -->
+<div class="modal-ov hidden" id="modal-stats-personnes">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" style="margin-bottom:8px">📊 Par personne</div>
+    <p class="ts" style="line-height:1.6;margin-bottom:10px">Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses missions</strong> : sur les missions dont la personne est l'auteure (les missions créées avant le partage reviennent au propriétaire). <strong>Heures saisies par elle</strong> : le temps qu'elle a réellement enregistré, sur n'importe quelle mission, depuis le partage. Les dépenses sont communes.</p>
+    <div id="stats-personnes-corps" style="overflow-x:auto"></div>
+    <div style="text-align:right;margin-top:14px"><button class="btn btn-acc btn-sm" onclick="closeModal('modal-stats-personnes')">Fermer</button></div>
+  </div>
+</div>
+
 <!-- MODAL RÉINITIALISATION -->
 <div class="modal-ov hidden" id="modal-reset">
   <div class="modal" style="max-width:460px">
@@ -12245,12 +12255,12 @@ async function partageSeDeclarer() {
     const u = s.data && s.data.session && s.data.session.user;
     if (!u || u.id !== p.userId) return;
     if (!DATA.auteurs) DATA.auteurs = {};
-    majBandeauPartage(); // le sélecteur apparaît tout de suite, avant la question du nom
-    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom) return;
-    // Première fois : la personne choisit le nom que verront ses associé·es (proposition tirée de l'email).
-    const propose = nomCourtDepuisEmail(u.email);
-    const saisi = window.prompt('Comment voulez-vous apparaître auprès de vos associé·es dans ce compte partagé ?\n(Votre prénom, par exemple. Modifiable ensuite depuis le bandeau en haut.)', propose);
-    const nom = (saisi || '').trim().slice(0, 30) || propose;
+    majBandeauPartage(); // le sélecteur apparaît tout de suite
+    // Nom affiché : le prénom des paramètres de la personne (propriétaire : celui du compte, membre : celui de
+    // son propre espace), à défaut un nom tiré de son email. Mis à jour s'il change.
+    const prenom = (p.membre ? window._monPrenom : (DATA.params && DATA.params.nom) || '') || '';
+    const nom = String(prenom).trim().slice(0, 30) || nomCourtDepuisEmail(u.email);
+    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom === nom) return;
     DATA.auteurs[u.id] = { nom: nom };
     saveData();
     majBandeauPartage();
@@ -12295,14 +12305,62 @@ function choisirVuePersonne(id) {
   renderAll();
 }
 
+// Tableau comparatif par personne (année en cours), lecture seule : mêmes fonctions de calcul que le
+// tableau de bord, appliquées à la copie filtrée de chaque personne (DATA est restaurée juste après).
+// Toutes les personnes du compte : celles inscrites, plus toute personne qui a déjà créé une mission ou
+// saisi du temps (même si son nom n'est pas encore enregistré).
+function auteursDuCompte(complet, p) {
+  const auteurs = Object.assign({}, complet.auteurs || {});
+  auteurs[p.ownerId] = auteurs[p.ownerId] || { nom: 'Propriétaire du compte' };
+  auteurs[p.userId] = auteurs[p.userId] || { nom: 'Moi' };
+  (complet.missions || []).forEach(m => {
+    if (m.auteurId && !auteurs[m.auteurId]) auteurs[m.auteurId] = { nom: 'Associé·e' };
+    (m.tempsManuel || []).forEach(e => { if (e.auteurId && !auteurs[e.auteurId]) auteurs[e.auteurId] = { nom: 'Associé·e' }; });
+  });
+  return auteurs;
+}
+
+function ouvrirStatsPersonnes() {
+  const p = window._partage;
+  if (!p || window._vuePersonne) return;
+  const complet = DATA;
+  const auteurs = auteursDuCompte(complet, p);
+  const mks = getCurrentYearMonths();
+  const lignes = Object.keys(auteurs).map(id => {
+    let missions = 0, encaisse = 0, heuresMissions = 0;
+    try {
+      const vue = window.getDataPourMembre(id, p.ownerId); // sync() sur les données complètes
+      DATA = vue;
+      missions = vue.missions.filter(m => !m.isManagement).length;
+      encaisse = mks.reduce((t, mk) => t + (getCaFromMissions(mk) || 0), 0);
+      heuresMissions = vue.missions.filter(m => !m.isManagement).reduce((t, m) => t + (getMissionHeures(m) || 0), 0);
+    } finally { DATA = complet; window.getDataPourMembre(null); } // restaure aussi le contexte du moteur
+    let msSaisi = 0;
+    complet.missions.forEach(m => (m.tempsManuel || []).forEach(e => { if (e.auteurId === id) msSaisi += e.ms || 0; }));
+    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, heuresMissions, hSaisies: msSaisi / 3600000 };
+  });
+  const corps = document.getElementById('stats-personnes-corps');
+  if (!corps) return;
+  const th = 'text-align:right;padding:6px 8px;border-bottom:2px solid var(--brd)';
+  corps.innerHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'
+    + '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--brd)">Personne</th>'
+    + '<th style="' + th + '">Missions</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th>'
+    + '<th style="' + th + '">Heures sur ses missions</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
+    + lignes.map(l => '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--brd)">' + escapeHtml(l.nom) + '</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + l.missions + '</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd);font-weight:700">' + fmt(l.encaisse) + ' €</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.heuresMissions, 1) + ' h</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hSaisies, 1) + ' h</td></tr>').join('')
+    + '</tbody></table>';
+  openModal('modal-stats-personnes');
+}
+
 function majBandeauPartage() {
   const bande = document.getElementById('bandeau-lecture-seule');
   const p = window._partage;
   if (!bande || !p) return;
   const complet = window._dataCompleteVue || DATA;
-  const auteurs = Object.assign({}, complet.auteurs || {});
-  auteurs[p.ownerId] = auteurs[p.ownerId] || { nom: 'Propriétaire du compte' };
-  auteurs[p.userId] = auteurs[p.userId] || { nom: 'Moi' };
+  const auteurs = auteursDuCompte(complet, p);
   const libelle = (id) => id === p.userId ? 'Mes missions' : 'Missions de ' + escapeHtml(auteurs[id].nom || 'Associé·e');
   if (window._vuePersonne) {
     bande.innerHTML = `<span>👁 Vue : ${libelle(window._vuePersonne)} (lecture seule). Dépenses et temps interne restent communs à tout le compte.</span>`
@@ -12312,7 +12370,8 @@ function majBandeauPartage() {
   }
   const options = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0))
     .map(id => `<option value="${escapeHtml(id)}">${libelle(id)}</option>`).join('');
-  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte. <a href="#" onclick="renommerAuteur();return false" style="color:#fff;text-decoration:underline;font-weight:400">✏️ Mon nom</a></span>`
+  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte.</span>`
+    + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="ouvrirStatsPersonnes()">📊 Comparer</button>`
     + `<label style="display:flex;align-items:center;gap:6px">Voir les chiffres de :`
     + `<select onchange="choisirVuePersonne(this.value)" style="border-radius:6px;border:none;padding:3px 6px;font-size:12px"><option value="">Tout le compte</option>${options}</select></label>`;
   bande.style.display = 'flex';
@@ -12398,6 +12457,8 @@ async function ouvrirComptePartageSiMembre(user) {
     // Écriture : seulement si le propriétaire l'a activée ET que le mode partagé se met bien en place.
     // Toute autre issue (réglage absent, erreur) retombe sur la lecture seule, la plus sûre.
     const ecriture = !!(d.params && d.params.ecritureMembres) && typeof window._activerPartage === 'function';
+    // Prénom de CETTE personne (réglage de son propre espace), lu avant que DATA ne devienne celle du propriétaire.
+    window._monPrenom = ((DATA.params && DATA.params.nom) || '').trim();
 
     // Bascule : ces instructions se suivent sans rien entre elles. Le verrou (lecture seule) ou le
     // mode partagé est posé AVANT que DATA ne contienne les données d'autrui, de sorte qu'aucun
