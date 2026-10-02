@@ -12058,6 +12058,51 @@ function inviteTokenEnAttente() {
     return (memorise && uuid.test(memorise)) ? memorise : '';
   } catch (e) { return ''; }
 }
+// Niveau 2 (2026-10-02) : interroge la fonction SQL invitation_info (supabase/invitation_info.sql),
+// appelable sans être connecté, pour valider le jeton côté base et obtenir l'email invité et le
+// prénom de la personne qui invite. Mémorise la promesse dans window._inviteInfoPromise pour que
+// authSignUp() attende le même résultat. Etats : ok, introuvable, indisponible (fonction absente
+// ou réseau, dans ce cas on ne bloque rien : repli sur le contrôle de format seul).
+function chargerInfoInvitation() {
+  const token = inviteTokenEnAttente();
+  if (!token || typeof window._sb === 'undefined') return;
+  window._inviteInfoPromise = (async () => {
+    try {
+      const { data, error } = await window._sb.rpc('invitation_info', { p_token: token });
+      if (error) { console.warn('invitation_info indisponible, contrôle de format seul :', error.message); return { etat: 'indisponible' }; }
+      const ligne = Array.isArray(data) ? data[0] : data;
+      if (!ligne) return { etat: 'introuvable' };
+      return { etat: 'ok', email: ligne.invited_email, statut: ligne.statut, nom: ligne.inviter_nom || '' };
+    } catch (e) {
+      console.warn('invitation_info a échoué :', e);
+      return { etat: 'indisponible' };
+    }
+  })();
+  window._inviteInfoPromise.then(appliquerInfoInvitation);
+}
+function appliquerInfoInvitation(info) {
+  const note = document.getElementById('auth-invite-note');
+  if (!note || !info) return;
+  const emailEl = document.getElementById('auth-signup-email');
+  const pwdEl = document.getElementById('auth-signup-pwd');
+  const btn = document.getElementById('auth-signup-btn');
+  const invalide = info.etat === 'introuvable' || (info.etat === 'ok' && info.statut !== 'invite');
+  if (invalide) {
+    const raison = (info.etat === 'ok' && info.statut === 'actif') ? 'a déjà été utilisée'
+      : (info.etat === 'ok') ? 'a été révoquée' : 'est introuvable ou n\'est plus valide';
+    note.innerHTML = `Cette invitation ${raison}. Demandez à la personne qui vous a invité·e de vous en envoyer une nouvelle.`;
+    if (emailEl) emailEl.style.display = 'none';
+    if (pwdEl && pwdEl.parentElement) pwdEl.parentElement.style.display = 'none';
+    if (btn) btn.style.display = 'none';
+    oublierInviteEnAttente();
+    return;
+  }
+  if (info.etat === 'ok') {
+    const qui = info.nom ? `<strong>${escapeHtml(info.nom)}</strong>` : 'Une personne';
+    note.innerHTML = `${qui} vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec l'adresse email de l'invitation (déjà renseignée, elle ne peut pas être modifiée : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien).<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">L'accès aux données partagées sera ouvert dans une prochaine mise à jour.</span>`;
+    if (emailEl) { emailEl.value = info.email; emailEl.readOnly = true; emailEl.style.background = '#F1EFEA'; }
+  }
+}
 function oublierInviteEnAttente() {
   try { localStorage.removeItem('indepuls_pending_invite'); } catch (e) {}
   if (new URLSearchParams(location.search).has('invite')) history.replaceState(null, '', location.pathname);
@@ -17361,7 +17406,7 @@ document.addEventListener('keydown', function(e) {
         </div>
         <div id="auth-signup-panel" style="display:${inviteTokenEnAttente()?'':'none'}">
           <div style="font-size:${inviteTokenEnAttente()?'16px;font-weight:700;color:#141538':'13px;color:#9a9aaa'};margin-bottom:${inviteTokenEnAttente()?'10px':'24px'}">${inviteTokenEnAttente()?'Vous avez été invité·e sur Indépuls':'Créez votre compte Indépuls'}</div>
-          ${inviteTokenEnAttente()?`<div style="font-size:12px;color:#5B2C4A;background:#F1EFEA;border-radius:8px;padding:12px 14px;margin-bottom:16px;line-height:1.7;text-align:left">Une personne vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec <strong>exactement l'adresse email</strong> qui a reçu l'invitation. Le formulaire ne la vérifie pas à cette étape, mais l'invitation ne s'activera que si votre compte utilise cette adresse : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien.<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">L'accès aux données partagées sera ouvert dans une prochaine mise à jour.</span></div>`:''}
+          ${inviteTokenEnAttente()?`<div id="auth-invite-note" style="font-size:12px;color:#5B2C4A;background:#F1EFEA;border-radius:8px;padding:12px 14px;margin-bottom:16px;line-height:1.7;text-align:left">Une personne vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec <strong>exactement l'adresse email</strong> qui a reçu l'invitation. Le formulaire ne la vérifie pas à cette étape, mais l'invitation ne s'activera que si votre compte utilise cette adresse : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien.<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">L'accès aux données partagées sera ouvert dans une prochaine mise à jour.</span></div>`:''}
           <input type="email" id="auth-signup-email" placeholder="Adresse email"
             style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff">
           <div style="position:relative;margin-bottom:16px">
@@ -17381,6 +17426,9 @@ document.addEventListener('keydown', function(e) {
         </div>
       </div>`;
 
+    // Vérifie l'invitation côté base dès l'affichage du formulaire (voir chargerInfoInvitation).
+    if (inviteTokenEnAttente()) chargerInfoInvitation();
+
     window.authShowSignup = function() {
       document.getElementById('auth-login-panel').style.display = 'none';
       document.getElementById('auth-signup-panel').style.display = '';
@@ -17396,9 +17444,24 @@ document.addEventListener('keydown', function(e) {
       var btn   = document.getElementById('auth-signup-btn');
       // Inscription fermée au public sur indepuls.fr, sauf avec un jeton d'invitation d'associé
       // valide dans le lien (2026-10-02). Sans ce jeton, comportement strictement inchangé.
-      if ((location.hostname==='indepuls.fr' || location.hostname==='www.indepuls.fr') && !inviteTokenEnAttente()) {
+      var _estProd = (location.hostname==='indepuls.fr' || location.hostname==='www.indepuls.fr');
+      if (_estProd && !inviteTokenEnAttente()) {
         if(msg){ msg.style.color='#e55'; msg.textContent="Les nouvelles inscriptions ne sont pas encore ouvertes sur ce site. Déjà bêta-testeur ? Connectez-vous ci-dessus."; }
         return;
+      }
+      // Vrai verrou (2026-10-02) : le jeton est vérifié côté base (fonction invitation_info), et
+      // l'adresse saisie doit être celle de l'invitation. Si la fonction n'est pas disponible
+      // (script SQL pas encore exécuté, réseau), repli sur le contrôle de format seul, comme avant.
+      if (_estProd) {
+        var _info = window._inviteInfoPromise ? await window._inviteInfoPromise : { etat: 'indisponible' };
+        if (_info.etat === 'introuvable' || (_info.etat === 'ok' && _info.statut !== 'invite')) {
+          if(msg){ msg.style.color='#e55'; msg.textContent="Cette invitation n'est plus valide."; }
+          return;
+        }
+        if (_info.etat === 'ok' && email.toLowerCase() !== (_info.email || '').toLowerCase()) {
+          if(msg){ msg.style.color='#e55'; msg.textContent="Cette invitation est réservée à l'adresse " + _info.email + "."; }
+          return;
+        }
       }
       if (!email || !pwd) { if(msg){ msg.style.color='#e55'; msg.textContent='Veuillez remplir tous les champs.'; } return; }
       if (pwd.length < 8) { if(msg){ msg.style.color='#e55'; msg.textContent='Le mot de passe doit faire au moins 8 caractères.'; } return; }
