@@ -7,7 +7,7 @@
 <link rel="apple-touch-icon" href="https://indepuls.fr/assets/apple-touch-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tarifs · Indépuls</title>
-<meta name="description" content="Un seul prix, sans palier caché. 19€/mois, prix de lancement bêta.">
+<meta name="description" content="Un seul prix, tout inclus : 19 € par mois, garanti à vie pour les inscrits de la liste d'attente. Gratuit et sans engagement.">
 <link rel="canonical" href="https://indepuls.fr/tarifs/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Dancing+Script:wght@600;700&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -105,8 +105,24 @@
   .pricecard .btn:hover{opacity:.92;}
   .pricecard .btn:disabled{opacity:.6; cursor:default;}
   .pricecard .wl-hp{position:absolute; left:-9999px; width:1px; height:1px; opacity:0;}
-  /* Arrivée par #waitlist-form (boutons de l'accueil et de la démo) : le formulaire ne doit pas passer sous la barre de menu fixe */
-  #waitlist-form{scroll-margin-top:110px;}
+  /* Arrivée par #waitlist-form (boutons de l'accueil et de la démo) : on garde le prix visible
+     au-dessus du formulaire (badge + 19 € + 62 centimes + prix garanti), sous la barre de menu fixe */
+  #waitlist-form{scroll-margin-top:330px;}
+  .pricecard .perday{font-family:'Playfair Display',serif; font-style:italic; font-weight:600; color:var(--prune); font-size:17px; margin:0 0 14px;}
+  .pricecard .free-note{font-size:13px; color:var(--ok); font-weight:700; margin:0 0 6px;}
+  .pricecard .gains-title{font-family:'Playfair Display',serif; font-weight:700; font-size:18px; text-align:left; margin:28px 0 6px; padding-top:22px; border-top:1px solid #e4ddd0;}
+  .pricecard ul{margin-bottom:22px;}
+
+  section.faqmini{padding:10px 24px 60px;}
+  .faqmini .inner{max-width:620px; margin:0 auto;}
+  .faqmini h2{font-family:'Playfair Display',serif; font-size:clamp(22px,3vw,26px); text-align:center; margin:0 0 14px;}
+  .faqmini details{border-bottom:1px solid #e4ddd0; padding:16px 0;}
+  .faqmini summary{cursor:pointer; font-weight:700; font-size:15.5px; list-style:none; display:flex; justify-content:space-between; gap:16px;}
+  .faqmini summary::-webkit-details-marker{display:none;}
+  .faqmini summary::after{content:'+'; color:var(--prune); font-size:20px; line-height:1; transition:transform .2s var(--ease);}
+  .faqmini details[open] summary::after{transform:rotate(45deg);}
+  .faqmini details p{margin:10px 0 0; font-size:14.5px; line-height:1.7; color:#3a3a52;}
+  .reassure-item p a{color:var(--prune); font-weight:700;}
   .pricecard .wl-field{
     width:100%; box-sizing:border-box; padding:12px 16px; margin-bottom:10px;
     border:1px solid #e4ddd0; border-radius:10px; font-family:'Lato',sans-serif;
@@ -160,7 +176,7 @@
 <meta property="og:site_name" content="Indépuls">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Tarifs · Indépuls">
-<meta property="og:description" content="Un seul prix, sans palier caché. 19€/mois, prix de lancement bêta.">
+<meta property="og:description" content="Un seul prix, tout inclus : 19 € par mois, garanti à vie pour les inscrits de la liste d'attente. Gratuit et sans engagement.">
 <meta property="og:url" content="https://indepuls.fr/tarifs/">
 <meta property="og:image" content="https://indepuls.fr/assets/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -175,7 +191,7 @@
   "operatingSystem": "Web",
   "url": "https://indepuls.fr/",
   "inLanguage": "fr",
-  "description": "Indépuls est un logiciel de rentabilité pour les indépendants (freelances, artisans, revendeurs). Il calcule un Score de Santé à partir de l'activité réelle et répond à une seule question : est-ce que ça va ?",
+  "description": "Indépuls est un logiciel de pilotage pour les indépendants qui vendent leur temps (freelances, consultants, coachs, artisans). Il calcule en continu ce que leur temps leur rapporte, l'argent à prévoir pour leurs charges et leurs échéances, et les aide à décider au bon moment.",
   "image": "https://indepuls.fr/assets/og-image.png",
   "offers": {
     "@type": "Offer",
@@ -238,15 +254,8 @@
     <span class="badge">Prix de lancement</span>
     <div class="amount">19<span class="cur">€</span></div>
     <div class="per">par mois</div>
-    <div class="lock">🔒 Prix garanti à vie pour la liste d'attente</div>
-    <ul>
-      <li><span class="check">✓</span> Score de Santé et ses 4 piliers</li>
-      <li><span class="check">✓</span> Simulateur "Et si ?" et "Combien facturer ?"</li>
-      <li><span class="check">✓</span> Alertes intelligentes et brief du lundi</li>
-      <li><span class="check">✓</span> Seuil de TVA surveillé, argent à mettre de côté</li>
-      <li><span class="check">✓</span> Livre des recettes inclus</li>
-      <li><span class="check">✓</span> Adapté aux 7 profils métier, dès la création du compte</li>
-    </ul>
+    <p class="perday">62 centimes par jour, moins qu'une baguette.</p>
+    <div class="lock">🔒 Prix garanti à vie pour les inscrits de la liste d'attente</div>
     <form id="waitlist-form" novalidate>
       <input type="text" name="website" class="wl-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
       <input type="text" id="wl-prenom" class="wl-field" placeholder="Votre prénom" autocomplete="given-name">
@@ -255,24 +264,51 @@
       <p class="wl-error" id="wl-error"></p>
       <button type="submit" class="btn">Rejoindre la liste d'attente</button>
     </form>
-    <div class="waitlist-note" id="waitlist-note">Vous serez informé·e en priorité dès le lancement officiel.</div>
+    <div class="waitlist-note" id="waitlist-note"><p class="free-note">Gratuit et sans engagement&nbsp;: aucun paiement aujourd'hui.</p>Vous serez prévenu(e) en priorité dès l'ouverture.</div>
     <div class="wl-success" id="wl-success">
       <div class="ico">✓</div>
-      <p class="title">C'est noté !</p>
-      <p class="text">Vous serez informé·e en priorité dès le lancement officiel, avec votre prix garanti à 19&nbsp;€/mois.</p>
+      <p class="title">C'est noté, merci&nbsp;!</p>
+      <p class="text">Je vous écris personnellement dans les prochains jours pour vous confirmer votre place. Vous serez prévenu(e) en priorité à l'ouverture, avec votre prix garanti à 19&nbsp;€/mois.</p>
     </div>
+    <p class="gains-title">Ce que vous y gagnez</p>
+    <ul>
+      <li><span class="check">✓</span> Ce que votre temps vous rapporte réellement, mission par mission</li>
+      <li><span class="check">✓</span> L'argent à garder de côté avant chaque échéance URSSAF, impôt et TVA</li>
+      <li><span class="check">✓</span> Une alerte avant le plafond de la micro-entreprise et le seuil de TVA</li>
+      <li><span class="check">✓</span> Tester une décision avant de la prendre&nbsp;: prix, client, statut, versement libératoire</li>
+      <li><span class="check">✓</span> Un point chaque lundi par email sur l'état de votre activité</li>
+      <li><span class="check">✓</span> Tout inclus, sans version «&nbsp;Pro&nbsp;» à débloquer</li>
+    </ul>
     <p class="trust-line">Vos données sont chiffrées et ne servent jamais à entraîner une IA. <a href="../politique-confidentialite.html">Confidentialité</a> · <a href="../cgu.html">CGU</a> · <a href="../securite.html">Sécurité</a></p>
     <a class="demo-link" href="../demo/index.html">Ou explorer la démo, sans carte ni compte</a>
   </div>
 </section>
 
-<p class="note">Indépuls est encore en bêta, avec une poignée de personnes qui le testent au quotidien, <strong>pas des milliers d'utilisateurs</strong>. Les inscriptions payantes ouvriront bientôt. Le prix pourra évoluer par la suite, mais si vous rejoignez la liste d'attente maintenant, <strong>19&nbsp;€/mois est le prix que vous garderez</strong> à l'ouverture, durablement.</p>
+<p class="note">Indépuls est encore en bêta, avec une poignée de personnes qui le testent au quotidien, <strong>pas des milliers d'utilisateurs</strong>. Le prix pourra évoluer après l'ouverture, mais en rejoignant la liste d'attente maintenant, <strong>vous gardez 19&nbsp;€/mois à vie</strong>.</p>
 
 <section class="tmsolo" aria-label="Témoignage d'une testeuse">
   <figure class="tmcard">
-    <blockquote class="quote">Ton outil est juste incroyable, je suis archi-fan ! Il est beau, il est clair, et tellement utile. L'essayer, c'est l'adopter.</blockquote>
-    <figcaption><span class="name">Charlène</span><span class="role">Online Business Manager</span></figcaption>
+    <blockquote class="quote">Le point qui m'a le plus marquée : la simplicité du paramétrage. Tout est intuitif, on est prêt en quelques minutes. Les cartes du tableau de bord permettent de prendre des décisions et d'ajuster. Ce n'est pas juste du suivi, c'est un vrai outil de pilotage.</blockquote>
+    <figcaption><span class="name">Florence</span><span class="role">Consultante QSE et no-code</span></figcaption>
   </figure>
+</section>
+
+<section class="faqmini" aria-label="Questions sur la liste d'attente">
+  <div class="inner">
+    <h2>Avant de vous inscrire</h2>
+    <details>
+      <summary>Est-ce que je m'engage en m'inscrivant&nbsp;?</summary>
+      <p>Non. La liste d'attente est gratuite et sans engagement, aucun paiement n'est demandé. Vous serez prévenu(e) à l'ouverture, et vous déciderez à ce moment-là.</p>
+    </details>
+    <details>
+      <summary>Quand Indépuls ouvre-t-il&nbsp;?</summary>
+      <p>Dans les prochaines semaines. Les inscrits de la liste d'attente sont prévenus en premier.</p>
+    </details>
+    <details>
+      <summary>Que se passe-t-il après mon inscription&nbsp;?</summary>
+      <p>Je vous écris personnellement pour vous confirmer votre place. Puis vous recevez un message le jour de l'ouverture, avec votre prix de 19&nbsp;€ par mois garanti à vie.</p>
+    </details>
+  </div>
 </section>
 
 <section class="reassure">
@@ -289,17 +325,17 @@
     </div>
     <div class="reassure-item">
       <span class="ico">💬</span>
-      <h3>Une question avant de payer ?</h3>
-      <p>Écrivez directement, une vraie personne répond, pas un centre d'appel.</p>
+      <h3>Une question avant de vous inscrire ?</h3>
+      <p>Écrivez-moi à <a href="mailto:contact@indepuls.fr">contact@indepuls.fr</a>. C'est moi qui réponds, pas un centre d'appel.</p>
     </div>
   </div>
 </section>
 
 <section class="cta">
-  <h2>Voir ce que ça donne pour votre activité</h2>
+  <h2>Gardez un coup d'avance sur votre activité.</h2>
   <div class="btnrow">
-    <a class="btn btn-primary" href="../demo/index.html">Explorer la démo</a>
-    <a class="btn btn-secondary" href="../fonctionnalites/index.html">Revoir les fonctionnalités</a>
+    <a class="btn btn-primary" href="#waitlist-form">Rejoindre la liste d'attente</a>
+    <a class="btn btn-secondary" href="../demo/index.html">Explorer la démo d'abord</a>
   </div>
 </section>
 
