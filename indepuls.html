@@ -1071,7 +1071,7 @@ html,body{overflow-x:hidden;}
           <div class="sw-wrap mb12" id="dirigeants-sw-wrap">
             <label class="sw"><input type="checkbox" id="p-dirigeants-sw" onchange="toggleDirigeants(this.checked)"><span class="sw-sl"></span></label>
             <span style="font-weight:600">Plusieurs dirigeants (SAS)</span>
-            <span class="info-tip" title="Indépuls suit une seule rémunération et un seul taux de charges cumulés pour tous les dirigeants. Vous pouvez en plus inviter un·e associé·e à accéder au même compte juste en dessous, ou continuer à n'utiliser cette case que pour le vocabulaire si vous préférez.">?</span>
+            <span class="info-tip" title="Indépuls suit une seule rémunération et un seul taux de charges, pas de compte partagé ni de suivi individuel par dirigeant. Si vous êtes plusieurs présidents/dirigeants à vous verser un salaire, indiquez le montant cumulé de toutes les rémunérations (le taux de charges reste le même pour tous en SAS, assimilé salarié).">?</span>
           </div>
           <div id="associes-wrap" style="display:none;margin-bottom:16px;padding:16px;border:1px solid var(--brd);border-top:4px solid var(--acc);border-radius:10px;background:var(--bg)">
             <div class="card-sub mb10" style="font-weight:700">🤝 Associés</div>
@@ -4504,7 +4504,7 @@ function getDefaultData() {
       // de quelqu'un qui n'a jamais coché la case.
       acreActif:false, acreDateDebut:'', acreDateFin:'',
       // Plusieurs dirigeants (2026-09-08) : purement cosmétique (vocabulaire), voir toggleDirigeants().
-      plusieursDirigeants:false,
+      plusieursDirigeants:false, associesBeta:false,
       // Demande d'avis (2026-09-14) : voir genererMessageAvis()/maybeProposerAvis(). Aucun des deux
       // n'est requis pour que le nudge fonctionne (repli sur un message générique si vides).
       avisLiens:'', avisMessageTemplate:'',
@@ -12117,6 +12117,21 @@ function oublierInviteEnAttente() {
   if (new URLSearchParams(location.search).has('invite')) history.replaceState(null, '', location.pathname);
 }
 
+// Active ou désactive la carte "Associés" sur CE compte via l'adresse (?associes=1 ou ?associes=0),
+// sans aucune interface visible : tant que le partage de données n'est pas câblé, seuls les comptes
+// de test de Faustine doivent la voir. Le réglage suit le compte (DATA.params, synchronisé).
+function appliquerOptionAssociesBeta() {
+  try {
+    const v = new URLSearchParams(location.search).get('associes');
+    if (v !== '1' && v !== '0') return;
+    DATA.params.associesBeta = (v === '1');
+    saveData();
+    history.replaceState(null, '', location.pathname);
+    showToast(v === '1' ? '✅ Option "Associés" activée sur ce compte.' : 'Option "Associés" désactivée sur ce compte.');
+    if (currentPage === 'params') renderParams();
+  } catch (e) { console.warn('appliquerOptionAssociesBeta failed:', e); }
+}
+
 // Affiche la bannière "compte partagé" si la personne connectée est membre actif d'un compte
 // (a accepté une invitation non révoquée). Appelée après verifierInvitationEnAttente, pour
 // refléter une acceptation toute fraîche. Silencieuse en cas d'erreur : une bannière absente vaut
@@ -13109,7 +13124,15 @@ function renderParams() {
     // Associés (2026-10-01, palier A multi-associés) : n'a de sens que si la case "Plusieurs
     // dirigeants" est cochée, jamais en EURL (même raisonnement que plusieurs ci-dessus).
     const associesWrap=document.getElementById('associes-wrap');
-    if(associesWrap){ associesWrap.style.display=plusieurs?'':'none'; if(plusieurs) renderAssociesListe(); }
+    // Réservé aux comptes où l'option est activée explicitement (DATA.params.associesBeta, voir
+    // appliquerOptionAssociesBeta) : tant que le partage de données n'est pas câblé, un compte solo
+    // qui a simplement coché "Plusieurs dirigeants" ne doit rien voir de nouveau.
+    const associesVisible=plusieurs&&!!DATA.params.associesBeta;
+    if(associesWrap){ associesWrap.style.display=associesVisible?'':'none'; if(associesVisible) renderAssociesListe(); }
+    const dTip=dSwWrap&&dSwWrap.querySelector('.info-tip');
+    if(dTip) dTip.title=associesVisible
+      ? "Indépuls suit une seule rémunération et un seul taux de charges cumulés pour tous les dirigeants. Vous pouvez en plus inviter un·e associé·e à accéder au même compte juste en dessous, ou continuer à n'utiliser cette case que pour le vocabulaire si vous préférez."
+      : "Indépuls suit une seule rémunération et un seul taux de charges, pas de compte partagé ni de suivi individuel par dirigeant. Si vous êtes plusieurs présidents/dirigeants à vous verser un salaire, indiquez le montant cumulé de toutes les rémunérations (le taux de charges reste le même pour tous en SAS, assimilé salarié).";
     document.getElementById('sasu-pilotage-label').textContent=isEurl?'🏢 Pilotage EURL':`🏢 Pilotage SASU${plusieurs?'/SAS':''}`;
     document.getElementById('sasu-remu-label').textContent=plusieurs
       ? 'Rémunération nette totale des dirigeants / mois (€)'
@@ -17635,7 +17658,7 @@ document.addEventListener('keydown', function(e) {
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }
       setTimeout(addLogoutButton, 200);
-      loadFromCloud(user).then(function(){ hideOverlay(); return verifierInvitationEnAttente(user); }).then(function(){ afficherBanniereComptePartage(user); });
+      loadFromCloud(user).then(function(){ hideOverlay(); appliquerOptionAssociesBeta(); return verifierInvitationEnAttente(user); }).then(function(){ afficherBanniereComptePartage(user); });
     });
   }
 
