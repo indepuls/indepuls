@@ -4052,6 +4052,14 @@ Piège rencontré : un retour à la ligne littéral dans une chaîne JS (`window
 - **Nom affiché = prénom des paramètres** (`params.nom`, libellé "Prénom") de la personne : le sien pour le propriétaire, celui de SON propre espace pour un membre (lu dans `ouvrirComptePartageSiMembre` avant le remplacement de DATA, gardé dans `window._monPrenom`). À défaut, nom tiré de l'email. Plus de question au premier passage, plus de crayon dans le bandeau (`renommerAuteur` reste dans le code, non appelée).
 - **Bouton "📊 Comparer"** dans le bandeau (`ouvrirStatsPersonnes`, modale `modal-stats-personnes`) : par personne, pour l'année en cours : missions, encaissé (même calcul que le tableau de bord, appliqué à la copie filtrée de chaque personne, DATA restaurée ensuite), heures sur ses missions, heures saisies par elle (`tempsManuel.auteurId`, uniquement depuis le partage). `auteursDuCompte` inclut aussi toute personne qui a déjà créé une mission ou saisi du temps sans nom enregistré. Dépenses communes.
 
+### 2026-10-02 : Compte partagé, le prénom est personnel (correction)
+
+Constat de Faustine : changer le prénom d'un côté le changeait des deux, car `params.nom` fait partie des réglages COMMUNS du compte partagé. Dans un compte partagé, le champ "Prénom" (Paramètres) lit et écrit maintenant `DATA.auteurs[sonId].nom` (`prenomAffiche()`, `saisirPrenom()`), chaque personne a le sien ; le titre du tableau de bord l'utilise aussi. `params.nom` reste celui du propriétaire (texte de la bannière "compte partagé de X"). Hors compte partagé : comportement inchangé (`saveParam('nom')`). `partageSeDeclarer` ne réécrase plus un nom déjà enregistré.
+
+**Règle à retenir** : tout ce qui vit dans `DATA.params` est commun à tout le compte partagé. Une préférence qui doit être individuelle (prénom, thème, brief email...) doit être rangée par personne, comme `DATA.auteurs`. Candidats identifiés, pas faits : congés, capacité hebdomadaire (heures/jour, jours/semaine), temps interne, thème.
+
+Les 4 erreurs Sentry de ce jour portaient sur `_harness_partage.html` : c'étaient mes pages de test locales (qui chargent aussi Sentry), pas la production.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
