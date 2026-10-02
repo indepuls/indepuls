@@ -17468,7 +17468,14 @@ document.addEventListener('keydown', function(e) {
       if(btn){ btn.disabled=true; btn.textContent='Création…'; }
       if(msg){ msg.style.color='#9a9aaa'; msg.textContent='Création en cours…'; }
       try {
-        var res = await sb.auth.signUp({ email, password: pwd, options: { emailRedirectTo: window.location.origin } });
+        // Retour de l'email de confirmation : directement l'appli (et non l'accueil du site, qui
+        // n'a pas le client Supabase), avec le jeton d'invitation s'il y en a un (il se perdait
+        // sinon quand la confirmation s'ouvre dans un autre navigateur). Cette URL doit figurer
+        // dans Supabase, Authentication > URL Configuration > Redirect URLs (https://indepuls.fr/**),
+        // sinon Supabase retombe sur la "Site URL" (2026-10-02 : c'était encore l'ancien Netlify).
+        var _tokenInv = inviteTokenEnAttente();
+        var _retour = window.location.origin + '/indepuls.html' + (_tokenInv ? '?invite=' + _tokenInv : '');
+        var res = await sb.auth.signUp({ email, password: pwd, options: { emailRedirectTo: _retour } });
         if(res.error) throw res.error;
         // Adresse déjà inscrite (2026-10-02, retour Faustine) : avec la confirmation par email
         // activée, Supabase ne renvoie AUCUNE erreur ni aucun email dans ce cas (anti-énumération),
