@@ -9,6 +9,7 @@
 // calculs.getRevenuNetMois(DATA, mk)).
 
 import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART, BAREME_IR, PLAFOND_QF_PAR_DEMI_PART } from './taux.js';
+import { surchargePersonne } from './personnes.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -1542,11 +1543,13 @@ export function getMicroPlafondInfo(DATA) {
 // proprietaireId (optionnel, compte partagé) : les missions SANS auteur (créées avant le partage, donc
 // par le propriétaire) lui sont attribuées, et la mission de gestion interne ("Mon entreprise", commune
 // à tous) reste dans toutes les vues. Sans lui, filtrage strict comme avant.
-export function getDataPourMembre(DATA, membreId, proprietaireId) {
+export function getDataPourMembre(DATA, membreId, proprietaireId, moiId) {
   if (!membreId) return DATA;
   const avecProprio = proprietaireId !== undefined && proprietaireId !== null;
   return {
     ...DATA,
+    // Compte partagé : capacité de travail et congés de CETTE personne (voir personnes.js)
+    ...(avecProprio ? surchargePersonne(DATA, membreId, moiId) : {}),
     missions: (DATA.missions || []).filter(m => m.auteurId === membreId
       || (avecProprio && (m.isManagement || (membreId === proprietaireId && (m.auteurId === null || m.auteurId === undefined))))),
   };

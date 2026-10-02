@@ -4060,6 +4060,20 @@ Constat de Faustine : changer le prénom d'un côté le changeait des deux, car 
 
 Les 4 erreurs Sentry de ce jour portaient sur `_harness_partage.html` : c'étaient mes pages de test locales (qui chargent aussi Sentry), pas la production.
 
+### 2026-10-02 : Compte partagé, capacité de travail et congés individuels
+
+**Pourquoi** : `DATA.params` est commun à tout le compte partagé, or heures/jour, jours/semaine, semaines/an et congés sont personnels (une associée à 4 jours, l'autre à 5, des vacances différentes). Cela faussait remplissage et taux horaire.
+
+**Solution sans toucher aux ~100 endroits qui lisent ces valeurs** (`shared/core/personnes.js`, pur, 34 tests dans `personnes.test.js`) : chaque personne travaille sur "ses" valeurs dans `DATA.params.*` et `DATA.conges` (le moteur et l'interface ne voient aucune différence). À l'enregistrement, la version cloud les range par personne (`cloud.personnes[id] = {heuresParJour, joursParSemaine, semainesParAn, conges}`) et restaure les valeurs communes d'origine (`cloud.params.*`, `cloud.conges`, jamais modifiées par personne : aucun conflit possible). `versLocal` (cloud vers travail, à la connexion et à chaque adoption de fusion), `versCloud` (travail vers cloud, dans `_partagePropre`), `valeursCommunes` (gardées dans `p.communes`). Une nouvelle personne démarre avec les capacités communes et sans congés ; le propriétaire garde les siens.
+
+**Trois vues, trois lectures** : "Mes missions"/"Missions de X" prennent la capacité et les congés de la personne (`surchargePersonne` dans `getDataPourMembre`, 4e paramètre `moiId`) ; "Tout le compte" donne au MOTEUR (via `sync()` du pont module, uniquement si `window._partage` et hors vue par personne) les capacités ADDITIONNÉES (heures/jour sommées, jours/semaine pondérés pour que la capacité annuelle soit exactement la somme) et les congés = jours où TOUT LE MONDE est absent (`getDataVueCombinee`). Les formulaires Paramètres et le modal Congés affichent toujours les valeurs de la personne connectée, avec une note visible en compte partagé (`note-rythme-perso`, `note-conges-perso`).
+
+**Isolation des comptes solo** : tout est derrière `window._partage` (nul pour un solo) : `_partagePropre` ne projette que si `p.communes`, `sync()` du pont ne change `DATA` que si `window._partage`, `getDataPourMembre` ne surcharge que si `proprietaireId` est fourni. Vérifié en navigateur : un compte sans réglage de partage garde `_partage` nul, son upsert solo, aucune clé `personnes`.
+
+**Piège de test** : le navigateur de test met en cache `_harness_partage.html` d'un onglet à l'autre ; ajouter `&v=N` à l'URL après chaque régénération.
+
+**Reste individuel à faire si besoin** : temps interne par personne, thème, brief email hebdomadaire.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

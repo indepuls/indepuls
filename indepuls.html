@@ -1257,6 +1257,7 @@ html,body{overflow-x:hidden;}
         <div class="card-header">
           <div><div class="card-title">Mon rythme de travail</div><div class="card-sub">Ces valeurs alimentent le calculateur ci-dessous</div></div>
         </div>
+        <div class="ts mb10" id="note-rythme-perso" style="display:none;color:var(--tl)">🤝 Compte partagé : ces trois valeurs sont <strong>personnelles</strong>, chaque personne a les siennes. Dans la vue « tout le compte », Indépuls additionne les capacités de tout le monde.</div>
         <div class="frow3">
           <div class="fgroup"><label class="flabel">Jours / semaine <span class="info-tip" title="Indiquez uniquement votre temps facturable client — excluez la gestion, l'admin, la prospection. Cette valeur sert à calculer votre taux horaire minimum et votre CA mensuel à atteindre.">?</span></label><input type="number" id="p-jours" step="0.5" min="1" max="7" oninput="saveParam('joursParSemaine',+this.value);recalcObjectifsDebounced()"></div>
           <div class="fgroup"><label class="flabel">Heures / jour</label><input type="number" id="p-heures" step="0.5" min="1" max="12" oninput="saveParam('heuresParJour',+this.value);recalcObjectifsDebounced()"></div>
@@ -2428,6 +2429,7 @@ html,body{overflow-x:hidden;}
   <div class="modal" style="max-width:460px">
     <div class="modal-title">🏖️ Mes congés</div>
     <div class="ts mb14">Vos périodes de congés, pour que le calendrier et le Score de Santé ne les confondent jamais avec du temps sous-utilisé.</div>
+    <div class="ts mb14" id="note-conges-perso" style="display:none;color:var(--tl)">🤝 Compte partagé : ces congés sont <strong>les vôtres</strong>. Dans la vue « tout le compte », seuls les jours où tout le monde est absent comptent comme congés.</div>
     <div id="conges-suivi" class="mb14"></div>
     <div id="conges-list"></div>
     <div class="divider mt12"></div>
@@ -12484,10 +12486,9 @@ async function ouvrirComptePartageSiMembre(user) {
     // mode partagé est posé AVANT que DATA ne contienne les données d'autrui, de sorte qu'aucun
     // saveData() ne puisse s'exécuter avec elles sans l'un des deux.
     if (ecriture) {
-      const p = { ownerId: ownerId, userId: user.id, membre: true, updatedAt: res.data.updated_at, enCours: false, encore: false, timer: null };
+      const p = { ownerId: ownerId, userId: user.id, membre: true, updatedAt: res.data.updated_at, enCours: false, encore: false, timer: null, communes: null };
       window._partage = p;
-      DATA = d;
-      p.base = JSON.parse(JSON.stringify(d));
+      DATA = window._partageInitialiser(p, d, true); // mes réglages personnels (capacité, congés) projetés dans les données de travail
     } else {
       window._lectureSeule = true;
       DATA = d;
@@ -13432,6 +13433,7 @@ function renderParams() {
     if(lbl) lbl.classList.toggle('selected',r===urssafReg);
     if(inp) inp.checked=(r===urssafReg);
   });
+  { const n = document.getElementById('note-rythme-perso'); if (n) n.style.display = window._partage ? '' : 'none'; }
   document.getElementById('p-jours').value=p.joursParSemaine;
   document.getElementById('p-heures').value=p.heuresParJour;
   document.getElementById('p-semaines').value=p.semainesParAn;
@@ -14099,6 +14101,7 @@ function openCongesModal() {
   openModal('modal-conges');
 }
 function renderCongesModal() {
+  { const n = document.getElementById('note-conges-perso'); if (n) n.style.display = window._partage ? '' : 'none'; }
   const listEl=document.getElementById('conges-list');
   const suiviEl=document.getElementById('conges-suivi');
   if(!listEl||!suiviEl) return;
@@ -17218,11 +17221,18 @@ document.addEventListener('keydown', function(e) {
   // window._partage n'est pas posé (voir la section 'COMPTE PARTAGÉ' de l'IIFE d'authentification).
   import * as Fusion from './shared/core/fusion.js';
   import * as Partage from './shared/core/partage.js';
+  import * as Personnes from './shared/core/personnes.js';
+  window._Personnes = { versLocal: Personnes.versLocal, versCloud: Personnes.versCloud, valeursCommunes: Personnes.valeursCommunes, getDataVueCombinee: Personnes.getDataVueCombinee };
   window._Partage = { fusionnerDonnees: Fusion.fusionnerDonnees, egal: Fusion.egal, CHAMPS_VOLATILS: Fusion.CHAMPS_VOLATILS,
     enregistrerPartage: Partage.enregistrerPartage, rafraichirPartage: Partage.rafraichirPartage,
     horodatageSuivant: Partage.horodatageSuivant, decrireConflits: Partage.decrireConflits };
 
-  function sync() { Mode.setData(DATA); }
+  // Compte partagé, vue "tout le compte" : le moteur voit les capacités ADDITIONNÉES et les congés communs
+  // (personnes.js). Dans tous les autres cas (compte solo compris) : DATA telle quelle.
+  function sync() {
+    const p = window._partage;
+    Mode.setData(p && !window._vuePersonne ? window._Personnes.getDataVueCombinee(DATA, p.userId) : DATA);
+  }
 
   window.getCaFromMissions      = (mk) => { sync(); return Mode.getCaFromMissions(mk); };
   window.getMontantRembourseMois = (mk) => { sync(); return Mode.getMontantRembourseMois(mk); };
@@ -17326,7 +17336,7 @@ document.addEventListener('keydown', function(e) {
   window.getVFLComparaison         = (caPresta,caVente,autresRevenusFoyer,parts,estCouple) => { sync(); return Mode.getVFLComparaison(caPresta,caVente,autresRevenusFoyer,parts,estCouple); };
   window.getVFLPointBascule        = (ratioPresta,autresRevenusFoyer,parts,estCouple,caMaxRecherche) => { sync(); return Mode.getVFLPointBascule(ratioPresta,autresRevenusFoyer,parts,estCouple,caMaxRecherche); };
   window.getMicroPlafondInfo       = ()          => { sync(); return Mode.getMicroPlafondInfo(); };
-  window.getDataPourMembre         = (membreId, proprietaireId)  => { sync(); return Mode.getDataPourMembre(membreId, proprietaireId); };
+  window.getDataPourMembre         = (membreId, proprietaireId, moiId)  => { sync(); return Mode.getDataPourMembre(membreId, proprietaireId, moiId !== undefined ? moiId : (window._partage ? window._partage.userId : undefined)); };
   window.getPilierRemplissage      = ()          => { sync(); return Mode.getPilierRemplissage(); };
   window.getTauxRemplissageMois    = (mk)        => { sync(); return Mode.getTauxRemplissageMois(mk); };
   window.congeCouvreJour               = (c, ds) => { sync(); return Mode.congeCouvreJour(c, ds); };
@@ -17614,7 +17624,15 @@ document.addEventListener('keydown', function(e) {
   // Le moteur travaille sur des copies "propres" : les champs volatils (jamais synchronisés) retirés,
   // _ownerUid toujours égal au propriétaire du compte.
   window._partage = null; // {ownerId, userId, membre, base, updatedAt, enCours, encore, timer}
+  // Forme "cloud" d'une version de TRAVAIL : mes réglages personnels (capacité, congés) rangés dans
+  // personnes[moi], valeurs communes restaurées (voir shared/core/personnes.js). Sans projection
+  // (p.communes absent) : copie simple, comme avant.
   function _partagePropre(d, ownerId) {
+    var p = window._partage;
+    var src = (p && p.communes) ? window._Personnes.versCloud(d, p.userId, p.communes) : d;
+    return _partageNettoyer(src, ownerId);
+  }
+  function _partageNettoyer(d, ownerId) {
     var c = JSON.parse(JSON.stringify(d));
     ['_needsProfilePick', '_lectureSeule', '_pendingMigration'].forEach(function(k) { delete c[k]; });
     c._ownerUid = ownerId;
@@ -17635,7 +17653,7 @@ document.addEventListener('keydown', function(e) {
         if (r.error) throw r.error;
         return r.data && r.data.length === 1 ? { ok: true, updatedAt: r.data[0].updated_at } : { ok: false };
       },
-      normaliser: function(d) { return _partagePropre(applyDefaults(migrate(JSON.parse(JSON.stringify(d)))), p.ownerId); }
+      normaliser: function(d) { return _partageNettoyer(applyDefaults(migrate(JSON.parse(JSON.stringify(d)))), p.ownerId); } // version lue du cloud : déjà en forme cloud
     };
   }
   // Une page ne doit pas être remplacée sous les doigts de la personne : on n'adopte les données des
@@ -17678,7 +17696,7 @@ document.addEventListener('keydown', function(e) {
     if (aAdopter) {
       var volatils = {};
       ['_needsProfilePick', '_pendingMigration'].forEach(function(k) { if (DATA[k] !== undefined) volatils[k] = DATA[k]; });
-      DATA = Object.assign(fusion, volatils);
+      DATA = Object.assign(p.communes ? window._Personnes.versLocal(fusion, p.userId, !p.membre) : fusion, volatils);
       if (!p.membre) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch (e) {} }
       if (!DATA.params || !DATA.params.ecritureMembres) {
         if (p.membre) _partageVerrouiller('ℹ️ Le propriétaire a repassé ce compte en lecture seule. Vous le consultez sans pouvoir modifier.');
@@ -17763,12 +17781,24 @@ document.addEventListener('keydown', function(e) {
       _partagePlanifier(15000);
     } finally { p.enCours = false; }
   }
-  // Active le mode partagé. DATA doit contenir la version cloud connue (updatedAt).
-  window._activerPartage = async function(ownerId, membre, updatedAt) {
+  // Prépare le mode partagé à partir d'une version cloud : valeurs communes, version de base, et (si
+  // demandé) projection de MES réglages personnels. Retourne les données de travail.
+  window._partageInitialiser = function(p, cloudData, projeter) {
+    p.communes = window._Personnes.valeursCommunes(cloudData);
+    p.base = _partageNettoyer(cloudData, p.ownerId);
+    return projeter ? window._Personnes.versLocal(cloudData, p.userId, !p.membre) : cloudData;
+  };
+  // Active le mode partagé. DATA doit contenir la version cloud connue (updatedAt). projeter : vrai à
+  // la connexion (DATA est alors la version cloud brute), faux quand le propriétaire active en cours
+  // de session (DATA est déjà sa version de travail).
+  window._activerPartage = async function(ownerId, membre, updatedAt, projeter) {
     var s = await sb.auth.getSession();
     var u = s.data && s.data.session && s.data.session.user;
     if (!u) return false;
-    window._partage = { ownerId: ownerId, userId: u.id, membre: !!membre, base: _partagePropre(DATA, ownerId), updatedAt: updatedAt, enCours: false, encore: false, timer: null };
+    var p = { ownerId: ownerId, userId: u.id, membre: !!membre, base: null, updatedAt: updatedAt, enCours: false, encore: false, timer: null, communes: null };
+    window._partage = p;
+    DATA = Object.assign(window._partageInitialiser(p, DATA, !!projeter), { _ownerUid: DATA._ownerUid });
+    if (projeter && typeof renderAll === 'function') renderAll();
     if (typeof partageSeDeclarer === 'function') partageSeDeclarer();
     return true;
   };
@@ -17780,7 +17810,7 @@ document.addEventListener('keydown', function(e) {
     var s = await sb.auth.getSession();
     var u = s.data && s.data.session && s.data.session.user;
     if (!u || !_lastCloudUpdatedAt) return false;
-    return window._activerPartage(u.id, false, _lastCloudUpdatedAt);
+    return window._activerPartage(u.id, false, _lastCloudUpdatedAt, false);
   };
   window._desactiverPartageProprietaire = async function() {
     if (!window._partage) return;
@@ -17798,7 +17828,7 @@ document.addEventListener('keydown', function(e) {
       var s = await sb.auth.getSession();
       var u = s.data && s.data.session && s.data.session.user;
       if (!u || !_cloudLoaded || !_lastCloudUpdatedAt || (DATA._ownerUid && DATA._ownerUid !== u.id)) return false;
-      var ok = await window._activerPartage(u.id, false, _lastCloudUpdatedAt);
+      var ok = await window._activerPartage(u.id, false, _lastCloudUpdatedAt, true);
       if (ok) _partageVerifierConflits(); // conflit arbitré pendant mon absence
       return ok;
     } catch (e) { console.warn('_activerPartageProprietaireSiReglage failed:', e); return false; }
