@@ -81,6 +81,32 @@ if (!syncBlock) {
   }
 }
 
+// ── Règle 3 (2026-10-02, palier A multi-associés) : en lecture seule d'un compte partagé ──
+// (window._lectureSeule), DATA contient les données d'une AUTRE personne. Aucune écriture ne doit
+// alors jamais partir, ni vers le cache local ni vers le cloud. Chaque porte d'écriture doit
+// commencer par vérifier ce verrou : saveData() (cache local), le wrapper window.saveData,
+// syncToCloud() (cloud), le rechargement au retour sur l'onglet, l'import et la réinitialisation.
+const portesLectureSeule = [
+  ['function saveData()', 900, 'saveData() (cache local)'],
+  ['window.saveData = function', 300, 'wrapper window.saveData'],
+  ['async function syncToCloud', 700, 'syncToCloud() (cloud)'],
+  ['async function _verifierFraicheurCloud', 500, 'rechargement au retour sur l\'onglet'],
+  ['function handleImport', 300, 'import d\'une sauvegarde'],
+  ['async function confirmReset', 500, 'réinitialisation du compte'],
+];
+portesLectureSeule.forEach(([signature, fenetre, nom]) => {
+  const bloc = extractFunctionBlock(html, signature, fenetre);
+  if (!bloc) {
+    failures.push(nom + ' introuvable dans indepuls.html (' + signature + '), fonction renommée ou déplacée ? Ce garde-fou doit être mis à jour.');
+  } else if (!/window\._lectureSeule/.test(bloc)) {
+    failures.push(
+      'RÉGRESSION CRITIQUE : ' + nom + ' ne vérifie plus window._lectureSeule en tête de fonction. ' +
+      'Sans ce verrou, la consultation du compte d\'une autre personne (palier A multi-associés) ' +
+      'pourrait écrire SES données dans le cache local ou le cloud du membre connecté.'
+    );
+  }
+});
+
 if (failures.length) {
   console.error('❌ GARDE-FOU CLOUD SYNC — ' + failures.length + ' problème(s) détecté(s)\n');
   failures.forEach((f, i) => console.error(`  ${i + 1}. ${f}\n`));
@@ -88,5 +114,5 @@ if (failures.length) {
   console.error('Ne PAS pousser en production tant que ce test échoue.');
   process.exit(1);
 } else {
-  console.log('✅ Garde-fou cloud sync — les 2 règles anti-perte-de-données sont bien en place (4 vérifications passées).');
+  console.log('✅ Garde-fou cloud sync : les règles anti-perte-de-données sont bien en place (2 règles du 13 juillet et verrous de lecture seule).');
 }

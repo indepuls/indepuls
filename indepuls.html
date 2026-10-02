@@ -740,6 +740,11 @@ html,body{overflow-x:hidden;}
   <!-- BANDEAU DÉMO CONTEXTUEL (visible sur toutes les pages en mode démo) -->
   <div id="demo-context-bar" style="display:none;padding:0 28px"></div>
 
+  <!-- Lecture seule d'un compte partagé (2026-10-02) : visible sur TOUTES les pages tant que la
+       consultation dure, pour qu'on ne puisse jamais oublier que rien n'est enregistré. Absent
+       d'indepuls-demo.html (démo anonyme, pas de comptes). -->
+  <div id="bandeau-lecture-seule" style="display:none;position:sticky;top:0;z-index:60;padding:8px 28px;background:var(--acc);color:#fff;font-size:12px;font-weight:600;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"></div>
+
   <!-- DASHBOARD -->
   <div class="page active" id="page-dashboard">
     <div id="example-banner" style="display:none"></div>
@@ -748,10 +753,7 @@ html,body{overflow-x:hidden;}
          qui a accepté une invitation (voir afficherBanniereComptePartage). Hors de
          #dashboard-content pour ne pas être effacée à chaque renderDashboard(). Volontairement
          absente d'indepuls-demo.html (démo anonyme, pas de comptes). -->
-    <div id="banniere-compte-partage" style="display:none;margin-bottom:16px;padding:14px 16px;border:1px solid var(--brd);border-left:4px solid var(--acc);border-radius:10px;background:var(--card);font-size:13px;line-height:1.6">
-      <div style="font-weight:700;color:var(--pri);margin-bottom:4px">🤝 Vous avez rejoint un compte partagé</div>
-      <div style="color:var(--tl)">Une personne vous a invité·e à partager son compte Indépuls, et vous avez accepté. <strong>L'accès aux données communes n'est pas encore ouvert</strong> : pour l'instant, vous utilisez votre propre espace, séparé, qui reste le vôtre. Cet accès sera ouvert dans une prochaine mise à jour.</div>
-    </div>
+    <div id="banniere-compte-partage" style="display:none;margin-bottom:16px;padding:14px 16px;border:1px solid var(--brd);border-left:4px solid var(--acc);border-radius:10px;background:var(--card);font-size:13px;line-height:1.6"></div>
     <div id="dashboard-content"></div>
   </div>
 
@@ -1076,7 +1078,7 @@ html,body{overflow-x:hidden;}
           <div id="associes-wrap" style="display:none;margin-bottom:16px;padding:16px;border:1px solid var(--brd);border-top:4px solid var(--acc);border-radius:10px;background:var(--bg)">
             <div class="card-sub mb10" style="font-weight:700">🤝 Associés</div>
             <div class="ts mb10">Invitez un·e associé·e à accéder à ce même compte Indépuls. <span class="info-tip" title="Votre associé·e devra se connecter ou créer son compte avec EXACTEMENT l'adresse email que vous indiquez ici. Si quelqu'un d'autre tombe sur le lien d'invitation, il ne pourra pas l'utiliser : seul le titulaire de cette boîte mail peut l'accepter.">?</span></div>
-            <div class="ts mb10" style="color:var(--warn)">⚠️ Fonctionnalité en cours de déploiement : une invitation acceptée ne donne pas encore accès à vos données. Cette étape arrive dans une prochaine mise à jour.</div>
+            <div class="ts mb10" style="color:var(--warn)">⚠️ Fonctionnalité en cours de déploiement. Une personne qui accepte votre invitation pourra consulter l'intégralité de votre compte (missions, chiffres, paramètres) en lecture seule : elle ne pourra rien modifier. N'invitez que des personnes à qui vous donnez accès à vos chiffres.</div>
             <div class="frow">
               <div class="fgroup">
                 <label class="flabel">Email de votre associé·e</label>
@@ -4855,6 +4857,11 @@ function confirmMigration(source) {
 
 let _saveToastTimer=null;
 function saveData() {
+  // Consultation d'un compte partagé en lecture seule (2026-10-02, palier A multi-associés) :
+  // DATA contient alors les données d'une AUTRE personne, qui ne doivent JAMAIS être écrites dans
+  // le cache local de cet appareil (la garde anti-ré-adoption de loadFromCloud pourrait ensuite
+  // les adopter dans la ligne cloud du membre). Aucune écriture, nulle part, tant que ce mode dure.
+  if (window._lectureSeule) { notifierLectureSeule(); return; }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
     if (DATA.isExample) {
@@ -4928,6 +4935,8 @@ function exportData() {
 function importData() { document.getElementById('file-import').click(); }
 
 function handleImport(event) {
+  // Lecture seule : l'import copie DATA (celles d'une autre personne) dans une sauvegarde locale.
+  if (window._lectureSeule) { notifierLectureSeule(); event.target.value = ''; return; }
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -12108,7 +12117,7 @@ function appliquerInfoInvitation(info) {
   }
   if (info.etat === 'ok') {
     const qui = info.nom ? `<strong>${escapeHtml(info.nom)}</strong>` : 'Une personne';
-    note.innerHTML = `${qui} vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec l'adresse email de l'invitation (déjà renseignée, elle ne peut pas être modifiée : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien).<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">L'accès aux données partagées sera ouvert dans une prochaine mise à jour.</span>`;
+    note.innerHTML = `${qui} vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec l'adresse email de l'invitation (déjà renseignée, elle ne peut pas être modifiée : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien).<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">Une fois connecté·e, vous pourrez consulter ce compte en lecture seule.</span>`;
     if (emailEl) { emailEl.value = info.email; emailEl.readOnly = true; emailEl.style.background = '#F1EFEA'; }
   }
 }
@@ -12132,17 +12141,107 @@ function appliquerOptionAssociesBeta() {
   } catch (e) { console.warn('appliquerOptionAssociesBeta failed:', e); }
 }
 
-// Affiche la bannière "compte partagé" si la personne connectée est membre actif d'un compte
-// (a accepté une invitation non révoquée). Appelée après verifierInvitationEnAttente, pour
-// refléter une acceptation toute fraîche. Silencieuse en cas d'erreur : une bannière absente vaut
-// mieux qu'un message d'erreur sur le tableau de bord.
-async function afficherBanniereComptePartage(user) {
-  const el = document.getElementById('banniere-compte-partage');
-  if (!el || !user || typeof window._sb === 'undefined') return;
+// ── CONSULTATION EN LECTURE SEULE D'UN COMPTE PARTAGÉ (palier A, 2ᵉ étape, 2026-10-02) ───────
+// Une personne qui a accepté une invitation (membre "actif") voit par défaut les données du compte
+// qui l'a invitée, SANS pouvoir rien modifier. Principe de sécurité : on charge d'abord son propre
+// espace par le chemin normal et inchangé (loadFromCloud), puis on remplace DATA EN MÉMOIRE
+// SEULEMENT par celui du propriétaire. Tant que window._lectureSeule est vrai, plus aucune
+// écriture n'est possible nulle part : saveData() (cache local), syncToCloud() (cloud), le
+// rechargement au retour sur l'onglet, l'import et la réinitialisation sont tous verrouillés. Les
+// données affichées sont de plus estampillées au nom du propriétaire (_ownerUid), ce que la garde
+// existante de syncToCloud refuserait d'envoyer de toute façon. Le changement de vue passe par un
+// rechargement de page (sessionStorage 'indepuls_vue'), qui repart du chemin normal sans état
+// intermédiaire à restaurer.
+function notifierLectureSeule() {
+  const maintenant = Date.now();
+  if (maintenant - (window._lectureSeuleToastAt || 0) < 4000) return;
+  window._lectureSeuleToastAt = maintenant;
+  if (typeof showToast === 'function') showToast('👁 Lecture seule : cette modification n\'est pas enregistrée.', 'var(--acc)');
+}
+
+function basculerVueCompte(vers) {
   try {
-    const { data } = await window._sb.from('comptes_membres').select('id').eq('membre_id', user.id).eq('statut', 'actif').limit(1);
-    el.style.display = (data && data.length) ? '' : 'none';
-  } catch (e) { console.warn('afficherBanniereComptePartage failed:', e); }
+    if (vers === 'perso') sessionStorage.setItem('indepuls_vue', 'perso');
+    else sessionStorage.removeItem('indepuls_vue');
+  } catch (e) {}
+  location.reload();
+}
+
+// etat : null (rien à afficher) | {mode:'consultation', nom} | {mode:'perso', indisponible?}
+function afficherBanniereComptePartage(etat) {
+  const el = document.getElementById('banniere-compte-partage');
+  const bande = document.getElementById('bandeau-lecture-seule');
+  if (!el) return;
+  const titre = (t) => `<div style="font-weight:700;color:var(--pri);margin-bottom:4px">${t}</div>`;
+  if (!etat) {
+    el.style.display = 'none'; el.innerHTML = '';
+    if (bande) { bande.style.display = 'none'; bande.innerHTML = ''; }
+    return;
+  }
+  if (etat.mode === 'consultation') {
+    const qui = etat.nom ? escapeHtml(etat.nom) : 'votre associé·e';
+    el.innerHTML = titre(`👁 Vous consultez le compte de ${qui}, en lecture seule`)
+      + `<div style="color:var(--tl)">Vous voyez les données de ce compte partagé, mais vous ne pouvez rien y modifier : ce que vous faites ici n'est pas enregistré. Votre propre espace n'est pas touché.</div>`
+      + `<div style="margin-top:10px"><button class="btn btn-out btn-sm" onclick="basculerVueCompte('perso')">Revenir à mon espace</button></div>`;
+    el.style.display = '';
+    if (bande) {
+      bande.innerHTML = `<span>👁 Lecture seule : compte de ${qui}. Rien de ce que vous faites ici n'est enregistré.</span>`
+        + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="basculerVueCompte('perso')">Revenir à mon espace</button>`;
+      bande.style.display = 'flex';
+    }
+    return;
+  }
+  const texte = etat.indisponible
+    ? 'Vous avez rejoint un compte partagé, mais ses données ne sont pas accessibles pour le moment. Vous restez dans votre propre espace.'
+    : 'Vous avez rejoint un compte partagé et vous êtes actuellement dans votre propre espace, séparé. Vous pouvez à tout moment consulter le compte partagé en lecture seule.';
+  el.innerHTML = titre('🤝 Vous avez rejoint un compte partagé') + `<div style="color:var(--tl)">${texte}</div>`
+    + (etat.indisponible ? '' : `<div style="margin-top:10px"><button class="btn btn-acc btn-sm" onclick="basculerVueCompte('partage')">Consulter le compte partagé</button></div>`);
+  el.style.display = '';
+  if (bande) { bande.style.display = 'none'; bande.innerHTML = ''; }
+}
+
+// Appelée une seule fois par connexion, après loadFromCloud et l'éventuelle acceptation d'une
+// invitation (voir _enterApp). Pour un compte qui n'est membre de rien (tous les comptes solo) :
+// une lecture, aucun effet visible, retour 'aucun'. Ne passe en lecture seule qu'une fois les
+// données du propriétaire récupérées ET préparées ; en cas d'échec avant ce point, le compte reste
+// strictement en mode normal, avec ses propres données et ses sauvegardes.
+async function ouvrirComptePartageSiMembre(user) {
+  try {
+    if (!user || typeof window._sb === 'undefined') return 'aucun';
+    const mem = await window._sb.from('comptes_membres').select('compte_owner_id').eq('membre_id', user.id).eq('statut', 'actif').limit(1);
+    const ownerId = mem.data && mem.data[0] && mem.data[0].compte_owner_id;
+    if (!ownerId) { afficherBanniereComptePartage(null); return 'aucun'; }
+
+    let prefPerso = false;
+    try { prefPerso = sessionStorage.getItem('indepuls_vue') === 'perso'; } catch (e) {}
+    if (prefPerso) { afficherBanniereComptePartage({ mode: 'perso' }); return 'perso'; }
+
+    const res = await window._sb.from('user_data').select('data').eq('user_id', ownerId).eq('app_type', 'indepuls').maybeSingle();
+    if (!res.data || !res.data.data) { afficherBanniereComptePartage({ mode: 'perso', indisponible: true }); return 'indisponible'; }
+
+    // Tout ce qui peut échouer est fait AVANT la bascule : si ça lève, DATA reste celle du membre.
+    let d = JSON.parse(JSON.stringify(res.data.data));
+    d = applyDefaults(migrate(d));
+    d._ownerUid = ownerId;
+    d.isExample = false;
+    d._needsProfilePick = false;
+
+    // Bascule : ces deux instructions se suivent sans rien entre elles. Le verrou est posé en
+    // premier, de sorte qu'aucun saveData() ne puisse s'exécuter avec les données d'autrui.
+    window._lectureSeule = true;
+    DATA = d;
+
+    afficherBanniereComptePartage({ mode: 'consultation', nom: (DATA.params && DATA.params.nom) || '' });
+    const picker = document.getElementById('screen-profile-picker');
+    if (picker) picker.classList.add('hidden');
+    document.body.setAttribute('data-theme', DATA.theme || 'obm');
+    renderAll();
+    applyVocabUI();
+    return 'consultation';
+  } catch (e) {
+    console.warn('ouvrirComptePartageSiMembre failed:', e);
+    return 'erreur';
+  }
 }
 
 // Vrai si le compte contient de l'activité réelle (hors démo) : au moins une mission (hors "Mon
@@ -12187,7 +12286,7 @@ async function verifierInvitationEnAttente(user) {
     // L'accès réel aux données partagées (palier A, 2e partie) n'est pas encore câblé : la
     // personne reste sur son propre compte pour l'instant, le lien est volontairement honnête
     // plutôt que de prétendre que l'accès est déjà effectif.
-    showToast('✅ Invitation acceptée ! L\'accès aux données partagées sera activé dans une prochaine mise à jour.');
+    showToast('✅ Invitation acceptée ! Vous allez pouvoir consulter ce compte en lecture seule.');
     oublierInviteEnAttente();
   } catch (e) { console.warn('verifierInvitationEnAttente failed:', e); }
 }
@@ -15035,6 +15134,9 @@ function toggleResetBtn(checked) {
   if(btn) btn.disabled=!checked;
 }
 async function confirmReset() {
+  // Lecture seule : cette fonction efface le cache local ET la ligne cloud de la session, jamais
+  // acceptable pendant la consultation du compte d'une autre personne.
+  if (window._lectureSeule) { notifierLectureSeule(); return; }
   if(!document.getElementById('reset-confirm-check').checked) return;
   // 1. Arrêter le timer en cours
   if(timerInterval) { clearInterval(timerInterval); timerInterval=null; }
@@ -17231,6 +17333,10 @@ document.addEventListener('keydown', function(e) {
   }
 
   async function syncToCloud() {
+    // Lecture seule d'un compte partagé : jamais d'envoi vers le cloud (voir saveData()). Doublé
+    // par la garde _ownerUid plus bas (les données consultées sont estampillées au nom du
+    // propriétaire du compte, pas à celui de la session) : deux verrous indépendants.
+    if (window._lectureSeule) return;
     if (!_cloudLoaded) return;
     // GARDE-FOU CRITIQUE (2026-07) : ne jamais envoyer de données de démo vers le cloud, quelle
     // qu'en soit la raison (résidu local, échec de loadFromCloud, etc.) — c'est le dernier rempart
@@ -17278,6 +17384,7 @@ document.addEventListener('keydown', function(e) {
 
   var _origSaveData = window.saveData;
   window.saveData = function() {
+    if (window._lectureSeule) { notifierLectureSeule(); return; } // lecture seule : aucune écriture, voir saveData()
     _lastLocalEdit = Date.now(); // horodate la dernière saisie locale (garde-fou du rechargement auto)
     if (_origSaveData) _origSaveData();
     syncToCloud();
@@ -17292,6 +17399,9 @@ document.addEventListener('keydown', function(e) {
   // locale a eu lieu dans les 3 dernières secondes (on ne recharge pas par-dessus une saisie en cours).
   var _fraicheurEnCours = false;
   async function _verifierFraicheurCloud() {
+    // Lecture seule : ce rechargement (au retour sur l'onglet) relirait la ligne du membre et
+    // remplacerait silencieusement la consultation en cours par ses propres données.
+    if (window._lectureSeule) return;
     if (_fraicheurEnCours || !_cloudLoaded || DATA.isExample) return;
     if (Date.now() - _lastLocalEdit < 3000) return;
     _fraicheurEnCours = true;
@@ -17451,7 +17561,7 @@ document.addEventListener('keydown', function(e) {
         </div>
         <div id="auth-signup-panel" style="display:${inviteTokenEnAttente()?'':'none'}">
           <div style="font-size:${inviteTokenEnAttente()?'16px;font-weight:700;color:#141538':'13px;color:#9a9aaa'};margin-bottom:${inviteTokenEnAttente()?'10px':'24px'}">${inviteTokenEnAttente()?'Vous avez été invité·e sur Indépuls':'Créez votre compte Indépuls'}</div>
-          ${inviteTokenEnAttente()?`<div id="auth-invite-note" style="font-size:12px;color:#5B2C4A;background:#F1EFEA;border-radius:8px;padding:12px 14px;margin-bottom:16px;line-height:1.7;text-align:left">Une personne vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec <strong>exactement l'adresse email</strong> qui a reçu l'invitation. Le formulaire ne la vérifie pas à cette étape, mais l'invitation ne s'activera que si votre compte utilise cette adresse : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien.<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">L'accès aux données partagées sera ouvert dans une prochaine mise à jour.</span></div>`:''}
+          ${inviteTokenEnAttente()?`<div id="auth-invite-note" style="font-size:12px;color:#5B2C4A;background:#F1EFEA;border-radius:8px;padding:12px 14px;margin-bottom:16px;line-height:1.7;text-align:left">Une personne vous invite à partager un compte Indépuls commun.<br><strong>1.</strong> Créez votre compte avec <strong>exactement l'adresse email</strong> qui a reçu l'invitation. Le formulaire ne la vérifie pas à cette étape, mais l'invitation ne s'activera que si votre compte utilise cette adresse : c'est ce qui empêche quelqu'un d'autre d'utiliser le lien.<br><strong>2.</strong> Confirmez votre email, puis connectez-vous : l'invitation s'activera toute seule.<br><span style="color:#7a7a8a">Une fois connecté·e, vous pourrez consulter ce compte en lecture seule.</span></div>`:''}
           <input type="email" id="auth-signup-email" placeholder="Adresse email"
             style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid #e0ddd8;border-radius:9px;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none;background:#fff">
           <div style="position:relative;margin-bottom:16px">
@@ -17658,7 +17768,7 @@ document.addEventListener('keydown', function(e) {
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }
       setTimeout(addLogoutButton, 200);
-      loadFromCloud(user).then(function(){ hideOverlay(); appliquerOptionAssociesBeta(); return verifierInvitationEnAttente(user); }).then(function(){ afficherBanniereComptePartage(user); });
+      loadFromCloud(user).then(function(){ hideOverlay(); appliquerOptionAssociesBeta(); return verifierInvitationEnAttente(user); }).then(function(){ return ouvrirComptePartageSiMembre(user); });
     });
   }
 
