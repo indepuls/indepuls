@@ -4086,6 +4086,8 @@ Les 4 erreurs Sentry de ce jour portaient sur `_harness_partage.html` : c'étaie
 
 **Restauration** : procédure SQL de la section "Backup" ci-dessus, version du 2026-10-02 12:30:42.432525+00.
 
+**Suite de l'incident (2026-10-03)** : compte propriétaire restauré par Faustine depuis `user_data_backups` (version du 2026-10-02 12:30:42.432525+00, vérifiée : 2 missions, `associesBeta` et `ecritureMembres` à true). Fonction `backup_user_data()` remplacée (fichier `supabase/backup_comptes_partages.sql`, déjà exécuté) : 200 versions gardées pour un compte partagé (propriétaire avec au moins un membre non révoqué dans `comptes_membres`), 20 pour les autres. À surveiller : chaque version contient tout le compte, la taille de `user_data_backups` croît avec le nombre de comptes partagés (offre gratuite Supabase).
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
