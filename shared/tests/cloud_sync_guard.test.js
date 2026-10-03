@@ -136,6 +136,23 @@ portesPartage.forEach(([signature, fenetre, nom]) => {
   }
 }
 
+// ── Règle 5 (2026-10-03, incident réel) : _enterApp est rappelée à chaque retour sur l'onglet et relance
+// loadFromCloud (DATA = données personnelles de la session). Elle doit donc sortir si le mode partagé
+// est déjà actif pour cette personne, ou le remettre à zéro, AVANT loadFromCloud. Et _partageSync doit
+// refuser d'écrire si DATA n'est pas estampillée au nom du propriétaire du compte partagé.
+{
+  const bloc = extractFunctionBlock(html, 'function _enterApp', 1400) || '';
+  const iPartage = bloc.indexOf('window._partage');
+  const iLoad = bloc.indexOf('loadFromCloud(');
+  if (iPartage === -1 || iLoad === -1 || iPartage > iLoad) {
+    failures.push('RÉGRESSION CRITIQUE : _enterApp() doit traiter window._partage AVANT loadFromCloud(), sinon le retour sur longlet écrit les données personnelles dun membre dans le compte du propriétaire (incident du 2026-10-02).');
+  }
+  const sync = extractFunctionBlock(html, 'async function _partageSync', 1600) || '';
+  if (!/_ownerUid\s*!==\s*p\.ownerId/.test(sync)) {
+    failures.push('RÉGRESSION CRITIQUE : _partageSync() ne vérifie plus que DATA._ownerUid correspond au propriétaire du compte partagé avant décrire.');
+  }
+}
+
 if (failures.length) {
   console.error('❌ GARDE-FOU CLOUD SYNC — ' + failures.length + ' problème(s) détecté(s)\n');
   failures.forEach((f, i) => console.error(`  ${i + 1}. ${f}\n`));

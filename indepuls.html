@@ -17761,6 +17761,14 @@ document.addEventListener('keydown', function(e) {
   async function _partageSync(rafraichir) {
     var p = window._partage;
     if (!p || DATA.isExample || window._vuePersonne) return; // pas de synchronisation pendant la vue par personne (DATA y est filtrée)
+    // Dernier rempart (2026-10-03) : on n'écrit dans la ligne du propriétaire QUE si DATA est bien celle de ce
+    // compte (estampille _ownerUid) et que la version de base est connue. Sinon on arrête le mode partagé :
+    // mieux vaut ne rien enregistrer que d'écraser le compte des autres avec des données d'une autre origine.
+    if (!p.base || DATA._ownerUid !== p.ownerId) {
+      console.warn('_partageSync : DATA ne correspond pas au compte partagé, écriture refusée');
+      window._partage = null;
+      return;
+    }
     if (p.enCours) { if (!rafraichir) p.encore = true; return; }
     p.enCours = true;
     try {
@@ -18274,6 +18282,13 @@ document.addEventListener('keydown', function(e) {
 
   function _enterApp(user) {
     clearTimeout(_cdnFallback);
+    // COMPTE PARTAGÉ (correctif critique, 2026-10-03) : cette fonction est rappelée à chaque INITIAL_SESSION /
+    // SIGNED_IN, y compris au simple retour sur l'onglet. Elle relance loadFromCloud, qui remplace DATA par les
+    // données PERSONNELLES de la session. Si le mode partagé restait actif pendant ce temps, la sauvegarde
+    // partagée écrirait ces données personnelles (souvent vierges) dans la ligne du PROPRIÉTAIRE. Donc :
+    // déjà en mode partagé pour cette personne = on ne relance rien ; sinon on remet tout à zéro avant de recharger.
+    if (window._partage && window._partage.userId === user.id) { _authState = 'app'; return; }
+    window._partage = null; window._vuePersonne = null; window._dataCompleteVue = null;
     _authState = 'app';
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }

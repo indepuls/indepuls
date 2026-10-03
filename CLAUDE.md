@@ -4074,6 +4074,18 @@ Les 4 erreurs Sentry de ce jour portaient sur `_harness_partage.html` : c'étaie
 
 **Reste individuel à faire si besoin** : temps interne par personne, thème, brief email hebdomadaire.
 
+### 2026-10-03 : INCIDENT, le compte du propriétaire a été écrasé par les données vierges d'un membre (corrigé)
+
+**Constat (Faustine, 2026-10-02 après-midi)** : mission test disparue, carte "Associés" disparue (`associesBeta` perdu), le compte invité repassé en lecture seule (`ecritureMembres` perdu). Les copies de secours (`user_data_backups`) montrent, à 12:30:42 UTC, le passage d'une version à 2 missions + réglages actifs à une version vierge (1 mission de gestion, `associesBeta:false`), suivie d'une dizaine d'écritures identiques en 3 secondes.
+
+**Cause (reproduite à l'identique en banc d'essai sur l'ancienne version)** : `_enterApp()` est rappelée à CHAQUE `INITIAL_SESSION`/`SIGNED_IN`, y compris au simple retour sur l'onglet (supabase-js rejoue SIGNED_IN). Elle relance `loadFromCloud`, qui remplace DATA par les données PERSONNELLES de la session (pour un membre : son espace vierge). Pendant les quelques centaines de ms avant que `ouvrirComptePartageSiMembre` ne remette les données du propriétaire, `window._partage` restait actif : le moindre `saveData()` passait par la sauvegarde partagée, qui écrivait les données vierges du membre dans la ligne du propriétaire (écriture conditionnelle réussie car personne d'autre n'avait écrit, donc sans fusion).
+
+**Correctifs** (indepuls.html) : (1) `_enterApp` sort immédiatement si le mode partagé est déjà actif pour cette personne, sinon remet `_partage`, `_vuePersonne`, `_dataCompleteVue` à zéro AVANT `loadFromCloud` ; (2) `_partageSync` refuse d'écrire (et coupe le mode partagé) si `DATA._ownerUid` n'est pas celui du propriétaire du compte ou si la version de base est inconnue. Garde-fou automatisé : règle 5 de `cloud_sync_guard.test.js`. Vérifié en banc d'essai avec latence réseau simulée : ancien code = compte écrasé, code corrigé = intact après 3 retours sur l'onglet avec sauvegardes.
+
+**Leçons** : (a) tout état "mode partagé" doit être invalidé dès que DATA peut être remplacée par un chargement ; (b) une écriture conditionnelle réussie ne prouve pas que le contenu envoyé est le bon : vérifier l'origine des données (`_ownerUid`) avant d'écrire ; (c) le trigger de sauvegarde ne garde que 20 versions par compte et une rafale d'écritures les épuise en quelques secondes : à augmenter avant d'inviter des vraies utilisatrices (voir ci-dessous).
+
+**Restauration** : procédure SQL de la section "Backup" ci-dessus, version du 2026-10-02 12:30:42.432525+00.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
