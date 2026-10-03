@@ -17766,6 +17766,8 @@ document.addEventListener('keydown', function(e) {
   function _partageVerrouiller(message) {
     window._partage = null;
     window._lectureSeule = true;
+    // Le bandeau "compte partagé" ne doit plus proposer sélecteur et comparatif : on affiche la lecture seule.
+    if (typeof afficherBanniereComptePartage === 'function') afficherBanniereComptePartage({ mode: 'consultation', nom: (DATA.params && DATA.params.nom) || '' });
     if (typeof showToast === 'function') showToast(message, 'var(--err)');
   }
   function _partagePlanifier(ms) {
@@ -17800,7 +17802,7 @@ document.addEventListener('keydown', function(e) {
       if (!p.membre) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch (e) {} }
       if (!DATA.params || !DATA.params.ecritureMembres) {
         if (p.membre) _partageVerrouiller('ℹ️ Le propriétaire a repassé ce compte en lecture seule. Vous le consultez sans pouvoir modifier.');
-        else window._partage = null;
+        else { window._partage = null; if (typeof afficherBanniereComptePartage === 'function') afficherBanniereComptePartage(null); }
       }
       renderAll();
       if (window._partage && typeof majBandeauPartage === 'function') majBandeauPartage(); // nouveaux noms d'associé·es
@@ -17926,7 +17928,10 @@ document.addEventListener('keydown', function(e) {
     for (var i = 0; i < 100 && window._partage && window._partage.enCours; i++) await new Promise(function(r) { setTimeout(r, 100); });
     await _partageSync(false);
     var p = window._partage;
-    if (p && !p.encore && window._Partage.egal(_partagePropre(DATA, p.ownerId), p.base)) window._partage = null;
+    if (p && !p.encore && window._Partage.egal(_partagePropre(DATA, p.ownerId), p.base)) {
+      window._partage = null;
+      if (typeof afficherBanniereComptePartage === 'function') afficherBanniereComptePartage(null); // plus de bandeau partagé
+    }
   };
   // Propriétaire : un compte dont le réglage est déjà actif repasse en mode partagé à chaque connexion.
   window._activerPartageProprietaireSiReglage = async function() {

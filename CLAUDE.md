@@ -4106,6 +4106,16 @@ Les 4 erreurs Sentry de ce jour portaient sur `_harness_partage.html` : c'étaie
 
 **Vérifié** : 41 tests (`repartition.test.js` couvre aussi le temps interne), deux onglets : A 5 h + 1 h = 6 h, B 2 h, combiné 8 h, comparatif et fenêtre cohérents. Reste commun dans un compte partagé : thème et brief email hebdomadaire.
 
+### 2026-10-03 : Recette complète du compte partagé (banc d'essai à deux comptes + compte solo)
+
+Scénario de bout en bout avec faux Supabase (base partagée entre onglets, latence simulée sur `comptes_membres`), ~85 vérifications chiffrées : lecture seule tant que le réglage est off ; activation par la propriétaire ; membre en écriture sans cache local ; mission, dépense, temps, chrono avec auteur ; réglages personnels (capacité, congés, revenu, temps interne) rangés par personne sans toucher aux valeurs communes ; fusion de modifications croisées ; vrai conflit prévenu aux DEUX personnes (une seule fois) ; mission commune 70/30 (parts, comparatif réconcilié : 750 € / 1 050 €, 9 h / 6 h) ; vues par personne en lecture seule sans écriture ; vue combinée (capacités et revenus additionnés, congés communs) vue par le moteur ; 10 pages rendues dans chaque vue ; 4 retours sur l'onglet en rafale sans altérer le compte ; prénom personnel ; import et réinitialisation bloqués ; désactivation (membre repasse en lecture seule) ; accès perdu (rien n'est recréé) ; compte solo (aucun mode partagé, aucune clé de partage dans ses données, sauvegarde directe) ; gros compte (300 missions, 600 dépenses) : rendu 20 ms, pont 0,08 ms/appel.
+
+**Défaut trouvé et corrigé** : après désactivation par la propriétaire, ou passage d'un membre en lecture seule (accès perdu / réglage coupé), le bandeau "compte partagé" (sélecteur, comparatif) restait affiché. `_partageVerrouiller` affiche maintenant la lecture seule, `_desactiverPartageProprietaire` et l'adoption masquent le bandeau.
+
+**Pièges de test** : (1) `beforeunload` appelle `saveData()` : modifier la base de test pendant qu'une ancienne page est ouverte la fait réécrire son état à la fermeture, neutraliser `window.saveData` avant de naviguer ; (2) le navigateur de test met en cache la page, ajouter `&v=N` ; (3) seul `/_vercel/insights/script.js` répond 404 en local (normal).
+
+**Limites connues** : un chrono en cours n'est pas réparti sur une mission commune ; le temps interne détaillé reste dans la mission de gestion ; thème et brief hebdomadaire restent communs ; la révocation d'un membre repose sur la RLS Supabase (testée en réel par Faustine, pas dans le banc d'essai).
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
