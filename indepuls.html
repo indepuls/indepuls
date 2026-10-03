@@ -2805,7 +2805,7 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-stats-personnes">
   <div class="modal" style="max-width:640px">
     <div class="modal-title" style="margin-bottom:8px">📊 Par personne</div>
-    <p class="ts" style="line-height:1.6;margin-bottom:10px">Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses missions</strong> : sur les missions dont la personne est l'auteure (les missions créées avant le partage reviennent au propriétaire). <strong>Heures saisies par elle</strong> : le temps qu'elle a réellement enregistré, sur n'importe quelle mission, depuis le partage. Les dépenses sont communes.</p>
+    <p class="ts" style="line-height:1.6;margin-bottom:10px">Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses missions</strong> : sur les missions dont la personne est l'auteure (les missions créées avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors missions) que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu'elle a réellement enregistré sur des missions, y compris celles des autres. Les dépenses sont communes.</p>
     <div id="stats-personnes-corps" style="overflow-x:auto"></div>
     <div style="text-align:right;margin-top:14px"><button class="btn btn-acc btn-sm" onclick="closeModal('modal-stats-personnes')">Fermer</button></div>
   </div>
@@ -12409,23 +12409,30 @@ function auteursDuCompte(complet, p) {
 }
 
 function ouvrirStatsPersonnes() {
+  if (!window._partage || window._vuePersonne) return;
+  // Pendant le calcul, le moteur ne doit PAS recevoir la vue combinée (sync() du pont) : sinon "mes" chiffres
+  // seraient ceux de tout le compte. Le drapeau _vuePersonne coupe aussi toute synchronisation.
+  window._vuePersonne = '_stats';
+  try { _ouvrirStats(); } finally { window._vuePersonne = null; }
+}
+function _ouvrirStats() {
   const p = window._partage;
-  if (!p || window._vuePersonne) return;
   const complet = DATA;
   const auteurs = auteursDuCompte(complet, p);
   const mks = getCurrentYearMonths();
   const lignes = Object.keys(auteurs).map(id => {
-    let missions = 0, encaisse = 0, heuresMissions = 0;
+    let missions = 0, encaisse = 0, heuresMissions = 0, hInterne = 0;
     try {
       const vue = window.getDataPourMembre(id, p.ownerId); // sync() sur les données complètes
       DATA = vue;
       missions = vue.missions.filter(m => !m.isManagement).length;
       encaisse = mks.reduce((t, mk) => t + (getCaFromMissions(mk) || 0), 0);
       heuresMissions = vue.missions.filter(m => !m.isManagement).reduce((t, m) => t + (getMissionHeures(m) || 0), 0);
+      hInterne = mks.reduce((t, mk) => t + ((vue.tempsInterne && vue.tempsInterne[mk]) || 0), 0) / 3600000; // temps interne de CETTE personne
     } finally { DATA = complet; window.getDataPourMembre(null); } // restaure aussi le contexte du moteur
     let msSaisi = 0;
     complet.missions.forEach(m => (m.tempsManuel || []).forEach(e => { if (e.auteurId === id) msSaisi += e.ms || 0; }));
-    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, heuresMissions, hSaisies: msSaisi / 3600000 };
+    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, heuresMissions, hInterne, hSaisies: msSaisi / 3600000 };
   });
   const corps = document.getElementById('stats-personnes-corps');
   if (!corps) return;
@@ -12433,11 +12440,12 @@ function ouvrirStatsPersonnes() {
   corps.innerHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'
     + '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--brd)">Personne</th>'
     + '<th style="' + th + '">Missions</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th>'
-    + '<th style="' + th + '">Heures sur ses missions</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
+    + '<th style="' + th + '">Heures sur ses missions</th><th style="' + th + '">Temps interne</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
     + lignes.map(l => '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--brd)">' + escapeHtml(l.nom) + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + l.missions + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd);font-weight:700">' + fmt(l.encaisse) + ' €</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.heuresMissions, 1) + ' h</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hInterne, 1) + ' h</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hSaisies, 1) + ' h</td></tr>').join('')
     + '</tbody></table>';
   openModal('modal-stats-personnes');
@@ -14104,7 +14112,25 @@ function openTempsInterneModal() {
   renderTempsInterneModal();
   openModal('modal-temps-interne');
 }
+// Récapitulatif du temps interne de l'année par personne (compte partagé seulement).
+function renderTiParPersonne() {
+  const p = window._partage;
+  const el = document.getElementById('temps-interne-list');
+  if (!p || !el) return;
+  const complet = window._dataCompleteVue || DATA;
+  const auteurs = auteursDuCompte(complet, p);
+  const mks = getCurrentYearMonths();
+  const lignes = Object.keys(auteurs).map(id => {
+    const ti = id === p.userId ? (complet.tempsInterne || {}) : (((complet.personnes || {})[id] || {}).tempsInterne || {});
+    const h = mks.reduce((t, mk) => t + (ti[mk] || 0), 0) / 3600000;
+    const nom = (auteurs[id] || {}).nom || 'Associé·e';
+    return '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>' + escapeHtml(id === p.userId ? 'Moi (' + nom + ')' : nom) + '</span><strong>' + fmt(h, 1) + ' h</strong></div>';
+  }).join('');
+  el.insertAdjacentHTML('beforeend', '<div class="ts" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--brd)"><div style="font-weight:700;margin-bottom:4px">🤝 Par personne (année en cours)</div>' + lignes
+    + '<div style="color:var(--tl);margin-top:4px">Le tableau ci-dessus est le vôtre. Dans la vue « tout le compte », les temps de chacun·e s\'additionnent.</div></div>');
+}
 function renderTempsInterneModal() {
+  setTimeout(renderTiParPersonne, 0);
   const months=getCurrentYearMonths(), curMk=getCurrentMk();
   // Select mois
   const sel=document.getElementById('ti-mois');

@@ -4096,6 +4096,16 @@ Les 4 erreurs Sentry de ce jour portaient sur `_harness_partage.html` : c'étaie
 
 **Vérifié** en banc d'essai (faux Supabase, deux comptes) : 80/20 donne 800/200 € et 8/2 h aux deux vues, total 500 € encaissé réconcilié dans le comparatif ; enregistrement d'une mission 70/30 ; membre neuf à 0 avec message d'accueil.
 
+### 2026-10-03 : Compte partagé, temps interne par personne
+
+**Changement de modèle** : le temps interne (total mensuel en ms, `DATA.tempsInterne`, lu tel quel par le moteur) suit désormais le même mécanisme que capacité/congés/revenu (`personnes.js`) : chaque personne travaille sur SON temps interne, rangé dans le cloud à `personnes[id].tempsInterne`. L'ancien total du compte (`cloud.tempsInterne`) reste figé comme historique commun ; le propriétaire le garde comme son propre temps tant qu'il n'a rien de rangé, une nouvelle personne démarre à 0. Vue "Tout le compte" : somme mois par mois de tout le monde (`getDataVueCombinee`) ; vue d'une personne : le sien (`surchargePersonne`). `fusion.js` : le compteur additif couvre aussi `personnes.<id>.tempsInterne.<mois>` (deux appareils de la même personne).
+
+**Visible** : colonne "Temps interne" dans "📊 Comparer" ; récapitulatif "🤝 Par personne (année en cours)" sous le tableau de la fenêtre "Temps interne" (`renderTiParPersonne`). Le détail par saisie reste dans `tempsManuel` de la mission de gestion (`auteurId`).
+
+**Bug corrigé au passage** : `ouvrirStatsPersonnes` appelait `getDataPourMembre` pendant que `sync()` du pont fournissait au moteur la vue combinée : "mes" chiffres étaient ceux de tout le compte (temps interne 8 h au lieu de 6 h, et capacités/revenu de même). Le drapeau `_vuePersonne = '_stats'` est maintenant posé pendant le calcul (wrapper `ouvrirStatsPersonnes` / `_ouvrirStats`).
+
+**Vérifié** : 41 tests (`repartition.test.js` couvre aussi le temps interne), deux onglets : A 5 h + 1 h = 6 h, B 2 h, combiné 8 h, comparatif et fenêtre cohérents. Reste commun dans un compte partagé : thème et brief email hebdomadaire.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

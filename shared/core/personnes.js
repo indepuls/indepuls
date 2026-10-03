@@ -27,7 +27,7 @@ const copie = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)
 // Valeurs communes (celles de l'enregistrement cloud, avant toute projection).
 export function valeursCommunes(cloud) {
   const p = (cloud && cloud.params) || {};
-  const communes = { conges: copie((cloud && cloud.conges) || []) };
+  const communes = { conges: copie((cloud && cloud.conges) || []), tempsInterne: copie((cloud && cloud.tempsInterne) || {}) };
   CHAMPS_PERSO.forEach((k) => { if (p[k] !== undefined) communes[k] = p[k]; });
   return communes;
 }
@@ -39,10 +39,14 @@ export function versLocal(cloud, moi, estProprietaire) {
   if (pe) {
     CHAMPS_PERSO.forEach((k) => { if (pe[k] !== undefined) local.params[k] = pe[k]; });
     local.conges = Array.isArray(pe.conges) ? copie(pe.conges) : (estProprietaire ? (local.conges || []) : []);
+    // Temps interne : le MIEN (total mensuel en ms). Le propriétaire qui n'en a pas encore de rangé garde l'historique du compte.
+    if (pe.tempsInterne && typeof pe.tempsInterne === 'object') local.tempsInterne = copie(pe.tempsInterne);
+    else if (!estProprietaire) local.tempsInterne = {};
   } else {
     // Première fois : le propriétaire garde ce qu'il avait, une nouvelle personne part sans congés
     // (ceux déjà saisis dans le compte sont ceux du propriétaire) et avec les capacités communes.
     local.conges = estProprietaire ? (local.conges || []) : [];
+    if (!estProprietaire) local.tempsInterne = {};
     if (!estProprietaire) CHAMPS_REVENU.forEach((k) => { local.params[k] = 0; }); // à renseigner par la personne
   }
   return local;
@@ -54,10 +58,12 @@ export function versCloud(local, moi, communes) {
   const pe = {};
   CHAMPS_PERSO.forEach((k) => { if (local.params && local.params[k] !== undefined) pe[k] = local.params[k]; });
   pe.conges = copie(local.conges || []);
+  pe.tempsInterne = copie(local.tempsInterne || {});
   c.personnes[moi] = pe;
   if (!c.params) c.params = {};
   CHAMPS_PERSO.forEach((k) => { if (communes && communes[k] !== undefined) c.params[k] = communes[k]; else delete c.params[k]; });
   c.conges = copie((communes && communes.conges) || []);
+  c.tempsInterne = copie((communes && communes.tempsInterne) || {});
   return c;
 }
 
@@ -69,6 +75,7 @@ function reglagesParPersonne(DATA, moi) {
     const pe = {};
     CHAMPS_PERSO.forEach((k) => { if (DATA.params && DATA.params[k] !== undefined) pe[k] = DATA.params[k]; });
     pe.conges = DATA.conges || [];
+    pe.tempsInterne = DATA.tempsInterne || {};
     res[moi] = pe;
   }
   return res;
@@ -103,10 +110,17 @@ export function getDataVueCombinee(DATA, moi) {
   CHAMPS_REVENU.forEach((k) => {
     somme[k] = Object.keys(reglages).reduce((s, id) => s + (Number(reglages[id][k]) || 0), 0);
   });
+  // Temps interne : somme, mois par mois, de celui de chaque personne.
+  const tempsInterne = {};
+  Object.keys(reglages).forEach((id) => {
+    const ti = reglages[id].tempsInterne || {};
+    Object.keys(ti).forEach((mk) => { tempsInterne[mk] = (tempsInterne[mk] || 0) + (Number(ti[mk]) || 0); });
+  });
   return {
     ...DATA,
     params: { ...DATA.params, heuresParJour: hpj, joursParSemaine: jps, semainesParAn: spa, ...somme },
     conges,
+    tempsInterne,
   };
 }
 
@@ -115,5 +129,5 @@ export function surchargePersonne(DATA, id, moi) {
   if (!r) return {};
   const params = { ...DATA.params };
   CHAMPS_PERSO.forEach((k) => { if (r[k] !== undefined) params[k] = r[k]; });
-  return { params, conges: Array.isArray(r.conges) ? r.conges : [] };
+  return { params, conges: Array.isArray(r.conges) ? r.conges : [], tempsInterne: (r.tempsInterne && typeof r.tempsInterne === 'object') ? r.tempsInterne : {} };
 }

@@ -76,7 +76,7 @@ function fusionner3(base, mine, theirs, chemin, ctx) {
     return fusionnerTableaux(Array.isArray(base) ? base : [], mine, theirs, chemin, ctx);
   }
   // Compteur de temps interne d'un mois : on additionne les deux variations, pas de conflit.
-  if (/^\.tempsInterne\.[\d-]+$/.test(chemin) && typeof mine === 'number' && typeof theirs === 'number') {
+  if (/^(\.personnes\.[^.]+)?\.tempsInterne\.[\d-]+$/.test(chemin) && typeof mine === 'number' && typeof theirs === 'number') {
     const b = typeof base === 'number' ? base : 0;
     return Math.max(0, b + (mine - b) + (theirs - b));
   }

@@ -113,6 +113,32 @@ async function main() {
     test('vue d\'une personne : son revenu à elle', [2500, 2000], [sp.params.objectifNetMensuel, sp.params.remunerationNette]);
   }
 
+  section('Temps interne par personne');
+  {
+    const H = 3600000;
+    const cloud = { params: { heuresParJour: 7, joursParSemaine: 4, semainesParAn: 44 }, conges: [], tempsInterne: { '2026-10': 5 * H }, missions: [] };
+    const communes = P.valeursCommunes(cloud);
+    const proprio = P.versLocal(cloud, 'flo', true);
+    test('le propriétaire garde l\'historique du compte', 5 * H, proprio.tempsInterne['2026-10']);
+    const membre = P.versLocal(cloud, 'asso', false);
+    test('une nouvelle personne démarre sans temps interne', {}, membre.tempsInterne);
+    membre.tempsInterne['2026-10'] = 2 * H;
+    const c = P.versCloud(membre, 'asso', communes);
+    test('cloud : son temps rangé à son nom', 2 * H, c.personnes.asso.tempsInterne['2026-10']);
+    test('cloud : l\'ancien total commun est inchangé', 5 * H, c.tempsInterne['2026-10']);
+    const retour = P.versLocal(c, 'asso', false);
+    test('aller-retour : elle retrouve son temps', 2 * H, retour.tempsInterne['2026-10']);
+    const D = JSON.parse(JSON.stringify(cloud));
+    D.personnes = { asso: { heuresParJour: 7, joursParSemaine: 4, semainesParAn: 44, conges: [], tempsInterne: { '2026-10': 2 * H, '2026-11': H } } };
+    D.tempsInterne = { '2026-10': 5 * H };
+    const comb = P.getDataVueCombinee(D, 'flo');
+    test('combiné : somme par mois (5 h + 2 h, et novembre)', [7 * H, H], [comb.tempsInterne['2026-10'], comb.tempsInterne['2026-11']]);
+    const vue = C.getDataPourMembre(D, 'asso', 'flo', 'flo');
+    test('vue d\'une personne : son temps seulement', [2 * H, H], [vue.tempsInterne['2026-10'], vue.tempsInterne['2026-11']]);
+    const vueMoi = C.getDataPourMembre(D, 'flo', 'flo', 'flo');
+    test('ma vue : mon temps vivant', 5 * H, vueMoi.tempsInterne['2026-10']);
+  }
+
   console.log(`\n${'─'.repeat(50)}`);
   console.log(`Résultat : ${PASS} tests passés, ${FAIL} échoués`);
   if (FAIL > 0) process.exitCode = 1;
