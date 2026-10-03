@@ -10,6 +10,7 @@
 
 import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART, BAREME_IR, PLAFOND_QF_PAR_DEMI_PART } from './taux.js';
 import { surchargePersonne } from './personnes.js';
+import { aRepartition, partDe, partMission } from './repartition.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -1550,7 +1551,12 @@ export function getDataPourMembre(DATA, membreId, proprietaireId, moiId) {
     ...DATA,
     // Compte partagé : capacité de travail et congés de CETTE personne (voir personnes.js)
     ...(avecProprio ? surchargePersonne(DATA, membreId, moiId) : {}),
-    missions: (DATA.missions || []).filter(m => m.auteurId === membreId
-      || (avecProprio && (m.isManagement || (membreId === proprietaireId && (m.auteurId === null || m.auteurId === undefined))))),
+    // Mission commune (repartition en pourcentages) : visible seulement des personnes qui y participent,
+    // réduite à LEUR part. Sinon : par auteur, comme avant.
+    missions: (DATA.missions || []).map(m => {
+      if (aRepartition(m)) { const p = partDe(m, membreId); return p > 0 ? partMission(m, p) : null; }
+      return (m.auteurId === membreId
+        || (avecProprio && (m.isManagement || (membreId === proprietaireId && (m.auteurId === null || m.auteurId === undefined))))) ? m : null;
+    }).filter(Boolean),
   };
 }

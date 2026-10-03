@@ -1291,6 +1291,7 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="fgroup">
           <label class="flabel" id="objectif-net-label">Revenu net mensuel souhaité (€)</label>
+          <div class="ts mb4" id="note-revenu-perso" style="display:none;color:var(--tl)">🤝 Compte partagé : ce revenu est <strong>le vôtre</strong>. Dans la vue « tout le compte », Indépuls additionne celui de chaque associé·e.</div>
           <input type="number" id="p-objectif-net" step="100" min="0" oninput="saveParam('objectifNetMensuel',+this.value);recalcObjectifsDebounced()" placeholder="Ex : 3 500">
         </div>
         <div class="fgroup">
@@ -1922,6 +1923,13 @@ html,body{overflow-x:hidden;}
           <option value="autre">Autre</option>
         </select>
         <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
+      </div>
+      <div class="fgroup" id="m-commune-zone" style="display:none;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> 🤝 Mission commune <span class="info-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
+        <div id="m-commune-detail" style="display:none;margin-top:10px">
+          <div id="m-commune-lignes"></div>
+          <div class="ts" id="m-commune-total" style="margin-top:6px"></div>
+        </div>
       </div>
       <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
       <div id="m-documents-zone" style="margin-top:6px"></div>
@@ -9114,6 +9122,7 @@ function openMissionModal(id, prefillDate) {
   document.getElementById('m-client').value=m?m.client:'';
   document.getElementById('m-desc').value=m?m.description:'';
   document.getElementById('m-notes').value=m?(m.notes||''):'';
+  initMissionCommune(m);
   const sel=document.getElementById('m-cat');
   sel.innerHTML='<option value="">— Choisir —</option>';
   DATA.categories.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(m&&m.categorie===c) o.selected=true; sel.appendChild(o); });
@@ -9630,6 +9639,7 @@ function saveMission(bypassSessionGuard) {
     prixAchat:parseFloat(document.getElementById('m-prix-achat')?.value)||null,
     lotId:document.getElementById('m-lot-id')?.value||null,
   };
+  if(window._partage){ const rc=lireRepartitionMission(); if(!rc.ok){ showToast('⚠️ '+rc.message,'var(--err)'); return; } obj.repartition=rc.rep; } // mission commune (compte partagé uniquement)
   if(obj.typeMission==='collectif'&&obj.nbParticipants>0&&obj.prixParParticipant>0){
     obj.montantDevis=obj.nbParticipants*obj.prixParParticipant;
     obj.montantPrestation=obj.montantDevis; obj.montantVente=0;
@@ -11215,7 +11225,7 @@ function renderMissions() {
     const _recEnc=(m.encaissements||[]).length, _recT=m.nbMoisRec||'?';
     const dateFactCell=m.isRecurring?`${_recEnc}/${_recT} mois encaiss${_recEnc===1?'é':'és'}`:(m.dateFact||'—');
     const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts" style="margin-top:2px">${getRecurringPeriodLabel(m)}</div>${m.nbMoisRec?`<div class="ts">Total : ${fmtE(m.montantDevis)}</div>`:''}`:(tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis));
-    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
+    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${typeof badgeCommune==='function'?badgeCommune(m):''}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
@@ -12261,6 +12271,62 @@ function nomCourtDepuisEmail(email) {
   return base ? base.charAt(0).toUpperCase() + base.slice(1) : 'Associé·e';
 }
 
+// ── MISSION COMMUNE : répartition en pourcentage (2026-10-03) ──────────────────────────────
+// Formulaire : case + un pourcentage par personne du compte (somme = 100). Enregistrée dans
+// mission.repartition = { idPersonne: pourcentage }. Rien de tout cela n'existe hors compte partagé.
+function initMissionCommune(m) {
+  const zone = document.getElementById('m-commune-zone');
+  if (!zone) return;
+  const p = window._partage;
+  zone.style.display = p ? '' : 'none';
+  if (!p) return;
+  const rep = m && m.repartition && Object.keys(m.repartition).length ? m.repartition : null;
+  document.getElementById('m-commune').checked = !!rep;
+  document.getElementById('m-commune-detail').style.display = rep ? '' : 'none';
+  renderLignesCommune(rep);
+}
+function renderLignesCommune(rep) {
+  const p = window._partage;
+  const el = document.getElementById('m-commune-lignes');
+  if (!p || !el) return;
+  const auteurs = auteursDuCompte(DATA, p);
+  const ids = Object.keys(auteurs);
+  Object.keys(rep || {}).forEach(id => { if (ids.indexOf(id) < 0) ids.push(id); });
+  const valeurs = rep || window._Repartition.repartitionEgale(ids);
+  el.innerHTML = ids.map(id => '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+    + '<span style="flex:1">' + escapeHtml(id === p.userId ? 'Moi (' + ((auteurs[id] || {}).nom || '') + ')' : ((auteurs[id] || {}).nom || 'Associé·e')) + '</span>'
+    + '<input type="number" min="0" max="100" step="1" data-id="' + escapeHtml(id) + '" value="' + (valeurs[id] != null ? valeurs[id] : 0) + '" oninput="majTotalCommune()" style="width:80px;text-align:right"> %'
+    + '</div>').join('');
+  majTotalCommune();
+}
+function toggleMissionCommune(on) {
+  document.getElementById('m-commune-detail').style.display = on ? '' : 'none';
+  if (on) renderLignesCommune(null);
+}
+function lireRepartitionMission() {
+  const cb = document.getElementById('m-commune');
+  if (!cb || !cb.checked) return { ok: true, rep: null };
+  const rep = {};
+  document.querySelectorAll('#m-commune-lignes input[data-id]').forEach(i => { const v = parseFloat(i.value); if (v > 0) rep[i.getAttribute('data-id')] = v; });
+  const r = window._Repartition.verifierRepartition(rep);
+  return r.ok ? { ok: true, rep: rep } : { ok: false, message: 'Mission commune : ' + (r.raison || 'répartition invalide') + ' (actuellement ' + (isFinite(r.total) ? r.total : '?') + ' %).' };
+}
+function majTotalCommune() {
+  const el = document.getElementById('m-commune-total');
+  if (!el) return;
+  let t = 0;
+  document.querySelectorAll('#m-commune-lignes input[data-id]').forEach(i => { t += parseFloat(i.value) || 0; });
+  t = Math.round(t * 100) / 100;
+  el.textContent = 'Total : ' + t + ' %' + (Math.abs(t - 100) > 0.01 ? ' (doit faire 100 %)' : ' ✓');
+  el.style.color = Math.abs(t - 100) > 0.01 ? 'var(--err)' : 'var(--ok)';
+}
+// Petit repère dans la liste des missions : "🤝 80/20"
+function badgeCommune(m) {
+  if (!m || !m.repartition || !Object.keys(m.repartition).length) return '';
+  const parts = Object.keys(m.repartition).map(id => Math.round(m.repartition[id]));
+  return ' <span class="ts" style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:0 6px;font-weight:600" title="Mission commune, répartie entre associé·es">🤝 ' + parts.join('/') + '</span>';
+}
+
 // Auteur d'une saisie de temps : seulement dans un compte partagé, rien d'ajouté sinon.
 function auteurSaisie() { return (window._partage && window._partage.userId) ? { auteurId: window._partage.userId } : {}; }
 function nomAuteur(id) {
@@ -12392,7 +12458,10 @@ function majBandeauPartage() {
   }
   const options = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0))
     .map(id => `<option value="${escapeHtml(id)}">${libelle(id)}</option>`).join('');
-  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte.</span>`
+  // Nouvelle personne : revenu souhaité encore à 0 -> invitation à paramétrer son compte.
+  const aParametrer = p.membre && !((DATA.params.objectifNetMensuel || 0) > 0) && !((DATA.params.remunerationNette || 0) > 0);
+  const accueil = aParametrer ? `<span style="background:#fff;color:var(--acc);border-radius:6px;padding:2px 8px;font-weight:700">👋 Paramétrez votre compte : revenu souhaité, jours et heures travaillés, congés. <a href="#" onclick="navigate('params');return false" style="color:var(--acc)">Ouvrir les paramètres</a></span>` : '';
+  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte.</span>${accueil}`
     + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="ouvrirStatsPersonnes()">📊 Comparer</button>`
     + `<label style="display:flex;align-items:center;gap:6px">Voir les chiffres de :`
     + `<select onchange="choisirVuePersonne(this.value)" style="border-radius:6px;border:none;padding:3px 6px;font-size:12px"><option value="">Tout le compte</option>${options}</select></label>`;
@@ -13434,6 +13503,7 @@ function renderParams() {
     if(inp) inp.checked=(r===urssafReg);
   });
   { const n = document.getElementById('note-rythme-perso'); if (n) n.style.display = window._partage ? '' : 'none'; }
+  { const n = document.getElementById('note-revenu-perso'); if (n) n.style.display = window._partage ? '' : 'none'; }
   document.getElementById('p-jours').value=p.joursParSemaine;
   document.getElementById('p-heures').value=p.heuresParJour;
   document.getElementById('p-semaines').value=p.semainesParAn;
@@ -13499,7 +13569,9 @@ function renderParams() {
       ? "Indépuls suit une seule rémunération et un seul taux de charges cumulés pour tous les dirigeants. Vous pouvez en plus inviter un·e associé·e à accéder au même compte juste en dessous, ou continuer à n'utiliser cette case que pour le vocabulaire si vous préférez."
       : "Indépuls suit une seule rémunération et un seul taux de charges, pas de compte partagé ni de suivi individuel par dirigeant. Si vous êtes plusieurs présidents/dirigeants à vous verser un salaire, indiquez le montant cumulé de toutes les rémunérations (le taux de charges reste le même pour tous en SAS, assimilé salarié).";
     document.getElementById('sasu-pilotage-label').textContent=isEurl?'🏢 Pilotage EURL':`🏢 Pilotage SASU${plusieurs?'/SAS':''}`;
-    document.getElementById('sasu-remu-label').textContent=plusieurs
+    document.getElementById('sasu-remu-label').textContent=window._partage
+      ? 'Ma rémunération nette / mois (€) (additionnée à celle de vos associé·es dans la vue « tout le compte »)'
+      : plusieurs
       ? 'Rémunération nette totale des dirigeants / mois (€)'
       : (isEurl?'Rémunération du gérant / mois (€)':'Rémunération nette / mois (€)');
     const _chargesLbl=document.getElementById('sasu-charges-label');
@@ -17222,6 +17294,8 @@ document.addEventListener('keydown', function(e) {
   import * as Fusion from './shared/core/fusion.js';
   import * as Partage from './shared/core/partage.js';
   import * as Personnes from './shared/core/personnes.js';
+  import * as Repartition from './shared/core/repartition.js';
+  window._Repartition = { verifierRepartition: Repartition.verifierRepartition, repartitionEgale: Repartition.repartitionEgale };
   window._Personnes = { versLocal: Personnes.versLocal, versCloud: Personnes.versCloud, valeursCommunes: Personnes.valeursCommunes, getDataVueCombinee: Personnes.getDataVueCombinee };
   window._Partage = { fusionnerDonnees: Fusion.fusionnerDonnees, egal: Fusion.egal, CHAMPS_VOLATILS: Fusion.CHAMPS_VOLATILS,
     enregistrerPartage: Partage.enregistrerPartage, rafraichirPartage: Partage.rafraichirPartage,
