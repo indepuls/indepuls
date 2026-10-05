@@ -4146,6 +4146,16 @@ Constat (Faustine) : le compte propriétaire A n'a pas d'espace personnel (son c
 
 **Vérifié** (banc d'essai) : invité en écriture, en lecture seule, et avec données inaccessibles : aucun bouton ni texte d'espace personnel, ancienne préférence ignorée et effacée, aucune erreur console. Si l'idée d'un 2e espace pour tous revient un jour : variante étudiée = seconde ligne `app_type='indepuls_perso'` par personne, `APP_TYPE`/`STORAGE_KEY` choisis par `sessionStorage` au chargement, règle RLS des membres restreinte à `app_type='indepuls'`, marque `_espace` vérifiée avant toute écriture.
 
+### 2026-10-05 : Réserves au propriétaire dans un compte partagé (statut, plusieurs dirigeants, gestion des associé·es)
+
+**Défaut trouvé par Faustine (question)** : une personne invitée (membre en écriture) voyait la carte Associés complète. Ses invitations auraient été créées sur SON propre compte (`comptes_membres.compte_owner_id` = son identifiant), pas sur celui du propriétaire, qui n'en aurait rien su ; elle pouvait aussi couper l'écriture de tout le monde (l'interrupteur modifie `DATA.params.ecritureMembres`, partagé) et changer statut juridique / "Plusieurs dirigeants" (recalcul des taux pour tout le compte).
+
+**Correctif** (`estMembreInvite()` = `window._partage.membre`) : (1) grisés avec note "🔒 réservé au propriétaire du compte (Prénom)" : statut juridique et "Plusieurs dirigeants" ; (2) carte Associés remplacée, pour un membre, par "Seul·e Prénom, propriétaire de ce compte, peut inviter ou retirer des associé·es et décider qui peut modifier" (`appliquerReservesProprietaire`, appelée par `renderParams`) ; (3) garde dans les FONCTIONS (pas seulement l'interface) : `onStatutChange`, `toggleDirigeants`, `inviterAssocie`, `revoquerAssocie`, `basculerEcritureMembres` refusent avec un message. Le propriétaire n'est pas touché. Protection contre les fausses manœuvres, pas contre la malveillance (un seul bloc de données partagé, la confiance entre associé·es reste le socle).
+
+**Reste modifiable par tous** (choix volontaire, transparence totale entre co-dirigeants) : TVA, charges annuelles, taux de charges, trésorerie de départ, catégories, objectifs communs, SIRET/logo/devis. À reconsidérer si un besoin de verrou supplémentaire apparaît (par exemple profil métier).
+
+**Vérifié** (banc d'essai) : membre, statut et dirigeants grisés, carte Associés réduite, 5 fonctions refusées (aucune invitation créée, écriture toujours active pour tous, aucune révocation), réglage commun non réservé toujours modifiable ; propriétaire : carte complète et statut modifiable.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

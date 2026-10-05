@@ -1064,6 +1064,7 @@ html,body{overflow-x:hidden;}
               <option value="eurl">EURL — Entreprise unipersonnelle à responsabilité limitée</option>
             </select>
             <div class="ts mt8">Le choix du statut met automatiquement à jour vos taux de charges.</div>
+            <div class="ts mt8" id="note-reserve-proprio" style="display:none;color:var(--tl)"></div>
           </div>
           <div class="fgroup"></div>
         </div>
@@ -1077,6 +1078,7 @@ html,body{overflow-x:hidden;}
           </div>
           <div id="associes-wrap" style="display:none;margin-bottom:16px;padding:16px;border:1px solid var(--brd);border-top:4px solid var(--acc);border-radius:10px;background:var(--bg)">
             <div class="card-sub mb10" style="font-weight:700">🤝 Associés</div>
+            <div class="ts mb10" id="associes-note-membre" style="display:none;color:var(--tl);line-height:1.6"></div>
             <div class="ts mb10">Invitez un·e associé·e à accéder à ce même compte Indépuls. <span class="info-tip" title="Votre associé·e devra se connecter ou créer son compte avec EXACTEMENT l'adresse email que vous indiquez ici. Si quelqu'un d'autre tombe sur le lien d'invitation, il ne pourra pas l'utiliser : seul le titulaire de cette boîte mail peut l'accepter.">?</span></div>
             <div class="ts mb10" style="color:var(--warn)">⚠️ Une personne qui accepte votre invitation voit l'intégralité de votre compte (missions, chiffres, paramètres). Par défaut en lecture seule : elle ne peut rien modifier. N'invitez que des personnes à qui vous donnez accès à vos chiffres.</div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -12014,7 +12016,42 @@ function renderVFLDetail() {
 // interrupteur ne change AUCUN calcul, uniquement le vocabulaire affiché (labels + infobulles),
 // pour indiquer clairement d'entrer le cumul de toutes les rémunérations plutôt que de laisser la
 // personne deviner si l'outil est réservé aux structures unipersonnelles.
+// ── RÉSERVÉ AU PROPRIÉTAIRE (2026-10-05) ───────────────────────────────────────────────────
+// Dans un compte partagé, une personne INVITÉE (membre) ne peut pas : changer le statut juridique ni
+// "Plusieurs dirigeants" (ça change le calcul pour tout le monde), ni gérer les associé·es (inviter,
+// retirer, décider qui peut modifier). Sans cela, ses invitations partiraient vers SON propre compte
+// (pas celui du propriétaire), et elle pourrait couper l'écriture de tout le monde. Protection d'interface
+// et de fonctions (le compte est un seul bloc de données partagé : la confiance entre associé·es reste le
+// socle, ceci évite les fausses manœuvres, pas la malveillance).
+function estMembreInvite() { return !!(window._partage && window._partage.membre); }
+function refuserReserveProprio() {
+  const qui = (DATA.params && DATA.params.nom) ? DATA.params.nom : "le propriétaire";
+  if (typeof showToast === "function") showToast("🔒 Réservé au propriétaire du compte (" + qui + ") : cela change le calcul pour tout le monde.", "var(--acc)");
+}
+function appliquerReservesProprietaire() {
+  const membre = estMembreInvite();
+  const qui = escapeHtml((DATA.params && DATA.params.nom) ? DATA.params.nom : "le propriétaire");
+  ["p-statut", "p-dirigeants-sw"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (membre) { el.disabled = true; el.dataset.reserve = "1"; el.title = "Réservé au propriétaire du compte partagé"; }
+    else if (el.dataset.reserve) { el.disabled = false; el.title = ""; delete el.dataset.reserve; }
+  });
+  const note = document.getElementById("note-reserve-proprio");
+  if (note) { note.innerHTML = "🔒 Le statut juridique et « Plusieurs dirigeants » sont réservés au propriétaire du compte (" + qui + ") : ils changent le calcul pour tout le monde."; note.style.display = membre ? "" : "none"; }
+  const wrap = document.getElementById("associes-wrap");
+  if (wrap && (membre || wrap.dataset.reserve)) {
+    Array.from(wrap.children).forEach((k, i) => {
+      if (i === 0) return;
+      if (k.id === "associes-note-membre") { k.innerHTML = "🔒 Seul·e " + qui + ", propriétaire de ce compte, peut inviter ou retirer des associé·es et décider qui peut modifier. Vous travaillez dans son compte partagé."; k.style.display = membre ? "" : "none"; }
+      else k.style.display = membre ? "none" : "";
+    });
+    if (membre) wrap.dataset.reserve = "1"; else delete wrap.dataset.reserve;
+  }
+}
+
 function toggleDirigeants(val) {
+  if (estMembreInvite()) { refuserReserveProprio(); renderParams(); return; }
   saveParam('plusieursDirigeants', val);
   renderParams();
 }
@@ -12031,6 +12068,7 @@ function toggleDirigeants(val) {
 // atterrit entre de mauvaises mains ne peut rien activer, seul le titulaire de la boîte mail
 // invitée peut l'utiliser.
 async function inviterAssocie() {
+  if (estMembreInvite()) { refuserReserveProprio(); return; } // sinon l'invitation partirait vers le compte PERSONNEL de cette personne
   const emailInput = document.getElementById('associe-email-input');
   const email = (emailInput?.value || '').trim().toLowerCase();
   if (!email || !email.includes('@')) { showToast('⚠️ Adresse email invalide.', 'var(--err)'); return; }
@@ -12131,6 +12169,7 @@ function majHintEcritureMembres() {
 async function basculerEcritureMembres(on) {
   const sw = document.getElementById('p-ecriture-membres-sw');
   const annuler = () => { if (sw) sw.checked = !on; };
+  if (estMembreInvite()) { annuler(); refuserReserveProprio(); return; } // sinon une personne invitée pourrait couper l'écriture de tout le monde
   if (window._lectureSeule || DATA.isExample) { annuler(); notifierLectureSeule(); return; }
   if (on && !confirm('Activer la modification par vos associé·es ?\n\nLes personnes invitées pourront ajouter et modifier missions, dépenses et réglages dans ce compte, en même temps que vous. Leurs modifications et les vôtres sont fusionnées automatiquement, et une sauvegarde de secours est conservée avant chaque enregistrement. Vous pouvez désactiver à tout moment.')) { annuler(); return; }
   try {
@@ -12161,6 +12200,7 @@ function copierLienInvitation(token) {
 }
 
 async function revoquerAssocie(email) {
+  if (estMembreInvite()) { refuserReserveProprio(); return; }
   if (!confirm(`Révoquer l'accès de ${email} ? Cette personne ne pourra plus accéder à vos données.`)) return;
   try {
     const sess = await window._sb.auth.getSession();
@@ -13616,7 +13656,8 @@ function renderParams() {
     // appliquerOptionAssociesBeta) : tant que le partage de données n'est pas câblé, un compte solo
     // qui a simplement coché "Plusieurs dirigeants" ne doit rien voir de nouveau.
     const associesVisible=plusieurs&&!!DATA.params.associesBeta;
-    if(associesWrap){ associesWrap.style.display=associesVisible?'':'none'; if(associesVisible){ renderAssociesListe(); const ecSw=document.getElementById('p-ecriture-membres-sw'); if(ecSw) ecSw.checked=!!DATA.params.ecritureMembres; majHintEcritureMembres(); } }
+    if(associesWrap){ associesWrap.style.display=associesVisible?'':'none'; if(associesVisible){ if(!estMembreInvite()) renderAssociesListe(); const ecSw=document.getElementById('p-ecriture-membres-sw'); if(ecSw) ecSw.checked=!!DATA.params.ecritureMembres; majHintEcritureMembres(); } }
+    appliquerReservesProprietaire();
     const dTip=dSwWrap&&dSwWrap.querySelector('.info-tip');
     if(dTip) dTip.title=associesVisible
       ? "Indépuls suit une seule rémunération et un seul taux de charges cumulés pour tous les dirigeants. Vous pouvez en plus inviter un·e associé·e à accéder au même compte juste en dessous, ou continuer à n'utiliser cette case que pour le vocabulaire si vous préférez."
@@ -13835,6 +13876,7 @@ function applyStatutParams(val) {
   }
 }
 function onStatutChange(val) {
+  if (estMembreInvite()) { refuserReserveProprio(); renderParams(); return; } // réservé au propriétaire
   applyStatutParams(val);
   saveData(); recalcObjectifs();
   renderParams();
