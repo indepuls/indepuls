@@ -1804,6 +1804,13 @@ html,body{overflow-x:hidden;}
       <label class="flabel" id="m-montant-label">Montant du devis (€ HT)</label>
       <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
+    <div class="fgroup" id="m-commune-zone" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> 🤝 Mission commune <span class="info-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
+      <div id="m-commune-detail" style="display:none;margin-top:10px">
+        <div id="m-commune-lignes"></div>
+        <div class="ts" id="m-commune-total" style="margin-top:6px"></div>
+      </div>
+    </div>
     <div id="m-couts-directs-zone" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--bg);border:1px solid var(--brd)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl)">Coûts directs liés</span>
@@ -1925,13 +1932,6 @@ html,body{overflow-x:hidden;}
           <option value="autre">Autre</option>
         </select>
         <div class="ts" style="margin-top:4px;color:var(--tl)">Optionnel — utile pour savoir ce qui vous apporte vraiment des clients.</div>
-      </div>
-      <div class="fgroup" id="m-commune-zone" style="display:none;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
-        <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> 🤝 Mission commune <span class="info-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
-        <div id="m-commune-detail" style="display:none;margin-top:10px">
-          <div id="m-commune-lignes"></div>
-          <div class="ts" id="m-commune-total" style="margin-top:6px"></div>
-        </div>
       </div>
       <div class="fgroup"><label class="flabel">Notes (optionnel)</label><textarea id="m-notes" rows="2" placeholder="Contexte, conditions, suivi..."></textarea></div>
       <div id="m-documents-zone" style="margin-top:6px"></div>
@@ -11242,7 +11242,7 @@ function renderMissions() {
     const _recEnc=(m.encaissements||[]).length, _recT=m.nbMoisRec||'?';
     const dateFactCell=m.isRecurring?`${_recEnc}/${_recT} mois encaiss${_recEnc===1?'é':'és'}`:(m.dateFact||'—');
     const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts" style="margin-top:2px">${getRecurringPeriodLabel(m)}</div>${m.nbMoisRec?`<div class="ts">Total : ${fmtE(m.montantDevis)}</div>`:''}`:(tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis));
-    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${typeof badgeCommune==='function'?badgeCommune(m):''}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
+    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${typeof badgeCommune==='function'?badgeCommune(m):''}${typeof badgeAuteur==='function'?badgeAuteur(m):''}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
@@ -12207,7 +12207,11 @@ async function revoquerAssocie(email) {
     const sess = await window._sb.auth.getSession();
     const user = sess.data?.session?.user;
     if (!user) return;
+    const ligne = await window._sb.from('comptes_membres').select('membre_id').eq('compte_owner_id', user.id).eq('invited_email', email).maybeSingle();
     await window._sb.from('comptes_membres').update({ statut: 'revoque' }).eq('compte_owner_id', user.id).eq('invited_email', email);
+    // Ses missions restent dans l'historique, mais elle n'est plus proposée comme participante d'une mission commune.
+    const idPartie = ligne && ligne.data && ligne.data.membre_id;
+    if (idPartie && DATA.auteurs && DATA.auteurs[idPartie]) { DATA.auteurs[idPartie].parti = true; saveData(); }
     showToast('✅ Accès révoqué.');
     renderAssociesListe();
   } catch (e) { console.warn('revoquerAssocie failed:', e); }
@@ -12348,9 +12352,9 @@ function renderLignesCommune(rep) {
   const p = window._partage;
   const el = document.getElementById('m-commune-lignes');
   if (!p || !el) return;
-  const auteurs = auteursDuCompte(DATA, p);
+  const auteurs = auteursDuCompte(DATA, p, true);
   const ids = Object.keys(auteurs);
-  Object.keys(rep || {}).forEach(id => { if (ids.indexOf(id) < 0) ids.push(id); });
+  Object.keys(rep || {}).forEach(id => { if (ids.indexOf(id) < 0) ids.push(id); }); // une répartition existante garde ses personnes, même parties
   const valeurs = rep || window._Repartition.repartitionEgale(ids);
   el.innerHTML = ids.map(id => '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
     + '<span style="flex:1">' + escapeHtml(id === p.userId ? 'Moi (' + ((auteurs[id] || {}).nom || '') + ')' : ((auteurs[id] || {}).nom || 'Associé·e')) + '</span>'
@@ -12379,6 +12383,17 @@ function majTotalCommune() {
   el.textContent = 'Total : ' + t + ' %' + (Math.abs(t - 100) > 0.01 ? ' (doit faire 100 %)' : ' ✓');
   el.style.color = Math.abs(t - 100) > 0.01 ? 'var(--err)' : 'var(--ok)';
 }
+// Petit repère "👤 Prénom" dans la liste des missions d'un compte partagé : qui a créé la mission.
+// (Les missions sans auteur, antérieures au partage, n'en affichent pas. Une mission commune montre sa répartition.)
+function badgeAuteur(m) {
+  const p = window._partage;
+  if (!p || !m || m.isManagement || !m.auteurId) return "";
+  if (m.repartition && Object.keys(m.repartition).length) return "";
+  const a = (((window._dataCompleteVue || DATA).auteurs) || {})[m.auteurId];
+  const nom = m.auteurId === p.userId ? "moi" : ((a && a.nom) || "ancien·ne associé·e");
+  return ' <span class="ts" style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:0 6px" title="Mission créée par ' + escapeHtml(nom) + '">👤 ' + escapeHtml(nom) + '</span>';
+}
+
 // Petit repère dans la liste des missions : "🤝 80/20"
 function badgeCommune(m) {
   if (!m || !m.repartition || !Object.keys(m.repartition).length) return '';
@@ -12407,7 +12422,10 @@ async function partageSeDeclarer() {
     // son propre espace), à défaut un nom tiré de son email. Mis à jour s'il change.
     const prenom = (p.membre ? window._monPrenom : (DATA.params && DATA.params.nom) || '') || '';
     const nom = String(prenom).trim().slice(0, 30) || nomCourtDepuisEmail(u.email);
-    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom) return; // déjà enregistré : le nom se change dans Paramètres, champ Prénom
+    if (DATA.auteurs[u.id] && DATA.auteurs[u.id].nom) {
+      if (DATA.auteurs[u.id].parti) { delete DATA.auteurs[u.id].parti; saveData(); } // de retour dans le compte
+      return; // déjà enregistré : le nom se change dans Paramètres, champ Prénom
+    }
     DATA.auteurs[u.id] = { nom: nom };
     saveData();
     majBandeauPartage();
@@ -12456,7 +12474,7 @@ function choisirVuePersonne(id) {
 // tableau de bord, appliquées à la copie filtrée de chaque personne (DATA est restaurée juste après).
 // Toutes les personnes du compte : celles inscrites, plus toute personne qui a déjà créé une mission ou
 // saisi du temps (même si son nom n'est pas encore enregistré).
-function auteursDuCompte(complet, p) {
+function auteursDuCompte(complet, p, sansPartis) {
   const auteurs = Object.assign({}, complet.auteurs || {});
   auteurs[p.ownerId] = auteurs[p.ownerId] || { nom: 'Propriétaire du compte' };
   auteurs[p.userId] = auteurs[p.userId] || { nom: 'Moi' };
@@ -12471,6 +12489,7 @@ function auteursDuCompte(complet, p) {
       || (m.tempsManuel || []).some(e => e.auteurId === id))
     || Object.keys((((complet.personnes || {})[id] || {}).tempsInterne) || {}).length > 0;
   Object.keys(auteurs).forEach(id => { if (id !== p.userId && id !== p.ownerId && !aDesDonnees(id)) delete auteurs[id]; });
+  if (sansPartis) Object.keys(auteurs).forEach(id => { if (id !== p.userId && id !== p.ownerId && auteurs[id].parti) delete auteurs[id]; });
   return auteurs;
 }
 
