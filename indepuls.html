@@ -1805,7 +1805,7 @@ html,body{overflow-x:hidden;}
       <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
     <div class="fgroup" id="m-commune-zone" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
-      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> <span id="m-commune-titre">🤝 Mission commune</span> <span class="info-tip" id="m-commune-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> <span id="m-commune-titre">🤝 Mission commune</span> <span class="info-tip" id="m-commune-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Le montant et les encaissements se répartissent selon les parts ; le temps saisi reste à celui ou celle qui l'a travaillé. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
       <div id="m-commune-detail" style="display:none;margin-top:10px">
         <div id="m-commune-lignes"></div>
         <div class="ts" id="m-commune-total" style="margin-top:6px"></div>
@@ -2282,6 +2282,13 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Montant (€)</label><input type="number" id="d-montant" step="0.01" min="0"></div>
     </div>
     <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="d-lib" placeholder="Ex: Mutuelle, Prévoyance, Notion…"></div>
+    <div class="fgroup" id="d-commune-zone" style="display:none;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="d-commune" onchange="toggleCommune('d',this.checked)"> 🤝 Dépense commune <span class="info-tip" title="Cochez pour répartir cette dépense entre associé·es (50/50, 80/20...). Dans la vue de chaque personne, seule SA part compte. Sans répartition, une dépense compte en entier pour chacun·e (dépense de la société). Dans la vue « tout le compte », elle reste entière.">?</span></label>
+      <div id="d-commune-detail" style="display:none;margin-top:10px">
+        <div id="d-commune-lignes"></div>
+        <div class="ts" id="d-commune-total" style="margin-top:6px"></div>
+      </div>
+    </div>
     <div class="fgroup"><label class="flabel">Catégorie</label>
       <select id="d-cat">
         <option value="Logiciels & abonnements">Logiciels &amp; abonnements</option>
@@ -4946,7 +4953,7 @@ function addMission(obj) {
   DATA.missions.push({id:uuid(),auteurId:(window._partage&&window._partage.userId)||null,...obj,heuresSaisies:0,timerAccumulated:0,timerRunning:false,timerStart:null,tempsManuel:[],isManagement:false,encaissements:[]});
 }
 function removeMission(id) { DATA.missions=DATA.missions.filter(x=>x.id!==id); }
-function addDepense(obj)  { DATA.depenses.push({id:uuid(),...obj}); }
+function addDepense(obj)  { DATA.depenses.push({id:uuid(),...((window._partage&&window._partage.userId)?{auteurId:window._partage.userId}:{}),...obj}); } // auteurId : la personne connectée dans un compte partagé, sinon null comme avant
 function removeDepense(id){ DATA.depenses=DATA.depenses.filter(x=>x.id!==id); }
 function _addPonctuelEntry(mk, entry) {
   if(!DATA.revenus[mk]) DATA.revenus[mk]={};
@@ -11471,6 +11478,7 @@ function openDepModal(id) {
   document.getElementById('d-lib').value=d?d.libelle:'';
   document.getElementById('d-cat').value=d?(d.categorie||'Autre'):'Autre';
   document.getElementById('d-montant').value=d?d.montant:'';
+  initDepenseCommune(d);
   const rec=d?d.recurrence:'ponctuelle';
   document.getElementById('d-rec').value=rec;
   toggleDateDebutDep(rec);
@@ -11586,6 +11594,7 @@ function saveDepense(force) {
     tvaDeductible:tvaDeductible,
     montantTVA:tvaDeductible?parseFloat(document.getElementById('d-tva-montant').value)||0:0,
   };
+  if(window._partage){ const rc=lireRepartitionDepense(); if(!rc.ok){ showToast('⚠️ '+rc.message,'var(--err)'); return; } obj.repartition=rc.rep; } // dépense commune (compte partagé uniquement)
   // Mutuellement exclusifs — lotId prioritaire si les deux sont renseignés (ne devrait pas
   // arriver, l'UI les désélectionne l'un l'autre, mais évite un état incohérent en base).
   if(lotId){ obj.lotId = lotId; } else if(chantierId) obj.chantierId = chantierId; else { delete obj.chantierId; delete obj.lotId; }
@@ -11816,7 +11825,7 @@ function renderDepenses() {
   const tvaTd=d=>tva?(d.tvaDeductible?`<td class="ts tok dep-tva" data-label="TVA récup.">${fmtE(d.montantTVA||0)}</td>`:`<td class="ts dep-tva" data-label="TVA récup." style="color:var(--tl)">—</td>`):'';
   tbody.innerHTML=filtered.map(d=>`<tr>
     <td class="dep-date" data-label="Date">${d.date}</td>
-    <td class="fb dep-lbl" data-label="Libellé">${esc(d.libelle)}</td>
+    <td class="fb dep-lbl" data-label="Libellé">${esc(d.libelle)}${typeof badgeDepense==='function'?badgeDepense(d):''}</td>
     <td class="dep-cat" data-label="Catégorie"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}20;color:${DEP_CAT_COLORS[DEP_CATEGORIES.indexOf(d.categorie||'Autre')]||'#6b7280'}">${d.categorie||'Autre'}</span></td>
     <td class="fb dep-amt" data-label="Montant">${fmtE(d.montant)}</td>
     ${tvaTd(d)}
@@ -12344,15 +12353,16 @@ function initMissionCommune(m) {
   zone.style.display = p ? '' : 'none';
   if (!p) return;
   { const w = motsMission(); const t = document.getElementById('m-commune-titre'); if (t) t.textContent = '🤝 ' + w.Item + ' ' + w.commun;
-    const tip = document.getElementById('m-commune-tip'); if (tip) tip.title = 'Cochez si ' + w.ce + ' ' + w.item + ' est fait' + (w.commun === 'commune' ? 'e' : '') + ' à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », ' + (w.commun === 'commune' ? 'la ' : 'le ') + w.item + ' reste entier' + (w.commun === 'commune' ? 'e' : '') + '. Tout le monde peut toujours ' + (w.commun === 'commune' ? 'la' : 'le') + ' modifier.'; }
+    const tip = document.getElementById('m-commune-tip'); if (tip) tip.title = 'Cochez si ' + w.ce + ' ' + w.item + ' est fait' + (w.commun === 'commune' ? 'e' : '') + ' à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Le montant et les encaissements se répartissent selon les parts ; le temps saisi reste à celui ou celle qui l\'a travaillé. Dans la vue « tout le compte », ' + (w.commun === 'commune' ? 'la ' : 'le ') + w.item + ' reste entier' + (w.commun === 'commune' ? 'e' : '') + '. Tout le monde peut toujours ' + (w.commun === 'commune' ? 'la' : 'le') + ' modifier.'; }
   const rep = m && m.repartition && Object.keys(m.repartition).length ? m.repartition : null;
   document.getElementById('m-commune').checked = !!rep;
   document.getElementById('m-commune-detail').style.display = rep ? '' : 'none';
   renderLignesCommune(rep);
 }
-function renderLignesCommune(rep) {
+function renderLignesCommune(rep, pre) {
+  pre = pre || "m";
   const p = window._partage;
-  const el = document.getElementById('m-commune-lignes');
+  const el = document.getElementById(pre + "-commune-lignes");
   if (!p || !el) return;
   const auteurs = auteursDuCompte(DATA, p, true);
   const ids = Object.keys(auteurs);
@@ -12360,30 +12370,54 @@ function renderLignesCommune(rep) {
   const valeurs = rep || window._Repartition.repartitionEgale(ids);
   el.innerHTML = ids.map(id => '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
     + '<span style="flex:1">' + escapeHtml(id === p.userId ? 'Moi (' + ((auteurs[id] || {}).nom || '') + ')' : ((auteurs[id] || {}).nom || 'Associé·e')) + '</span>'
-    + '<input type="number" min="0" max="100" step="1" data-id="' + escapeHtml(id) + '" value="' + (valeurs[id] != null ? valeurs[id] : 0) + '" oninput="majTotalCommune()" style="width:80px;text-align:right"> %'
+    + '<input type="number" min="0" max="100" step="1" data-id="' + escapeHtml(id) + '" value="' + (valeurs[id] != null ? valeurs[id] : 0) + '" oninput="majTotalCommune(\'' + pre + '\')" style="width:80px;text-align:right"> %'
     + '</div>').join('');
-  majTotalCommune();
+  majTotalCommune(pre);
 }
-function toggleMissionCommune(on) {
-  document.getElementById('m-commune-detail').style.display = on ? '' : 'none';
-  if (on) renderLignesCommune(null);
+// pre : "m" (mission) ou "d" (dépense) : préfixe des identifiants du bloc de répartition du formulaire.
+function toggleCommune(pre, on) {
+  document.getElementById(pre + "-commune-detail").style.display = on ? "" : "none";
+  if (on) renderLignesCommune(null, pre);
 }
-function lireRepartitionMission() {
-  const cb = document.getElementById('m-commune');
+function toggleMissionCommune(on) { toggleCommune("m", on); }
+function lireRepartition(pre, nom) {
+  const cb = document.getElementById(pre + "-commune");
   if (!cb || !cb.checked) return { ok: true, rep: null };
   const rep = {};
-  document.querySelectorAll('#m-commune-lignes input[data-id]').forEach(i => { const v = parseFloat(i.value); if (v > 0) rep[i.getAttribute('data-id')] = v; });
+  document.querySelectorAll("#" + pre + "-commune-lignes input[data-id]").forEach(i => { const v = parseFloat(i.value); if (v > 0) rep[i.getAttribute("data-id")] = v; });
   const r = window._Repartition.verifierRepartition(rep);
-  return r.ok ? { ok: true, rep: rep } : { ok: false, message: (() => { const w = motsMission(); return w.Item + ' ' + w.commun; })() + ' : ' + (r.raison || 'répartition invalide') + ' (actuellement ' + (isFinite(r.total) ? r.total : '?') + ' %).' };
+  return r.ok ? { ok: true, rep: rep } : { ok: false, message: nom + " : " + (r.raison || "répartition invalide") + " (actuellement " + (isFinite(r.total) ? r.total : "?") + " %)." };
 }
-function majTotalCommune() {
-  const el = document.getElementById('m-commune-total');
+function lireRepartitionMission() { const w = motsMission(); return lireRepartition("m", w.Item + " " + w.commun); }
+function lireRepartitionDepense() { return lireRepartition("d", "Dépense commune"); }
+function majTotalCommune(pre) {
+  pre = pre || "m";
+  const el = document.getElementById(pre + "-commune-total");
   if (!el) return;
   let t = 0;
-  document.querySelectorAll('#m-commune-lignes input[data-id]').forEach(i => { t += parseFloat(i.value) || 0; });
+  document.querySelectorAll("#" + pre + "-commune-lignes input[data-id]").forEach(i => { t += parseFloat(i.value) || 0; });
   t = Math.round(t * 100) / 100;
-  el.textContent = 'Total : ' + t + ' %' + (Math.abs(t - 100) > 0.01 ? ' (doit faire 100 %)' : ' ✓');
-  el.style.color = Math.abs(t - 100) > 0.01 ? 'var(--err)' : 'var(--ok)';
+  el.textContent = "Total : " + t + " %" + (Math.abs(t - 100) > 0.01 ? " (doit faire 100 %)" : " ✓");
+  el.style.color = Math.abs(t - 100) > 0.01 ? "var(--err)" : "var(--ok)";
+}
+// Formulaire de dépense : zone visible seulement en compte partagé, préremplie à la modification.
+function initDepenseCommune(d) {
+  const zone = document.getElementById("d-commune-zone");
+  if (!zone) return;
+  const p = window._partage;
+  zone.style.display = p ? "" : "none";
+  if (!p) return;
+  const rep = d && d.repartition && Object.keys(d.repartition).length ? d.repartition : null;
+  document.getElementById("d-commune").checked = !!rep;
+  document.getElementById("d-commune-detail").style.display = rep ? "" : "none";
+  renderLignesCommune(rep, "d");
+}
+// Repère dans la liste des dépenses d'un compte partagé : "🤝 60/40" si répartie, sinon "👤 Prénom".
+function badgeDepense(d) {
+  const p = window._partage;
+  if (!p || !d) return "";
+  if (d.repartition && Object.keys(d.repartition).length) return badgeCommune(d, "Dépense commune");
+  return badgeAuteur(d);
 }
 // Vocabulaire du profil pour les libellés du compte partagé : Mission / Chantier / Commande / Vente, avec l'accord
 // ("mission commune", "chantier commun", "commande commune", "vente commune").
@@ -12405,10 +12439,10 @@ function badgeAuteur(m) {
 }
 
 // Petit repère dans la liste des missions : "🤝 80/20"
-function badgeCommune(m) {
+function badgeCommune(m, libelleForce) {
   if (!m || !m.repartition || !Object.keys(m.repartition).length) return '';
   const parts = Object.keys(m.repartition).map(id => Math.round(m.repartition[id]));
-  return ' <span class="ts" style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:0 6px;font-weight:600" title="' + (() => { const w = motsMission(); return w.Item + ' ' + w.commun; })() + ', répartie entre associé·es">🤝 ' + parts.join('/') + '</span>';
+  return ' <span class="ts" style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:0 6px;font-weight:600" title="' + (libelleForce || (() => { const w = motsMission(); return w.Item + ' ' + w.commun; })()) + ', répartie entre associé·es">🤝 ' + parts.join('/') + '</span>';
 }
 
 // Auteur d'une saisie de temps : seulement dans un compte partagé, rien d'ajouté sinon.
@@ -12516,31 +12550,33 @@ function _ouvrirStats() {
   const auteurs = auteursDuCompte(complet, p);
   const mks = getCurrentYearMonths();
   const lignes = Object.keys(auteurs).map(id => {
-    let missions = 0, encaisse = 0, heuresMissions = 0, hInterne = 0;
+    let missions = 0, encaisse = 0, heuresMissions = 0, hInterne = 0, depenses = 0;
     try {
       const vue = window.getDataPourMembre(id, p.ownerId); // sync() sur les données complètes
       DATA = vue;
       missions = vue.missions.filter(m => !m.isManagement).length;
       encaisse = mks.reduce((t, mk) => t + (getCaFromMissions(mk) || 0), 0);
       heuresMissions = vue.missions.filter(m => !m.isManagement).reduce((t, m) => t + (getMissionHeures(m) || 0), 0);
+      depenses = mks.reduce((t, mk) => t + (getDepensesMois(mk) || 0), 0); // dépenses de CETTE personne (parts, sinon en entier)
       hInterne = mks.reduce((t, mk) => t + ((vue.tempsInterne && vue.tempsInterne[mk]) || 0), 0) / 3600000; // temps interne de CETTE personne
     } finally { DATA = complet; window.getDataPourMembre(null); } // restaure aussi le contexte du moteur
     let msSaisi = 0;
     complet.missions.forEach(m => (m.tempsManuel || []).forEach(e => { if (e.auteurId === id) msSaisi += e.ms || 0; }));
-    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, heuresMissions, hInterne, hSaisies: msSaisi / 3600000 };
+    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, depenses, heuresMissions, hInterne, hSaisies: msSaisi / 3600000 };
   });
   const aide = document.getElementById('stats-personnes-aide');
-  if (aide) { const w = motsMission(); aide.innerHTML = 'Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses ' + w.items + '</strong> : sur les ' + w.items + ' dont la personne est l\'auteure (ceux créés avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors ' + w.items + ') que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu\'elle a réellement enregistré sur des ' + w.items + ', y compris ceux des autres. Les dépenses sont communes.'; }
+  if (aide) { const w = motsMission(); aide.innerHTML = 'Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses ' + w.items + '</strong> : sur les ' + w.items + ' dont la personne est l\'auteure (ceux créés avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors ' + w.items + ') que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu\'elle a réellement enregistré sur des ' + w.items + ', y compris ceux des autres. <strong>Dépenses</strong> : celles que vous avez réparties comptent à hauteur de la part de chacun·e ; les autres comptent en entier pour chacun·e (dépenses de la société).'; }
   const corps = document.getElementById('stats-personnes-corps');
   if (!corps) return;
   const th = 'text-align:right;padding:6px 8px;border-bottom:2px solid var(--brd)';
   corps.innerHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'
     + '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--brd)">Personne</th>'
-    + '<th style="' + th + '">' + motsMission().Items + '</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th>'
+    + '<th style="' + th + '">' + motsMission().Items + '</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th><th style="' + th + '">Dépenses</th>'
     + '<th style="' + th + '">Heures sur ses ' + motsMission().items + '</th><th style="' + th + '">Temps interne</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
     + lignes.map(l => '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--brd)">' + escapeHtml(l.nom) + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + l.missions + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd);font-weight:700">' + fmt(l.encaisse) + ' €</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.depenses) + ' €</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.heuresMissions, 1) + ' h</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hInterne, 1) + ' h</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hSaisies, 1) + ' h</td></tr>').join('')

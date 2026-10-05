@@ -10,7 +10,7 @@
 
 import { getTauxStatut, TVA_SEUILS, ABATTEMENTS_MICRO, ABATTEMENT_MINIMUM, MICRO_LIMITS, TAUX_VFL, PLAFOND_VFL_PAR_PART, BAREME_IR, PLAFOND_QF_PAR_DEMI_PART } from './taux.js';
 import { surchargePersonne } from './personnes.js';
-import { aRepartition, partDe, partMission } from './repartition.js';
+import { aRepartition, partDe, partMission, partDepense } from './repartition.js';
 
 // ── HELPERS STATUT ───────────────────────────────────────────
 
@@ -1554,9 +1554,16 @@ export function getDataPourMembre(DATA, membreId, proprietaireId, moiId) {
     // Mission commune (repartition en pourcentages) : visible seulement des personnes qui y participent,
     // réduite à LEUR part. Sinon : par auteur, comme avant.
     missions: (DATA.missions || []).map(m => {
-      if (aRepartition(m)) { const p = partDe(m, membreId); return p > 0 ? partMission(m, p) : null; }
+      if (aRepartition(m)) { const p = partDe(m, membreId); return p > 0 ? partMission(m, p, membreId, proprietaireId) : null; }
       return (m.auteurId === membreId
         || (avecProprio && (m.isManagement || (membreId === proprietaireId && (m.auteurId === null || m.auteurId === undefined))))) ? m : null;
+    }).filter(Boolean),
+    // Dépense commune (répartition en pourcentages) : réduite à la part de la personne, absente pour qui n'y participe pas.
+    // Une dépense SANS répartition compte en entier pour chacun·e (dépense de la société), comme avant.
+    depenses: (DATA.depenses || []).map(d => {
+      if (!aRepartition(d)) return d;
+      const p = partDe(d, membreId);
+      return p > 0 ? partDepense(d, p) : null;
     }).filter(Boolean),
   };
 }
