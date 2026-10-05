@@ -1730,6 +1730,7 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-mission">
   <div class="modal">
     <div class="modal-title" id="mission-modal-title">Nouvelle mission</div>
+    <div class="ts" id="m-autre-auteur" style="display:none;margin:-4px 0 10px;padding:8px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--brd);color:var(--tl);line-height:1.5"></div>
     <input type="hidden" id="mission-edit-id">
     <div class="frow">
       <div class="fgroup"><label class="flabel">Client</label><input type="text" id="m-client" placeholder="Nom ou société"></div>
@@ -2276,6 +2277,7 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-dep">
   <div class="modal">
     <div class="modal-title" id="dep-modal-title">Nouvelle dépense</div>
+    <div class="ts" id="d-autre-auteur" style="display:none;margin:-4px 0 10px;padding:8px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--brd);color:var(--tl);line-height:1.5"></div>
     <input type="hidden" id="dep-edit-id">
     <div class="frow">
       <div class="fgroup"><label class="flabel">Date</label><input type="date" id="d-date"></div>
@@ -9143,6 +9145,7 @@ function openMissionModal(id, prefillDate) {
   if(m) migrateDevisBrouillon(m); // étape 2a : convertit l'ancien brouillon en documents[] (idempotent)
   document.getElementById('mission-modal-title').textContent=m?tVocab('editItem'):tVocab('newItem');
   document.getElementById('mission-edit-id').value=m?m.id:'';
+  { const bloc=document.getElementById('m-autre-auteur'), autre=auteurAutre(m); if(bloc){ if(autre){ const w=motsMission(); bloc.textContent='👤 '+(w.ce==='ce'?'Ce':'Cette')+' '+w.item+' a été créé'+(w.ce==='ce'?'':'e')+' par '+autre+'. Vos modifications (montant, encaissements, temps...) sont visibles par tout le monde.'; bloc.style.display=''; } else bloc.style.display='none'; } }
   document.getElementById('m-client').value=m?m.client:'';
   document.getElementById('m-desc').value=m?m.description:'';
   document.getElementById('m-notes').value=m?(m.notes||''):'';
@@ -9945,6 +9948,7 @@ function deleteMission(id) {
   const msg=encs.length>0
     ?`Supprimer ${_demo} ${_item} ? ${encs.length} encaissement${encs.length>1?'s':''} déjà enregistré${encs.length>1?'s':''} — conservé${encs.length>1?'s':''} dans le Livre des recettes (obligation légale de traçabilité).`
     :`Supprimer ${_demo} ${_item} ?`;
+  { const autre=auteurAutre(m); if(autre && !confirm(`${_demo==='ce'?'Ce':'Cette'} ${_item} a été créé${_demo==='ce'?'':'e'} par ${autre}. ${_demo==='ce'?'Le':'La'} supprimer quand même ?`)) return; } // compte partagé : confirmation avant de supprimer l'élément d'une autre personne
   if(!confirm(msg)) return;
   if(encs.length>0){
     if(!DATA.recettesMissionSupprimee) DATA.recettesMissionSupprimee=[];
@@ -11474,6 +11478,7 @@ function openDepModal(id) {
   const d=id?DATA.depenses.find(x=>x.id===id):null;
   document.getElementById('dep-modal-title').textContent=d?'Modifier la dépense':'Nouvelle dépense';
   document.getElementById('dep-edit-id').value=d?d.id:'';
+  { const bloc=document.getElementById('d-autre-auteur'), autre=auteurAutre(d); if(bloc){ if(autre){ bloc.textContent='👤 Cette dépense a été créée par '+autre+'. Vos modifications sont visibles par tout le monde.'; bloc.style.display=''; } else bloc.style.display='none'; } }
   document.getElementById('d-date').value=d?d.date:today();
   document.getElementById('d-lib').value=d?d.libelle:'';
   document.getElementById('d-cat').value=d?(d.categorie||'Autre'):'Autre';
@@ -11606,7 +11611,7 @@ function saveDepense(force) {
 function toggleDepTVA(checked) {
   document.getElementById('dep-tva-montant-zone').style.display=checked?'':'none';
 }
-function deleteDepense(id) { if(!confirm('Supprimer cette dépense ?')) return; removeDepense(id); saveData(); renderDepenses(); }
+function deleteDepense(id) { { const autre=auteurAutre(DATA.depenses.find(x=>x.id===id)); if(autre && !confirm('Cette dépense a été créée par '+autre+'. La supprimer quand même ?')) return; } if(!confirm('Supprimer cette dépense ?')) return; removeDepense(id); saveData(); renderDepenses(); }
 
 let depSort={col:'date',dir:'desc'}, depFilter='all', depCatFilter='all', depDonutOpen=false, depDonutBase='annuel';
 function sortDep(col){
@@ -12425,6 +12430,15 @@ function motsMission() {
   const item = tVocab("item"), items = tVocab("items");
   const masc = item === "Chantier";
   return { Item: item, Items: items, item: item.toLowerCase(), items: items.toLowerCase(), commun: masc ? "commun" : "commune", ce: masc ? "ce" : "cette" };
+}
+
+// Prénom de la personne qui a créé la mission/dépense, si c'est quelqu'un d'AUTRE que moi dans un compte partagé
+// (sinon null : rien à signaler, ni pour un compte solo, ni pour mes propres éléments, ni pour l'existant sans auteur).
+function auteurAutre(obj) {
+  const p = window._partage;
+  if (!p || !obj || !obj.auteurId || obj.auteurId === p.userId) return null;
+  const a = (((window._dataCompleteVue || DATA).auteurs) || {})[obj.auteurId];
+  return (a && a.nom) || "un·e autre associé·e";
 }
 
 // Petit repère "👤 Prénom" dans la liste des missions d'un compte partagé : qui a créé la mission.
