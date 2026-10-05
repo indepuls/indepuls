@@ -1805,7 +1805,7 @@ html,body{overflow-x:hidden;}
       <input type="number" id="m-montant" step="10" min="0" placeholder="Ex : 2 000">
     </div>
     <div class="fgroup" id="m-commune-zone" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
-      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> 🤝 Mission commune <span class="info-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="m-commune" onchange="toggleMissionCommune(this.checked)"> <span id="m-commune-titre">🤝 Mission commune</span> <span class="info-tip" id="m-commune-tip" title="Cochez si cette mission est faite à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », la mission reste entière. Tout le monde peut toujours la modifier.">?</span></label>
       <div id="m-commune-detail" style="display:none;margin-top:10px">
         <div id="m-commune-lignes"></div>
         <div class="ts" id="m-commune-total" style="margin-top:6px"></div>
@@ -2819,7 +2819,7 @@ html,body{overflow-x:hidden;}
 <div class="modal-ov hidden" id="modal-stats-personnes">
   <div class="modal" style="max-width:640px">
     <div class="modal-title" style="margin-bottom:8px">📊 Par personne</div>
-    <p class="ts" style="line-height:1.6;margin-bottom:10px">Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses missions</strong> : sur les missions dont la personne est l'auteure (les missions créées avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors missions) que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu'elle a réellement enregistré sur des missions, y compris celles des autres. Les dépenses sont communes.</p>
+    <p class="ts" id="stats-personnes-aide" style="line-height:1.6;margin-bottom:10px">Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses missions</strong> : sur les missions dont la personne est l'auteure (les missions créées avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors missions) que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu'elle a réellement enregistré sur des missions, y compris celles des autres. Les dépenses sont communes.</p>
     <div id="stats-personnes-corps" style="overflow-x:auto"></div>
     <div style="text-align:right;margin-top:14px"><button class="btn btn-acc btn-sm" onclick="closeModal('modal-stats-personnes')">Fermer</button></div>
   </div>
@@ -12343,6 +12343,8 @@ function initMissionCommune(m) {
   const p = window._partage;
   zone.style.display = p ? '' : 'none';
   if (!p) return;
+  { const w = motsMission(); const t = document.getElementById('m-commune-titre'); if (t) t.textContent = '🤝 ' + w.Item + ' ' + w.commun;
+    const tip = document.getElementById('m-commune-tip'); if (tip) tip.title = 'Cochez si ' + w.ce + ' ' + w.item + ' est fait' + (w.commun === 'commune' ? 'e' : '') + ' à plusieurs. Vous choisissez ensuite la part de chacun·e (50/50, 80/20...). Dans la vue de chaque personne, seuls SES chiffres (montant, encaissements, temps) comptent, à hauteur de sa part. Dans la vue « tout le compte », ' + (w.commun === 'commune' ? 'la ' : 'le ') + w.item + ' reste entier' + (w.commun === 'commune' ? 'e' : '') + '. Tout le monde peut toujours ' + (w.commun === 'commune' ? 'la' : 'le') + ' modifier.'; }
   const rep = m && m.repartition && Object.keys(m.repartition).length ? m.repartition : null;
   document.getElementById('m-commune').checked = !!rep;
   document.getElementById('m-commune-detail').style.display = rep ? '' : 'none';
@@ -12372,7 +12374,7 @@ function lireRepartitionMission() {
   const rep = {};
   document.querySelectorAll('#m-commune-lignes input[data-id]').forEach(i => { const v = parseFloat(i.value); if (v > 0) rep[i.getAttribute('data-id')] = v; });
   const r = window._Repartition.verifierRepartition(rep);
-  return r.ok ? { ok: true, rep: rep } : { ok: false, message: 'Mission commune : ' + (r.raison || 'répartition invalide') + ' (actuellement ' + (isFinite(r.total) ? r.total : '?') + ' %).' };
+  return r.ok ? { ok: true, rep: rep } : { ok: false, message: (() => { const w = motsMission(); return w.Item + ' ' + w.commun; })() + ' : ' + (r.raison || 'répartition invalide') + ' (actuellement ' + (isFinite(r.total) ? r.total : '?') + ' %).' };
 }
 function majTotalCommune() {
   const el = document.getElementById('m-commune-total');
@@ -12383,6 +12385,14 @@ function majTotalCommune() {
   el.textContent = 'Total : ' + t + ' %' + (Math.abs(t - 100) > 0.01 ? ' (doit faire 100 %)' : ' ✓');
   el.style.color = Math.abs(t - 100) > 0.01 ? 'var(--err)' : 'var(--ok)';
 }
+// Vocabulaire du profil pour les libellés du compte partagé : Mission / Chantier / Commande / Vente, avec l'accord
+// ("mission commune", "chantier commun", "commande commune", "vente commune").
+function motsMission() {
+  const item = tVocab("item"), items = tVocab("items");
+  const masc = item === "Chantier";
+  return { Item: item, Items: items, item: item.toLowerCase(), items: items.toLowerCase(), commun: masc ? "commun" : "commune", ce: masc ? "ce" : "cette" };
+}
+
 // Petit repère "👤 Prénom" dans la liste des missions d'un compte partagé : qui a créé la mission.
 // (Les missions sans auteur, antérieures au partage, n'en affichent pas. Une mission commune montre sa répartition.)
 function badgeAuteur(m) {
@@ -12398,7 +12408,7 @@ function badgeAuteur(m) {
 function badgeCommune(m) {
   if (!m || !m.repartition || !Object.keys(m.repartition).length) return '';
   const parts = Object.keys(m.repartition).map(id => Math.round(m.repartition[id]));
-  return ' <span class="ts" style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:0 6px;font-weight:600" title="Mission commune, répartie entre associé·es">🤝 ' + parts.join('/') + '</span>';
+  return ' <span class="ts" style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:0 6px;font-weight:600" title="' + (() => { const w = motsMission(); return w.Item + ' ' + w.commun; })() + ', répartie entre associé·es">🤝 ' + parts.join('/') + '</span>';
 }
 
 // Auteur d'une saisie de temps : seulement dans un compte partagé, rien d'ajouté sinon.
@@ -12519,13 +12529,15 @@ function _ouvrirStats() {
     complet.missions.forEach(m => (m.tempsManuel || []).forEach(e => { if (e.auteurId === id) msSaisi += e.ms || 0; }));
     return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, heuresMissions, hInterne, hSaisies: msSaisi / 3600000 };
   });
+  const aide = document.getElementById('stats-personnes-aide');
+  if (aide) { const w = motsMission(); aide.innerHTML = 'Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses ' + w.items + '</strong> : sur les ' + w.items + ' dont la personne est l\'auteure (ceux créés avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors ' + w.items + ') que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu\'elle a réellement enregistré sur des ' + w.items + ', y compris ceux des autres. Les dépenses sont communes.'; }
   const corps = document.getElementById('stats-personnes-corps');
   if (!corps) return;
   const th = 'text-align:right;padding:6px 8px;border-bottom:2px solid var(--brd)';
   corps.innerHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'
     + '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--brd)">Personne</th>'
-    + '<th style="' + th + '">Missions</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th>'
-    + '<th style="' + th + '">Heures sur ses missions</th><th style="' + th + '">Temps interne</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
+    + '<th style="' + th + '">' + motsMission().Items + '</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th>'
+    + '<th style="' + th + '">Heures sur ses ' + motsMission().items + '</th><th style="' + th + '">Temps interne</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
     + lignes.map(l => '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--brd)">' + escapeHtml(l.nom) + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + l.missions + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd);font-weight:700">' + fmt(l.encaisse) + ' €</td>'
@@ -12542,7 +12554,7 @@ function majBandeauPartage() {
   if (!bande || !p) return;
   const complet = window._dataCompleteVue || DATA;
   const auteurs = auteursDuCompte(complet, p);
-  const libelle = (id) => id === p.userId ? 'Mes missions' : 'Missions de ' + escapeHtml(auteurs[id].nom || 'Associé·e');
+  const libelle = (id) => id === p.userId ? 'Mes ' + motsMission().items : motsMission().Items + ' de ' + escapeHtml(auteurs[id].nom || 'Associé·e');
   if (window._vuePersonne) {
     bande.innerHTML = `<span>👁 Vue : ${libelle(window._vuePersonne)} (lecture seule). Dépenses et temps interne restent communs à tout le compte.</span>`
       + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="choisirVuePersonne('')">Revenir à tout le compte</button>`;
@@ -12577,7 +12589,7 @@ function afficherAccueilComptePartage(user, ecriture) {
     if (ecriture) {
       corps.innerHTML = '<p>Vous avez rejoint le compte de <strong>' + qui + '</strong>. Vous travaillez ensemble dans le même espace.</p>'
         + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0">'
-        + '<div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px"><div style="font-weight:700;margin-bottom:4px">🤝 En commun</div><div class="ts" style="line-height:1.6">Missions, clients, dépenses, trésorerie. Vous les voyez et les modifiez toutes les deux, en même temps.</div></div>'
+        + '<div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px"><div style="font-weight:700;margin-bottom:4px">🤝 En commun</div><div class="ts" style="line-height:1.6">' + motsMission().Items + ', clients, dépenses, trésorerie. Vous les voyez et les modifiez toutes les deux, en même temps.</div></div>'
         + '<div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px"><div style="font-weight:700;margin-bottom:4px">👤 À vous</div><div class="ts" style="line-height:1.6">Votre prénom, votre revenu souhaité, vos jours et heures travaillés, vos congés, votre temps interne.</div></div>'
         + '</div>'
         + '<p class="ts" style="line-height:1.6">Commencez par <strong>paramétrer votre compte</strong> : c\'est ce qui rend vos chiffres justes. Indépuls vous montre ensuite les vôtres, ceux de votre associé·e, et ceux de tout le compte.</p>'

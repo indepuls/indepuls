@@ -4181,6 +4181,10 @@ Constat (Faustine) : le compte propriétaire A n'a pas d'espace personnel (son c
 
 **Vérifié** (banc d'essai) : case visible sans ouvrir les options, répartition 3 personnes proposée puis, après révocation, uniquement les personnes encore présentes, badges des auteurs dans la liste, aucune erreur console.
 
+### 2026-10-05 : Vocabulaire du profil dans les libellés du compte partagé
+
+Question de Faustine ("2 artisans associés : ça notera 'chantier commun' ?") : les libellés que j'avais écrits en dur ("Mission commune", "Mes missions", "Missions de X", colonnes du comparatif, texte d'accueil) ne suivaient PAS le vocabulaire du profil. Corrigé avec `motsMission()` (utilise `tVocab('item'/'items')` et l'accord : "chantier commun" au masculin, "mission/commande/vente commune" au féminin) : case du formulaire et son infobulle, message de refus de répartition, repère "🤝" de la liste, sélecteur de vue ("Mes chantiers", "Chantiers de Marie"), colonnes et texte d'aide du comparatif, accueil de la personne invitée. **Reste en dur** (volontairement, texte destiné au propriétaire ou cas rare) : l'avertissement de la carte Associés ("missions, chiffres, paramètres") et le libellé de repli "Une mission" des messages de conflit quand le nom est inconnu. Vérifié sur 3 profils (artisan, services, fabrication).
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
