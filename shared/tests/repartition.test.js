@@ -90,6 +90,12 @@ async function main() {
     const vt = C.getDataPourMembre(D, 'troisieme', 'flo', 'flo');
     test('une personne hors répartition ne voit pas la mission commune', [], vt.missions.map((m) => m.id).filter((i) => i === 'mc'));
     test('DATA source non modifié', 1000, D.missions[0].montantDevis);
+    // La vue est un instantané indépendant : la modifier ne doit JAMAIS toucher le compte complet.
+    const Dv = { params: { nom: 'X' }, conges: [], missions: [{ id: 'a', auteurId: 'flo', montantDevis: 10, tempsManuel: [] }, { id: 'c', auteurId: 'asso', repartition: { flo: 50, asso: 50 }, montantDevis: 100, tempsManuel: [] }], depenses: [{ id: 'd', montant: 5 }] };
+    const vue = C.getDataPourMembre(Dv, 'flo', 'flo', 'flo');
+    vue.missions[0].montantDevis = 999; vue.missions[0].tempsManuel.push({ id: 'z', ms: 1 }); vue.depenses[0].montant = 999; vue.params.nom = 'MODIFIÉ'; vue.missions[1].montantDevis = 1;
+    test('modifier la vue ne change pas le compte (mission non réduite)', [10, 0], [Dv.missions[0].montantDevis, Dv.missions[0].tempsManuel.length]);
+    test('modifier la vue ne change pas le compte (dépense, réglages, mission commune)', [5, 'X', 100], [Dv.depenses[0].montant, Dv.params.nom, Dv.missions[1].montantDevis]);
     const vf0 = C.getDataPourMembre({ missions: [{ id: 'z', auteurId: 'flo', repartition: { flo: 0, asso: 100 } }] }, 'flo', 'flo', 'flo');
     test('0 % : la mission n\'apparaît pas', [], vf0.missions);
   }

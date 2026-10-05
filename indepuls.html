@@ -12564,36 +12564,41 @@ function _ouvrirStats() {
   const auteurs = auteursDuCompte(complet, p);
   const mks = getCurrentYearMonths();
   const lignes = Object.keys(auteurs).map(id => {
-    let missions = 0, encaisse = 0, heuresMissions = 0, hInterne = 0, depenses = 0;
+    let missions = 0, encaisse = 0, hInterne = 0, depenses = 0;
     try {
       const vue = window.getDataPourMembre(id, p.ownerId); // sync() sur les données complètes
       DATA = vue;
       missions = vue.missions.filter(m => !m.isManagement).length;
       encaisse = mks.reduce((t, mk) => t + (getCaFromMissions(mk) || 0), 0);
-      heuresMissions = vue.missions.filter(m => !m.isManagement).reduce((t, m) => t + (getMissionHeures(m) || 0), 0);
       depenses = mks.reduce((t, mk) => t + (getDepensesMois(mk) || 0), 0); // dépenses de CETTE personne (parts, sinon en entier)
       hInterne = mks.reduce((t, mk) => t + ((vue.tempsInterne && vue.tempsInterne[mk]) || 0), 0) / 3600000; // temps interne de CETTE personne
     } finally { DATA = complet; window.getDataPourMembre(null); } // restaure aussi le contexte du moteur
-    let msSaisi = 0;
-    complet.missions.forEach(m => (m.tempsManuel || []).forEach(e => { if (e.auteurId === id) msSaisi += e.ms || 0; }));
-    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, depenses, heuresMissions, hInterne, hSaisies: msSaisi / 3600000 };
+    // Heures TRAVAILLÉES par la personne, sur n'importe quelle mission : ses propres saisies de l'année, plus le temps sans
+    // auteur (chrono accumulé, heures saisies, entrées d'avant le partage) des missions qu'elle porte (son auteur, à défaut le propriétaire).
+    let ms = 0;
+    complet.missions.forEach(m => {
+      if (m.isManagement) return;
+      const porteur = m.auteurId || p.ownerId;
+      (m.tempsManuel || []).forEach(e => { if ((e.auteurId || porteur) === id && (!e.date || String(e.date).slice(0, 4) === String(complet.currentYear))) ms += e.ms || 0; });
+      if (porteur === id) ms += (m.timerAccumulated || 0) + (m.heuresSaisies || 0) * 3600000;
+    });
+    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, depenses, hInterne, hTravaillees: ms / 3600000 };
   });
   const aide = document.getElementById('stats-personnes-aide');
-  if (aide) { const w = motsMission(); aide.innerHTML = 'Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses ' + w.items + '</strong> : sur les ' + w.items + ' dont la personne est l\'auteure (ceux créés avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors ' + w.items + ') que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu\'elle a réellement enregistré sur des ' + w.items + ', y compris ceux des autres. <strong>Dépenses</strong> : celles que vous avez réparties comptent à hauteur de la part de chacun·e ; les autres comptent en entier pour chacun·e (dépenses de la société).'; }
+  if (aide) { const w = motsMission(); aide.innerHTML = 'Année en cours. <strong>Encaissé</strong> : réparti selon les pourcentages des ' + w.items + ' communs (la part de chacun·e), sinon ' + w.items + ' dont la personne est l\'auteure (ceux créés avant le partage reviennent au propriétaire). <strong>Dépenses</strong> : celles que vous avez réparties comptent à hauteur de la part de chacun·e ; les autres comptent en entier pour chacun·e (dépenses de la société). <strong>Heures travaillées</strong> : le temps que la personne a réellement saisi sur des ' + w.items + ', y compris ceux des autres (le temps n\'est jamais réparti en pourcentages), plus le temps sans auteur de ses propres ' + w.items + '. <strong>Temps interne</strong> : le temps de gestion (hors ' + w.items + ') qu\'elle a enregistré, depuis le partage.'; }
   const corps = document.getElementById('stats-personnes-corps');
   if (!corps) return;
   const th = 'text-align:right;padding:6px 8px;border-bottom:2px solid var(--brd)';
   corps.innerHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'
     + '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--brd)">Personne</th>'
     + '<th style="' + th + '">' + motsMission().Items + '</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th><th style="' + th + '">Dépenses</th>'
-    + '<th style="' + th + '">Heures sur ses ' + motsMission().items + '</th><th style="' + th + '">Temps interne</th><th style="' + th + '">Heures saisies par elle</th></tr></thead><tbody>'
+    + '<th style="' + th + '">Heures travaillées</th><th style="' + th + '">Temps interne</th></tr></thead><tbody>'
     + lignes.map(l => '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--brd)">' + escapeHtml(l.nom) + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + l.missions + '</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd);font-weight:700">' + fmt(l.encaisse) + ' €</td>'
       + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.depenses) + ' €</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.heuresMissions, 1) + ' h</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hInterne, 1) + ' h</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hSaisies, 1) + ' h</td></tr>').join('')
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hTravaillees, 1) + ' h</td>'
+      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hInterne, 1) + ' h</td></tr>').join('')
     + '</tbody></table>';
   openModal('modal-stats-personnes');
 }

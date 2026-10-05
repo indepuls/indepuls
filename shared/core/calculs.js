@@ -1547,7 +1547,7 @@ export function getMicroPlafondInfo(DATA) {
 export function getDataPourMembre(DATA, membreId, proprietaireId, moiId) {
   if (!membreId) return DATA;
   const avecProprio = proprietaireId !== undefined && proprietaireId !== null;
-  return {
+  const vue = {
     ...DATA,
     // Compte partagé : capacité de travail et congés de CETTE personne (voir personnes.js)
     ...(avecProprio ? surchargePersonne(DATA, membreId, moiId) : {}),
@@ -1566,4 +1566,9 @@ export function getDataPourMembre(DATA, membreId, proprietaireId, moiId) {
       return p > 0 ? partDepense(d, p) : null;
     }).filter(Boolean),
   };
+  // COPIE INDÉPENDANTE (2026-10-05) : sans elle, les missions, dépenses et réglages non réduits restaient les MÊMES
+  // objets que ceux du compte complet. Une modification faite dans la vue (lecture seule) les changeait donc dans le
+  // vrai compte en mémoire, et l'enregistrement partait au retour sur "tout le compte". La vue est maintenant un
+  // instantané : ce qu'on y fait n'a aucun effet sur le compte.
+  return JSON.parse(JSON.stringify(vue));
 }
