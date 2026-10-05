@@ -4580,7 +4580,7 @@ function getDefaultData() {
       // de quelqu'un qui n'a jamais coché la case.
       acreActif:false, acreDateDebut:'', acreDateFin:'',
       // Plusieurs dirigeants (2026-09-08) : purement cosmétique (vocabulaire), voir toggleDirigeants().
-      plusieursDirigeants:false, associesBeta:false,
+      plusieursDirigeants:false,
       // Demande d'avis (2026-09-14) : voir genererMessageAvis()/maybeProposerAvis(). Aucun des deux
       // n'est requis pour que le nudge fonctionne (repli sur un message générique si vides).
       avisLiens:'', avisMessageTemplate:'',
@@ -12318,21 +12318,6 @@ function oublierInviteEnAttente() {
   if (new URLSearchParams(location.search).has('invite')) history.replaceState(null, '', location.pathname);
 }
 
-// Active ou désactive la carte "Associés" sur CE compte via l'adresse (?associes=1 ou ?associes=0),
-// sans aucune interface visible : tant que le partage de données n'est pas câblé, seuls les comptes
-// de test de Faustine doivent la voir. Le réglage suit le compte (DATA.params, synchronisé).
-function appliquerOptionAssociesBeta() {
-  try {
-    const v = new URLSearchParams(location.search).get('associes');
-    if (v !== '1' && v !== '0') return;
-    DATA.params.associesBeta = (v === '1');
-    saveData();
-    history.replaceState(null, '', location.pathname);
-    showToast(v === '1' ? '✅ Option "Associés" activée sur ce compte.' : 'Option "Associés" désactivée sur ce compte.');
-    if (currentPage === 'params') renderParams();
-  } catch (e) { console.warn('appliquerOptionAssociesBeta failed:', e); }
-}
-
 // ── CONSULTATION EN LECTURE SEULE D'UN COMPTE PARTAGÉ (palier A, 2ᵉ étape, 2026-10-02) ───────
 // Une personne qui a accepté une invitation (membre "actif") voit par défaut les données du compte
 // qui l'a invitée, SANS pouvoir rien modifier. Principe de sécurité : on charge d'abord son propre
@@ -13844,10 +13829,9 @@ function renderParams() {
     // Associés (2026-10-01, palier A multi-associés) : n'a de sens que si la case "Plusieurs
     // dirigeants" est cochée, jamais en EURL (même raisonnement que plusieurs ci-dessus).
     const associesWrap=document.getElementById('associes-wrap');
-    // Réservé aux comptes où l'option est activée explicitement (DATA.params.associesBeta, voir
-    // appliquerOptionAssociesBeta) : tant que le partage de données n'est pas câblé, un compte solo
-    // qui a simplement coché "Plusieurs dirigeants" ne doit rien voir de nouveau.
-    const associesVisible=plusieurs&&!!DATA.params.associesBeta;
+    // Barrière bêta (?associes=1) retirée le 2026-10-05 : la carte est visible pour tout compte SASU/SAS qui
+    // a coché "Plusieurs dirigeants" (jamais en EURL, jamais pour un compte solo qui ne coche pas la case).
+    const associesVisible=plusieurs;
     if(associesWrap){ associesWrap.style.display=associesVisible?'':'none'; if(associesVisible){ if(!estMembreInvite()) renderAssociesListe(); const ecSw=document.getElementById('p-ecriture-membres-sw'); if(ecSw) ecSw.checked=!!DATA.params.ecritureMembres; majHintEcritureMembres(); } }
     appliquerReservesProprietaire();
     const dTip=dSwWrap&&dSwWrap.querySelector('.info-tip');
@@ -18679,7 +18663,7 @@ document.addEventListener('keydown', function(e) {
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }
       setTimeout(addLogoutButton, 200);
-      loadFromCloud(user).then(function(){ hideOverlay(); appliquerOptionAssociesBeta(); return verifierInvitationEnAttente(user); }).then(function(){ return ouvrirComptePartageSiMembre(user); }).then(function(r){ if (r === 'aucun' && window._activerPartageProprietaireSiReglage) return window._activerPartageProprietaireSiReglage(); });
+      loadFromCloud(user).then(function(){ hideOverlay(); return verifierInvitationEnAttente(user); }).then(function(){ return ouvrirComptePartageSiMembre(user); }).then(function(r){ if (r === 'aucun' && window._activerPartageProprietaireSiReglage) return window._activerPartageProprietaireSiReglage(); });
     });
   }
 

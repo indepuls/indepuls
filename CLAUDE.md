@@ -4231,6 +4231,12 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-05 — Multi-associés : barrière `?associes=1` retirée, chantier clos
+
+- La carte « Associés » (Paramètres) s'affiche désormais pour tout compte SASU/SAS qui coche « Plusieurs dirigeants » (jamais en EURL, jamais pour un compte solo qui ne coche pas la case). `appliquerOptionAssociesBeta()` et son appel dans la chaîne `_enterApp` sont supprimés ; la clé `DATA.params.associesBeta` n'est plus lue (laissée telle quelle dans les données existantes, pas de migration).
+- L'interrupteur « Mes associé·es peuvent aussi modifier le compte » reste désactivé par défaut. Toutes les protections (fusion, sauvegardes, réserves propriétaire) sont inchangées.
+- Chantier clos en attendant les retours de Florence à l'usage. Restent en attente (sans feu vert) : invitation de Florence, décision tarifaire, calculs par personne (remplissage, score de santé).
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
