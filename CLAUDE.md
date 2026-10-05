@@ -4168,6 +4168,11 @@ Constat (Faustine) : le compte propriétaire A n'a pas d'espace personnel (son c
 
 **Leçon** : tout drapeau d'état de session (`_lectureSeule`, `_partage`, `_membreInvite`, `_vuePersonne`) doit avoir un chemin explicite dans CHAQUE transition (lecture seule vers écriture, écriture vers lecture seule, membre vers non-membre). Penser à tester les transitions, pas seulement les états.
 
+### 2026-10-05 : Recette points 5 et 6, un conflit affiché deux fois et un message de vue trompeur
+
+- **Conflit en double (retour Faustine)** : modifier UN montant de mission produit deux conflits techniques (`montantDevis` et `montantPrestation`, recalculé avec lui), donc deux phrases pour une seule action. `decrireConflits` ne rapporte plus `montantPrestation`/`montantVente` quand `montantDevis` de la même mission est aussi en conflit, et dédoublonne les phrases identiques (`sansDoublonsDerives`, tests dans `partage.test.js`, vérifié avec la vraie fusion : 2 conflits détectés, 1 phrase). Si un jour un autre champ dérivé apparaît, l'ajouter à `CHAMPS_DERIVES_DU_MONTANT`.
+- **Message violet en vue par personne** : `notifierLectureSeule` affichait le texte "import ou réinitialisation" dès que `_partage` était posé, y compris dans une vue par personne (lecture seule voulue). Message dédié : "Vous êtes dans la vue d'une personne, en lecture seule : revenez à « Tout le compte »". Faustine a constaté que les réglages de B étaient bien enregistrés malgré le message : le message trompeur venait probablement de cette vue, en plus du vrai blocage lecture seule vers écriture corrigé plus haut (incertitude assumée, les deux sont corrigés et testés).
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

@@ -109,9 +109,22 @@ function libelleElement(donnees, collection, id) {
 // pointDeVue 'moi' : la personne dont la sauvegarde a fusionné (sa version est gardée).
 // pointDeVue 'autre' : l'autre personne, dont la version a été remplacée (elle voit la phrase à son
 // prochain rafraîchissement : même conflit, vu de l'autre côté).
+// Champs d'une mission qui se recalculent à partir du montant : une seule modification du montant les change
+// tous ensemble. Ils ne sont pas annoncés à part (sinon un seul conflit s'affiche comme deux).
+const CHAMPS_DERIVES_DU_MONTANT = ['montantPrestation', 'montantVente'];
+
+function sansDoublonsDerives(conflits) {
+  const liste = conflits || [];
+  const avecMontant = new Set(liste.map((c) => (c.chemin || '').match(/^(\.missions\[[^\]]+\])\.montantDevis$/)).filter(Boolean).map((m) => m[1]));
+  return liste.filter((c) => {
+    const m = (c.chemin || '').match(/^(\.missions\[[^\]]+\])\.(\w+)$/);
+    return !(m && CHAMPS_DERIVES_DU_MONTANT.includes(m[2]) && avecMontant.has(m[1]));
+  });
+}
+
 export function decrireConflits(conflits, donnees, pointDeVue = 'moi') {
   const autreCote = pointDeVue === 'autre';
-  return (conflits || []).map((c) => {
+  const phrases = sansDoublonsDerives(conflits).map((c) => {
     const chemin = c.chemin || '';
     let quoi = chemin;
     let m = chemin.match(/^\.missions\[([^\]]+)\](?:\.(\w+))?/);
@@ -139,4 +152,5 @@ export function decrireConflits(conflits, donnees, pointDeVue = 'moi') {
     }
     return quoi + ' : vous et une autre personne avez modifié la même chose en même temps (' + abreger(c.miennes) + ' contre ' + abreger(c.autre) + '). Votre version a été conservée.';
   });
+  return phrases.filter((p, i) => phrases.indexOf(p) === i); // jamais deux fois la même phrase
 }

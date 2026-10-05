@@ -153,6 +153,21 @@ async function main() {
     test('paramètre', 'Paramètre « objectif » : vous et une autre personne avez modifié la même chose en même temps (4000 contre 5000). Votre version a été conservée.',
       d([{ chemin: '.params.objectif', type: 'valeur', miennes: 4000, autre: 5000 }], donnees)[0]);
     test('aucun conflit : aucune phrase', [], d([], donnees));
+    const unSeul = d([
+      { chemin: '.missions[m1].montantDevis', type: 'valeur', miennes: 500, autre: 400 },
+      { chemin: '.missions[m1].montantPrestation', type: 'valeur', miennes: 500, autre: 400 },
+    ], donnees);
+    test('montant + montantPrestation du même mission : UNE seule phrase', 1, unSeul.length);
+    test('la phrase gardée est celle du montant', true, unSeul[0].includes('le montant'));
+    test('montantPrestation SEUL (sans le montant) : conservé', 1, d([{ chemin: '.missions[m1].montantPrestation', type: 'valeur', miennes: 5, autre: 4 }], donnees).length);
+    test('deux missions différentes : deux phrases', 2, d([
+      { chemin: '.missions[m1].montantDevis', type: 'valeur', miennes: 5, autre: 4 },
+      { chemin: '.missions[m2].montantDevis', type: 'valeur', miennes: 7, autre: 6 },
+    ], { missions: [{ id: 'm1', client: 'A' }, { id: 'm2', client: 'B' }] }).length);
+    test('phrases identiques dédoublonnées', 1, d([
+      { chemin: '.params.objectif', type: 'valeur', miennes: 1, autre: 2 },
+      { chemin: '.params.objectif', type: 'valeur', miennes: 1, autre: 2 },
+    ], donnees).length);
     test("vu de l'autre personne : valeurs dans son ordre, sa version remplacée",
       "Dépense « Logiciel » : le montant : vous et une autre personne avez modifié la même chose en même temps (30 contre 20). La version de l'autre personne a été conservée : vous pouvez la corriger si ce n'est pas la bonne.",
       d([{ chemin: '.depenses[d1].montant', type: 'valeur', miennes: 20, autre: 30 }], donnees, 'autre')[0]);

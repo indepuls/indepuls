@@ -12309,7 +12309,10 @@ function notifierLectureSeule() {
   const maintenant = Date.now();
   if (maintenant - (window._lectureSeuleToastAt || 0) < 4000) return;
   window._lectureSeuleToastAt = maintenant;
-  if (typeof showToast === 'function') showToast(window._partage
+  // Dans une vue par personne (compte partagé), la lecture seule vient de la VUE, pas d'un import ou d'une réinitialisation.
+  if (typeof showToast === 'function') showToast(window._vuePersonne
+    ? '👁 Vous êtes dans la vue d\'une personne, en lecture seule : revenez à « Tout le compte » (en haut) pour modifier.'
+    : window._partage
     ? '🤝 Compte partagé : cette action (import ou réinitialisation) est désactivée, elle remplacerait les données de tout le monde. Contactez-nous si besoin.'
     : '👁 Lecture seule : cette modification n\'est pas enregistrée.', 'var(--acc)');
 }
