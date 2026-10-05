@@ -12023,7 +12023,8 @@ function renderVFLDetail() {
 // (pas celui du propriétaire), et elle pourrait couper l'écriture de tout le monde. Protection d'interface
 // et de fonctions (le compte est un seul bloc de données partagé : la confiance entre associé·es reste le
 // socle, ceci évite les fausses manœuvres, pas la malveillance).
-function estMembreInvite() { return !!(window._partage && window._partage.membre); }
+// Vrai pour toute personne INVITÉE, en lecture seule comme en écriture (drapeau posé par ouvrirComptePartageSiMembre).
+function estMembreInvite() { return !!window._membreInvite; }
 function refuserReserveProprio() {
   const qui = (DATA.params && DATA.params.nom) ? DATA.params.nom : "le propriétaire";
   if (typeof showToast === "function") showToast("🔒 Réservé au propriétaire du compte (" + qui + ") : cela change le calcul pour tout le monde.", "var(--acc)");
@@ -12646,6 +12647,7 @@ async function ouvrirComptePartageSiMembre(user) {
     // Bascule : ces instructions se suivent sans rien entre elles. Le verrou (lecture seule) ou le
     // mode partagé est posé AVANT que DATA ne contienne les données d'autrui, de sorte qu'aucun
     // saveData() ne puisse s'exécuter avec elles sans l'un des deux.
+    window._membreInvite = true; // réserves au propriétaire (statut, associés...) : lecture seule comme écriture, posé avec la bascule
     if (ecriture) {
       const p = { ownerId: ownerId, userId: user.id, membre: true, updatedAt: res.data.updated_at, enCours: false, encore: false, timer: null, communes: null };
       window._partage = p;
@@ -12666,6 +12668,7 @@ async function ouvrirComptePartageSiMembre(user) {
     afficherAccueilComptePartage(user, ecriture);
     return ecriture ? 'partage' : 'consultation';
   } catch (e) {
+    window._membreInvite = false; // rien n'a basculé : la personne reste dans son propre compte
     console.warn('ouvrirComptePartageSiMembre failed:', e);
     return 'erreur';
   }
@@ -18480,7 +18483,7 @@ document.addEventListener('keydown', function(e) {
     // partagée écrirait ces données personnelles (souvent vierges) dans la ligne du PROPRIÉTAIRE. Donc :
     // déjà en mode partagé pour cette personne = on ne relance rien ; sinon on remet tout à zéro avant de recharger.
     if (window._partage && window._partage.userId === user.id) { _authState = 'app'; return; }
-    window._partage = null; window._vuePersonne = null; window._dataCompleteVue = null;
+    window._partage = null; window._vuePersonne = null; window._dataCompleteVue = null; window._membreInvite = false;
     _authState = 'app';
     hasAccess(user).then(function(ok) {
       if (!ok) { showPaywallScreen(user); return; }
