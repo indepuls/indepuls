@@ -12511,27 +12511,19 @@ function afficherAccueilComptePartage(user, ecriture) {
         + '<div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px"><div style="font-weight:700;margin-bottom:4px">👤 À vous</div><div class="ts" style="line-height:1.6">Votre prénom, votre revenu souhaité, vos jours et heures travaillés, vos congés, votre temps interne.</div></div>'
         + '</div>'
         + '<p class="ts" style="line-height:1.6">Commencez par <strong>paramétrer votre compte</strong> : c\'est ce qui rend vos chiffres justes. Indépuls vous montre ensuite les vôtres, ceux de votre associé·e, et ceux de tout le compte.</p>'
-        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous avez aussi un espace personnel séparé, utile seulement si vous avez une activité en dehors de cette société (par exemple une micro-entreprise). Pour y aller : page <strong>Tableau de bord</strong>, encadré en haut, bouton <strong>« Mon espace personnel (optionnel) »</strong>. Vous pouvez l\'ignorer.</p>';
+        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous travaillez dans cet espace commun. Pour une activité indépendante à part, créez un compte Indépuls séparé avec une autre adresse email.</p>';
       bouton.textContent = 'Paramétrer mon compte';
       bouton.onclick = function() { closeModal('modal-accueil-partage'); navigate('params'); };
     } else {
       corps.innerHTML = '<p>Vous avez rejoint le compte de <strong>' + qui + '</strong>. Pour l\'instant, vous le <strong>consultez en lecture seule</strong> : vous voyez tout, mais rien de ce que vous faites n\'est enregistré.</p>'
         + '<p class="ts" style="line-height:1.6">Si vous devez pouvoir saisir et modifier, demandez à ' + qui + ' d\'activer « Mes associé·es peuvent aussi modifier le compte » dans ses paramètres.</p>'
-        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous avez aussi un espace personnel séparé, utile seulement si vous avez une activité en dehors de cette société. Pour y aller : page <strong>Tableau de bord</strong>, encadré en haut, bouton <strong>« Mon espace personnel (optionnel) »</strong>.</p>';
+        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous travaillez dans cet espace commun. Pour une activité indépendante à part, créez un compte Indépuls séparé avec une autre adresse email.</p>';
       bouton.textContent = 'Compris';
       bouton.onclick = function() { closeModal('modal-accueil-partage'); };
     }
     try { localStorage.setItem(cle, '1'); } catch (e) {}
     openModal('modal-accueil-partage');
   } catch (e) { console.warn('afficherAccueilComptePartage failed:', e); }
-}
-
-function basculerVueCompte(vers) {
-  try {
-    if (vers === 'perso') sessionStorage.setItem('indepuls_vue', 'perso');
-    else sessionStorage.removeItem('indepuls_vue');
-  } catch (e) {}
-  location.reload();
 }
 
 // etat : null (rien à afficher) | {mode:'consultation', nom} | {mode:'perso', indisponible?}
@@ -12549,8 +12541,8 @@ function afficherBanniereComptePartage(etat) {
   if (etat.mode === 'partage') {
     const qui = etat.nom ? escapeHtml(etat.nom) : 'votre associé·e';
     el.innerHTML = titre(`🤝 Vous travaillez sur le compte partagé de ${qui}`)
-      + `<div style="color:var(--tl)">Ce que vous modifiez ici est enregistré dans le compte commun, visible par tous ses membres. Si deux personnes modifient la même chose en même temps, Indépuls vous prévient. Votre propre espace n'est pas touché.</div>`
-      + `<div style="margin-top:10px"><button class="btn btn-out btn-sm" onclick="basculerVueCompte('perso')">Mon espace personnel (optionnel)</button></div>`;
+      + `<div style="color:var(--tl)">Ce que vous modifiez ici est enregistré dans le compte commun, visible par tous ses membres. Si deux personnes modifient la même chose en même temps, Indépuls vous prévient.</div>`
+      ;
     el.style.display = '';
     majBandeauPartage();
     return;
@@ -12558,21 +12550,19 @@ function afficherBanniereComptePartage(etat) {
   if (etat.mode === 'consultation') {
     const qui = etat.nom ? escapeHtml(etat.nom) : 'votre associé·e';
     el.innerHTML = titre(`👁 Vous consultez le compte de ${qui}, en lecture seule`)
-      + `<div style="color:var(--tl)">Vous voyez les données de ce compte partagé, mais vous ne pouvez rien y modifier : ce que vous faites ici n'est pas enregistré. Votre propre espace n'est pas touché.</div>`
-      + `<div style="margin-top:10px"><button class="btn btn-out btn-sm" onclick="basculerVueCompte('perso')">Mon espace personnel (optionnel)</button></div>`;
+      + `<div style="color:var(--tl)">Vous voyez les données de ce compte partagé, mais vous ne pouvez rien y modifier : ce que vous faites ici n'est pas enregistré.</div>`
+      ;
     el.style.display = '';
     if (bande) {
       bande.innerHTML = `<span>👁 Lecture seule : compte de ${qui}. Rien de ce que vous faites ici n'est enregistré.</span>`
-        + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="basculerVueCompte('perso')">Mon espace personnel (optionnel)</button>`;
+      ;
       bande.style.display = 'flex';
     }
     return;
   }
-  const texte = etat.indisponible
-    ? 'Vous avez rejoint un compte partagé, mais ses données ne sont pas accessibles pour le moment. Vous restez dans votre propre espace.'
-    : 'Vous êtes dans votre espace personnel, séparé du compte partagé. Il n\'est utile que si vous avez une activité en dehors de cette société : sinon, retournez dans le compte partagé.';
-  el.innerHTML = titre('🤝 Vous avez rejoint un compte partagé') + `<div style="color:var(--tl)">${texte}</div>`
-    + (etat.indisponible ? '' : `<div style="margin-top:10px"><button class="btn btn-acc btn-sm" onclick="basculerVueCompte('partage')">Retourner au compte partagé</button></div>`);
+  // Seul cas restant hors consultation/écriture : le compte partagé est momentanément inaccessible.
+  el.innerHTML = titre('🤝 Vous avez rejoint un compte partagé')
+    + `<div style="color:var(--tl)">Vous avez rejoint un compte partagé, mais ses données ne sont pas accessibles pour le moment. Réessayez dans quelques instants.</div>`;
   el.style.display = '';
   if (bande) { bande.style.display = 'none'; bande.innerHTML = ''; }
 }
@@ -12594,9 +12584,8 @@ async function ouvrirComptePartageSiMembre(user) {
       return 'aucun';
     }
 
-    let prefPerso = false;
-    try { prefPerso = sessionStorage.getItem('indepuls_vue') === 'perso'; } catch (e) {}
-    if (prefPerso) { afficherBanniereComptePartage({ mode: 'perso' }); return 'perso'; }
+    // Pas d'espace personnel pour une personne invitée (décision du 2026-10-05) : on efface l'ancienne préférence.
+    try { sessionStorage.removeItem('indepuls_vue'); } catch (e) {}
 
     const res = await window._sb.from('user_data').select('data, updated_at').eq('user_id', ownerId).eq('app_type', 'indepuls').maybeSingle();
     if (!res.data || !res.data.data) { afficherBanniereComptePartage({ mode: 'perso', indisponible: true }); return 'indisponible'; }

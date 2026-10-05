@@ -4136,6 +4136,16 @@ Accueil d'une personne invitée : précise désormais OÙ trouver l'espace perso
 
 **Rappel d'architecture (questions de Faustine)** : l'espace personnel d'une personne invitée est SON propre compte (sa propre ligne `user_data`), totalement séparé du compte partagé : ses réglages (heures, jours, revenu...) sont indépendants de ceux qu'elle a dans le compte partagé (rangés dans la ligne du propriétaire, `personnes[id]`), rien n'est additionné ni synchronisé entre les deux ; aucune donnée du compte partagé n'est visible ni mise en cache dans l'espace personnel.
 
+### 2026-10-05 : DÉCISION, pas d'espace personnel pour une personne invitée (remplace la piste A de l'onboarding)
+
+Constat (Faustine) : le compte propriétaire A n'a pas d'espace personnel (son compte EST le compte partagé) alors que la personne invitée B en avait un, d'où une asymétrie. Option "donner un 2e espace à A" étudiée puis écartée (le même identifiant rendrait aveugles l'estampille `_ownerUid` et la séparation du cache : risque d'écrasement entre espaces, à reconstruire avec de nouveaux garde-fous, chantier d'environ une journée sur le chemin le plus sensible). **Décision : on retire l'espace personnel de B plutôt que d'en ajouter un à A.**
+
+**Retiré** (`indepuls.html`) : fonction `basculerVueCompte`, boutons "Mon espace personnel (optionnel)" (bannière du tableau de bord, bandeau de lecture seule), branche "espace personnel" de `afficherBanniereComptePartage` (reste uniquement le cas "données du compte partagé inaccessibles", sans bouton), préférence `sessionStorage['indepuls_vue']` (effacée à la connexion). `ouvrirComptePartageSiMembre` fait entrer TOUJOURS dans le compte partagé. L'accueil d'une personne invitée ne parle plus d'espace personnel et indique : "Pour une activité indépendante à part, créez un compte Indépuls séparé avec une autre adresse email." Le compte propre d'une personne invitée n'est utilisé qu'en repli (invitation révoquée ou échouée : retour à un compte normal, avec choix de profil).
+
+**Conséquence produit** : une personne qui veut à la fois une société partagée ET une activité à elle utilise deux comptes (deux adresses email). L'argument "un abonnement, deux espaces" ne tient donc PAS (à garder en tête pour la décision sur les accès payants).
+
+**Vérifié** (banc d'essai) : invité en écriture, en lecture seule, et avec données inaccessibles : aucun bouton ni texte d'espace personnel, ancienne préférence ignorée et effacée, aucune erreur console. Si l'idée d'un 2e espace pour tous revient un jour : variante étudiée = seconde ligne `app_type='indepuls_perso'` par personne, `APP_TYPE`/`STORAGE_KEY` choisis par `sessionStorage` au chargement, règle RLS des membres restreinte à `app_type='indepuls'`, marque `_espace` vérifiée avant toute écriture.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
