@@ -4156,6 +4156,18 @@ Constat (Faustine) : le compte propriétaire A n'a pas d'espace personnel (son c
 
 **Vérifié** (banc d'essai) : membre, statut et dirigeants grisés, carte Associés réduite, 5 fonctions refusées (aucune invitation créée, écriture toujours active pour tous, aucune révocation), réglage commun non réservé toujours modifiable ; propriétaire : carte complète et statut modifiable.
 
+### 2026-10-05 : INCIDENT de recette, saisies d'une personne invitée bloquées en silence après passage en écriture (corrigé)
+
+**Constat (Faustine, point 4 de la recette)** : sur le compte B, chaque saisie affichait un message violet "Compte partagé : cette action (import ou réinitialisation) est désactivée...". **Cause** : B avait d'abord ouvert le compte en LECTURE SEULE (`window._lectureSeule = true`). Quand la propriétaire a activé l'écriture et que la page de B a rejoué l'entrée (retour sur l'onglet), `ouvrirComptePartageSiMembre` a posé le mode partagé mais n'a jamais remis `_lectureSeule` à faux : `saveData()` était donc bloquée (et le message choisi selon `_partage`, d'où le texte trompeur). Les saisies de B n'étaient PAS enregistrées alors que le bandeau annonçait l'écriture.
+
+**Corrigé** (`ouvrirComptePartageSiMembre`) : `_lectureSeule = false` APRÈS le remplacement de DATA dans la branche écriture ; levé aussi si la personne n'est plus membre (révoquée) ou si le compte est inaccessible (sinon son propre compte restait verrouillé). Volontairement PAS remis à zéro dans `_enterApp` : pendant le rechargement DATA est encore celle du propriétaire, le verrou empêche son écriture dans le cache de la personne.
+
+**Sélecteur "Voir les chiffres de"** : `auteursDuCompte` ne propose plus que moi, le propriétaire et les personnes qui ont réellement des données (mission, temps, part de mission commune, temps interne). L'entrée "Fpatissier71" venait d'un ancien compte de test supprimé de Supabase dont des missions restent dans le compte (à supprimer par la propriétaire).
+
+**Vérifié** (banc d'essai, scénario exact : B en lecture seule, l'écriture est activée, B rejoue l'entrée sans F5) : verrou levé, saisie enregistrée (mission + réglage personnel), aucun message violet ; révocation en lecture seule : retour à un compte propre non verrouillé et enregistrable, compte du propriétaire intact.
+
+**Leçon** : tout drapeau d'état de session (`_lectureSeule`, `_partage`, `_membreInvite`, `_vuePersonne`) doit avoir un chemin explicite dans CHAQUE transition (lecture seule vers écriture, écriture vers lecture seule, membre vers non-membre). Penser à tester les transitions, pas seulement les états.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

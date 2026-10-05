@@ -12461,6 +12461,13 @@ function auteursDuCompte(complet, p) {
     if (m.auteurId && !auteurs[m.auteurId]) auteurs[m.auteurId] = { nom: 'Associé·e' };
     (m.tempsManuel || []).forEach(e => { if (e.auteurId && !auteurs[e.auteurId]) auteurs[e.auteurId] = { nom: 'Associé·e' }; });
   });
+  // On ne propose que les personnes qui ont réellement quelque chose dans le compte (une mission, du temps, une
+  // part de mission commune, du temps interne), plus moi et le propriétaire : un ancien compte supprimé ou une
+  // personne qui n'a encore rien saisi n'encombre pas le sélecteur ni le comparatif.
+  const aDesDonnees = (id) => (complet.missions || []).some(m => m.auteurId === id || (m.repartition && m.repartition[id] > 0)
+      || (m.tempsManuel || []).some(e => e.auteurId === id))
+    || Object.keys((((complet.personnes || {})[id] || {}).tempsInterne) || {}).length > 0;
+  Object.keys(auteurs).forEach(id => { if (id !== p.userId && id !== p.ownerId && !aDesDonnees(id)) delete auteurs[id]; });
   return auteurs;
 }
 
@@ -12619,6 +12626,7 @@ async function ouvrirComptePartageSiMembre(user) {
     const mem = await window._sb.from('comptes_membres').select('compte_owner_id').eq('membre_id', user.id).eq('statut', 'actif').limit(1);
     const ownerId = mem.data && mem.data[0] && mem.data[0].compte_owner_id;
     if (!ownerId) {
+      window._lectureSeule = false; // plus membre (révoquée...) : son propre compte ne doit pas rester verrouillé
       afficherBanniereComptePartage(null);
       // Invitation en attente qui n'a pas abouti (mauvaise adresse, révoquée...) : on rend le choix de profil.
       if (typeof inviteTokenEnAttente === 'function' && inviteTokenEnAttente() && DATA._needsProfilePick) showProfilePicker(true);
@@ -12629,7 +12637,7 @@ async function ouvrirComptePartageSiMembre(user) {
     try { sessionStorage.removeItem('indepuls_vue'); } catch (e) {}
 
     const res = await window._sb.from('user_data').select('data, updated_at').eq('user_id', ownerId).eq('app_type', 'indepuls').maybeSingle();
-    if (!res.data || !res.data.data) { afficherBanniereComptePartage({ mode: 'perso', indisponible: true }); return 'indisponible'; }
+    if (!res.data || !res.data.data) { window._membreInvite = false; window._lectureSeule = false; afficherBanniereComptePartage({ mode: 'perso', indisponible: true }); return 'indisponible'; }
 
     // Tout ce qui peut échouer est fait AVANT la bascule : si ça lève, DATA reste celle du membre.
     let d = JSON.parse(JSON.stringify(res.data.data));
@@ -12652,6 +12660,9 @@ async function ouvrirComptePartageSiMembre(user) {
       const p = { ownerId: ownerId, userId: user.id, membre: true, updatedAt: res.data.updated_at, enCours: false, encore: false, timer: null, communes: null };
       window._partage = p;
       DATA = window._partageInitialiser(p, d, true); // mes réglages personnels (capacité, congés) projetés dans les données de travail
+      // Le verrou d'une ancienne consultation en lecture seule (même page, avant l'activation de l'écriture)
+      // doit tomber ICI, une fois DATA remplacée : sinon les saisies seraient bloquées en silence (incident Faustine 2026-10-05).
+      window._lectureSeule = false;
     } else {
       window._lectureSeule = true;
       DATA = d;
