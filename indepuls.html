@@ -12509,13 +12509,13 @@ function afficherAccueilComptePartage(user, ecriture) {
         + '<div style="background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:10px"><div style="font-weight:700;margin-bottom:4px">👤 À vous</div><div class="ts" style="line-height:1.6">Votre prénom, votre revenu souhaité, vos jours et heures travaillés, vos congés, votre temps interne.</div></div>'
         + '</div>'
         + '<p class="ts" style="line-height:1.6">Commencez par <strong>paramétrer votre compte</strong> : c\'est ce qui rend vos chiffres justes. Indépuls vous montre ensuite les vôtres, ceux de votre associé·e, et ceux de tout le compte.</p>'
-        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous avez aussi un espace personnel séparé (en haut de la page, « Mon espace personnel »), utile seulement si vous avez une activité en dehors de cette société. Vous pouvez l\'ignorer.</p>';
+        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous avez aussi un espace personnel séparé, utile seulement si vous avez une activité en dehors de cette société (par exemple une micro-entreprise). Pour y aller : page <strong>Tableau de bord</strong>, encadré en haut, bouton <strong>« Mon espace personnel (optionnel) »</strong>. Vous pouvez l\'ignorer.</p>';
       bouton.textContent = 'Paramétrer mon compte';
       bouton.onclick = function() { closeModal('modal-accueil-partage'); navigate('params'); };
     } else {
       corps.innerHTML = '<p>Vous avez rejoint le compte de <strong>' + qui + '</strong>. Pour l\'instant, vous le <strong>consultez en lecture seule</strong> : vous voyez tout, mais rien de ce que vous faites n\'est enregistré.</p>'
         + '<p class="ts" style="line-height:1.6">Si vous devez pouvoir saisir et modifier, demandez à ' + qui + ' d\'activer « Mes associé·es peuvent aussi modifier le compte » dans ses paramètres.</p>'
-        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous avez aussi un espace personnel séparé, utile seulement si vous avez une activité en dehors de cette société.</p>';
+        + '<p class="ts" style="line-height:1.6;color:var(--tl)">Vous avez aussi un espace personnel séparé, utile seulement si vous avez une activité en dehors de cette société. Pour y aller : page <strong>Tableau de bord</strong>, encadré en haut, bouton <strong>« Mon espace personnel (optionnel) »</strong>.</p>';
       bouton.textContent = 'Compris';
       bouton.onclick = function() { closeModal('modal-accueil-partage'); };
     }
