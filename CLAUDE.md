@@ -4128,6 +4128,14 @@ Une personne qui arrive par un lien d'invitation rejoint un compte existant : le
 
 **Vérifié** (banc d'essai) : invité neuf (accepté, pas de choix de profil, accueil affiché puis bouton vers Paramètres), reconnexion (pas de réaffichage), espace personnel (bannière), mauvaise adresse (invitation non acceptée, choix de profil rendu, aucun accueil), nouveau compte solo (choix de profil comme avant).
 
+### 2026-10-05 : Emails Supabase en français (modèles prêts à coller) et précisions sur l'espace personnel
+
+`supabase/emails_fr.md` : 5 modèles (Confirm sign up, Reset password, Change email address, Magic link, Reauthentication) en HTML sans image, ton chaleureux au vouvoiement, couleurs de la marque, `contact@indepuls.fr` en pied. À coller par Faustine dans Supabase, Authentication, Emails, Templates (pas de code concerné). Variables Supabase conservées (`{{ .ConfirmationURL }}`, `{{ .Email }}`, `{{ .NewEmail }}`, `{{ .Token }}`). "Invite user" non utilisé (invitations par mailto).
+
+Accueil d'une personne invitée : précise désormais OÙ trouver l'espace personnel (page Tableau de bord, encadré en haut, bouton "Mon espace personnel (optionnel)").
+
+**Rappel d'architecture (questions de Faustine)** : l'espace personnel d'une personne invitée est SON propre compte (sa propre ligne `user_data`), totalement séparé du compte partagé : ses réglages (heures, jours, revenu...) sont indépendants de ceux qu'elle a dans le compte partagé (rangés dans la ligne du propriétaire, `personnes[id]`), rien n'est additionné ni synchronisé entre les deux ; aucune donnée du compte partagé n'est visible ni mise en cache dans l'espace personnel.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
