@@ -4116,6 +4116,10 @@ Scénario de bout en bout avec faux Supabase (base partagée entre onglets, late
 
 **Limites connues** : un chrono en cours n'est pas réparti sur une mission commune ; le temps interne détaillé reste dans la mission de gestion ; thème et brief hebdomadaire restent communs ; la révocation d'un membre repose sur la RLS Supabase (testée en réel par Faustine, pas dans le banc d'essai).
 
+### 2026-10-05 : Question ouverte, accès payants d'un compte partagé (décision reportée)
+
+Faustine veut sonder sa bêta avant de décider. Défaut retenu si rien d'autre : chaque personne paie son propre accès (19 €/mois), un droit d'accès par compte personnel (`entitlements` par `user_id`, `hasAccess()`), ce qui s'accorde déjà avec l'architecture. À trancher plus tard : réduction pour la 2e personne (fixe ou %), mécanisme (code promo Stripe ou second lien de paiement automatique quand un compte rejoint un compte partagé), et surtout le cas "l'une ne paie pas" (proposition : elle perd l'accès au compte partagé, l'autre continue, aucune donnée supprimée). `PAYWALL_ENABLED` est à false : aucun code à écrire avant le lancement payant.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
