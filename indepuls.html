@@ -12495,7 +12495,9 @@ function majBandeauPartage() {
 // ce qui est commun, ce qui est à elle, et par où commencer.
 function afficherAccueilComptePartage(user, ecriture) {
   try {
-    const cle = 'indepuls_accueil_partage_' + user.id;
+    // Une fois par personne ET par version (lecture seule, puis écriture une fois activée) : sinon la
+    // personne qui découvre d'abord le compte en lecture seule ne verrait jamais l'accueil "écriture".
+    const cle = 'indepuls_accueil_partage_' + user.id + (ecriture ? '_ecriture' : '_lecture');
     let deja = false;
     try { deja = localStorage.getItem(cle) === '1'; } catch (e) {}
     if (deja || !document.getElementById('modal-accueil-partage')) return;
