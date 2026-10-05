@@ -4219,6 +4219,10 @@ Question de Faustine : A peut modifier et supprimer les missions créées par B,
 
 **Reste en l'état** : certaines lectures de `window._dataCompleteVue` dans le code (toujours `undefined` maintenant, retombent sur `DATA`) : à nettoyer à l'occasion, sans effet.
 
+### 2026-10-05 : Page "Par associé·e", sortie de la page et reprise au rechargement (retour de Faustine, validé)
+
+Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté** : bouton "← Retour" en haut de la page (`quitterPageAssocies` : page d'où l'on vient, mémorisée dans `_pageAvantAssocies`, à défaut le tableau de bord) ET bouton du bandeau qui devient "← Revenir" sur cette page (`majBandeauPartage` lit `currentPage`, rappelée par `navigate`). **Rechargement sur la page** : Faustine préfère y rester. Le partage s'active APRÈS la restauration de la dernière page, donc `navigate('associes')` redirige d'abord vers le tableau de bord et note `_pageEnAttente`, puis `reprendrePageAssocies()` (appelée après l'activation du partage, côté membre et côté propriétaire) y revient ; toute navigation explicite annule l'attente. Un compte solo dont la dernière page était "associes" arrive sur le tableau de bord, sans erreur. Vérifié pour le propriétaire, la personne invitée et un solo.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.

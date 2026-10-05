@@ -5456,12 +5456,13 @@ function openLockedDemoModal(feature) {
   openModal('modal-locked-demo');
 }
 function navigate(page) {
+  if (page !== 'associes') window._pageEnAttente = null; // une navigation explicite annule la reprise de la page "Par associé·e"
   if (isVraiDemoAnonyme() && (page === 'simulateur' || page === 'etsi')) {
     openLockedDemoModal(page === 'simulateur' ? 'Combien facturer ?' : 'Et si ?');
     return;
   }
   if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
-  if (page === 'associes' && !window._partage) { navigate('dashboard'); return; } // page réservée aux comptes partagés
+  if (page === 'associes' && !window._partage) { navigate('dashboard'); window._pageEnAttente = 'associes'; return; } // page réservée aux comptes partagés ; au rechargement, le partage s'active un peu plus tard : on y revient alors (reprendrePageAssocies)
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -5469,7 +5470,9 @@ function navigate(page) {
   const _navEl = document.querySelector(`#nav-${page}`) || document.querySelector(`.nav-item[onclick*="${page}"]`);
   if (_navEl) _navEl.classList.add('active');
   document.getElementById('topbar-title').textContent = getPageTitle(page);
+  if (page === 'associes' && currentPage !== 'associes') window._pageAvantAssocies = currentPage; // pour le bouton Retour
   currentPage = page;
+  if (window._partage && typeof majBandeauPartage === 'function') majBandeauPartage(); // le bouton du bandeau change sur la page "Par associé·e"
   try { localStorage.setItem('indepuls_last_page', page); } catch(e) {}
   closeMobileSidebar();
   // Réinitialisation de l'état transitoire du Simulateur : uniquement lors d'une VRAIE navigation
@@ -12658,7 +12661,8 @@ function renderPageAssocies() {
     + ligne("Temps interne", fmt(r.hInterne, 1) + " h")
     + ligne("Revenu visé / mois", r.revenuVise ? fmtE(Math.round(r.revenuVise)) : "—")
     + '<div style="margin-top:10px;font-size:12px"><a href="#" onclick="voirElementsDe(\'' + escapeHtml(r.id) + '\',\'missions\');return false" style="color:var(--acc)">Voir ses ' + w.items + ' →</a> · <a href="#" onclick="voirElementsDe(\'' + escapeHtml(r.id) + '\',\'depenses\');return false" style="color:var(--acc)">Voir ses dépenses →</a></div></div>';
-  el.innerHTML = '<div class="ts" style="margin-bottom:12px">Année ' + DATA.currentYear + '. Cette page est une consultation : tout se modifie dans les listes habituelles.</div>'
+  el.innerHTML = '<div style="margin-bottom:10px"><button class="btn btn-out btn-xs" onclick="quitterPageAssocies()">← Retour</button></div>'
+    + '<div class="ts" style="margin-bottom:12px">Année ' + DATA.currentYear + '. Cette page est une consultation : tout se modifie dans les listes habituelles.</div>'
     + '<div class="card"><div class="card-title">La société</div>'
     + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:8px">'
     + metrique("Encaissé", fmtE(Math.round(societe.encaisse)))
@@ -12673,6 +12677,15 @@ function renderPageAssocies() {
 }
 
 function ouvrirPageAssocies() { navigate("associes"); }
+// Retour à la page d'où l'on vient (à défaut, le tableau de bord).
+function quitterPageAssocies() {
+  const avant = window._pageAvantAssocies;
+  navigate(avant && avant !== "associes" && document.getElementById("page-" + avant) ? avant : "dashboard");
+}
+// Après un rechargement sur la page "Par associé·e" : le mode partagé s'active après la restauration de la page, on y revient alors.
+function reprendrePageAssocies() {
+  if (window._pageEnAttente === "associes" && window._partage) { window._pageEnAttente = null; navigate("associes"); }
+}
 
 function majBandeauPartage() {
   const bande = document.getElementById('bandeau-lecture-seule');
@@ -12685,7 +12698,7 @@ function majBandeauPartage() {
   const aParametrer = p.membre && !((DATA.params.objectifNetMensuel || 0) > 0) && !((DATA.params.remunerationNette || 0) > 0);
   const accueil = aParametrer ? `<span style="background:#fff;color:var(--acc);border-radius:6px;padding:2px 8px;font-weight:700">👋 Paramétrez votre compte : revenu souhaité, jours et heures travaillés, congés. <a href="#" onclick="navigate('params');return false" style="color:var(--acc)">Ouvrir les paramètres</a></span>` : '';
   bande.innerHTML = `<span>🤝 Compte partagé : ${liste}.</span>${accueil}`
-    + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="ouvrirPageAssocies()">Voir par associé·e</button>`;
+    + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="${currentPage === 'associes' ? 'quitterPageAssocies()' : 'ouvrirPageAssocies()'}">${currentPage === 'associes' ? '← Revenir' : 'Voir par associé·e'}</button>`;
   bande.style.display = 'flex';
 }
 
@@ -12827,6 +12840,7 @@ async function ouvrirComptePartageSiMembre(user) {
     if (ecriture && window._partageVerifierConflits) window._partageVerifierConflits(); // conflit arbitré pendant mon absence
     if (ecriture) partageSeDeclarer();
     afficherAccueilComptePartage(user, ecriture);
+    reprendrePageAssocies();
     return ecriture ? 'partage' : 'consultation';
   } catch (e) {
     window._membreInvite = false; // rien n'a basculé : la personne reste dans son propre compte
@@ -18160,6 +18174,7 @@ document.addEventListener('keydown', function(e) {
     window._partage = p;
     DATA = Object.assign(window._partageInitialiser(p, DATA, !!projeter), { _ownerUid: DATA._ownerUid });
     if (projeter && typeof renderAll === 'function') renderAll();
+    if (typeof reprendrePageAssocies === 'function') reprendrePageAssocies();
     if (typeof partageSeDeclarer === 'function') partageSeDeclarer();
     return true;
   };
