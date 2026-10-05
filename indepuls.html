@@ -814,6 +814,10 @@ html,body{overflow-x:hidden;}
               <option value="paye" id="mf-opt-paye" hidden>Payées</option>
             </select>
           </div>
+          <div id="filtre-auteur-m-wrap" style="display:none;align-items:center;gap:6px">
+            <span style="font-size:11px;color:var(--tl);white-space:nowrap">Voir</span>
+            <select id="filtre-auteur-m" class="s-select" onchange="choisirFiltreAuteur(this.value)"></select>
+          </div>
           <select class="s-select" style="margin-left:auto;font-size:12px;padding:3px 8px;height:28px;" onchange="missionSort=this.value;renderMissions()">
             <option value="newest">↓ Plus récent</option>
             <option value="oldest">↑ Plus ancien</option>
@@ -895,6 +899,10 @@ html,body{overflow-x:hidden;}
             <option value="mission" id="dep-filter-liees">Liées à une mission</option>
           </select>
         </div>
+        <div id="filtre-auteur-d-wrap" style="display:none;align-items:center;gap:6px">
+          <span style="font-size:11px;color:var(--tl);white-space:nowrap">Voir</span>
+          <select id="filtre-auteur-d" class="s-select" onchange="choisirFiltreAuteur(this.value)"></select>
+        </div>
         <div id="dep-cat-select-wrap" style="display:flex;align-items:center;gap:6px;display:none">
           <span style="font-size:11px;color:var(--tl);white-space:nowrap">Catégorie</span>
           <select id="dep-cat-select" class="s-select" onchange="filterDepCat(this.value,null)">
@@ -914,6 +922,10 @@ html,body{overflow-x:hidden;}
   </div>
 
   <!-- ARCHIVES -->
+  <div class="page" id="page-associes">
+    <div id="associes-page-contenu"></div>
+  </div>
+
   <div class="page" id="page-archives">
     <div class="card">
       <div class="card-header">
@@ -2821,16 +2833,6 @@ html,body{overflow-x:hidden;}
       <button class="btn btn-out btn-sm" onclick="closeModal('modal-accueil-partage')">Plus tard</button>
       <button class="btn btn-acc btn-sm" id="accueil-partage-action">Compris</button>
     </div>
-  </div>
-</div>
-
-<!-- MODAL STATISTIQUES PAR PERSONNE (compte partagé) -->
-<div class="modal-ov hidden" id="modal-stats-personnes">
-  <div class="modal" style="max-width:640px">
-    <div class="modal-title" style="margin-bottom:8px">📊 Par personne</div>
-    <p class="ts" id="stats-personnes-aide" style="line-height:1.6;margin-bottom:10px">Année en cours. <strong>Encaissé</strong> et <strong>heures sur ses missions</strong> : sur les missions dont la personne est l'auteure (les missions créées avant le partage reviennent au propriétaire). <strong>Temps interne</strong> : le temps de gestion (hors missions) que chaque personne a enregistré, depuis le partage. <strong>Heures saisies par elle</strong> : le temps qu'elle a réellement enregistré sur des missions, y compris celles des autres. Les dépenses sont communes.</p>
-    <div id="stats-personnes-corps" style="overflow-x:auto"></div>
-    <div style="text-align:right;margin-top:14px"><button class="btn btn-acc btn-sm" onclick="closeModal('modal-stats-personnes')">Fermer</button></div>
   </div>
 </div>
 
@@ -5385,7 +5387,7 @@ function getNextUrssafEcheance() {
 
 // ── NAVIGATION ───────────────────────────────────────────────
 let currentPage = 'dashboard';
-const PAGE_TITLES = {dashboard:'Tableau de bord',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Combien facturer ?',etsi:'Et si ?',recettes:'Livre des recettes',retours:'Retours clients'};
+const PAGE_TITLES = {dashboard:'Tableau de bord',associes:'Par associé·e',revenus:'Revenus',depenses:'Dépenses',archives:'Archives',params:'Paramètres',notice:'Guide & glossaire',simulateur:'Combien facturer ?',etsi:'Et si ?',recettes:'Livre des recettes',retours:'Retours clients'};
 
 function getPageTitle(page) {
   if(page==='dashboard' && prenomAffiche()) return 'Tableau de bord de '+prenomAffiche();
@@ -5459,6 +5461,7 @@ function navigate(page) {
     return;
   }
   if (page === 'retours' && DATA.params.modules?.objectif !== 'marge_commande') { navigate('dashboard'); return; }
+  if (page === 'associes' && !window._partage) { navigate('dashboard'); return; } // page réservée aux comptes partagés
   const _cameFromElsewhere = currentPage !== page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -5499,6 +5502,7 @@ function renderPage(page) {
     case 'missions': renderMissions(); break;
     case 'revenus': renderRevenus(); break;
     case 'depenses': renderDepenses(); break;
+    case 'associes': renderPageAssocies(); break;
     case 'archives': renderArchives(); break;
     case 'params': renderParams(); break;
     case 'simulateur': renderSimulateurPage(); break;
@@ -11195,6 +11199,7 @@ function renderMissions() {
     if(_labelsPaye.factPayePl){ _mfPaye.hidden=false; _mfPaye.textContent=_labelsPaye.factPayePl; }
     else { _mfPaye.hidden=true; if(missionFilter==='paye') missionFilter='all'; }
   }
+  majFiltresAuteur();
   const _mfSel=document.getElementById('mission-filter-select');
   if(_mfSel && _mfSel.value!==missionFilter) _mfSel.value=missionFilter;
   const tbody=document.getElementById('missions-tbody'); tbody.innerHTML='';
@@ -11208,6 +11213,7 @@ function renderMissions() {
   // #missions-view-toggle (voir updateTiWidget()), partagé entre vue Tableau et Calendrier.
   let filtered=DATA.missions.filter(m=>{
     if(m.isManagement) return false;
+    if(window._filtreAuteur && window._partage && !missionAppartientA(m, window._filtreAuteur)) return false; // filtre par personne (compte partagé)
     if(missionFilter==='all') return true;
     if(missionFilter==='paye') return estMissionPayee(m);
     if(missionFilter==='fact') return m.statut==='fact'&&!estMissionPayee(m);
@@ -11798,7 +11804,9 @@ function renderDepenses() {
   }
 
   // ── Filtre rapide ──
+  majFiltresAuteur();
   let filtered=[...all];
+  if(window._filtreAuteur && window._partage) filtered=filtered.filter(d=>depenseAppartientA(d, window._filtreAuteur)); // filtre par personne (compte partagé)
   if(depFilter==='mensuelle')   filtered=filtered.filter(d=>d.recurrence==='mensuelle');
   else if(depFilter==='annuelle')  filtered=filtered.filter(d=>d.recurrence==='annuelle'   && !d.chantierId);
   else if(depFilter==='ponctuelle') filtered=filtered.filter(d=>d.recurrence==='ponctuelle' && !d.chantierId);
@@ -12327,10 +12335,7 @@ function notifierLectureSeule() {
   const maintenant = Date.now();
   if (maintenant - (window._lectureSeuleToastAt || 0) < 4000) return;
   window._lectureSeuleToastAt = maintenant;
-  // Dans une vue par personne (compte partagé), la lecture seule vient de la VUE, pas d'un import ou d'une réinitialisation.
-  if (typeof showToast === 'function') showToast(window._vuePersonne
-    ? '👁 Vous êtes dans la vue d\'une personne, en lecture seule : revenez à « Tout le compte » (en haut) pour modifier.'
-    : window._partage
+  if (typeof showToast === 'function') showToast(window._partage
     ? '🤝 Compte partagé : cette action (import ou réinitialisation) est désactivée, elle remplacerait les données de tout le monde. Contactez-nous si besoin.'
     : '👁 Lecture seule : cette modification n\'est pas enregistrée.', 'var(--acc)');
 }
@@ -12504,29 +12509,6 @@ function renommerAuteur() {
   majBandeauPartage();
 }
 
-function choisirVuePersonne(id) {
-  const p = window._partage;
-  if (!id) {
-    if (window._dataCompleteVue) {
-      DATA = window._dataCompleteVue; // les données complètes d'abord, le verrou ensuite
-      window._dataCompleteVue = null;
-      window._vuePersonne = null;
-      if (window._partage) window._lectureSeule = false;
-    }
-    majBandeauPartage();
-    renderAll();
-    if (window._partageSync) window._partageSync(true); // remet à jour ce qui a changé pendant la vue
-    return;
-  }
-  if (!p || DATA.isExample) return;
-  if (!window._dataCompleteVue) window._dataCompleteVue = DATA;
-  window._lectureSeule = true; // le verrou d'abord, les données filtrées ensuite
-  window._vuePersonne = id;
-  DATA = window._dataCompleteVue; // le filtre part toujours des données complètes (changement de vue d'une personne à l'autre)
-  DATA = window.getDataPourMembre(id, p.ownerId);
-  majBandeauPartage();
-  renderAll();
-}
 
 // Tableau comparatif par personne (année en cours), lecture seule : mêmes fonctions de calcul que le
 // tableau de bord, appliquées à la copie filtrée de chaque personne (DATA est restaurée juste après).
@@ -12551,30 +12533,86 @@ function auteursDuCompte(complet, p, sansPartis) {
   return auteurs;
 }
 
-function ouvrirStatsPersonnes() {
-  if (!window._partage || window._vuePersonne) return;
-  // Pendant le calcul, le moteur ne doit PAS recevoir la vue combinée (sync() du pont) : sinon "mes" chiffres
-  // seraient ceux de tout le compte. Le drapeau _vuePersonne coupe aussi toute synchronisation.
-  window._vuePersonne = '_stats';
-  try { _ouvrirStats(); } finally { window._vuePersonne = null; }
+
+
+// ── PAGE "PAR ASSOCIÉ·E" ET FILTRE PAR PERSONNE (2026-10-05, piste C validée par Faustine) ──────────────
+// Remplace le menu "Voir les chiffres de" (copie filtrée, lecture seule) et la fenêtre "Comparer" : on travaille
+// toujours dans "tout le compte" (modifiable), et cette page montre, en consultation, la société puis chaque
+// personne (indicateurs calculés sur SES données). Les listes de missions et de dépenses se filtrent par
+// personne SANS changer ce qu'on peut modifier.
+
+// Une mission appartient à une personne si elle y a une part (mission commune) ou en est l'auteure ;
+// une mission sans auteur (antérieure au partage) revient au propriétaire.
+function missionAppartientA(m, id) {
+  const rep = m.repartition;
+  if (rep && Object.keys(rep).length) return (Number(rep[id]) || 0) > 0;
+  const p = window._partage;
+  return m.auteurId === id || (!m.auteurId && !!p && id === p.ownerId);
 }
-function _ouvrirStats() {
+// Une dépense sans auteur est une dépense de la société : visible quel que soit le filtre.
+function depenseAppartientA(d, id) {
+  const rep = d.repartition;
+  if (rep && Object.keys(rep).length) return (Number(rep[id]) || 0) > 0;
+  return !d.auteurId || d.auteurId === id;
+}
+
+function choisirFiltreAuteur(id) {
+  window._filtreAuteur = id || null;
+  if (currentPage === "missions") renderMissions();
+  else if (currentPage === "depenses") renderDepenses();
+}
+function voirElementsDe(id, page) {
+  window._filtreAuteur = id || null;
+  navigate(page);
+}
+
+// Liste déroulante "Voir" des pages Missions et Dépenses (compte partagé seulement).
+function majFiltresAuteur() {
+  const p = window._partage;
+  const auteurs = p ? auteursDuCompte(DATA, p, true) : {};
+  if (!p || (window._filtreAuteur && !auteurs[window._filtreAuteur])) window._filtreAuteur = null;
+  const w = motsMission();
+  [["filtre-auteur-m-wrap", "filtre-auteur-m", "m"], ["filtre-auteur-d-wrap", "filtre-auteur-d", "d"]].forEach(([wrapId, selId, kind]) => {
+    const wrap = document.getElementById(wrapId), sel = document.getElementById(selId);
+    if (!wrap || !sel) return;
+    wrap.style.display = p ? "flex" : "none";
+    if (!p) return;
+    const lib = (id) => id === p.userId
+      ? (kind === "m" ? "Mes " + w.items : "Mes dépenses")
+      : (kind === "m" ? w.Items + " de " : "Dépenses de ") + ((auteurs[id] || {}).nom || "Associé·e");
+    const ids = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0));
+    sel.innerHTML = '<option value="">Toutes</option>' + ids.map(id => '<option value="' + escapeHtml(id) + '">' + escapeHtml(lib(id)) + '</option>').join("");
+    sel.value = window._filtreAuteur || "";
+  });
+}
+
+// Indicateurs de la société (le moteur voit déjà les capacités additionnées) puis de chaque personne (le moteur
+// rejoue sur SES données, instantané temporaire : DATA est restaurée juste après, aucune synchronisation ne part).
+function calculerIndicateursPersonnes() {
   const p = window._partage;
   const complet = DATA;
-  const auteurs = auteursDuCompte(complet, p);
   const mks = getCurrentYearMonths();
-  const lignes = Object.keys(auteurs).map(id => {
-    let missions = 0, encaisse = 0, hInterne = 0, depenses = 0;
+  const auteurs = auteursDuCompte(complet, p);
+  const somme = (f) => mks.reduce((t, mk) => t + (f(mk) || 0), 0);
+  const societe = { encaisse: somme(getCaFromMissions), depenses: somme(getDepensesMois), remplissage: getTauxRemplissageAnnee().taux };
+  const ids = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0));
+  const personnes = ids.map(id => {
+    const r = { id: id, nom: (auteurs[id] || {}).nom || "Associé·e", moi: id === p.userId, missions: 0, encaisse: 0, depenses: 0, hInterne: 0, remplissage: 0, jours: null, revenuVise: 0 };
+    window._vuePersonne = "_calcul"; // le moteur ne reçoit pas la vue combinée pendant ce calcul (sync du pont)
     try {
-      const vue = window.getDataPourMembre(id, p.ownerId); // sync() sur les données complètes
+      const vue = window.getDataPourMembre(id, p.ownerId);
       DATA = vue;
-      missions = vue.missions.filter(m => !m.isManagement).length;
-      encaisse = mks.reduce((t, mk) => t + (getCaFromMissions(mk) || 0), 0);
-      depenses = mks.reduce((t, mk) => t + (getDepensesMois(mk) || 0), 0); // dépenses de CETTE personne (parts, sinon en entier)
-      hInterne = mks.reduce((t, mk) => t + ((vue.tempsInterne && vue.tempsInterne[mk]) || 0), 0) / 3600000; // temps interne de CETTE personne
-    } finally { DATA = complet; window.getDataPourMembre(null); } // restaure aussi le contexte du moteur
-    // Heures TRAVAILLÉES par la personne, sur n'importe quelle mission : ses propres saisies de l'année, plus le temps sans
-    // auteur (chrono accumulé, heures saisies, entrées d'avant le partage) des missions qu'elle porte (son auteur, à défaut le propriétaire).
+      r.missions = vue.missions.filter(m => !m.isManagement).length;
+      r.encaisse = somme(getCaFromMissions);
+      r.depenses = somme(getDepensesMois);
+      r.hInterne = mks.reduce((t, mk) => t + ((vue.tempsInterne && vue.tempsInterne[mk]) || 0), 0) / 3600000;
+      const rem = getTauxRemplissageAnnee();
+      r.remplissage = rem.taux; r.occupied = rem.occupied; r.ouvrables = rem.ouvrables;
+      r.jours = vue.params.joursParSemaine;
+      r.revenuVise = vue.params.objectifNetMensuel || vue.params.remunerationNette || 0;
+    } finally { DATA = complet; window._vuePersonne = null; window.getDataPourMembre(null); }
+    // Heures TRAVAILLÉES : ses propres saisies de l'année sur n'importe quelle mission, plus le temps sans auteur
+    // (chrono accumulé, heures saisies, entrées d'avant le partage) des missions qu'elle porte (auteure, à défaut le propriétaire).
     let ms = 0;
     complet.missions.forEach(m => {
       if (m.isManagement) return;
@@ -12582,49 +12620,72 @@ function _ouvrirStats() {
       (m.tempsManuel || []).forEach(e => { if ((e.auteurId || porteur) === id && (!e.date || String(e.date).slice(0, 4) === String(complet.currentYear))) ms += e.ms || 0; });
       if (porteur === id) ms += (m.timerAccumulated || 0) + (m.heuresSaisies || 0) * 3600000;
     });
-    return { nom: id === p.userId ? 'Moi (' + (auteurs[id].nom || '') + ')' : (auteurs[id].nom || 'Associé·e'), missions, encaisse, depenses, hInterne, hTravaillees: ms / 3600000 };
+    r.hTravaillees = ms / 3600000;
+    r.th = r.hTravaillees > 0 ? r.encaisse / r.hTravaillees : null;
+    return r;
   });
-  const aide = document.getElementById('stats-personnes-aide');
-  if (aide) { const w = motsMission(); aide.innerHTML = 'Année en cours. <strong>Encaissé</strong> : réparti selon les pourcentages des ' + w.items + ' communs (la part de chacun·e), sinon ' + w.items + ' dont la personne est l\'auteure (ceux créés avant le partage reviennent au propriétaire). <strong>Dépenses</strong> : celles que vous avez réparties comptent à hauteur de la part de chacun·e ; les autres comptent en entier pour chacun·e (dépenses de la société). <strong>Heures travaillées</strong> : le temps que la personne a réellement saisi sur des ' + w.items + ', y compris ceux des autres (le temps n\'est jamais réparti en pourcentages), plus le temps sans auteur de ses propres ' + w.items + '. <strong>Temps interne</strong> : le temps de gestion (hors ' + w.items + ') qu\'elle a enregistré, depuis le partage.'; }
-  const corps = document.getElementById('stats-personnes-corps');
-  if (!corps) return;
-  const th = 'text-align:right;padding:6px 8px;border-bottom:2px solid var(--brd)';
-  corps.innerHTML = '<table style="width:100%;font-size:13px;border-collapse:collapse"><thead><tr>'
-    + '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid var(--brd)">Personne</th>'
-    + '<th style="' + th + '">' + motsMission().Items + '</th><th style="' + th + '">Encaissé ' + complet.currentYear + '</th><th style="' + th + '">Dépenses</th>'
-    + '<th style="' + th + '">Heures travaillées</th><th style="' + th + '">Temps interne</th></tr></thead><tbody>'
-    + lignes.map(l => '<tr><td style="padding:6px 8px;border-bottom:1px solid var(--brd)">' + escapeHtml(l.nom) + '</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + l.missions + '</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd);font-weight:700">' + fmt(l.encaisse) + ' €</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.depenses) + ' €</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hTravaillees, 1) + ' h</td>'
-      + '<td style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--brd)">' + fmt(l.hInterne, 1) + ' h</td></tr>').join('')
-    + '</tbody></table>';
-  openModal('modal-stats-personnes');
+  // Remplissage de la société : moyenne des taux de chacun·e PONDÉRÉE par sa capacité (somme des temps occupés / somme
+  // des temps ouvrables). Le taux calculé sur la vue combinée compterait une journée occupée par l'une OU l'autre.
+  const totOuv = personnes.reduce((t, r) => t + (r.ouvrables || 0), 0);
+  if (totOuv > 0) societe.remplissage = Math.min(100, Math.round(personnes.reduce((t, r) => t + (r.occupied || 0), 0) / totOuv * 100));
+  societe.hTravaillees = personnes.reduce((t, r) => t + r.hTravaillees, 0);
+  societe.th = societe.hTravaillees > 0 ? societe.encaisse / societe.hTravaillees : null;
+  return { societe: societe, personnes: personnes };
 }
+
+function renderPageAssocies() {
+  const el = document.getElementById("associes-page-contenu");
+  if (!el) return;
+  if (!window._partage) { el.innerHTML = '<div class="card"><div class="ts">Cette page est disponible dans un compte partagé.</div></div>'; return; }
+  const { societe, personnes } = calculerIndicateursPersonnes();
+  const w = motsMission();
+  const couleurs = ["#5B2C4A", "#BB9E81", "#141538", "#7A8B99"];
+  const metrique = (lab, val, aide) => '<div style="background:var(--bg);border-radius:10px;padding:10px 12px"' + (aide ? ' title="' + escapeHtml(aide) + '"' : "") + '><div style="font-size:11px;color:var(--tl)">' + lab + '</div><div style="font-size:19px;font-weight:700;color:var(--pri)">' + val + '</div></div>';
+  const th = (x) => x == null ? "—" : fmtE(Math.round(x)) + "/h";
+  const totEnc = personnes.reduce((t, r) => t + r.encaisse, 0);
+  const barre = totEnc > 0
+    ? '<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0">' + personnes.map((r, i) => '<div style="width:' + (r.encaisse / totEnc * 100) + '%;background:' + couleurs[i % couleurs.length] + '"></div>').join("") + '</div>'
+      + '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">' + personnes.map(r => '<span>' + escapeHtml(r.nom) + " " + Math.round(r.encaisse / totEnc * 100) + " %</span>").join("") + '</div>'
+    : '<div class="ts" style="margin-top:6px">Aucun encaissement cette année pour l\'instant.</div>';
+  const ligne = (lab, val) => '<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--brd)"><span class="ts">' + lab + '</span><strong>' + val + '</strong></div>';
+  const carte = (r) => '<div class="card" style="margin:0"><div class="card-title" style="margin-bottom:2px">' + escapeHtml(r.nom) + (r.moi ? " (moi)" : "") + '</div>'
+    + '<div class="ts" style="margin-bottom:8px">' + (r.jours != null ? r.jours + " jour" + (r.jours > 1 ? "s" : "") + " par semaine · " : "") + r.missions + " " + (r.missions > 1 ? w.items : w.item) + '</div>'
+    + ligne("Encaissé (sa part)", fmtE(Math.round(r.encaisse)))
+    + ligne("Dépenses (sa part)", fmtE(Math.round(r.depenses)))
+    + ligne("Heures travaillées", fmt(r.hTravaillees, 1) + " h")
+    + ligne("Taux horaire réel", th(r.th))
+    + ligne("Remplissage", r.remplissage + " %")
+    + ligne("Temps interne", fmt(r.hInterne, 1) + " h")
+    + ligne("Revenu visé / mois", r.revenuVise ? fmtE(Math.round(r.revenuVise)) : "—")
+    + '<div style="margin-top:10px;font-size:12px"><a href="#" onclick="voirElementsDe(\'' + escapeHtml(r.id) + '\',\'missions\');return false" style="color:var(--acc)">Voir ses ' + w.items + ' →</a> · <a href="#" onclick="voirElementsDe(\'' + escapeHtml(r.id) + '\',\'depenses\');return false" style="color:var(--acc)">Voir ses dépenses →</a></div></div>';
+  el.innerHTML = '<div class="ts" style="margin-bottom:12px">Année ' + DATA.currentYear + '. Cette page est une consultation : tout se modifie dans les listes habituelles.</div>'
+    + '<div class="card"><div class="card-title">La société</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:8px">'
+    + metrique("Encaissé", fmtE(Math.round(societe.encaisse)))
+    + metrique("Dépenses", fmtE(Math.round(societe.depenses)))
+    + metrique("Résultat", fmtE(Math.round(societe.encaisse - societe.depenses)), "Encaissé moins dépenses, avant impôts et charges de rémunération.")
+    + metrique("Heures travaillées", fmt(societe.hTravaillees, 0) + " h", "Somme des heures saisies par chaque personne sur les " + w.items + " (hors temps interne).")
+    + metrique("Taux horaire réel", th(societe.th), "Encaissé ÷ heures travaillées, avant charges.")
+    + metrique("Remplissage", societe.remplissage + " %", "Moyenne des taux de remplissage de chacun·e, pondérée par la capacité de chacun·e.")
+    + '</div><div style="margin-top:12px"><div class="ts">Part de l\'encaissé par personne</div>' + barre + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px">' + personnes.map(carte).join("") + '</div>'
+    + '<div class="ts" style="margin-top:12px;line-height:1.6">Les dépenses que vous n\'avez pas réparties comptent en entier pour chacun·e (dépenses de la société). Le taux horaire réel est l\'encaissé divisé par les heures travaillées, avant charges.</div>';
+}
+
+function ouvrirPageAssocies() { navigate("associes"); }
 
 function majBandeauPartage() {
   const bande = document.getElementById('bandeau-lecture-seule');
   const p = window._partage;
   if (!bande || !p) return;
-  const complet = window._dataCompleteVue || DATA;
-  const auteurs = auteursDuCompte(complet, p);
-  const libelle = (id) => id === p.userId ? 'Mes ' + motsMission().items : motsMission().Items + ' de ' + escapeHtml(auteurs[id].nom || 'Associé·e');
-  if (window._vuePersonne) {
-    bande.innerHTML = `<span>👁 Vue : ${libelle(window._vuePersonne)} (lecture seule). Dépenses et temps interne restent communs à tout le compte.</span>`
-      + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="choisirVuePersonne('')">Revenir à tout le compte</button>`;
-    bande.style.display = 'flex';
-    return;
-  }
-  const options = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0))
-    .map(id => `<option value="${escapeHtml(id)}">${libelle(id)}</option>`).join('');
+  const auteurs = auteursDuCompte(DATA, p, true);
+  const noms = Object.keys(auteurs).sort((a, b) => (a === p.userId ? -1 : b === p.userId ? 1 : 0)).map(id => escapeHtml((auteurs[id] || {}).nom || 'Associé·e'));
+  const liste = noms.length > 1 ? noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1] : (noms[0] || '');
   // Nouvelle personne : revenu souhaité encore à 0 -> invitation à paramétrer son compte.
   const aParametrer = p.membre && !((DATA.params.objectifNetMensuel || 0) > 0) && !((DATA.params.remunerationNette || 0) > 0);
   const accueil = aParametrer ? `<span style="background:#fff;color:var(--acc);border-radius:6px;padding:2px 8px;font-weight:700">👋 Paramétrez votre compte : revenu souhaité, jours et heures travaillés, congés. <a href="#" onclick="navigate('params');return false" style="color:var(--acc)">Ouvrir les paramètres</a></span>` : '';
-  bande.innerHTML = `<span>🤝 Compte partagé : vous voyez tout le compte.</span>${accueil}`
-    + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="ouvrirStatsPersonnes()">📊 Comparer</button>`
-    + `<label style="display:flex;align-items:center;gap:6px">Voir les chiffres de :`
-    + `<select onchange="choisirVuePersonne(this.value)" style="border-radius:6px;border:none;padding:3px 6px;font-size:12px"><option value="">Tout le compte</option>${options}</select></label>`;
+  bande.innerHTML = `<span>🤝 Compte partagé : ${liste}.</span>${accueil}`
+    + `<button style="background:#fff;color:var(--acc);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="ouvrirPageAssocies()">Voir par associé·e</button>`;
   bande.style.display = 'flex';
 }
 

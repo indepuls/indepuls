@@ -4207,6 +4207,18 @@ Question de Faustine : A peut modifier et supprimer les missions créées par B,
 
 **Leçon** : toute "vue" dérivée de données partagées doit être un instantané PROFOND ; une copie superficielle laisse passer les mutations. Tester la lecture seule en MODIFIANT réellement, pas seulement en vérifiant que l'enregistrement est bloqué.
 
+### 2026-10-05 : DÉCISION (validée par Faustine), page "Par associé·e" et filtre par personne remplacent la vue filtrée en lecture seule
+
+**Pourquoi** : la vue "Voir les chiffres de X" (copie filtrée, lecture seule) était incohérente avec un compte où tout le monde modifie tout, et sa copie a causé deux défauts (fuite de modifications, lecture seule trompeuse). Piste C retenue (maquette validée) : on travaille TOUJOURS dans "tout le compte" (modifiable), plus aucune vue ni lecture seule liée à un filtre.
+
+**Retiré** : `choisirVuePersonne`, `ouvrirStatsPersonnes`/`_ouvrirStats`, fenêtre "Comparer" (`modal-stats-personnes`), menu "Voir les chiffres de", message de lecture seule de la vue. `_vuePersonne` ne subsiste que comme drapeau INTERNE de calcul ("_calcul") : il empêche `sync()` de fournir la vue combinée au moteur et toute synchronisation pendant le calcul d'une personne. `getDataPourMembre` (copie profonde) ne sert plus qu'à ce calcul.
+
+**Ajouté** (`indepuls.html`, bloc "PAGE PAR ASSOCIÉ·E") : (1) bandeau simplifié "🤝 Compte partagé : Faustine et Marie." + bouton "Voir par associé·e" (`majBandeauPartage`, `ouvrirPageAssocies`) ; (2) page `page-associes` (`renderPageAssocies`, `calculerIndicateursPersonnes`), réservée aux comptes partagés (`navigate` renvoie au tableau de bord sinon) : la société (encaissé, dépenses, résultat, heures travaillées, taux horaire réel brut = encaissé ÷ heures travaillées, remplissage, part de l'encaissé par personne) puis une carte par personne (mêmes indicateurs de SA part + temps interne + revenu visé + jours par semaine) ; remplissage de la société = moyenne des taux de chacun·e pondérée par la capacité (la vue combinée comptait une journée occupée par l'une OU l'autre) ; (3) filtre "Voir" sur les pages Missions et Dépenses (`missionAppartientA`, `depenseAppartientA`, `majFiltresAuteur`, `choisirFiltreAuteur`, `voirElementsDe`) : filtre d'AFFICHAGE seulement, les listes restent modifiables ; une dépense sans auteur reste visible dans tous les filtres (dépense de la société) ; filtre remis à zéro si la personne n'existe plus ; liens "Voir ses missions / dépenses" depuis la page.
+
+**Vérifié** (banc d'essai, chiffres calculés à la main) : société 1 300 € encaissé / 1 300 € dépenses / 25,5 h / 51 €/h ; Faustine 500 € / 900 € / 17,5 h / 29 €/h ; Marie 800 € / 700 € / 8 h / 100 €/h ; filtres de missions et de dépenses exacts, modification possible sous filtre ; remplissage par personne différent selon ses sessions ; compte solo intact (aucun bandeau, page inaccessible, aucun filtre, 10 pages rendues).
+
+**Reste en l'état** : certaines lectures de `window._dataCompleteVue` dans le code (toujours `undefined` maintenant, retombent sur `DATA`) : à nettoyer à l'occasion, sans effet.
+
 ### 2026-09-08 — FIX texte : méthodologie "Ma rentabilité" prétendait vérifier le mois, alors qu'elle vérifie la moyenne annuelle
 
 Retour Faustine : pilier "Ma rentabilité" à 25/25 alors qu'aucun chantier facturé ce mois-ci. En creusant : le malus "−3 pts" existe bien dans le code (`sRent+=(pctObj<50?-3:0)`), mais `pctObj` est la **moyenne annuelle** du revenu net (confirmé par l'infobulle du pilier), pas le mois en cours — alors que le texte de méthodologie affiché disait *"Si revenu net **mensuel** < 50 % de l'objectif"*. Le texte mentait sur ce qu'il vérifiait réellement.
