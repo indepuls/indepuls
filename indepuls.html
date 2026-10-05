@@ -4160,11 +4160,21 @@ function getExampleData(metier) {
 
 // ── MODE DÉMO — PICKER & TRANSITIONS ────────────────────────
 
+function estMembreConnuSurAppareil() {
+  try {
+    const uid = window._uidChargement || localStorage.getItem('indepuls_derniere_uid');
+    return !!uid && localStorage.getItem('indepuls_membre_' + uid) === '1';
+  } catch (e) { return false; }
+}
 function showProfilePicker(forcer) {
   if (!DATA._needsProfilePick) return;
   // Une personne qui arrive par un lien d'invitation rejoint un compte existant : le choix de profil (pensé
   // pour qui démarre seul) n'a pas de sens pour elle. Il est réaffiché si l'invitation n'aboutit pas.
   if (!forcer && typeof inviteTokenEnAttente === 'function' && inviteTokenEnAttente()) return;
+  // Une personne déjà connue sur cet appareil comme MEMBRE d'un compte partagé n'a pas à voir ce choix, même quelques
+  // dixièmes de seconde : son espace personnel est vide à chaque chargement, et ce n'est qu'ensuite que l'appartenance
+  // est confirmée par le serveur (ouvrirComptePartageSiMembre). Marqueur posé là, retiré si elle n'est plus membre.
+  if (!forcer && estMembreConnuSurAppareil()) return;
   document.getElementById('screen-profile-picker').classList.remove('hidden');
 }
 
@@ -12790,12 +12800,16 @@ async function ouvrirComptePartageSiMembre(user) {
     const ownerId = mem.data && mem.data[0] && mem.data[0].compte_owner_id;
     if (!ownerId) {
       window._lectureSeule = false; // plus membre (révoquée...) : son propre compte ne doit pas rester verrouillé
+      // Plus membre : on retire le marqueur (lecture seule : un compte solo n'a jamais ce marqueur, rien n'est écrit pour lui)
+      // et on lui rend le choix de profil comme à un nouvel utilisateur.
+      try { if (localStorage.getItem('indepuls_membre_' + user.id) === '1') { localStorage.removeItem('indepuls_membre_' + user.id); if (DATA._needsProfilePick) showProfilePicker(true); } } catch (e) {}
       afficherBanniereComptePartage(null);
       // Invitation en attente qui n'a pas abouti (mauvaise adresse, révoquée...) : on rend le choix de profil.
       if (typeof inviteTokenEnAttente === 'function' && inviteTokenEnAttente() && DATA._needsProfilePick) showProfilePicker(true);
       return 'aucun';
     }
 
+    try { localStorage.setItem('indepuls_membre_' + user.id, '1'); localStorage.setItem('indepuls_derniere_uid', user.id); } catch (e) {} // marqueur "membre" : plus de choix de profil au démarrage
     // Pas d'espace personnel pour une personne invitée (décision du 2026-10-05) : on efface l'ancienne préférence.
     try { sessionStorage.removeItem('indepuls_vue'); } catch (e) {}
 
@@ -17862,6 +17876,7 @@ document.addEventListener('keydown', function(e) {
 
   async function loadFromCloud(user) {
     _analyticsUserId = user.id;
+    window._uidChargement = user.id; // pour showProfilePicker (marqueur de membre)
     // Garde anti-contamination inter-comptes (2026-08, retour Faustine : connexion sur son compte
     // qui a chargé les données d'un autre compte ouvert avant sur le même téléphone). Le cache
     // local (localStorage 'indepuls') est partagé par tous les comptes d'un même appareil et
