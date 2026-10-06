@@ -4231,6 +4231,11 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-06 — Nouveauté + FAQ : annonce du compte partagé pour les associés SAS/SASU
+
+- Entrée « Nouveautés » 🤝 ajoutée en tête de `NOUVEAUTES` (indepuls.html et indepuls-demo.html), avec remerciement à Florence.
+- Site vitrine : nouvelle question dans `faq/index.html` (HTML + JSON-LD) « Peut-on utiliser Indépuls à plusieurs associés ? », lastmod du sitemap mis à jour. Aucun prix annoncé pour le compte partagé (décision tarifaire en attente).
+
 ### 2026-10-05 — Multi-associés : barrière `?associes=1` retirée, chantier clos
 
 - La carte « Associés » (Paramètres) s'affiche désormais pour tout compte SASU/SAS qui coche « Plusieurs dirigeants » (jamais en EURL, jamais pour un compte solo qui ne coche pas la case). `appliquerOptionAssociesBeta()` et son appel dans la chaîne `_enterApp` sont supprimés ; la clé `DATA.params.associesBeta` n'est plus lue (laissée telle quelle dans les données existantes, pas de migration).
