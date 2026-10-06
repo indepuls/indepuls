@@ -5361,8 +5361,13 @@ function updateNavRetours() {
 // (authLoadDemo, aucune authentification). Posé avant que l'app ne devienne cliquable (l'overlay
 // de connexion ne se ferme qu'après loadFromCloud), donc pas de fenêtre où un vrai abonné serait
 // pris pour un anonyme.
+// Correctif 2026-10-06 : la distinction ne repose plus sur DATA._ownerUid, que plusieurs chemins perdent en remplaçant
+// DATA par getDefaultData() (réinitialisation du compte, rechargement du profil...) : une personne connectée qui
+// réinitialisait son compte puis choisissait la démo se retrouvait verrouillée. Elle repose maintenant sur l'état de
+// connexion lui-même : window._demoAnonyme est posé UNIQUEMENT par authLoadDemo ("Essayer sans créer de compte") et
+// retiré dès qu'une vraie session s'ouvre (_enterApp) ou que l'on revient à l'écran de connexion.
 function isVraiDemoAnonyme() {
-  return !!DATA.isExample && !DATA._ownerUid;
+  return !!DATA.isExample && window._demoAnonyme === true;
 }
 function openLockedDemoModal(feature) {
   document.getElementById('locked-demo-feature').textContent = feature;
@@ -17248,6 +17253,7 @@ document.addEventListener('keydown', function(e) {
       }
     };
     window.authLoadDemo = function() {
+      window._demoAnonyme = true; // voir isVraiDemoAnonyme
       isAnonymousDemoSession = true;
       hideOverlay();
       // Repart toujours d'un DATA vierge (retour Faustine 2026-09-19 : le SIRET et le logo d'un
@@ -17366,6 +17372,7 @@ document.addEventListener('keydown', function(e) {
 
   function _enterApp(user) {
     clearTimeout(_cdnFallback);
+    window._demoAnonyme = false; // une vraie session s'ouvre : plus jamais traité comme démo anonyme (voir isVraiDemoAnonyme)
     // Ce fichier (indepuls-demo.html) n'est destine qu'a la demo anonyme du site vitrine. Si une
     // vraie personne se connecte ici avec un compte existant (ex. en cliquant sur le lien Demo par
     // habitude), on la bascule immediatement sur indepuls.html : la session Supabase est stockee
@@ -17376,6 +17383,7 @@ document.addEventListener('keydown', function(e) {
 
   function _enterLogin() {
     clearTimeout(_cdnFallback);
+    window._demoAnonyme = false;
     _authState = 'login';
     var lb = document.getElementById('logout-btn');
     if (lb) lb.remove();
