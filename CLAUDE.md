@@ -4231,7 +4231,7 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
-### 2026-10-06 — Nouveauté + FAQ : annonce du compte partagé pour les associés SAS/SASU
+### 2026-10-06 — Nouveauté + FAQ : annonce du compte partagé pour les associés de SAS (une SASU n'a qu'un associé : ne jamais écrire « SAS ou SASU » dans les textes publics)
 
 - Entrée « Nouveautés » 🤝 ajoutée en tête de `NOUVEAUTES` (indepuls.html et indepuls-demo.html), avec remerciement à Florence.
 - Site vitrine : nouvelle question dans `faq/index.html` (HTML + JSON-LD) « Peut-on utiliser Indépuls à plusieurs associés ? », lastmod du sitemap mis à jour. Aucun prix annoncé pour le compte partagé (décision tarifaire en attente).
