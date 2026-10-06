@@ -1,0 +1,146 @@
+{
+ "solde_ouverture": 8000.0,
+ "solde_cloture": 6875.09,
+ "date_cloture": "2026-09-30",
+ "devise": "EUR",
+ "transactions": [
+  {
+   "date": "2026-07-03",
+   "libelle": "PRLV SEPA ADOBE SYSTEMS SOFTWARE",
+   "montant": -29.99,
+   "hint": "recurrente:adobe"
+  },
+  {
+   "date": "2026-07-05",
+   "libelle": "PRLV SEPA FREE MOBILE",
+   "montant": -19.99,
+   "hint": "recurrente:free"
+  },
+  {
+   "date": "2026-07-07",
+   "libelle": "PRLV SEPA EDF CLIENTS PARTICULIERS",
+   "montant": -84.75,
+   "hint": "recurrente:edf_variable"
+  },
+  {
+   "date": "2026-07-17",
+   "libelle": "PRLV SEPA AXA FRANCE PRO",
+   "montant": -64.0,
+   "hint": "recurrente:axa_assurance"
+  },
+  {
+   "date": "2026-08-03",
+   "libelle": "PRLV SEPA ADOBE SYSTEMS SOFTWARE",
+   "montant": -29.99,
+   "hint": "recurrente:adobe"
+  },
+  {
+   "date": "2026-08-05",
+   "libelle": "PRLV SEPA FREE MOBILE",
+   "montant": -19.99,
+   "hint": "recurrente:free"
+  },
+  {
+   "date": "2026-08-06",
+   "libelle": "PRLV SEPA EDF CLIENTS PARTICULIERS",
+   "montant": -91.4,
+   "hint": "recurrente:edf_variable"
+  },
+  {
+   "date": "2026-08-10",
+   "libelle": "PRLV URSSAF AUTO ENTREPRENEUR",
+   "montant": -1204.0,
+   "hint": "charges_sociales"
+  },
+  {
+   "date": "2026-08-17",
+   "libelle": "PRLV SEPA AXA FRANCE PRO",
+   "montant": -64.0,
+   "hint": "recurrente:axa_assurance"
+  },
+  {
+   "date": "2026-09-02",
+   "libelle": "VIR SEPA DUPONT SAS FACT 2026-041",
+   "montant": 1800.0,
+   "hint": "encaissement:rapproche_manuel_dupont_ttc"
+  },
+  {
+   "date": "2026-09-03",
+   "libelle": "PRLV SEPA ADOBE SYSTEMS SOFTWARE",
+   "montant": -29.99,
+   "hint": "recurrente:adobe"
+  },
+  {
+   "date": "2026-09-05",
+   "libelle": "PRLV SEPA FREE MOBILE",
+   "montant": -19.99,
+   "hint": "recurrente:free"
+  },
+  {
+   "date": "2026-09-06",
+   "libelle": "PRLV SEPA EDF CLIENTS PARTICULIERS",
+   "montant": -87.12,
+   "hint": "recurrente:edf_variable"
+  },
+  {
+   "date": "2026-09-08",
+   "libelle": "CB LEROY MERLIN 0412 PARIS",
+   "montant": -142.5,
+   "hint": "depense:rapproche_manuel_leroymerlin"
+  },
+  {
+   "date": "2026-09-10",
+   "libelle": "PRLV URSSAF AUTO ENTREPRENEUR",
+   "montant": -1316.0,
+   "hint": "charges_sociales"
+  },
+  {
+   "date": "2026-09-12",
+   "libelle": "VIR SEPA MARTIN CONSEIL REF 889",
+   "montant": 960.0,
+   "hint": "encaissement:nouveau"
+  },
+  {
+   "date": "2026-09-15",
+   "libelle": "CB RESTAURANT LE BISTROT",
+   "montant": -38.4,
+   "hint": "mixte:ignorer_par_defaut"
+  },
+  {
+   "date": "2026-09-17",
+   "libelle": "PRLV SEPA AXA FRANCE PRO",
+   "montant": -64.0,
+   "hint": "recurrente:axa_assurance"
+  },
+  {
+   "date": "2026-09-20",
+   "libelle": "VIR PERMANENT M DURAND JEAN",
+   "montant": -500.0,
+   "hint": "interne:ignorer"
+  },
+  {
+   "date": "2026-09-22",
+   "libelle": "CB BOULANGERIE DU COIN",
+   "montant": -4.5,
+   "hint": "doublon_legitime:ligne1"
+  },
+  {
+   "date": "2026-09-22",
+   "libelle": "CB BOULANGERIE DU COIN",
+   "montant": -4.5,
+   "hint": "doublon_legitime:ligne2"
+  },
+  {
+   "date": "2026-09-28",
+   "libelle": "CB AMAZON EU SARL",
+   "montant": -59.9,
+   "hint": "depense:nouvelle"
+  },
+  {
+   "date": "2026-09-30",
+   "libelle": "COMMISSION FRAIS TENUE DE COMPTE",
+   "montant": -9.9,
+   "hint": "frais_bancaires"
+  }
+ ]
+}
