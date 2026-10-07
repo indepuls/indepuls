@@ -111,6 +111,23 @@ async function main() {
     test('Banque Populaire : aucun rejet, pas de choix de colonnes demandé', [0, undefined], [R.parseReleve(Buffer.from(csv, 'utf8')).rejets.length, R.parseReleve(Buffer.from(csv, 'utf8')).mappingNecessaire]);
   }
 
+
+  section('0.1 En-tête réel Crédit Mutuel (Date, Date de valeur, Débit, Crédit, Libellé, Solde), lignes fictives');
+  {
+    const csv = 'Date;Date de valeur;D\u00e9bit;Cr\u00e9dit;Libell\u00e9;Solde\n'
+      + '04/09/2026;04/09/2026;;672,74;VIR CLIENT EXEMPLE 0852423;-358,77\n'
+      + '04/09/2026;01/09/2026;-14,50;;F COTIS  ASSURANCE EXEMPLE;-373,27\n'
+      + '15/09/2026;15/09/2026;-42,99;;PAIEMENT CB 1409 PARIS ORANGE VAD 73 CARTE 2080 HIP0100;-416,26\n';
+    const r = R.parseReleve(Buffer.from(csv, 'latin1'));
+    test('Crédit Mutuel (cp1252) : lignes, débit déjà négatif, crédit positif', [
+      { date: '2026-09-04', libelle: 'VIR CLIENT EXEMPLE 0852423', montant: 672.74 },
+      { date: '2026-09-04', libelle: 'F COTIS ASSURANCE EXEMPLE', montant: -14.5 },
+      { date: '2026-09-15', libelle: 'PAIEMENT CB 1409 PARIS ORANGE VAD 73 CARTE 2080 HIP0100', montant: -42.99 },
+    ], simples(r));
+    test('Crédit Mutuel : encodage cp1252, date d\'opération, aucun rejet', ['cp1252', 0], [r.encodage, r.rejets.length]);
+    test('Crédit Mutuel : soldes déduits de la colonne Solde (ouverture et clôture)', [-1031.51, -416.26, '2026-09-15'], [r.soldeOuverture, r.soldeCloture, r.dateCloture]);
+  }
+
   section('0.2 Empreintes : stables, et deux lignes identiques ont deux empreintes différentes');
   {
     const a = R.parseReleve(lire(fichiers[0])), b = R.parseReleve(lire(fichiers[0]));

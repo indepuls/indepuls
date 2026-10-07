@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-07 — Import de relevé : export Crédit Mutuel vu et reconnu
+
+Vrai export Crédit Mutuel fourni par Faustine (jamais copié dans le dépôt) : « Date; Date de valeur; Débit; Crédit; Libellé; Solde », cp1252, dates JJ/MM/AAAA, Débit déjà négatif, séparateur `;`. Lu sans modification : 17 lignes, 0 rejet, soldes d'ouverture et de clôture déduits de la colonne Solde. Test ajouté avec des lignes FICTIVES de même format (`releve.test.js`, 126). Constats sur ce compte (apparemment mixte) : CAF/CPAM proposés comme argent reçu professionnel, échéance de prêt comme dépense « Autre », libellés très bruités (« PAIEMENT CB 1409 PARIS ORANGE VAD 73 CARTE 2080 HIP… »). Pistes proposées à Faustine, non codées : (1) CAF, CPAM, France Travail, mutuelle = non professionnel, ignorés par défaut ; (2) échéance de prêt = à saisir à part, ignorée par défaut ; (3) libellé nettoyé pour la dépense créée.
+
 ### 2026-10-07 — Import de relevé : en-tête Banque Populaire reconnu
 
 En-tête vu par Faustine (Banque Populaire Val de France, supposé) : « Date comptable; Libelle simplifie; Reference; Informations complementaires; Type operation; Debit; Credit; Date operation; Date de valeur; Pointage ». Reconnu tel quel (date d'opération retenue, débit/crédit séparés, UTF-8 et latin-1), test ajouté dans `releve.test.js` (123). Le libellé retenu est le « libellé simplifié » ; les « informations complémentaires » (texte bancaire complet) ne sont pas lues : piste possible si le rapprochement par nom de client manque de matière. Formats déjà couverts par un test : Boursorama (en-tête réel), Banque Populaire (en-tête réel), formats synthétiques A à G. Crédit Mutuel : non vu.
