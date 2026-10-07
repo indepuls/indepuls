@@ -3249,6 +3249,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-10-07', titre:'Importez votre relevé bancaire (fichier CSV ou OFX) depuis la page Dépenses : Indépuls repère ce que vous avez déjà saisi, vous propose les nouvelles dépenses et les entrées d\'argent à rattacher à vos missions, met à jour votre solde et, en micro-entreprise, compare votre URSSAF prélevée à la prévision. Rien n\'est créé sans votre validation, et un import peut être défait.', icon:'📥', merci:null },
   { date:'2026-10-06', titre:'Vous êtes plusieurs associé·es en SAS ? Indépuls propose maintenant un compte partagé : vous travaillez dans le même espace, sur les mêmes missions et les mêmes dépenses, en même temps. Chacun garde ses propres réglages (rémunération, objectif, congés), une mission ou une dépense peut être partagée entre vous en pourcentage, et une page "Par associé·e" montre la part de chacun. Pour l\'activer : Paramètres > Statut & charges sociales, cochez "Plusieurs dirigeants (SAS)", puis invitez votre associé·e par email.', icon:'🤝', merci:'Merci à Florence pour l\'idée 🙏' },
   { date:'2026-09-14', titre:'Une fois une mission ponctuelle passée en "Facturé", Indépuls vous propose un message prêt à l\'emploi pour demander un avis à votre client, à copier ou envoyer directement par email, toujours modifiable avant l\'envoi. Personnalisez vos liens d\'avis (Google, Trustpilot...) et votre propre message dans Paramètres > Mon activité.', icon:'⭐', merci:null },
   { date:'2026-08-14', titre:'Dans la barre latérale, le chrono devient un vrai sélecteur : choisissez une mission (ou "Mon entreprise"), puis cliquez sur Démarrer. Cochez "Toutes mes missions" pour retrouver aussi celles déjà facturées ou pas encore validées.', icon:'▶️', merci:'Merci à Orianne pour l\'avoir signalé en testant en direct 🙏' },
@@ -4255,6 +4256,7 @@ function guideActionDone(key) {
   if (key === 'revenus') return Object.keys(DATA.revenus || {}).length > 0;
   if (key === 'conges') return (DATA.conges || []).length > 0;
   if (key === 'lots') return (DATA.lots || []).length > 0;
+  if (key === 'import_releve') return (DATA.empreintesImportees || []).length > 0 || !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
   return !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
 }
 function guideMarkSeen(key) {
@@ -4294,6 +4296,9 @@ function renderGuideActionsHTML() {
       desc:`Une ${tVocab('item').toLowerCase()} retournée ou remboursée ne s'annule pas : elle reste dans vos chiffres, seul le retour est suivi à part, pour ne jamais perdre la trace de ce qui a réellement été vendu.`,
       cta:'→ Aller dans Retours clients', action:"guideMarkSeen('retours');navigate('retours')"});
   }
+  rows.push({key:'import_releve', icon:'📥', title:'Importez votre relevé bancaire (facultatif)',
+    desc:`Vous pouvez saisir vos dépenses et vos recettes au fil du mois, ou importer votre relevé bancaire une fois par mois (fichier CSV ou OFX exporté depuis votre banque). Indépuls repère ce que vous avez déjà saisi et vous demande en cas de doute : rien n'est créé sans votre validation. L'import fait gagner du temps, mais la saisie au fil de l'eau reste plus précise au jour le jour (alertes, trésorerie).`,
+    cta:'→ Aller dans Dépenses', action:"guideMarkSeen('import_releve');navigate('depenses')"});
   rows.push({key:'dashboard', icon:'🧭', title:'Repérez-vous sur votre tableau de bord',
     desc:'Le Score de Santé résume votre activité en un chiffre (le détail de chaque pilier est juste en dessous). Les alertes signalent ce qui mérite votre attention en priorité. Le suivi des objectifs compare votre trajectoire à votre cible. "Argent à mettre de côté" indique combien provisionner pour vos charges et impôts.',
     cta:'→ Aller au tableau de bord', action:"guideMarkSeen('dashboard');navigate('dashboard')"});
@@ -5234,11 +5239,11 @@ function saveChargeParam(field, val) {
 // getSasuProjectionFinAnnee → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // Généralisé à tous les statuts (retour Faustine 2026-09-29) : un solde bancaire réel n'a aucune
 // raison de dépendre du statut juridique simulé, seule la SASU/EURL pouvait le saisir jusqu'ici.
-// ── IMPORT DE RELEVÉ BANCAIRE (2026-10-07, étape 2 : dépenses, solde, contrôle URSSAF, annulation) ──────────
+// ── IMPORT DE RELEVÉ BANCAIRE (2026-10-07 : dépenses, solde, contrôle URSSAF, annulation ; étape 3 : argent reçu, impact) ──
 // Le fichier est lu dans le navigateur et n'est JAMAIS conservé : on ne garde que les lignes validées et des
 // empreintes (DATA.empreintesImportees). Aucun libellé bancaire n'est envoyé hors de l'appareil (reportError :
-// contexte seulement). Moteur pur : shared/core/releve*.js (window._Releve). Les encaissements (argent reçu)
-// sont affichés mais traités à l'étape suivante : ils ne sont ni importés ni mémorisés.
+// contexte seulement). Moteur pur : shared/core/releve*.js (window._Releve). Un argent reçu non décidé
+// (« Décider plus tard ») n'est PAS mémorisé : il reviendra au prochain import.
 let _imp = null;
 const impEur = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 const impDate = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '';
@@ -5278,7 +5283,7 @@ function impTraiter(buf, mapping) {
     if (res.devise && res.devise !== 'EUR') { impMessage('<div class="alert al-warn">Ce relevé est en ' + esc(res.devise) + ' : seuls les relevés en euros sont pris en charge.</div>'); return; }
     if (!res.lignes.length) { impMessage('<div class="alert al-warn">Aucune ligne exploitable dans ce fichier.' + (res.rejets.length ? ' ' + res.rejets.length + ' ligne(s) illisible(s).' : '') + '</div>'); return; }
     const analyse = R.analyserReleve(DATA, res, DATA.empreintesImportees || [], DATA.reglesImport || []);
-    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse), inventaire: R.saisiesNonPointees(DATA, analyse) };
+    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse, DATA), inventaire: R.saisiesNonPointees(DATA, analyse) };
     renderImportReleve();
   } catch (e) {
     reportError('import_releve_lecture', e);
@@ -5298,24 +5303,39 @@ function impValiderColonnes() {
   saveData();
   impTraiter(_imp.buf, memo);
 }
-function impChoisirAction(i, action) { _imp.decisions[i].action = action; renderImportReleve(true); }
+function impChoisirAction(i, action) {
+  _imp.decisions[i].action = action;
+  const d = _imp.decisions[i], r = _imp.analyse.lignes[i];
+  if (action === 'mission' && !d.missionId) { const m = impMissionsChoisissables()[0]; if (m) d.missionId = m.id; }
+  if (action === 'nouvelle_mission' && !d.clientNom) d.clientNom = '';
+  renderImportReleve(true);
+}
 function impChoisirCategorie(i, cat) { _imp.decisions[i].categorie = cat; renderImportReleve(true); }
 function impRegle(i, oui) {
   const d = _imp.decisions[i];
   d.retenirRegle = !!oui;
   d.motCle = oui ? window._Releve.motCleSuggere(_imp.analyse.lignes[i].ligne.libelle) : '';
 }
+function impChoisirMission(i, id) { _imp.decisions[i].missionId = id; }
+function impClientNom(i, v) { _imp.decisions[i].clientNom = v; }
+function impTypePonctuel(i, v) { _imp.decisions[i].typePonctuel = v; }
+function impMissionsChoisissables() { return (DATA.missions || []).filter((m) => !m.isManagement && m.statut !== 'ref' && m.client); }
+function impEstArgentRecu(r) { return r.nature === 'encaissement' || r.nature === 'remboursement' || !!(r.candidat && r.candidat.type !== 'depense'); }
 function impToutCreer(groupe) {
-  _imp.analyse.lignes.forEach((r) => { if (r.groupe === groupe && r.nature !== 'encaissement' && r.nature !== 'remboursement' && r.statut === 'nouvelle') _imp.decisions[r.index].action = 'creer'; });
+  _imp.analyse.lignes.forEach((r) => { if (r.groupe === groupe && !impEstArgentRecu(r) && r.statut === 'nouvelle') _imp.decisions[r.index].action = 'creer'; });
   renderImportReleve(true);
 }
 function impLigneHtml(r) {
   const dec = _imp.decisions[r.index], l = r.ligne;
   const opts = (liste) => liste.map(([v, t]) => '<option value="' + v + '"' + (dec.action === v ? ' selected' : '') + '>' + t + '</option>').join('');
+  const recu = impEstArgentRecu(r);
   let ctrl = '', note = '';
   if (r.statut === 'deja_importee') note = 'Déjà importée';
   else if (r.statut === 'couverte_abonnement') note = '';
-  else if (dec.action === 'plus_tard') note = 'Argent reçu : traité à l\'étape suivante';
+  else if (recu) {
+    if (r.candidat) ctrl = opts([['rapprocher', 'Rapprocher de ma saisie'], ['mission', 'Rattacher à une mission'], ['ponctuel', 'Revenu ponctuel'], ['plus_tard', 'Décider plus tard']]);
+    else ctrl = opts([['mission', 'Rattacher à une mission'], ['nouvelle_mission', 'Créer une mission pour ce client'], ['ponctuel', 'Enregistrer comme revenu ponctuel'], ['ignorer', 'Ignorer (pas un revenu)'], ['plus_tard', 'Décider plus tard']]);
+  }
   else if (r.statut === 'rapprochement_propose') ctrl = opts([['rapprocher', 'Rapprocher de ma saisie'], ['creer', 'Créer une nouvelle dépense'], ['ignorer', 'Ignorer']]);
   else if (r.statut === 'peut_etre_deja_importee') ctrl = opts([['ignorer', 'Déjà importée, ignorer'], ['creer', 'Créer quand même']]);
   else if (r.statut === 'abonnement_possible') ctrl = opts([['couvrir', 'C\'est mon abonnement'], ['creer', 'Créer une dépense'], ['ignorer', 'Ignorer']]);
@@ -5323,12 +5343,22 @@ function impLigneHtml(r) {
   let html = '<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd);font-size:13px">'
     + '<div style="flex:1 1 220px;min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">' + esc(l.libelle || '(sans libellé)') + '</div>'
     + '<div style="font-size:11px;color:var(--tl)">' + impDate(l.date) + ' · ' + esc(r.explication || '') + '</div>';
-  if (r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Saisie existante : « ' + esc(r.candidat.libelle || 'sans libellé') + ' » du ' + impDate(r.candidat.date) + ', ' + impEur(r.candidat.montant) + (r.candidat.ambigu ? ' (plusieurs saisies possibles)' : '') + '</div>';
+  if (r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Saisie existante : « ' + esc(r.candidat.libelle || 'sans libellé') + ' »' + (r.candidat.date ? ' du ' + impDate(r.candidat.date) : '') + ', ' + impEur(r.candidat.montant) + (r.candidat.ambigu ? ' (plusieurs saisies possibles)' : '') + '</div>';
   if (note) html += '<div style="font-size:11px;color:var(--tl)">' + esc(note) + '</div>';
   html += '</div><div style="min-width:76px;text-align:right;font-weight:600;white-space:nowrap">' + impEur(l.montant) + '</div>';
   if (ctrl) {
     html += '<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:4px"><select class="s-select" onchange="impChoisirAction(' + r.index + ',this.value)">' + ctrl + '</select>';
-    if (dec.action === 'creer') {
+    if (recu) {
+      if (dec.action === 'mission') {
+        const ms = impMissionsChoisissables();
+        html += '<select class="s-select" onchange="impChoisirMission(' + r.index + ',this.value)">' + (ms.length ? ms.map((m) => '<option value="' + esc(m.id) + '"' + (m.id === dec.missionId ? ' selected' : '') + '>' + esc(m.client) + '</option>').join('') : '<option value="">Aucune mission pour l\'instant</option>') + '</select>';
+      } else if (dec.action === 'nouvelle_mission') {
+        html += '<input class="s-select" type="text" placeholder="Nom du client" value="' + esc(dec.clientNom || '') + '" oninput="impClientNom(' + r.index + ',this.value)">';
+      } else if (dec.action === 'ponctuel') {
+        html += '<select class="s-select" onchange="impTypePonctuel(' + r.index + ',this.value)"><option value="prestation"' + (dec.typePonctuel !== 'vente' && dec.typePonctuel !== 'hors_ca' ? ' selected' : '') + '>Prestation</option><option value="vente"' + (dec.typePonctuel === 'vente' ? ' selected' : '') + '>Vente</option><option value="hors_ca"' + (dec.typePonctuel === 'hors_ca' ? ' selected' : '') + '>Hors chiffre d\'affaires (remboursement...)</option></select>';
+      }
+      if ((dec.action === 'mission' || dec.action === 'nouvelle_mission' || dec.action === 'ponctuel') && DATA.params.tva) html += '<div style="font-size:11px;color:var(--tl)">Enregistré hors taxes : ' + impEur(Math.round(Math.abs(l.montant) / (1 + (DATA.params.tauxTVA || 20) / 100) * 100) / 100) + '</div>';
+    } else if (dec.action === 'creer') {
       html += '<select class="s-select" onchange="impChoisirCategorie(' + r.index + ',this.value)">'
         + impCategories().map((c) => '<option value="' + esc(c) + '"' + (c === dec.categorie ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
       if (dec.categorie !== (r.categorie || 'Autre')) {
@@ -5362,11 +5392,28 @@ function impUrssafControle(l) {
   } catch (err) { reportError('import_releve_urssaf', err); return null; }
 }
 function impResume() {
-  const c = { creer: 0, rapprocher: 0, ignorer: 0, couvrir: 0, plus_tard: 0 };
-  Object.keys(_imp.decisions).forEach((i) => { const a = _imp.decisions[i].action; if (c[a] != null) c[a]++; });
+  const c = { creer: 0, rapprocher: 0, ignorer: 0, couvrir: 0, plus_tard: 0, recus: 0 };
+  Object.keys(_imp.decisions).forEach((i) => {
+    const a = _imp.decisions[i].action;
+    if (a === 'mission' || a === 'nouvelle_mission' || a === 'ponctuel') c.recus++;
+    else if (c[a] != null) c[a]++;
+  });
   return c;
 }
-function impVersRecap() { _imp.etape = 'recap'; renderImportReleve(); }
+// Instantané des indicateurs, avec les fonctions EXISTANTES : aucun nouveau calcul (voir calculerImpactImport).
+function impInstantane(mk) {
+  let th = null;
+  try { if ((DATA.params.modules && DATA.params.modules.objectif) !== 'marge_commande') th = getTauxHoraireMinCible(); } catch (e) { th = null; }
+  return { caMois: getCaFromMissions(mk) + getPonctuelsCA(mk), depensesMois: getDepensesMois(mk), tauxHoraireMin: th };
+}
+function impVersRecap() {
+  // Un client à créer sans nom : on le demande avant de continuer.
+  const manque = Object.keys(_imp.decisions).find((i) => _imp.decisions[i].action === 'nouvelle_mission' && !(_imp.decisions[i].clientNom || '').trim());
+  if (manque != null) { impMessage('<div class="alert al-warn">Indiquez le nom du client pour chaque mission à créer.</div>'); return; }
+  const sansMission = Object.keys(_imp.decisions).find((i) => _imp.decisions[i].action === 'mission' && !_imp.decisions[i].missionId);
+  if (sansMission != null) { impMessage('<div class="alert al-warn">Choisissez une mission, ou créez-en une pour ce client.</div>'); return; }
+  _imp.etape = 'recap'; renderImportReleve();
+}
 function impVersAnalyse() { _imp.etape = 'analyse'; renderImportReleve(); }
 function renderImportReleve(garderDefilement) {
   const corps = document.getElementById('imp-body');
@@ -5383,7 +5430,8 @@ function renderImportReleve(garderDefilement) {
     if (lots.length) {
       h += '<div style="margin-top:16px;font-weight:600;font-size:13px">Imports précédents</div>';
       lots.forEach((lot) => {
-        h += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--brd);font-size:12px"><span>' + impDate(lot.date.slice(0, 10)) + ' : ' + lot.creees.length + ' dépense(s) créée(s), ' + lot.rapprochees.length + ' rapprochée(s)</span>'
+        const nbEnc = (lot.encaissementsCrees || []).length + (lot.ponctuelsCrees || []).length;
+        h += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--brd);font-size:12px"><span>' + impDate(lot.date.slice(0, 10)) + ' : ' + lot.creees.length + ' dépense(s) et ' + nbEnc + ' encaissement(s) créé(s), ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' rapprochée(s)</span>'
           + '<button class="btn btn-out btn-xs" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
       });
     }
@@ -5396,14 +5444,14 @@ function renderImportReleve(garderDefilement) {
       + '<div style="margin-top:10px"><button class="btn btn-acc" onclick="impValiderColonnes()">Analyser le fichier</button></div>';
   } else if (_imp.etape === 'analyse') {
     const a = _imp.analyse, p = _imp.parsed;
-    const dep = a.lignes.filter((r) => r.groupe === 'a_verifier' && _imp.decisions[r.index].action !== 'plus_tard');
-    const recu = a.lignes.filter((r) => _imp.decisions[r.index].action === 'plus_tard');
+    const recu = a.lignes.filter((r) => r.groupe === 'a_verifier' && impEstArgentRecu(r));
+    const dep = a.lignes.filter((r) => r.groupe === 'a_verifier' && !impEstArgentRecu(r));
     const couv = a.lignes.filter((r) => r.groupe === 'deja_couvertes');
     const ign = a.lignes.filter((r) => r.groupe === 'ignorees');
     h += '<div style="font-size:13px;margin-bottom:10px">' + a.lignes.length + ' lignes du ' + impDate(p.lignes[0].date) + ' au ' + impDate(p.lignes[p.lignes.length - 1].date) + '. Chaque ligne indique pourquoi elle est classée ainsi, rien n\'est créé sans votre validation.'
       + (p.rejets.length ? '<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--tl)">' + p.rejets.length + ' ligne(s) illisible(s) ignorée(s)</summary>' + p.rejets.map((x) => '<div style="font-size:11px;color:var(--tl)">Ligne ' + x.numeroLigne + ' : ' + esc(x.motif) + '</div>').join('') + '</details>' : '') + '</div>';
-    h += impGroupeHtml('À vérifier', dep, true, 'Ces lignes seront créées comme dépenses, rapprochées de ce que vous avez déjà saisi, ou ignorées selon votre choix.');
-    h += impGroupeHtml('Argent reçu', recu, false, 'Les encaissements seront traités dans une prochaine étape : ils ne sont pas importés cette fois.');
+    h += impGroupeHtml('Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, rapprochées de ce que vous avez déjà saisi, ou ignorées selon votre choix.');
+    h += impGroupeHtml('Argent reçu', recu, true, 'Rattachez chaque entrée d\'argent à une mission existante, créez une mission pour un nouveau client, ou enregistrez-la comme revenu ponctuel. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
     h += impGroupeHtml('Déjà couvertes', couv, false, 'Déjà importées ou déjà comptées dans vos abonnements.');
     h += impGroupeHtml('Ignorées par défaut', ign, false, 'Cotisations, impôts, virements vers une personne, dépenses souvent personnelles : déjà provisionnés par Indépuls ou pas professionnels.',
       '<div style="margin:2px 0 4px"><button class="btn btn-out btn-xs" onclick="impToutCreer(\'ignorees\')">Créer toutes ces dépenses quand même</button></div>');
@@ -5418,9 +5466,9 @@ function renderImportReleve(garderDefilement) {
     corps.innerHTML = h; const sc = document.getElementById('imp-scroll'); if (sc && defil) sc.scrollTop = defil;
     return;
   } else if (_imp.etape === 'recap') {
-    const c = impResume(), p = _imp.parsed, st = window._Releve.statistiques(_imp.analyse, _imp.decisions);
-    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + c.creer + ' dépense(s) créée(s), ' + c.rapprocher + ' rapprochement(s), ' + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
-      + (c.plus_tard ? '<div style="font-size:12px;color:var(--tl);margin-bottom:8px">' + c.plus_tard + ' ligne(s) d\'argent reçu seront traitées à l\'étape suivante.</div>' : '')
+    const c = impResume(), p = _imp.parsed, st = window._Releve.statistiques(_imp.analyse, _imp.decisions, DATA);
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + c.creer + ' dépense(s) créée(s), ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' rapprochement(s), ' + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
+      + (c.plus_tard ? '<div style="font-size:12px;color:var(--tl);margin-bottom:8px">' + c.plus_tard + ' ligne(s) d\'argent reçu laissée(s) pour plus tard : elles reviendront au prochain import.</div>' : '')
       + '<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Sur ' + st.proposees + ' ligne(s) proposée(s) : ' + st.tellesQuelles + ' validée(s) telle(s) quelle(s), ' + st.corrigees + ' corrigée(s).</div>';
     if (p.soldeCloture != null) {
       const actuel = DATA.params.soldeReel != null ? ' (actuellement ' + impEur(DATA.params.soldeReel) + ')' : '';
@@ -5438,11 +5486,16 @@ function renderImportReleve(garderDefilement) {
     h += '</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="impConfirmer()">Importer</button><button class="btn btn-out" onclick="impVersAnalyse()">← Retour</button></div>';
     corps.innerHTML = h; return;
   } else if (_imp.etape === 'fini') {
-    const lot = _imp.lot;
-    h += '<div style="font-weight:600;font-size:15px;margin-bottom:6px">✅ Import terminé</div><div style="font-size:13px;line-height:1.6">' + lot.creees.length + ' dépense(s) créée(s), ' + lot.rapprochees.length + ' saisie(s) rapprochée(s), ' + (lot.nbIgnorees + lot.nbCouvertes) + ' ligne(s) ignorée(s) ou déjà couvertes.'
-      + (lot.soldeMaj ? '<br>Solde mis à jour : ' + impEur(lot.soldeMaj.apres) + '.' : '') + '</div>'
-      + '<div style="font-size:12px;color:var(--tl);margin-top:8px">Un import peut être défait depuis cette même fenêtre (« Importer un relevé »).</div></div>'
-      + '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="closeModal(\'modal-import-releve\')">Fermer</button><button class="btn btn-out" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
+    const lot = _imp.lot, imp = _imp.impact;
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:6px">✅ Import terminé</div>';
+    if (imp) {
+      h += '<div style="font-size:14px;line-height:1.5;margin-bottom:8px">' + esc(imp.titre) + '</div>';
+      if (imp.rienDeChange) h += '<div style="font-size:13px;color:var(--tl)">Rien de changé dans vos indicateurs.</div>';
+      else imp.constats.forEach((c) => { h += '<div style="padding:6px 0;border-top:1px solid var(--brd);font-size:13px">' + esc(c.texte) + '<div style="font-size:11px;color:var(--tl)">' + esc(c.source) + '</div></div>'; });
+    }
+    h += '<div style="font-size:12px;color:var(--tl);margin-top:10px">' + lot.creees.length + ' dépense(s) et ' + ((lot.encaissementsCrees || []).length + (lot.ponctuelsCrees || []).length) + ' encaissement(s) créé(s)'
+      + ((lot.missionsCreees || []).length ? ' (dont ' + lot.missionsCreees.length + ' nouvelle(s) mission(s))' : '') + ', ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' saisie(s) rapprochée(s). Un import peut être défait depuis « Importer un relevé ».</div></div>'
+      + '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="closeModal(\'modal-import-releve\');navigate(\'dashboard\')">Voir mon tableau de bord</button><button class="btn btn-out" onclick="closeModal(\'modal-import-releve\')">Compris</button><button class="btn btn-out btn-xs" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
     corps.innerHTML = h; return;
   }
   h += '</div>';
@@ -5453,14 +5506,27 @@ function impConfirmer() {
   try {
     const p = _imp.parsed, cb = document.getElementById('imp-solde');
     const solde = cb && cb.checked && p.soldeCloture != null ? { valeur: p.soldeCloture, date: p.dateCloture } : null;
+    const fin = p.lignes[p.lignes.length - 1].date, mk = fin.slice(0, 7);
+    let avant = null;
+    try { avant = impInstantane(mk); } catch (e) { avant = null; }
     const lot = window._Releve.appliquerImport(DATA, _imp.analyse, _imp.decisions, {
       maintenant: new Date().toISOString(), auteurId: window._partage ? window._partage.userId : null, solde,
-      periode: { debut: p.lignes[0].date, fin: p.lignes[p.lignes.length - 1].date },
+      periode: { debut: p.lignes[0].date, fin },
     });
     saveData();
     renderAll();
-    window.trackEvent('releve_imported', { creees: lot.creees.length, rapprochees: lot.rapprochees.length, proposees: lot.stats.proposees, corrigees: lot.stats.corrigees });
-    _imp = { etape: 'fini', lot };
+    window.trackEvent('releve_imported', { creees: lot.creees.length, encaissements: (lot.encaissementsCrees || []).length + (lot.ponctuelsCrees || []).length, rapprochees: lot.rapprochees.length + (lot.rapprocheesEnc || []).length, proposees: lot.stats.proposees, corrigees: lot.stats.corrigees });
+    let impact = null;
+    try {
+      const apres = impInstantane(mk), jour = DATA.params.modules && DATA.params.modules.uniteTemps === 'jour';
+      const moisLibelle = new Date(mk + '-15T00:00:00').toLocaleDateString('fr-FR', { month: 'long' });
+      impact = window._Releve.calculerImpactImport(avant, apres, {
+        moisLibelle, revenusImportes: lot.totaux.revenus, depensesImportees: lot.totaux.depenses,
+        unite: jour ? '€/jour' : '€/h', facteurUnite: jour ? (DATA.params.heuresParJour || 7) : 1, seuilUnite: jour ? 5 : 1,
+        soldeMaj: lot.soldeMaj ? { apres: lot.soldeMaj.apres, dateLibelle: impDate(p.dateCloture) } : null,
+      });
+    } catch (e) { reportError('import_releve_impact', e); }
+    _imp = { etape: 'fini', lot, impact };
     renderImportReleve();
   } catch (e) {
     reportError('import_releve_application', e);
@@ -5469,13 +5535,14 @@ function impConfirmer() {
 }
 function impDefaire(lotId) {
   if (DATA.isExample || window._lectureSeule) return;
-  if (!confirm('Défaire cet import ? Les dépenses créées par l\'import (et non modifiées depuis) seront supprimées, et les saisies rapprochées redeviendront des saisies normales.')) return;
+  if (!confirm('Défaire cet import ? Ce qu\'il a créé (dépenses, encaissements, missions) et que vous n\'avez pas modifié depuis sera supprimé, et les saisies rapprochées redeviendront des saisies normales.')) return;
   try {
     const r = window._Releve.defaireImport(DATA, lotId);
     if (!r) return;
     saveData();
     renderAll();
-    showToast('Import défait : ' + r.supprimees + ' dépense(s) supprimée(s)' + (r.conservees ? ', ' + r.conservees + ' conservée(s) car modifiée(s) depuis' : '') + '.');
+    const cons = (r.conservees || 0) + (r.encaissementsConserves || 0) + (r.missionsConservees || 0);
+    showToast('Import défait : ' + r.supprimees + ' dépense(s) et ' + (r.encaissementsSupprimes || 0) + ' encaissement(s) supprimé(s)' + (cons ? ', ' + cons + ' élément(s) conservé(s) car modifié(s) depuis' : '') + '.');
     _imp = { etape: 'fichier' };
     renderImportReleve();
   } catch (e) { reportError('import_releve_annulation', e); }
@@ -17853,7 +17920,7 @@ document.addEventListener('keydown', function(e) {
   window._Releve = { parseReleve: ReleveLecture.parseReleve, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
     decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
     statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
-    echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf };
+    echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf, calculerImpactImport: ReleveImport.calculerImpactImport };
   window._Repartition = { verifierRepartition: Repartition.verifierRepartition, repartitionEgale: Repartition.repartitionEgale };
   window._Personnes = { versLocal: Personnes.versLocal, versCloud: Personnes.versCloud, valeursCommunes: Personnes.valeursCommunes, getDataVueCombinee: Personnes.getDataVueCombinee };
   window._Partage = { fusionnerDonnees: Fusion.fusionnerDonnees, egal: Fusion.egal, CHAMPS_VOLATILS: Fusion.CHAMPS_VOLATILS,

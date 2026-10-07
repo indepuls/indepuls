@@ -49,7 +49,7 @@ async function main() {
     const action = (txt) => dec[a.lignes.find((r) => r.ligne.libelle.includes(txt)).index].action;
     test('Amazon, frais bancaires : à créer', ['creer', 'creer'], [action('AMAZON'), action('COMMISSION')]);
     test('Leroy Merlin : rapprocher la saisie existante', 'rapprocher', action('LEROY'));
-    test('Dupont, Martin (argent reçu) : à l\'étape suivante', ['plus_tard', 'plus_tard'], [action('DUPONT'), action('MARTIN')]);
+    test('Dupont : rapprocher l\'encaissement saisi ; Martin (client inconnu) : à décider plus tard', ['rapprocher', 'plus_tard'], [action('DUPONT'), action('MARTIN')]);
     test('URSSAF, virement perso, restaurant : ignorées', ['ignorer', 'ignorer', 'ignorer'], [action('URSSAF'), action('DURAND'), action('RESTAURANT')]);
     test('abonnements : couverts', 'couvrir', action('ADOBE'));
   }
@@ -70,7 +70,8 @@ async function main() {
     test('aucun doublon créé pour la saisie rapprochée', avantDepenses + 2, d0.depenses.length);
     test('solde mis à jour à la demande, mois retenu', [6875.09, '2026-09'], [d0.params.soldeReel, d0.params.soldeReelDate]);
     test('le lot est mémorisé avec ses statistiques', [1, true], [d0.importsReleve.length, lot.stats.proposees > 0]);
-    test('les argents reçus ne sont PAS mémorisés (ils reviendront à l\'étape suivante)', false, d0.empreintesImportees.includes(a0.lignes.find((r) => r.ligne.libelle.includes('DUPONT')).empreinte));
+    test('un argent reçu non décidé n\'est PAS mémorisé (il reviendra au prochain import)', false, d0.empreintesImportees.includes(a0.lignes.find((r) => r.ligne.libelle.includes('MARTIN')).empreinte));
+    test('l\'encaissement rapproché est estampillé sans être modifié', [true, 1500, 1800], (() => { const e = d0.missions[0].encaissements[0]; return [!!e.importId, e.montant, e.montantTTC]; })());
     test('les lignes traitées sont mémorisées (empreinte principale + souple)', true, d0.empreintesImportees.includes(a0.lignes.find((r) => r.ligne.libelle.includes('AMAZON')).empreinte));
   }
 
@@ -109,7 +110,7 @@ async function main() {
     const d = clone(d0);
     const l = d.importsReleve[0];
     const r = I.defaireImport(d, l.id);
-    test('les 2 dépenses créées sont supprimées, le rapprochement retiré', [2, 0, 1], [r.supprimees, r.conservees, r.rapprochementsRetires]);
+    test('les 2 dépenses créées sont supprimées, les 2 rapprochements retirés', [2, 0, 2], [r.supprimees, r.conservees, r.rapprochementsRetires]);
     test('retour au nombre initial de dépenses', avantDepenses, d.depenses.length);
     test('Leroy Merlin redevenue une saisie normale', [false, false], [!!d.depenses.find((x) => x.id === 'd-lm').importId, !!d.depenses.find((x) => x.id === 'd-lm').importLot]);
     test('les empreintes sont oubliées (les lignes pourront être proposées de nouveau)', 0, d.empreintesImportees.length);
@@ -161,6 +162,59 @@ async function main() {
     test('la phrase explique et ne corrige rien', true, gros.phrase.includes('chiffre d\'affaires déclaré') && /oublié|taux/.test(gros.phrase));
     test('écart négatif : prélèvement plus bas que prévu', true, I.comparerUrssaf({ reel: 900, prevu: 1200, caCompte: 5000 }).phrase.includes('décalage'));
     test('rien de prévu : message dédié, pas de division par zéro', [null, true], (() => { const x = I.comparerUrssaf({ reel: 500, prevu: 0, caCompte: 0 }); return [x.caImplique, x.significatif]; })());
+  }
+
+  section("Étape 3 : argent reçu rattaché à une mission, mission créée, revenu ponctuel");
+  {
+    const d = DATA(); d.missions.push({ id: 'm-martin', client: 'Martin Conseil', statut: 'cours', encaissements: [] });
+    const a = analyser(d), dec = I.decisionsParDefaut(a, d);
+    const martin = a.lignes.find((r) => r.ligne.libelle.includes('MARTIN'));
+    test('client reconnu dans le libellé : mission proposée', ['mission', 'm-martin'], [dec[martin.index].action, dec[martin.index].missionId]);
+    test('suggestion de mission : le client apparaît dans le libellé', 'm-martin', C.suggererMissions(d, 'VIR SEPA MARTIN CONSEIL REF 889')[0].missionId);
+    test('aucune suggestion pour un client inconnu', 0, C.suggererMissions(d, 'VIR SEPA ZZZ INCONNU').length);
+    test('nom de client proposé à partir du libellé', 'Martin Conseil', C.clientSuggere('VIR SEPA MARTIN CONSEIL REF 889'));
+    const lot3 = I.appliquerImport(d, a, dec, { maintenant: NOW });
+    const enc = d.missions.find((m) => m.id === 'm-martin').encaissements;
+    test('encaissement créé sur la mission : HT converti, TTC conservé, mode de règlement déduit', [800, 960, 'virement', '2026-09-12'], [enc[0].montant, enc[0].montantTTC, enc[0].modeReglement, enc[0].date]);
+    test("l'encaissement porte son empreinte et son lot", [true, true], [!!enc[0].importId, enc[0].importLot === lot3.id]);
+    test('totaux du lot : revenus et dépenses en TTC bancaire', [true, true], [lot3.totaux.revenus === 960, lot3.totaux.depenses > 0]);
+    test("l'argent reçu décidé est mémorisé", true, d.empreintesImportees.includes(martin.empreinte));
+    const d2 = DATA(); const a2 = analyser(d2); const dc2 = I.decisionsParDefaut(a2, d2);
+    const m2 = a2.lignes.find((r) => r.ligne.libelle.includes('MARTIN'));
+    dc2[m2.index] = { action: 'nouvelle_mission', clientNom: 'Martin Conseil', categorie: 'Autre' };
+    I.appliquerImport(d2, a2, dc2, { maintenant: NOW });
+    const nm = d2.missions.find((m) => m.client === 'Martin Conseil');
+    test('mission créée : client, facturée, un encaissement du bon montant', [true, 'fact', 1, 800], [!!nm, nm && nm.statut, nm && nm.encaissements.length, nm && nm.montantDevis]);
+    test("la mission créée a tous les champs attendus par l'application", true, ['sessions', 'tempsManuel', 'encaissements', 'isManagement', 'chargeUnit', 'typeMission'].every((k) => nm && nm[k] !== undefined));
+    const d3 = DATA(); const a3 = analyser(d3); const dc3 = I.decisionsParDefaut(a3, d3);
+    const m3 = a3.lignes.find((r) => r.ligne.libelle.includes('MARTIN'));
+    dc3[m3.index] = { action: 'ponctuel', typePonctuel: 'prestation', clientNom: 'Martin Conseil', categorie: 'Autre' };
+    I.appliquerImport(d3, a3, dc3, { maintenant: NOW });
+    const pon = d3.revenus['2026-09'].autresList[0];
+    test('revenu ponctuel créé au bon mois, HT, rattaché à la prestation', [800, 800, 0, 'Martin Conseil'], [pon.montant, pon.montantPrestation, pon.montantVente, pon.libelle]);
+    const dd = clone(d2); const rr = I.defaireImport(dd, dd.importsReleve[0].id);
+    test('annulation : encaissement et mission créée supprimés', [1, 1, false], [rr.encaissementsSupprimes, rr.missionsSupprimees, dd.missions.some((m) => m.client === 'Martin Conseil')]);
+    const dp = clone(d3); const rp = I.defaireImport(dp, dp.importsReleve[0].id);
+    test('annulation : revenu ponctuel supprimé', [0, 1], [(dp.revenus['2026-09'].autresList || []).length, rp.encaissementsSupprimes]);
+    const dm = clone(d2); dm.missions.find((m) => m.client === 'Martin Conseil').encaissements.push({ id: 'autre', date: '2026-09-30', montant: 10 });
+    const rm = I.defaireImport(dm, dm.importsReleve[0].id);
+    test('mission créée mais enrichie depuis : conservée, jamais supprimée', [1, 1], [rm.missionsConservees, dm.missions.filter((m) => m.client === 'Martin Conseil').length]);
+    const de = clone(d0); I.defaireImport(de, de.importsReleve[0].id);
+    test("rapprochement d'encaissement défait : plus d'empreinte sur l'encaissement", [false, false], [!!de.missions[0].encaissements[0].importId, !!de.missions[0].encaissements[0].importLot]);
+    const dl = DATA(); const al = analyser(dl); I.appliquerImport(dl, al, I.decisionsParDefaut(al, dl), { maintenant: NOW });
+    test("réimport : l'argent reçu non décidé revient dans les lignes à vérifier", true, analyser(dl).lignes.some((r) => r.ligne.libelle.includes('MARTIN') && r.groupe === 'a_verifier'));
+  }
+
+  section("Impact de l'import : constats significatifs seulement, avec leur origine");
+  {
+    const ctx = { moisLibelle: 'septembre', revenusImportes: 960, depensesImportees: 230, unite: '€/h', soldeMaj: { apres: 6875.09, dateLibelle: '30/09/2026' } };
+    const x = I.calculerImpactImport({ caMois: 1000, depensesMois: 210, tauxHoraireMin: 40 }, { caMois: 1960, depensesMois: 520, tauxHoraireMin: 44 }, ctx);
+    test('titre factuel', "Vous venez d'importer 960 € de revenus et 230 € de dépenses pour septembre.", x.titre);
+    test('3 constats au maximum, chacun avec sa source', true, x.constats.length <= 3 && x.constats.every((c) => c.texte && c.source));
+    test('poids des dépenses : 21 % vers 26,5 %', true, x.constats.some((c) => c.cle === 'poids_depenses' && c.texte.includes('26,5 %') && c.texte.includes('21 %')));
+    const peu = I.calculerImpactImport({ caMois: 1000, depensesMois: 210, tauxHoraireMin: 40 }, { caMois: 1005, depensesMois: 214, tauxHoraireMin: 40.4 }, { moisLibelle: 'septembre', revenusImportes: 5, depensesImportees: 4 });
+    test('écart non significatif : « rien de changé »', [0, true], [peu.constats.length, peu.rienDeChange]);
+    test('aucun tiret cadratin dans les textes', false, /—/.test(JSON.stringify(x)));
   }
 
   console.log(`\n${PASS} tests réussis, ${FAIL} échec(s)`);

@@ -11,6 +11,7 @@
 //   DATA.importsReleve       : historique des lots, pour pouvoir les défaire
 
 import { libelleCle } from './releve.js';
+import { suggererMissions, clientSuggere } from './releve_classement.js';
 
 export const MAX_EMPREINTES = 3000;   // environ 1 500 lignes : les plus anciennes sont oubliées d'abord
 export const MAX_LOTS = 12;
@@ -20,7 +21,9 @@ const arrondi2 = (n) => Math.round(n * 100) / 100;
 // Actions possibles pour une ligne : creer | rapprocher | couvrir | ignorer | plus_tard | deja
 //   plus_tard : argent reçu (traité à l'étape suivante), n'est PAS mémorisé : la ligne reviendra
 //   deja      : déjà importée, rien à faire
-export function decisionsParDefaut(analyse) {
+// Actions pour de l'argent reçu : rapprocher (saisie existante) | mission (rattacher à une mission) | nouvelle_mission |
+// ponctuel (revenu ponctuel) | ignorer | plus_tard (pas encore décidé : NON mémorisé, la ligne reviendra au prochain import).
+export function decisionsParDefaut(analyse, DATA) {
   const d = {};
   analyse.lignes.forEach((r) => {
     let action;
@@ -28,11 +31,19 @@ export function decisionsParDefaut(analyse) {
     else if (r.statut === 'couverte_abonnement') action = 'couvrir';
     else if (r.statut === 'abonnement_possible') action = 'couvrir';
     else if (r.statut === 'peut_etre_deja_importee') action = 'ignorer';
-    else if (r.statut === 'rapprochement_propose') action = r.candidat && r.candidat.type === 'depense' ? 'rapprocher' : 'plus_tard';
+    else if (r.statut === 'rapprochement_propose') action = 'rapprocher';
     else if (r.nature === 'encaissement' || r.nature === 'remboursement') action = 'plus_tard';
     else if (r.groupe === 'ignorees') action = 'ignorer';
     else action = 'creer';
     d[r.index] = { action, categorie: r.categorie || 'Autre', retenirRegle: false };
+    if (r.nature === 'encaissement' && r.ligne.montant > 0 && action === 'plus_tard') {
+      // Un client reconnu dans le libellé : proposition de le rattacher à sa mission. Sinon : à décider (jamais en silence).
+      const sug = DATA ? suggererMissions(DATA, r.ligne.libelle) : [];
+      d[r.index].clientNom = clientSuggere(r.ligne.libelle);
+      d[r.index].typePonctuel = 'prestation';
+      if (sug.length && (sug.length === 1 || sug[0].score - sug[1].score >= 0.5)) { d[r.index].action = 'mission'; d[r.index].missionId = sug[0].missionId; }
+      else if (sug.length) d[r.index].missionId = sug[0].missionId;
+    } else if (r.nature === 'remboursement') { d[r.index].typePonctuel = 'hors_ca'; }
   });
   return d;
 }
@@ -45,8 +56,8 @@ export function motCleSuggere(libelle) {
 }
 
 // Statistiques de mesure (locales, rien n'est envoyé) : lignes proposées, validées telles quelles, corrigées.
-export function statistiques(analyse, decisions) {
-  const defaut = decisionsParDefaut(analyse);
+export function statistiques(analyse, decisions, DATA) {
+  const defaut = decisionsParDefaut(analyse, DATA);
   let proposees = 0, tellesQuelles = 0, corrigees = 0;
   analyse.lignes.forEach((r) => {
     if (r.groupe === 'deja_couvertes' && r.statut === 'deja_importee') return;
@@ -56,6 +67,19 @@ export function statistiques(analyse, decisions) {
   });
   return { proposees, tellesQuelles, corrigees };
 }
+
+function modeReglementDe(libelle) {
+  const l = libelleCle(libelle);
+  if (/(^| )(cb|carte)( |$)/.test(l)) return 'carte';
+  if (/(^| )(prlv|prelevement)( |$)/.test(l)) return 'prelevement';
+  if (/(^| )(chq|cheque|remise cheque)( |$)/.test(l)) return 'cheque';
+  if (/(^| )(vir|virement)( |$)/.test(l)) return 'virement';
+  return '';
+}
+const htDe = (DATA, ttc) => (DATA.params && DATA.params.tva ? arrondi2(ttc / (1 + (DATA.params.tauxTVA || 20) / 100)) : ttc);
+const sigEnc = (e) => [e.date, e.montant, e.montantTTC == null ? '' : e.montantTTC].join('|');
+const sigPonc = (e) => [e.date, e.montant, e.libelle].join('|');
+const sigMission = (m) => [m.client, m.montantDevis].join('|');
 
 function nouveauLotId(date) { return 'imp-' + date.replace(/[^0-9]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 6); }
 const signature = (d) => [d.date, d.montant, d.categorie, d.libelle].join('|');
@@ -67,7 +91,7 @@ export function appliquerImport(DATA, analyse, decisions, options) {
   const opt = options || {};
   const maintenant = opt.maintenant || new Date().toISOString();
   const lotId = nouveauLotId(maintenant);
-  const lot = { id: lotId, date: maintenant, periode: opt.periode || null, creees: [], rapprochees: [], nbIgnorees: 0, nbCouvertes: 0, empreintes: [], stats: statistiques(analyse, decisions) };
+  const lot = { id: lotId, date: maintenant, periode: opt.periode || null, creees: [], rapprochees: [], encaissementsCrees: [], missionsCreees: [], ponctuelsCrees: [], rapprocheesEnc: [], totaux: { revenus: 0, depenses: 0 }, nbIgnorees: 0, nbCouvertes: 0, empreintes: [], stats: statistiques(analyse, decisions, DATA) };
   DATA.depenses = DATA.depenses || [];
   DATA.empreintesImportees = DATA.empreintesImportees || [];
   const dejaConnues = new Set(DATA.empreintesImportees);
@@ -82,10 +106,51 @@ export function appliquerImport(DATA, analyse, decisions, options) {
       if (opt.auteurId) dep.auteurId = opt.auteurId;
       DATA.depenses.push(dep);
       lot.creees.push({ id: dep.id, sig: signature(dep) });
+      lot.totaux.depenses = arrondi2(lot.totaux.depenses + dep.montant);
       memoriser(r);
     } else if (dec.action === 'rapprocher' && r.candidat && r.candidat.type === 'depense') {
       const d = DATA.depenses.find((x) => x.id === r.candidat.id);
       if (d && !d.importId) { d.importId = r.empreinte; d.importLot = lotId; lot.rapprochees.push(d.id); memoriser(r); }
+    } else if (dec.action === 'rapprocher' && r.candidat && r.candidat.type === 'encaissement') {
+      const m = (DATA.missions || []).find((x) => x.id === r.candidat.missionId);
+      const e = m && (m.encaissements || []).find((x) => x.id === r.candidat.id);
+      if (e && !e.importId) { e.importId = r.empreinte; e.importLot = lotId; lot.rapprocheesEnc.push({ type: 'encaissement', missionId: m.id, id: e.id }); memoriser(r); }
+    } else if (dec.action === 'rapprocher' && r.candidat && r.candidat.type === 'revenu_ponctuel') {
+      const e = ((DATA.revenus && DATA.revenus[r.candidat.mk] && DATA.revenus[r.candidat.mk].autresList) || []).find((x) => x.id === r.candidat.id);
+      if (e && !e.importId) { e.importId = r.empreinte; e.importLot = lotId; lot.rapprocheesEnc.push({ type: 'revenu_ponctuel', mk: r.candidat.mk, id: e.id }); memoriser(r); }
+    } else if (dec.action === 'mission' || dec.action === 'nouvelle_mission') {
+      // Argent reçu rattaché à une mission (existante, ou créée pour ce client) : encaissement HT, TTC conservé si TVA.
+      const ttc = arrondi2(Math.abs(r.ligne.montant));
+      let m = dec.action === 'mission' ? (DATA.missions || []).find((x) => x.id === dec.missionId) : null;
+      if (dec.action === 'nouvelle_mission') {
+        const ht0 = htDe(DATA, ttc);
+        m = { id: 'mis-' + lotId + '-' + r.index, auteurId: opt.auteurId || null, client: (dec.clientNom || 'Client').trim() || 'Client', categorie: '', description: 'Créée depuis un import de relevé bancaire',
+          montantDevis: ht0, montantPrestation: ht0, montantVente: 0, statut: 'fact', dateFact: r.ligne.date, notes: '', isRecurring: false, montantMensuel: 0, dateDebutRec: '', nbMoisRec: null,
+          chargeEstimee: 0, chargeUnit: 'h_sem', tempsPrevu: null, sessions: [], typeMission: 'individuelle', nbParticipants: 0, prixParParticipant: 0, sourceAcquisition: '', quantite: null, prixAchat: null, lotId: null,
+          heuresSaisies: 0, timerAccumulated: 0, timerRunning: false, timerStart: null, tempsManuel: [], isManagement: false, encaissements: [], importLot: lotId };
+        DATA.missions = DATA.missions || [];
+        DATA.missions.push(m);
+        lot.missionsCreees.push({ id: m.id, sig: sigMission(m) });
+      }
+      if (m) {
+        const enc = { id: 'enc-' + lotId + '-' + r.index, date: r.ligne.date, type: 'paiement', montant: htDe(DATA, ttc), note: r.ligne.libelle.slice(0, 80), modeReglement: modeReglementDe(r.ligne.libelle), importId: r.empreinte, importLot: lotId };
+        if (DATA.params && DATA.params.tva) enc.montantTTC = ttc;
+        (m.encaissements = m.encaissements || []).push(enc);
+        lot.encaissementsCrees.push({ missionId: m.id, id: enc.id, sig: sigEnc(enc) });
+        lot.totaux.revenus = arrondi2(lot.totaux.revenus + ttc);
+        memoriser(r);
+      }
+    } else if (dec.action === 'ponctuel') {
+      const ttc = arrondi2(Math.abs(r.ligne.montant)), type = dec.typePonctuel || 'prestation', ht = htDe(DATA, ttc), mk = r.ligne.date.slice(0, 7);
+      DATA.revenus = DATA.revenus || {};
+      if (!DATA.revenus[mk]) DATA.revenus[mk] = {};
+      if (!DATA.revenus[mk].autresList) DATA.revenus[mk].autresList = [];
+      const e = { id: 'pon-' + lotId + '-' + r.index, libelle: (dec.clientNom || r.ligne.libelle).slice(0, 80), montant: ht, type, date: r.ligne.date, mk,
+        montantPrestation: type === 'prestation' ? ht : 0, montantVente: type === 'vente' ? ht : 0, modeReglement: type !== 'hors_ca' ? modeReglementDe(r.ligne.libelle) : '', refJustificative: '', importId: r.empreinte, importLot: lotId };
+      DATA.revenus[mk].autresList.push(e);
+      lot.ponctuelsCrees.push({ mk, id: e.id, sig: sigPonc(e) });
+      if (type !== 'hors_ca') lot.totaux.revenus = arrondi2(lot.totaux.revenus + ttc);
+      memoriser(r);
     } else if (dec.action === 'couvrir') { lot.nbCouvertes++; memoriser(r); }
     else if (dec.action === 'ignorer') { lot.nbIgnorees++; memoriser(r); }
     // Règle retenue : jamais automatique, seulement si la personne l'a demandé.
@@ -127,6 +192,35 @@ export function defaireImport(DATA, lotId) {
     else { delete d.importLot; res.conservees++; }   // modifiée depuis : on la garde, elle devient une saisie normale
   });
   if (aSupprimer.size) DATA.depenses = DATA.depenses.filter((d) => !aSupprimer.has(d.id));
+  // Encaissements créés : supprimés seulement s'ils n'ont pas été modifiés depuis ; une mission créée par l'import
+  // n'est supprimée que si elle est redevenue vide et inchangée.
+  res.encaissementsSupprimes = 0; res.encaissementsConserves = 0; res.missionsSupprimees = 0; res.missionsConservees = 0;
+  (lot.encaissementsCrees || []).forEach((c) => {
+    const m = (DATA.missions || []).find((x) => x.id === c.missionId);
+    const e = m && (m.encaissements || []).find((x) => x.id === c.id);
+    if (!e) return;
+    if (sigEnc(e) === c.sig) { m.encaissements = m.encaissements.filter((x) => x.id !== c.id); res.encaissementsSupprimes++; }
+    else { delete e.importLot; res.encaissementsConserves++; }
+  });
+  (lot.missionsCreees || []).forEach((c) => {
+    const m = (DATA.missions || []).find((x) => x.id === c.id);
+    if (!m) return;
+    if (sigMission(m) === c.sig && !(m.encaissements || []).length && !(m.tempsManuel || []).length && !(m.sessions || []).length) { DATA.missions = DATA.missions.filter((x) => x.id !== c.id); res.missionsSupprimees++; }
+    else { delete m.importLot; res.missionsConservees++; }
+  });
+  (lot.ponctuelsCrees || []).forEach((c) => {
+    const liste = (DATA.revenus && DATA.revenus[c.mk] && DATA.revenus[c.mk].autresList) || [];
+    const e = liste.find((x) => x.id === c.id);
+    if (!e) return;
+    if (sigPonc(e) === c.sig) { DATA.revenus[c.mk].autresList = liste.filter((x) => x.id !== c.id); res.encaissementsSupprimes++; }
+    else { delete e.importLot; res.encaissementsConserves++; }
+  });
+  (lot.rapprocheesEnc || []).forEach((c) => {
+    let e = null;
+    if (c.type === 'encaissement') { const m = (DATA.missions || []).find((x) => x.id === c.missionId); e = m && (m.encaissements || []).find((x) => x.id === c.id); }
+    else e = ((DATA.revenus && DATA.revenus[c.mk] && DATA.revenus[c.mk].autresList) || []).find((x) => x.id === c.id);
+    if (e && e.importLot === lotId) { delete e.importId; delete e.importLot; res.rapprochementsRetires++; }
+  });
   lot.rapprochees.forEach((id) => {
     const d = (DATA.depenses || []).find((x) => x.id === id);
     if (d && d.importLot === lotId) { delete d.importId; delete d.importLot; res.rapprochementsRetires++; }
@@ -190,4 +284,39 @@ export function comparerUrssaf({ reel, prevu, caCompte }) {
     phrase += ecart > 0 ? ' Un encaissement a peut-être été oublié, ou le taux est à vérifier.' : ' Un encaissement a peut-être été déclaré en décalage, ou le taux est à vérifier.';
   }
   return { prevu, reel, ecart, ecartPct, significatif, caImplique, caCompte, phrase };
+}
+
+// ── IMPACT DE L'IMPORT SUR LES INDICATEURS (fenêtre récapitulative) ─────────────────────────────
+// Aucun nouveau calcul : l'appelant fournit deux instantanés obtenus avec les fonctions EXISTANTES, avant puis après
+// l'import { caMois, depensesMois, tauxHoraireMin }. Un constat n'apparaît que si l'écart est significatif ; au plus
+// 3 constats, formulés comme des estimations, avec d'où ils viennent. Sinon : « Rien de changé dans vos indicateurs ».
+// ctx : { moisLibelle, revenusImportes, depensesImportees, unite:'€/h'|'€/jour', facteurUnite, soldeMaj?:{ apres, dateLibelle } }
+export function calculerImpactImport(avant, apres, ctx) {
+  const c = ctx || {};
+  const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
+  const titre = 'Vous venez d\'importer ' + fmt(c.revenusImportes || 0) + ' € de revenus et ' + fmt(c.depensesImportees || 0) + ' € de dépenses' + (c.moisLibelle ? ' pour ' + c.moisLibelle : '') + '.';
+  const constats = [];
+  const poids = (x) => (x && x.caMois > 0 ? Math.round(x.depensesMois / x.caMois * 1000) / 10 : null);
+  const pa = poids(avant), pb = poids(apres);
+  if (pa != null && pb != null && Math.abs(pb - pa) >= 1) {
+    constats.push({ cle: 'poids_depenses', texte: 'Vos dépenses représentent maintenant environ ' + String(pb).replace('.', ',') + ' % de votre chiffre d\'affaires' + (c.moisLibelle ? ' de ' + c.moisLibelle : '') + ', contre ' + String(pa).replace('.', ',') + ' % avant l\'import.',
+      source: 'Calculé en comparant les dépenses du mois à votre chiffre d\'affaires du mois.' });
+  }
+  if (avant && apres && avant.tauxHoraireMin != null && apres.tauxHoraireMin != null) {
+    const f = c.facteurUnite || 1, a = avant.tauxHoraireMin * f, b = apres.tauxHoraireMin * f;
+    if (Math.abs(b - a) >= (c.seuilUnite || 1)) {
+      constats.push({ cle: 'seuil', texte: 'Pour atteindre votre objectif, votre minimum à facturer passe d\'environ ' + fmt(a) + ' à ' + fmt(b) + ' ' + (c.unite || '€/h') + '.',
+        source: 'Il intègre vos dépenses moyennes : celles qui viennent d\'être ajoutées le font monter ou baisser.' });
+    }
+  }
+  if (avant && apres && Math.abs((apres.caMois || 0) - (avant.caMois || 0)) >= 20) {
+    constats.push({ cle: 'ca', texte: 'Votre chiffre d\'affaires' + (c.moisLibelle ? ' de ' + c.moisLibelle : '') + ' passe d\'environ ' + fmt(avant.caMois) + ' à ' + fmt(apres.caMois) + ' €.',
+      source: 'Il s\'agit des encaissements ajoutés par l\'import.' });
+  }
+  if (c.soldeMaj) {
+    constats.push({ cle: 'solde', texte: 'Votre trésorerie s\'appuie maintenant sur votre solde réel de ' + fmt(c.soldeMaj.apres) + ' €' + (c.soldeMaj.dateLibelle ? ' au ' + c.soldeMaj.dateLibelle : '') + '.',
+      source: 'Vous avez choisi de mettre à jour votre solde avec celui du relevé.' });
+  }
+  const retenus = constats.slice(0, 3);
+  return { titre, constats: retenus, rienDeChange: retenus.length === 0 };
 }

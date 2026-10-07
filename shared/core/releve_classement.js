@@ -320,6 +320,29 @@ export function classerLignes(DATA, lignes, empreintesDejaImportees) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
+// ENCAISSEMENTS : À QUELLE MISSION CORRESPOND CETTE ENTRÉE D'ARGENT ?
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// Missions dont le nom de client apparaît dans le libellé bancaire (au moins un mot significatif en commun),
+// les plus ressemblantes d'abord. Jamais une certitude : la personne choisit (liste complète dans l'écran).
+const MOTS_SOCIETE = new Set(['sas', 'sarl', 'eurl', 'sasu', 'sa', 'snc', 'ei', 'association', 'asso', 'conseil', 'consulting', 'groupe', 'societe', 'cabinet', 'agence', 'studio', 'atelier']);
+export function suggererMissions(DATA, libelle) {
+  const lib = new Set(mots(libelle));
+  const res = [];
+  (DATA.missions || []).forEach((m) => {
+    if (m.isManagement || m.statut === 'ref' || !m.client) return;
+    const toks = mots(m.client).filter((w) => !MOTS_SOCIETE.has(w));
+    const communs = toks.filter((w) => lib.has(w));
+    if (communs.length) res.push({ missionId: m.id, client: m.client, score: communs.length / Math.max(1, toks.length) + communs.length * 0.1 });
+  });
+  return res.sort((a, b) => b.score - a.score);
+}
+// Nom de client proposé pour une nouvelle mission : les mots du libellé sans les mentions bancaires ni les références.
+export function clientSuggere(libelle) {
+  const mm = libelleCle(libelle).split(' ').filter((w) => w.length >= 2 && !MOTS_VIDES.has(w) && !['ref', 'fact', 'facture', 'reglement', 'rglt', 'remise', 'cheque', 'chq', 'paiement', 'virement'].includes(w));
+  return mm.map((w) => (['sas', 'sarl', 'eurl', 'sasu', 'sa', 'snc'].includes(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
 // PIPELINE COMPLET
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 // Retourne { lignes:[{ index, ligne, empreinte, souple, statut, groupe, nature, categorie, confiance, explication,

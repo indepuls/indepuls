@@ -3181,6 +3181,7 @@ const PROFIL_DESCRIPTIONS = {
 // Les 3 entrées ci-dessous sont un gabarit de démonstration — à remplacer avant publication.
 // ═══════════════════════════════════════════════════════════
 const NOUVEAUTES = [
+  { date:'2026-10-07', titre:'Importez votre relevé bancaire (fichier CSV ou OFX) depuis la page Dépenses : Indépuls repère ce que vous avez déjà saisi, vous propose les nouvelles dépenses et les entrées d\'argent à rattacher à vos missions, met à jour votre solde et, en micro-entreprise, compare votre URSSAF prélevée à la prévision. Rien n\'est créé sans votre validation, et un import peut être défait.', icon:'📥', merci:null },
   { date:'2026-10-06', titre:'Vous êtes plusieurs associé·es en SAS ? Indépuls propose maintenant un compte partagé : vous travaillez dans le même espace, sur les mêmes missions et les mêmes dépenses, en même temps. Chacun garde ses propres réglages (rémunération, objectif, congés), une mission ou une dépense peut être partagée entre vous en pourcentage, et une page "Par associé·e" montre la part de chacun. Pour l\'activer : Paramètres > Statut & charges sociales, cochez "Plusieurs dirigeants (SAS)", puis invitez votre associé·e par email.', icon:'🤝', merci:'Merci à Florence pour l\'idée 🙏' },
   { date:'2026-09-14', titre:'Une fois une mission ponctuelle passée en "Facturé", Indépuls vous propose un message prêt à l\'emploi pour demander un avis à votre client, à copier ou envoyer directement par email, toujours modifiable avant l\'envoi. Personnalisez vos liens d\'avis (Google, Trustpilot...) et votre propre message dans Paramètres > Mon activité.', icon:'⭐', merci:null },
   { date:'2026-08-14', titre:'Dans la barre latérale, le chrono devient un vrai sélecteur : choisissez une mission (ou "Mon entreprise"), puis cliquez sur Démarrer. Cochez "Toutes mes missions" pour retrouver aussi celles déjà facturées ou pas encore validées.', icon:'▶️', merci:'Merci à Orianne pour l\'avoir signalé en testant en direct 🙏' },
@@ -4153,6 +4154,7 @@ function guideActionDone(key) {
   if (key === 'revenus') return Object.keys(DATA.revenus || {}).length > 0;
   if (key === 'conges') return (DATA.conges || []).length > 0;
   if (key === 'lots') return (DATA.lots || []).length > 0;
+  if (key === 'import_releve') return (DATA.empreintesImportees || []).length > 0 || !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
   return !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
 }
 function guideMarkSeen(key) {
@@ -4192,6 +4194,9 @@ function renderGuideActionsHTML() {
       desc:`Une ${tVocab('item').toLowerCase()} retournée ou remboursée ne s'annule pas : elle reste dans vos chiffres, seul le retour est suivi à part, pour ne jamais perdre la trace de ce qui a réellement été vendu.`,
       cta:'→ Aller dans Retours clients', action:"guideMarkSeen('retours');navigate('retours')"});
   }
+  rows.push({key:'import_releve', icon:'📥', title:'Importez votre relevé bancaire (facultatif)',
+    desc:`Vous pouvez saisir vos dépenses et vos recettes au fil du mois, ou importer votre relevé bancaire une fois par mois (fichier CSV ou OFX exporté depuis votre banque). Indépuls repère ce que vous avez déjà saisi et vous demande en cas de doute : rien n'est créé sans votre validation. L'import fait gagner du temps, mais la saisie au fil de l'eau reste plus précise au jour le jour (alertes, trésorerie).`,
+    cta:'→ Aller dans Dépenses', action:"guideMarkSeen('import_releve');navigate('depenses')"});
   rows.push({key:'dashboard', icon:'🧭', title:'Repérez-vous sur votre tableau de bord',
     desc:'Le Score de Santé résume votre activité en un chiffre (le détail de chaque pilier est juste en dessous). Les alertes signalent ce qui mérite votre attention en priorité. Le suivi des objectifs compare votre trajectoire à votre cible. "Argent à mettre de côté" indique combien provisionner pour vos charges et impôts.',
     cta:'→ Aller au tableau de bord', action:"guideMarkSeen('dashboard');navigate('dashboard')"});
