@@ -5334,10 +5334,10 @@ function impLigneHtml(r) {
   if (r.statut === 'deja_importee') note = 'Déjà importée';
   else if (r.statut === 'couverte_abonnement') note = '';
   else if (recu) {
-    if (r.candidat) ctrl = opts([['rapprocher', 'Rapprocher de ma saisie'], ['mission', 'Rattacher à une mission'], ['ponctuel', 'Revenu ponctuel'], ['plus_tard', 'Décider plus tard']]);
+    if (r.candidat) ctrl = opts([['rapprocher', 'Déjà saisie, ne rien ajouter'], ['mission', 'Rattacher à une mission'], ['ponctuel', 'Revenu ponctuel'], ['plus_tard', 'Décider plus tard']]);
     else ctrl = opts([['mission', 'Rattacher à une mission'], ['nouvelle_mission', 'Créer une mission pour ce client'], ['ponctuel', 'Enregistrer comme revenu ponctuel'], ['ignorer', 'Ignorer (pas un revenu)'], ['plus_tard', 'Décider plus tard']]);
   }
-  else if (r.statut === 'rapprochement_propose') ctrl = opts([['rapprocher', 'Rapprocher de ma saisie'], ['creer', 'Créer une nouvelle dépense'], ['ignorer', 'Ignorer']]);
+  else if (r.statut === 'rapprochement_propose') ctrl = opts([['rapprocher', 'Déjà saisie, ne rien ajouter'], ['creer', 'Pas la même, créer une dépense'], ['ignorer', 'Ignorer']]);
   else if (r.statut === 'peut_etre_deja_importee') ctrl = opts([['ignorer', 'Déjà importée, ignorer'], ['creer', 'Créer quand même']]);
   else if (r.statut === 'abonnement_possible') ctrl = opts([['couvrir', 'C\'est mon abonnement'], ['creer', 'Créer une dépense'], ['ignorer', 'Ignorer']]);
   else ctrl = opts([['creer', 'Créer la dépense'], ['ignorer', 'Ignorer']]);
@@ -5345,12 +5345,13 @@ function impLigneHtml(r) {
     + '<div style="flex:1 1 220px;min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">' + esc(l.libelle || '(sans libellé)') + '</div>'
     + '<div style="font-size:11px;color:var(--tl)">' + impDate(l.date) + ' · ' + esc(r.explication || '') + '</div>';
   if (r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Saisie existante : « ' + esc(r.candidat.libelle || 'sans libellé') + ' »' + (r.candidat.date ? ' du ' + impDate(r.candidat.date) : '') + ', ' + impEur(r.candidat.montant) + (r.candidat.ambigu ? ' (plusieurs saisies possibles)' : '') + '</div>';
+  if (dec.action === 'rapprocher' && r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Votre saisie « ' + esc(r.candidat.libelle || 'sans libellé') + ' » est conservée et marquée comme confirmée par la banque. Rien n’est créé.</div>';
   if (r.candidat && r.candidat.motif === 'montant_proche') html += '<div style="font-size:11px;color:var(--warn,#b45309)">Montant saisi ' + impEur(r.candidat.montant) + ', montant en banque ' + impEur(Math.abs(l.montant)) + '</div>';
   if (note) html += '<div style="font-size:11px;color:var(--tl)">' + esc(note) + '</div>';
   html += '</div><div style="min-width:76px;text-align:right;font-weight:600;white-space:nowrap">' + impEur(l.montant) + '</div>';
   if (ctrl) {
     html += '<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:4px"><select class="s-select" onchange="impChoisirAction(' + r.index + ',this.value)">' + ctrl + '</select>';
-    if (dec.action === 'rapprocher' && r.candidat && r.candidat.motif === 'montant_proche') html += '<label style="font-size:11px;color:var(--tl)"><input type="checkbox" onchange="impCorrigerMontant(' + r.index + ',this.checked)"' + (dec.corrigerMontant ? ' checked' : '') + '> Corriger le montant avec celui de la banque</label>';
+    if (dec.action === 'rapprocher' && r.candidat && r.candidat.motif === 'montant_proche') html += '<label style="font-size:11px;color:var(--tl)"><input type="checkbox" onchange="impCorrigerMontant(' + r.index + ',this.checked)"' + (dec.corrigerMontant ? ' checked' : '') + '> Mettre le montant de la banque (' + impEur(Math.abs(l.montant)) + ')</label>';
     if (recu) {
       if (dec.action === 'mission') {
         const ms = impMissionsChoisissables();
@@ -5434,7 +5435,7 @@ function renderImportReleve(garderDefilement) {
       h += '<div style="margin-top:16px;font-weight:600;font-size:13px">Imports précédents</div>';
       lots.forEach((lot) => {
         const nbEnc = (lot.encaissementsCrees || []).length + (lot.ponctuelsCrees || []).length;
-        h += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--brd);font-size:12px"><span>' + impDate(lot.date.slice(0, 10)) + ' : ' + lot.creees.length + ' dépense(s) et ' + nbEnc + ' encaissement(s) créé(s), ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' rapprochée(s)</span>'
+        h += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--brd);font-size:12px"><span>' + impDate(lot.date.slice(0, 10)) + ' : ' + lot.creees.length + ' dépense(s) et ' + nbEnc + ' encaissement(s) créé(s), ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' confirmée(s) par la banque</span>'
           + '<button class="btn btn-out btn-xs" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
       });
     }
@@ -5453,7 +5454,7 @@ function renderImportReleve(garderDefilement) {
     const ign = a.lignes.filter((r) => r.groupe === 'ignorees');
     h += '<div style="font-size:13px;margin-bottom:10px">' + a.lignes.length + ' lignes du ' + impDate(p.lignes[0].date) + ' au ' + impDate(p.lignes[p.lignes.length - 1].date) + '. Chaque ligne indique pourquoi elle est classée ainsi, rien n\'est créé sans votre validation.'
       + (p.rejets.length ? '<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--tl)">' + p.rejets.length + ' ligne(s) illisible(s) ignorée(s)</summary>' + p.rejets.map((x) => '<div style="font-size:11px;color:var(--tl)">Ligne ' + x.numeroLigne + ' : ' + esc(x.motif) + '</div>').join('') + '</details>' : '') + '</div>';
-    h += impGroupeHtml('Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, rapprochées de ce que vous avez déjà saisi, ou ignorées selon votre choix.');
+    h += impGroupeHtml('Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, confirmées si vous les avez déjà saisies, ou ignorées selon votre choix.');
     h += impGroupeHtml('Argent reçu', recu, true, 'Rattachez chaque entrée d\'argent à une mission existante, créez une mission pour un nouveau client, ou enregistrez-la comme revenu ponctuel. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
     h += impGroupeHtml('Déjà couvertes', couv, false, 'Déjà importées ou déjà comptées dans vos abonnements.');
     h += impGroupeHtml('Ignorées par défaut', ign, false, 'Cotisations, impôts, virements vers une personne, dépenses souvent personnelles : déjà provisionnés par Indépuls ou pas professionnels.',
@@ -5470,7 +5471,7 @@ function renderImportReleve(garderDefilement) {
     return;
   } else if (_imp.etape === 'recap') {
     const c = impResume(), p = _imp.parsed, st = window._Releve.statistiques(_imp.analyse, _imp.decisions, DATA);
-    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + c.creer + ' dépense(s) créée(s), ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' rapprochement(s), ' + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + c.creer + ' dépense(s) créée(s), ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' saisie(s) confirmée(s) par la banque, ' + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
       + (c.plus_tard ? '<div style="font-size:12px;color:var(--tl);margin-bottom:8px">' + c.plus_tard + ' ligne(s) d\'argent reçu laissée(s) pour plus tard : elles reviendront au prochain import.</div>' : '')
       + '<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Sur ' + st.proposees + ' ligne(s) proposée(s) : ' + st.tellesQuelles + ' validée(s) telle(s) quelle(s), ' + st.corrigees + ' corrigée(s).</div>';
     if (p.soldeCloture != null) {
@@ -5497,7 +5498,7 @@ function renderImportReleve(garderDefilement) {
       else imp.constats.forEach((c) => { h += '<div style="padding:6px 0;border-top:1px solid var(--brd);font-size:13px">' + esc(c.texte) + '<div style="font-size:11px;color:var(--tl)">' + esc(c.source) + '</div></div>'; });
     }
     h += '<div style="font-size:12px;color:var(--tl);margin-top:10px">' + lot.creees.length + ' dépense(s) et ' + ((lot.encaissementsCrees || []).length + (lot.ponctuelsCrees || []).length) + ' encaissement(s) créé(s)'
-      + ((lot.missionsCreees || []).length ? ' (dont ' + lot.missionsCreees.length + ' nouvelle(s) mission(s))' : '') + ', ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' saisie(s) rapprochée(s). Un import peut être défait depuis « Importer un relevé ».</div></div>'
+      + ((lot.missionsCreees || []).length ? ' (dont ' + lot.missionsCreees.length + ' nouvelle(s) mission(s))' : '') + ', ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' saisie(s) confirmée(s) par la banque. Un import peut être défait depuis « Importer un relevé ».</div></div>'
       + '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="closeModal(\'modal-import-releve\');navigate(\'dashboard\')">Voir mon tableau de bord</button><button class="btn btn-out" onclick="closeModal(\'modal-import-releve\')">Compris</button><button class="btn btn-out btn-xs" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
     corps.innerHTML = h; return;
   }
@@ -5538,7 +5539,7 @@ function impConfirmer() {
 }
 function impDefaire(lotId) {
   if (DATA.isExample || window._lectureSeule) return;
-  if (!confirm('Défaire cet import ? Ce qu\'il a créé (dépenses, encaissements, missions) et que vous n\'avez pas modifié depuis sera supprimé, et les saisies rapprochées redeviendront des saisies normales.')) return;
+  if (!confirm('Défaire cet import ? Ce qu\'il a créé (dépenses, encaissements, missions) et que vous n\'avez pas modifié depuis sera supprimé, et les saisies confirmées par la banque redeviendront des saisies normales.')) return;
   try {
     const r = window._Releve.defaireImport(DATA, lotId);
     if (!r) return;

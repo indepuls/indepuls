@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-07 — Import de relevé : vocabulaire « Déjà saisie, ne rien ajouter » (retour Faustine)
+
+« Rapprocher de ma saisie » (jargon) remplacé dans l'interface de `indepuls.html` : « Déjà saisie, ne rien ajouter » / « Pas la même, créer une dépense » / case « Mettre le montant de la banque (X €) », phrase fixe sous la ligne (« Votre saisie … est conservée et marquée comme confirmée par la banque. Rien n’est créé. »), récapitulatif et fenêtre finale : « saisie(s) confirmée(s) par la banque ». Le moteur garde le nom technique `rapprocher`. À reprendre dans les futurs textes (guide, Nouveautés).
+
 ### 2026-10-07 — Import de relevé : rapprochement « montant légèrement différent » (retour test Faustine)
 
 - **Symptôme** : une dépense saisie à la main à 123 € (centre pajemploi) face au prélèvement réel de 123,15 € n'était pas reconnue : proposée en nouvelle dépense, donc doublon si validée.
