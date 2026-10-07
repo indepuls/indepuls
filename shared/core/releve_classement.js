@@ -10,6 +10,7 @@
 // puis range chaque ligne dans un groupe : 'a_verifier', 'deja_couvertes' ou 'ignorees'.
 
 import { empreintesLignes, libelleCle, normaliserLibelle } from './releve.js';
+import { categorieDepuisHistorique } from './categories.js';
 
 const arrondi2 = (n) => Math.round(n * 100) / 100;
 
@@ -73,7 +74,7 @@ function ligneProche(l, texte) { return libellesProches(l.libelle, texte) || !!(
 // Retourne { categorie, confiance:'haute'|'moyenne'|'basse', nature, source:'apprise'|'defaut'|'signe', motif, type? }
 // `regles` = règles apprises [{motCle, categorie, nature}] : elles priment sur la table par défaut.
 // `montant` (signé, facultatif) : sans lui, la ligne est considérée comme une sortie.
-export function proposerCategorie(libelle, regles, montant) {
+function proposerCategorieTable(libelle, regles, montant) {
   const entree = montant == null || montant < 0 ? 'sortie' : 'entree';
   const libN = normaliserLibelle(libelle);
   // 1. Règles apprises.
@@ -110,6 +111,21 @@ export function proposerCategorie(libelle, regles, montant) {
     return { categorie: null, confiance: 'moyenne', nature: 'remboursement', source: 'defaut', type: 'remboursement_emis', motif: 'Remboursement ou avoir : à enregistrer comme retour client ou à ignorer' };
   }
   return { categorie: 'Autre', confiance: 'basse', nature: 'depense', source: 'defaut', motif: 'Dépense non reconnue : catégorie à confirmer' };
+}
+
+// `historique` (facultatif) : les dépenses déjà saisies par la personne. Ordre de priorité : règle retenue par la personne,
+// puis son historique (même libellé, ou un mot qui mène toujours à la même catégorie), puis la table de mots-clés.
+// L'historique ne remplace jamais le classement d'une cotisation, d'un impôt, d'un prêt ou d'un virement interne.
+export function proposerCategorie(libelle, regles, montant, historique) {
+  const r = proposerCategorieTable(libelle, regles, montant);
+  if (r.source === 'apprise' || !historique || !historique.length || (montant != null && montant >= 0)) return r;
+  if (r.nature !== 'depense' && r.nature !== 'a_ignorer') return r;
+  if (r.type === 'pret') return r; // une échéance de prêt reste à saisir à part, quoi qu'on ait rangé avant
+  const h = categorieDepuisHistorique(historique, libelle);
+  if (!h) return r;
+  // Un accord fort (même libellé, ou plusieurs dépenses concordantes) l'emporte ; un accord faible ne remplace qu'une catégorie inconnue.
+  if (h.confiance === 'haute' || r.confiance === 'basse') return { categorie: h.categorie, confiance: h.confiance, nature: 'depense', source: 'historique', motif: h.motif };
+  return r;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
@@ -405,8 +421,8 @@ export function analyserReleve(DATA, parsed, empreintesDejaImportees, reglesImpo
 
   // 4. Nature et catégorie pour toutes les lignes, puis groupes.
   res.forEach((r) => {
-    let p = proposerCategorie(r.ligne.libelle, reglesImport, r.ligne.montant);
-    if (p.confiance === 'basse' && r.ligne.detail) { const p2 = proposerCategorie(r.ligne.detail, reglesImport, r.ligne.montant); if (p2.confiance !== 'basse') p = p2; }
+    let p = proposerCategorie(r.ligne.libelle, reglesImport, r.ligne.montant, DATA.depenses);
+    if (p.confiance === 'basse' && r.ligne.detail) { const p2 = proposerCategorie(r.ligne.detail, reglesImport, r.ligne.montant, DATA.depenses); if (p2.confiance !== 'basse') p = p2; }
     r.nature = p.nature; r.categorie = p.categorie; r.confiance = p.confiance; r.source = p.source; r.motifCategorie = p.motif;
     if (p.type) r.type = p.type;
     if (!r.statut) {

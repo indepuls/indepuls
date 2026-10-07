@@ -2244,9 +2244,9 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Date</label><input type="date" id="d-date"></div>
       <div class="fgroup"><label class="flabel">Montant (€)</label><input type="number" id="d-montant" step="0.01" min="0"></div>
     </div>
-    <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="d-lib" placeholder="Ex: Mutuelle, Prévoyance, Notion…"></div>
-    <div class="fgroup"><label class="flabel">Catégorie</label>
-      <select id="d-cat">
+    <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="d-lib" placeholder="Ex: Mutuelle, Prévoyance, Notion…" oninput="suggererCategorieDepense()"></div>
+    <div class="fgroup"><label class="flabel">Catégorie <span id="d-cat-hint" style="font-weight:400;font-size:11px;color:var(--tl)"></span></label>
+      <select id="d-cat" onchange="_catDepTouchee=true">
         <option value="Logiciels & abonnements">Logiciels &amp; abonnements</option>
         <option value="Marketing & communication">Marketing &amp; communication</option>
         <option value="Formation">Formation</option>
@@ -11389,6 +11389,16 @@ function setRevenu(mk,field,val) {
 }
 
 // ── DÉPENSES ─────────────────────────────────────────────────
+// Suggestion de catégorie pendant la saisie du libellé (d'après vos dépenses précédentes, puis des mots-clés) : seulement
+// pour une nouvelle dépense et tant que la personne n'a pas choisi elle-même une catégorie. Elle reste libre de changer.
+let _catDepTouchee = false;
+function suggererCategorieDepense() {
+  if (_catDepTouchee || document.getElementById('dep-edit-id').value || !window._Releve || !window._Releve.suggererCategorie) return;
+  const sel = document.getElementById('d-cat'), hint = document.getElementById('d-cat-hint');
+  const s = window._Releve.suggererCategorie(DATA, document.getElementById('d-lib').value);
+  if (s && Array.from(sel.options).some((o) => o.value === s.categorie)) { sel.value = s.categorie; if (hint) hint.textContent = '(suggérée : ' + (s.source === 'historique' ? 'd' + String.fromCharCode(39) + 'après vos dépenses précédentes' : 'd' + String.fromCharCode(39) + 'après le libellé') + ')'; }
+  else { sel.value = 'Autre'; if (hint) hint.textContent = ''; }
+}
 function openDepModal(id) {
   const d=id?DATA.depenses.find(x=>x.id===id):null;
   document.getElementById('dep-modal-title').textContent=d?'Modifier la dépense':'Nouvelle dépense';
@@ -11396,6 +11406,7 @@ function openDepModal(id) {
   document.getElementById('d-date').value=d?d.date:today();
   document.getElementById('d-lib').value=d?d.libelle:'';
   document.getElementById('d-cat').value=d?(d.categorie||'Autre'):'Autre';
+  _catDepTouchee=!!d; { const h=document.getElementById('d-cat-hint'); if(h) h.textContent=''; }
   document.getElementById('d-montant').value=d?d.montant:'';
   const rec=d?d.recurrence:'ponctuelle';
   document.getElementById('d-rec').value=rec;
@@ -16587,6 +16598,8 @@ document.addEventListener('keydown', function(e) {
      ════════════════════════════════════════════════════════════════ -->
 <script type="module">
   import * as Mode from './shared/modes/unified.js';
+  import * as ReleveImport from './shared/core/releve_import.js';
+  window._Releve = { suggererCategorie: ReleveImport.suggererCategorie };
 
   function sync() { Mode.setData(DATA); }
 

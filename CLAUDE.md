@@ -4231,6 +4231,15 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — Catégorie de dépense suggérée d'après l'historique (import ET formulaire)
+
+- **Pourquoi** : le formulaire « + Ajouter » démarrait toujours sur « Autre », et l'import ne connaissait qu'une liste courte de marques.
+- **`shared/core/categories.js`** (pur) : `categorieDepuisHistorique(depenses, libelle)` : même libellé nettoyé (confiance haute), sinon un mot qui, dans l'historique, mène à la même catégorie dans au moins 75 % des cas (haute si deux dépenses concordent, moyenne avec une seule). Les dépenses en « Autre » ne comptent pas ; un mot présent dans des catégories variées (une ville) n'est jamais retenu.
+- **Priorité** (`proposerCategorie(libelle, regles, montant, historique)`) : règle retenue par la personne > historique (accord fort, ou accord faible sur une catégorie inconnue) > table de mots-clés. L'historique ne change jamais une cotisation, un impôt, un prêt, un virement interne ni de l'argent reçu (un test a révélé le cas du prêt, corrigé).
+- **Import** : `analyserReleve` passe `DATA.depenses` ; l'écran affiche « D'après vos dépenses précédentes » sous la catégorie proposée.
+- **Formulaire de dépense** (`indepuls.html` ET `indepuls-demo.html`, pont minimal `window._Releve.suggererCategorie` dans la démo) : en tapant le libellé, la catégorie est suggérée (`suggererCategorieDepense`, drapeau `_catDepTouchee`), seulement pour une nouvelle dépense et tant que la personne n'a pas choisi elle-même ; mention « (suggérée : d'après vos dépenses précédentes | d'après le libellé) ». Jamais « Autre » comme suggestion.
+- Tests : `releve.test.js` (159). Vérifié dans le navigateur (app et démo).
+
 ### 2026-10-07 — Import de relevé : colonne « informations complémentaires » lue en repli
 
 La colonne « Informations complémentaires » (Banque Populaire) est lue dans `ligne.detail` (facultatif, absent s'il est identique au libellé). Elle n'intervient JAMAIS dans les empreintes ni dans l'affichage du libellé : seulement en repli quand le libellé court ne suffit pas, pour le rapprochement « montant légèrement différent » (`ligneProche`), la reconnaissance d'un abonnement, la suggestion de mission/dépense (`suggererMissions(DATA, libelle, detail)`, `depensesDeductibles(..., detail)`) et la catégorie quand elle est inconnue (`confiance: basse`). Tests : `releve.test.js` (144). PDF toujours écarté.

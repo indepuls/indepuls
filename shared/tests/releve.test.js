@@ -27,6 +27,7 @@ const lire = (f) => fs.readFileSync(path.join(DIR, f));
 async function main() {
   const R = await import(pathToFileURL(path.join(ROOT, 'core', 'releve.js')).href);
   const C = await import(pathToFileURL(path.join(ROOT, 'core', 'releve_classement.js')).href);
+  const I = await import(pathToFileURL(path.join(ROOT, 'core', 'releve_import.js')).href);
   const exp = JSON.parse(fs.readFileSync(path.join(DIR, 'expected_normalized.json'), 'utf8'));
   const attendues = exp.transactions.map((t) => ({ date: t.date, libelle: t.libelle, montant: t.montant }));
   const simples = (r) => r.lignes.map((l) => ({ date: l.date, libelle: l.libelle, montant: l.montant }));
@@ -308,6 +309,42 @@ async function main() {
     test('suggestion de mission : le détail sert quand le libellé ne suffit pas', ['m1', 0], [C.suggererMissions(d, p.lignes[1].libelle, p.lignes[1].detail)[0].missionId, C.suggererMissions(d, p.lignes[1].libelle).length]);
     const apres = C.analyserReleve(d, { lignes: [{ date: '2026-09-14', libelle: 'PAIEMENT DIVERS', montant: -42.99, detail: 'PAIEMENT CB 1409 PARIS ORANGE VAD 73' }] }, [], []);
     test('catégorie : le détail aide quand le libellé est inconnu', 'Téléphonie & internet', apres.lignes[0].categorie);
+  }
+
+
+  section("Catégorie suggérée d'après les dépenses déjà saisies par la personne");
+  {
+    const K = await import(pathToFileURL(path.join(ROOT, 'core', 'categories.js')).href);
+    const hist = [
+      { libelle: 'Dupont Traiteur', categorie: 'Marketing & communication' },
+      { libelle: 'Dupont Traiteur', categorie: 'Marketing & communication' },
+      { libelle: 'Orange', categorie: 'Téléphonie & internet' },
+      { libelle: 'Orange pro', categorie: 'Téléphonie & internet' },
+      { libelle: 'Paris Monoprix', categorie: 'Coworking & bureau' },
+      { libelle: 'Paris Atelier Bois', categorie: 'Matériel & équipement' },
+      { libelle: 'Truc divers', categorie: 'Autre' },
+    ];
+    test('même libellé : catégorie reprise, confiance haute', ['Marketing & communication', 'haute'], (() => { const h = K.categorieDepuisHistorique(hist, 'PAIEMENT CB 1409 DUPONT TRAITEUR CARTE 2080 HIP01'); return [h.categorie, h.confiance]; })());
+    test('un mot qui mène toujours à la même catégorie : reprise', 'Téléphonie & internet', K.categorieDepuisHistorique(hist, 'PRLV ORANGE VAD 73').categorie);
+    test('un mot présent dans des catégories variées (une ville) n\'est jamais retenu', null, K.categorieDepuisHistorique(hist, 'PAIEMENT CB PARIS INCONNU'));
+    test('les dépenses en « Autre » ne comptent pas', null, K.categorieDepuisHistorique(hist, 'TRUC DIVERS'));
+    test('pas d\'historique : rien', null, K.categorieDepuisHistorique([], 'ORANGE'));
+    // Priorités dans proposerCategorie
+    test('l\'historique passe avant la table de mots-clés (accord fort)', ['Marketing & communication', 'historique'], (() => { const p = C.proposerCategorie('CB FREE MOBILE PRO', [], -20, [{ libelle: 'Free Mobile Pro', categorie: 'Marketing & communication' }]); return [p.categorie, p.source]; })());
+    test('un accord faible ne remplace pas une catégorie déjà reconnue par mots-clés', 'Téléphonie & internet', C.proposerCategorie('CB FREE MOBILE', [], -20, [{ libelle: 'Free livraison', categorie: 'Marketing & communication' }]).categorie);
+    test('un accord faible complète une catégorie inconnue', ['Formation', 'historique'], (() => { const p = C.proposerCategorie('CB ZORGLUB 12', [], -20, [{ libelle: 'Zorglub', categorie: 'Formation' }]); return [p.categorie, p.source]; })());
+    test('une règle retenue par la personne prime sur l\'historique', ['Outils IA', 'apprise'], (() => { const p = C.proposerCategorie('CB DUPONT TRAITEUR', [{ motCle: 'dupont', categorie: 'Outils IA', nature: 'depense' }], -20, hist); return [p.categorie, p.source]; })());
+    test('l\'historique ne change jamais une cotisation, un impôt ni un prêt', ['charges_sociales', 'impots', 'a_ignorer'], ['PRLV URSSAF AUTO', 'PRLV DGFIP TVA', 'ECH PRET CAP+IN'].map((l) => C.proposerCategorie(l, [], -100, [{ libelle: l, categorie: 'Formation' }]).nature));
+    test('l\'historique ne s\'applique pas à de l\'argent reçu', 'encaissement', C.proposerCategorie('VIR DUPONT TRAITEUR', [], 500, hist).nature);
+    // Dans l'import
+    const dataH = { params: { tva: false }, missions: [], revenus: {}, depenses: hist.map((d, i) => Object.assign({ id: 'h' + i, date: '2026-08-01', montant: 10, recurrence: 'ponctuelle' }, d)) };
+    const an = C.analyserReleve(dataH, { lignes: [{ date: '2026-09-02', libelle: 'PAIEMENT CB 0209 DUPONT TRAITEUR CARTE 2080 HIR01', montant: -230 }] }, [], []);
+    test('import : la catégorie vient de l\'historique, avec son explication', ['Marketing & communication', 'historique', true], [an.lignes[0].categorie, an.lignes[0].source, /dépenses précédentes/.test(an.lignes[0].motifCategorie)]);
+    // Formulaire de dépense
+    const sug = (l) => I.suggererCategorie(dataH, l);
+    test('formulaire : suggestion d\'après l\'historique', ['Marketing & communication', 'historique'], (() => { const x = sug('Dupont Traiteur'); return [x.categorie, x.source]; })());
+    test('formulaire : suggestion par mots-clés quand l\'historique est muet', 'Assurances & prévoyance', sug('AXA assurance').categorie);
+    test('formulaire : jamais « Autre » en suggestion, ni pour un libellé trop court', [null, null], [sug('Xyzzy Quux'), sug('ab')]);
   }
 
   section('Pipeline complet : groupes et résumé sur le relevé de référence');

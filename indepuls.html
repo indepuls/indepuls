@@ -2295,7 +2295,7 @@ html,body{overflow-x:hidden;}
       <div class="fgroup"><label class="flabel">Date</label><input type="date" id="d-date"></div>
       <div class="fgroup"><label class="flabel">Montant (€)</label><input type="number" id="d-montant" step="0.01" min="0"></div>
     </div>
-    <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="d-lib" placeholder="Ex: Mutuelle, Prévoyance, Notion…"></div>
+    <div class="fgroup"><label class="flabel">Libellé</label><input type="text" id="d-lib" placeholder="Ex: Mutuelle, Prévoyance, Notion…" oninput="suggererCategorieDepense()"></div>
     <div class="fgroup" id="d-commune-zone" style="display:none;background:var(--bg);border:1px solid var(--brd);border-radius:10px;padding:12px">
       <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer"><input type="checkbox" id="d-commune" onchange="toggleCommune('d',this.checked)"> 🤝 Dépense commune <span class="info-tip" title="Cochez pour répartir cette dépense entre associé·es (50/50, 80/20...). Dans la vue de chaque personne, seule SA part compte. Sans répartition, une dépense compte en entier pour chacun·e (dépense de la société). Dans la vue « tout le compte », elle reste entière.">?</span></label>
       <div id="d-commune-detail" style="display:none;margin-top:10px">
@@ -2303,8 +2303,8 @@ html,body{overflow-x:hidden;}
         <div class="ts" id="d-commune-total" style="margin-top:6px"></div>
       </div>
     </div>
-    <div class="fgroup"><label class="flabel">Catégorie</label>
-      <select id="d-cat">
+    <div class="fgroup"><label class="flabel">Catégorie <span id="d-cat-hint" style="font-weight:400;font-size:11px;color:var(--tl)"></span></label>
+      <select id="d-cat" onchange="_catDepTouchee=true">
         <option value="Logiciels & abonnements">Logiciels &amp; abonnements</option>
         <option value="Marketing & communication">Marketing &amp; communication</option>
         <option value="Formation">Formation</option>
@@ -5388,6 +5388,7 @@ function impLigneHtml(r) {
     } else if (dec.action === 'creer') {
       const propre = window._Releve.libelleNettoye(l.libelle);
       if (propre !== l.libelle) html += '<div style="font-size:11px;color:var(--tl)">Enregistrée sous : « ' + esc(propre) + ' »</div>';
+      if (r.source === 'historique' && dec.categorie === r.categorie) html += '<div style="font-size:11px;color:var(--tl)">' + esc(r.motifCategorie) + '</div>';
       html += '<select class="s-select" onchange="impChoisirCategorie(' + r.index + ',this.value)">'
         + impCategories().map((c) => '<option value="' + esc(c) + '"' + (c === dec.categorie ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
       if (dec.categorie !== (r.categorie || 'Autre')) {
@@ -11858,6 +11859,16 @@ function setRevenu(mk,field,val) {
 }
 
 // ── DÉPENSES ─────────────────────────────────────────────────
+// Suggestion de catégorie pendant la saisie du libellé (d'après vos dépenses précédentes, puis des mots-clés) : seulement
+// pour une nouvelle dépense et tant que la personne n'a pas choisi elle-même une catégorie. Elle reste libre de changer.
+let _catDepTouchee = false;
+function suggererCategorieDepense() {
+  if (_catDepTouchee || document.getElementById('dep-edit-id').value || !window._Releve || !window._Releve.suggererCategorie) return;
+  const sel = document.getElementById('d-cat'), hint = document.getElementById('d-cat-hint');
+  const s = window._Releve.suggererCategorie(DATA, document.getElementById('d-lib').value);
+  if (s && Array.from(sel.options).some((o) => o.value === s.categorie)) { sel.value = s.categorie; if (hint) hint.textContent = '(suggérée : ' + (s.source === 'historique' ? 'd' + String.fromCharCode(39) + 'après vos dépenses précédentes' : 'd' + String.fromCharCode(39) + 'après le libellé') + ')'; }
+  else { sel.value = 'Autre'; if (hint) hint.textContent = ''; }
+}
 function openDepModal(id) {
   const d=id?DATA.depenses.find(x=>x.id===id):null;
   document.getElementById('dep-modal-title').textContent=d?'Modifier la dépense':'Nouvelle dépense';
@@ -11866,6 +11877,7 @@ function openDepModal(id) {
   document.getElementById('d-date').value=d?d.date:today();
   document.getElementById('d-lib').value=d?d.libelle:'';
   document.getElementById('d-cat').value=d?(d.categorie||'Autre'):'Autre';
+  _catDepTouchee=!!d; { const h=document.getElementById('d-cat-hint'); if(h) h.textContent=''; }
   document.getElementById('d-montant').value=d?d.montant:'';
   initDepenseCommune(d);
   const rec=d?d.recurrence:'ponctuelle';
@@ -17953,7 +17965,7 @@ document.addEventListener('keydown', function(e) {
   import * as ReleveLecture from './shared/core/releve.js';
   import * as ReleveClassement from './shared/core/releve_classement.js';
   import * as ReleveImport from './shared/core/releve_import.js';
-  window._Releve = { parseReleve: ReleveLecture.parseReleve, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
+  window._Releve = { parseReleve: ReleveLecture.parseReleve, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
     decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
     statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
     echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf, calculerImpactImport: ReleveImport.calculerImpactImport };

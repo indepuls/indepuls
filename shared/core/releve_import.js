@@ -11,7 +11,7 @@
 //   DATA.importsReleve       : historique des lots, pour pouvoir les défaire
 
 import { libelleCle, libelleNettoye } from './releve.js';
-import { suggererMissions, clientSuggere, libellesProches } from './releve_classement.js';
+import { suggererMissions, clientSuggere, libellesProches, proposerCategorie } from './releve_classement.js';
 
 export const MAX_EMPREINTES = 3000;   // environ 1 500 lignes : les plus anciennes sont oubliées d'abord
 export const MAX_LOTS = 12;
@@ -79,6 +79,15 @@ export function retoursEnAttente(DATA, missionId) {
   return (DATA.retours || []).filter((r) => r.missionId === missionId && (r.statut === 'demande' || r.statut === 'accepte'));
 }
 export const profilRetours = (DATA) => !!(DATA && DATA.params && DATA.params.modules && DATA.params.modules.objectif === 'marge_commande');
+
+// Catégorie à pré-remplir dans le formulaire de dépense quand la personne tape un libellé : d'après ses dépenses
+// précédentes, ses règles retenues, puis les mots-clés. null si rien de fiable (« Autre » n'est jamais une suggestion).
+export function suggererCategorie(DATA, libelle) {
+  if (!libelle || libelle.trim().length < 3) return null;
+  const p = proposerCategorie(libelle, DATA.reglesImport || [], -1, DATA.depenses || []);
+  if (p.nature !== 'depense' || !p.categorie || p.categorie === 'Autre' || p.confiance === 'basse') return null;
+  return { categorie: p.categorie, source: p.source, motif: p.motif };
+}
 
 // Un mot-clé simple pour une règle apprise : le premier mot significatif du libellé.
 const MOTS_VIDES = new Set(['prlv', 'sepa', 'cb', 'carte', 'vir', 'virement', 'paiement', 'pai', 'achat', 'prelevement', 'facture', 'fact', 'ref', 'mandat', 'sa', 'sas', 'sarl', 'eu', 'eurl', 'de', 'du', 'des', 'la', 'le', 'les', 'et']);
