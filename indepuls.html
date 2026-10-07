@@ -886,7 +886,7 @@ html,body{overflow-x:hidden;}
     <div class="card">
       <div class="card-header">
         <div class="card-title" id="depenses-card-title">Dépenses professionnelles</div>
-        <button class="btn btn-acc" id="depenses-add-btn" onclick="openDepModal()">+ Ajouter</button>
+        <span style="display:flex;gap:8px;align-items:center"><button class="btn btn-out" id="depenses-import-btn" onclick="ouvrirImportReleve()">📥 Importer un relevé</button><button class="btn btn-acc" id="depenses-add-btn" onclick="openDepModal()">+ Ajouter</button></span>
       </div>
       <div id="depenses-filters-row" style="padding:6px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--brd)">
         <div style="display:flex;align-items:center;gap:6px">
@@ -2964,6 +2964,15 @@ html,body{overflow-x:hidden;}
   </div>
 </div>
 
+<div class="modal-ov hidden" id="modal-import-releve" onclick="if(event.target===this)closeModal('modal-import-releve')">
+  <div class="modal" style="max-width:720px;width:calc(100% - 24px)">
+    <div class="modal-head">
+      <div><div class="modal-title">📥 Importer un relevé bancaire</div><div class="modal-sub">Mettez à jour vos dépenses et votre solde sans tout ressaisir</div></div>
+      <button class="modal-close" onclick="closeModal('modal-import-releve')">✕</button>
+    </div>
+    <div class="modal-body" id="imp-body" style="padding-top:8px"></div>
+  </div>
+</div>
 <div class="modal-ov hidden" id="modal-treso-anchor" onclick="if(event.target===this)closeModal('modal-treso-anchor')">
   <div class="modal" style="max-width:360px">
     <div class="modal-head">
@@ -5225,6 +5234,253 @@ function saveChargeParam(field, val) {
 // getSasuProjectionFinAnnee → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // Généralisé à tous les statuts (retour Faustine 2026-09-29) : un solde bancaire réel n'a aucune
 // raison de dépendre du statut juridique simulé, seule la SASU/EURL pouvait le saisir jusqu'ici.
+// ── IMPORT DE RELEVÉ BANCAIRE (2026-10-07, étape 2 : dépenses, solde, contrôle URSSAF, annulation) ──────────
+// Le fichier est lu dans le navigateur et n'est JAMAIS conservé : on ne garde que les lignes validées et des
+// empreintes (DATA.empreintesImportees). Aucun libellé bancaire n'est envoyé hors de l'appareil (reportError :
+// contexte seulement). Moteur pur : shared/core/releve*.js (window._Releve). Les encaissements (argent reçu)
+// sont affichés mais traités à l'étape suivante : ils ne sont ni importés ni mémorisés.
+let _imp = null;
+const impEur = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const impDate = (iso) => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '';
+function impCategories() {
+  const sel = document.getElementById('d-cat');
+  return sel ? Array.from(sel.options).map((o) => o.value) : ['Autre'];
+}
+function ouvrirImportReleve() {
+  if (DATA.isExample) { showToast('L\'import de relevé est disponible avec votre compte, pas dans la démonstration.', 'var(--acc)'); return; }
+  if (window._lectureSeule) { showToast('👁 Lecture seule : l\'import de relevé n\'est pas disponible.', 'var(--acc)'); return; }
+  if (!window._Releve) { showToast('Chargement en cours, réessayez dans un instant.', 'var(--acc)'); return; }
+  _imp = { etape: 'fichier' };
+  renderImportReleve();
+  openModal('modal-import-releve');
+}
+function impMessage(html) { const el = document.getElementById('imp-msg'); if (el) el.innerHTML = html || ''; }
+function impChoisirFichier(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  if (f.size > 5 * 1024 * 1024) { impMessage('<div class="alert al-warn">Ce fichier est trop volumineux. Exportez une période plus courte.</div>'); return; }
+  const lecteur = new FileReader();
+  lecteur.onload = () => impTraiter(lecteur.result, null);
+  lecteur.onerror = () => impMessage('<div class="alert al-warn">Ce fichier n\'a pas pu être lu.</div>');
+  lecteur.readAsArrayBuffer(f);
+}
+function impTraiter(buf, mapping) {
+  try {
+    const R = window._Releve;
+    let res = R.parseReleve(buf, mapping ? { mapping: mapping.colonnes, ligneEntete: mapping.ligneEntete } : undefined);
+    if (res.mappingNecessaire && !mapping) {
+      const memo = (DATA.mappingsImport || {})[R.cleMapping(res.entetes)];
+      if (memo) res = R.parseReleve(buf, { mapping: memo.colonnes, ligneEntete: memo.ligneEntete });
+    }
+    if (res.mappingNecessaire) { _imp = { etape: 'colonnes', buf, entetes: res.entetes || [], apercu: res.apercu || [], ligneEntete: res.ligneEntetePropose != null ? res.ligneEntetePropose : 0 }; renderImportReleve(); return; }
+    if (res.erreur) { impMessage('<div class="alert al-warn">' + esc(res.erreur.message) + '</div>'); return; }
+    if (res.devise && res.devise !== 'EUR') { impMessage('<div class="alert al-warn">Ce relevé est en ' + esc(res.devise) + ' : seuls les relevés en euros sont pris en charge.</div>'); return; }
+    if (!res.lignes.length) { impMessage('<div class="alert al-warn">Aucune ligne exploitable dans ce fichier.' + (res.rejets.length ? ' ' + res.rejets.length + ' ligne(s) illisible(s).' : '') + '</div>'); return; }
+    const analyse = R.analyserReleve(DATA, res, DATA.empreintesImportees || [], DATA.reglesImport || []);
+    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse), inventaire: R.saisiesNonPointees(DATA, analyse) };
+    renderImportReleve();
+  } catch (e) {
+    reportError('import_releve_lecture', e);
+    impMessage('<div class="alert al-warn">Ce fichier n\'a pas pu être analysé.</div>');
+  }
+}
+function impValiderColonnes() {
+  const g = (id) => { const v = document.getElementById(id).value; return v === '' ? null : Number(v); };
+  const colonnes = { date: g('imp-col-date'), libelle: g('imp-col-libelle'), montant: g('imp-col-montant'), debit: g('imp-col-debit'), credit: g('imp-col-credit'), solde: g('imp-col-solde') };
+  Object.keys(colonnes).forEach((k) => { if (colonnes[k] == null) delete colonnes[k]; });
+  if (colonnes.date == null || (colonnes.montant == null && colonnes.debit == null && colonnes.credit == null)) {
+    impMessage('<div class="alert al-warn">Indiquez au moins la colonne de la date et celle du montant (ou débit et crédit).</div>'); return;
+  }
+  const memo = { colonnes, ligneEntete: _imp.ligneEntete };
+  DATA.mappingsImport = DATA.mappingsImport || {};
+  DATA.mappingsImport[window._Releve.cleMapping(_imp.entetes)] = memo;
+  saveData();
+  impTraiter(_imp.buf, memo);
+}
+function impChoisirAction(i, action) { _imp.decisions[i].action = action; renderImportReleve(true); }
+function impChoisirCategorie(i, cat) { _imp.decisions[i].categorie = cat; renderImportReleve(true); }
+function impRegle(i, oui) {
+  const d = _imp.decisions[i];
+  d.retenirRegle = !!oui;
+  d.motCle = oui ? window._Releve.motCleSuggere(_imp.analyse.lignes[i].ligne.libelle) : '';
+}
+function impToutCreer(groupe) {
+  _imp.analyse.lignes.forEach((r) => { if (r.groupe === groupe && r.nature !== 'encaissement' && r.nature !== 'remboursement' && r.statut === 'nouvelle') _imp.decisions[r.index].action = 'creer'; });
+  renderImportReleve(true);
+}
+function impLigneHtml(r) {
+  const dec = _imp.decisions[r.index], l = r.ligne;
+  const opts = (liste) => liste.map(([v, t]) => '<option value="' + v + '"' + (dec.action === v ? ' selected' : '') + '>' + t + '</option>').join('');
+  let ctrl = '', note = '';
+  if (r.statut === 'deja_importee') note = 'Déjà importée';
+  else if (r.statut === 'couverte_abonnement') note = '';
+  else if (dec.action === 'plus_tard') note = 'Argent reçu : traité à l\'étape suivante';
+  else if (r.statut === 'rapprochement_propose') ctrl = opts([['rapprocher', 'Rapprocher de ma saisie'], ['creer', 'Créer une nouvelle dépense'], ['ignorer', 'Ignorer']]);
+  else if (r.statut === 'peut_etre_deja_importee') ctrl = opts([['ignorer', 'Déjà importée, ignorer'], ['creer', 'Créer quand même']]);
+  else if (r.statut === 'abonnement_possible') ctrl = opts([['couvrir', 'C\'est mon abonnement'], ['creer', 'Créer une dépense'], ['ignorer', 'Ignorer']]);
+  else ctrl = opts([['creer', 'Créer la dépense'], ['ignorer', 'Ignorer']]);
+  let html = '<div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd);font-size:13px">'
+    + '<div style="flex:1 1 220px;min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">' + esc(l.libelle || '(sans libellé)') + '</div>'
+    + '<div style="font-size:11px;color:var(--tl)">' + impDate(l.date) + ' · ' + esc(r.explication || '') + '</div>';
+  if (r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Saisie existante : « ' + esc(r.candidat.libelle || 'sans libellé') + ' » du ' + impDate(r.candidat.date) + ', ' + impEur(r.candidat.montant) + (r.candidat.ambigu ? ' (plusieurs saisies possibles)' : '') + '</div>';
+  if (note) html += '<div style="font-size:11px;color:var(--tl)">' + esc(note) + '</div>';
+  html += '</div><div style="min-width:76px;text-align:right;font-weight:600;white-space:nowrap">' + impEur(l.montant) + '</div>';
+  if (ctrl) {
+    html += '<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:4px"><select class="s-select" onchange="impChoisirAction(' + r.index + ',this.value)">' + ctrl + '</select>';
+    if (dec.action === 'creer') {
+      html += '<select class="s-select" onchange="impChoisirCategorie(' + r.index + ',this.value)">'
+        + impCategories().map((c) => '<option value="' + esc(c) + '"' + (c === dec.categorie ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
+      if (dec.categorie !== (r.categorie || 'Autre')) {
+        const mc = window._Releve.motCleSuggere(l.libelle);
+        if (mc) html += '<label style="font-size:11px;color:var(--tl)"><input type="checkbox" onchange="impRegle(' + r.index + ',this.checked)"' + (dec.retenirRegle ? ' checked' : '') + '> Retenir pour « ' + esc(mc) + ' »</label>';
+      }
+    }
+    html += '</div>';
+  }
+  return html + '</div>';
+}
+function impGroupeHtml(titre, rows, ouvert, aide, bulk) {
+  if (!rows.length) return '';
+  return '<details' + (ouvert ? ' open' : '') + ' style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">' + titre + ' (' + rows.length + ')</summary>'
+    + (aide ? '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">' + aide + '</div>' : '')
+    + (bulk || '') + rows.map(impLigneHtml).join('') + '</details>';
+}
+function impUrssafControle(l) {
+  try {
+    const R = window._Releve;
+    const regime = getUrssafRegime();
+    const e = R.echeanceUrssafProche(l.date, regime);
+    let prevu = 0, ca = 0;
+    const mixte = isActiviteMixte();
+    e.mois.forEach((mk) => {
+      const bd = getCaBreakdownMois(mk);
+      prevu += bd.presta * getTauxChargesPresta() + (mixte ? bd.vente * getTauxChargesVente() : 0);
+      ca += bd.presta + (mixte ? bd.vente : 0);
+    });
+    return R.comparerUrssaf({ reel: Math.abs(l.montant), prevu: Math.round(prevu), caCompte: Math.round(ca) });
+  } catch (err) { reportError('import_releve_urssaf', err); return null; }
+}
+function impResume() {
+  const c = { creer: 0, rapprocher: 0, ignorer: 0, couvrir: 0, plus_tard: 0 };
+  Object.keys(_imp.decisions).forEach((i) => { const a = _imp.decisions[i].action; if (c[a] != null) c[a]++; });
+  return c;
+}
+function impVersRecap() { _imp.etape = 'recap'; renderImportReleve(); }
+function impVersAnalyse() { _imp.etape = 'analyse'; renderImportReleve(); }
+function renderImportReleve(garderDefilement) {
+  const corps = document.getElementById('imp-body');
+  if (!corps || !_imp) return;
+  const defil = garderDefilement ? (document.getElementById('imp-scroll') || {}).scrollTop : 0;
+  let h = '<div id="imp-msg"></div><div id="imp-scroll" style="max-height:62vh;overflow-y:auto;padding-right:4px">';
+  if (_imp.etape === 'fichier') {
+    h += '<div style="font-size:13px;color:var(--tl);margin-bottom:10px">Le fichier est lu sur votre appareil et n\'est jamais conservé : Indépuls ne garde que les lignes que vous validez. Un seul compte à la fois, formats CSV et OFX (pas de PDF).</div>'
+      + '<label style="display:block;border:1px dashed var(--brd);border-radius:10px;padding:22px;text-align:center;cursor:pointer;font-size:13px">📂 Choisir un fichier CSV ou OFX<input type="file" accept=".csv,.ofx,.qfx,.txt,text/csv" style="display:none" onchange="impChoisirFichier(this)"></label>'
+      + '<details style="margin-top:12px;font-size:13px"><summary style="cursor:pointer;color:var(--acc)">❓ Comment récupérer mon fichier ?</summary><div style="margin-top:6px;line-height:1.6;color:var(--tl)">'
+      + 'Ce n\'est pas dans les documents ou les relevés PDF : passez par votre <strong>compte</strong>, faites une <strong>recherche par période</strong>, puis cherchez le bouton <strong>Exporter</strong> (ou Télécharger) et choisissez le format <strong>CSV</strong> ou <strong>OFX</strong>. Chez Boursorama, par exemple : ouvrez le compte, recherchez les opérations par dates, puis « Exporter ». Si votre banque ne propose que le PDF, l\'import n\'est pas possible pour l\'instant.'
+      + '</div></details>';
+    const lots = (DATA.importsReleve || []).slice(-3).reverse();
+    if (lots.length) {
+      h += '<div style="margin-top:16px;font-weight:600;font-size:13px">Imports précédents</div>';
+      lots.forEach((lot) => {
+        h += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--brd);font-size:12px"><span>' + impDate(lot.date.slice(0, 10)) + ' : ' + lot.creees.length + ' dépense(s) créée(s), ' + lot.rapprochees.length + ' rapprochée(s)</span>'
+          + '<button class="btn btn-out btn-xs" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
+      });
+    }
+  } else if (_imp.etape === 'colonnes') {
+    const opt = (sel) => '<option value="">(aucune)</option>' + _imp.entetes.map((e, i) => '<option value="' + i + '"' + (sel === i ? ' selected' : '') + '>' + esc(e || ('Colonne ' + (i + 1))) + '</option>').join('');
+    h += '<div style="font-size:13px;margin-bottom:8px">Les colonnes de ce fichier n\'ont pas été reconnues. Indiquez à quoi correspond chacune (votre choix sera retenu pour ce modèle de fichier).</div>'
+      + '<div style="overflow-x:auto;font-size:11px;margin-bottom:10px"><table style="border-collapse:collapse">' + _imp.apercu.slice(0, 4).map((row) => '<tr>' + row.map((c) => '<td style="border:1px solid var(--brd);padding:3px 6px;white-space:nowrap">' + esc(c) + '</td>').join('') + '</tr>').join('') + '</table></div>'
+      + [['date', 'Date'], ['libelle', 'Libellé'], ['montant', 'Montant (signé)'], ['debit', 'Débit (si colonnes séparées)'], ['credit', 'Crédit (si colonnes séparées)'], ['solde', 'Solde (facultatif)']]
+        .map(([k, t]) => '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:13px"><span style="width:200px">' + t + '</span><select id="imp-col-' + k + '" class="s-select" style="flex:1">' + opt(null) + '</select></div>').join('')
+      + '<div style="margin-top:10px"><button class="btn btn-acc" onclick="impValiderColonnes()">Analyser le fichier</button></div>';
+  } else if (_imp.etape === 'analyse') {
+    const a = _imp.analyse, p = _imp.parsed;
+    const dep = a.lignes.filter((r) => r.groupe === 'a_verifier' && _imp.decisions[r.index].action !== 'plus_tard');
+    const recu = a.lignes.filter((r) => _imp.decisions[r.index].action === 'plus_tard');
+    const couv = a.lignes.filter((r) => r.groupe === 'deja_couvertes');
+    const ign = a.lignes.filter((r) => r.groupe === 'ignorees');
+    h += '<div style="font-size:13px;margin-bottom:10px">' + a.lignes.length + ' lignes du ' + impDate(p.lignes[0].date) + ' au ' + impDate(p.lignes[p.lignes.length - 1].date) + '. Chaque ligne indique pourquoi elle est classée ainsi, rien n\'est créé sans votre validation.'
+      + (p.rejets.length ? '<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--tl)">' + p.rejets.length + ' ligne(s) illisible(s) ignorée(s)</summary>' + p.rejets.map((x) => '<div style="font-size:11px;color:var(--tl)">Ligne ' + x.numeroLigne + ' : ' + esc(x.motif) + '</div>').join('') + '</details>' : '') + '</div>';
+    h += impGroupeHtml('À vérifier', dep, true, 'Ces lignes seront créées comme dépenses, rapprochées de ce que vous avez déjà saisi, ou ignorées selon votre choix.');
+    h += impGroupeHtml('Argent reçu', recu, false, 'Les encaissements seront traités dans une prochaine étape : ils ne sont pas importés cette fois.');
+    h += impGroupeHtml('Déjà couvertes', couv, false, 'Déjà importées ou déjà comptées dans vos abonnements.');
+    h += impGroupeHtml('Ignorées par défaut', ign, false, 'Cotisations, impôts, virements vers une personne, dépenses souvent personnelles : déjà provisionnés par Indépuls ou pas professionnels.',
+      '<div style="margin:2px 0 4px"><button class="btn btn-out btn-xs" onclick="impToutCreer(\'ignorees\')">Créer toutes ces dépenses quand même</button></div>');
+    const inv = _imp.inventaire || { saisies: [], abonnements: [] };
+    if (inv.saisies.length || inv.abonnements.length) {
+      h += '<details style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Saisies sans ligne bancaire (' + (inv.saisies.length + inv.abonnements.length) + ')</summary>'
+        + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Saisies de cette période qui n\'apparaissent pas sur le relevé. Ce n\'est pas forcément une erreur : un paiement en espèces ou depuis un autre compte est normal.</div>'
+        + inv.saisies.map((s) => '<div style="font-size:12px;padding:4px 0;border-top:1px solid var(--brd)">' + esc(s.libelle || 'Sans libellé') + ' · ' + (s.date ? impDate(s.date) : s.mk) + ' · ' + impEur(s.montant) + (s.type === 'depense' ? '' : ' (argent reçu)') + '</div>').join('')
+        + inv.abonnements.map((s) => '<div style="font-size:12px;padding:4px 0;border-top:1px solid var(--brd)">Abonnement « ' + esc(s.libelle || 'sans nom') + ' » : aucun prélèvement trouvé en ' + s.mois.slice(5) + '/' + s.mois.slice(0, 4) + '</div>').join('') + '</details>';
+    }
+    h += '</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="impVersRecap()">Continuer</button><button class="btn btn-out" onclick="closeModal(\'modal-import-releve\')">Annuler</button></div>';
+    corps.innerHTML = h; const sc = document.getElementById('imp-scroll'); if (sc && defil) sc.scrollTop = defil;
+    return;
+  } else if (_imp.etape === 'recap') {
+    const c = impResume(), p = _imp.parsed, st = window._Releve.statistiques(_imp.analyse, _imp.decisions);
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + c.creer + ' dépense(s) créée(s), ' + c.rapprocher + ' rapprochement(s), ' + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
+      + (c.plus_tard ? '<div style="font-size:12px;color:var(--tl);margin-bottom:8px">' + c.plus_tard + ' ligne(s) d\'argent reçu seront traitées à l\'étape suivante.</div>' : '')
+      + '<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Sur ' + st.proposees + ' ligne(s) proposée(s) : ' + st.tellesQuelles + ' validée(s) telle(s) quelle(s), ' + st.corrigees + ' corrigée(s).</div>';
+    if (p.soldeCloture != null) {
+      const actuel = DATA.params.soldeReel != null ? ' (actuellement ' + impEur(DATA.params.soldeReel) + ')' : '';
+      h += '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:8px 0;border-top:1px solid var(--brd)"><input type="checkbox" id="imp-solde" checked style="margin-top:3px"><span>Mettre à jour mon solde : <strong>' + impEur(p.soldeCloture) + '</strong> au ' + impDate(p.dateCloture) + actuel + '</span></label>';
+    }
+    if (isMicro()) {
+      const urs = _imp.analyse.lignes.filter((r) => r.type === 'urssaf' && r.ligne.montant < 0);
+      urs.forEach((r) => {
+        const x = impUrssafControle(r.ligne);
+        if (!x) return;
+        h += '<div style="padding:8px 0;border-top:1px solid var(--brd);font-size:13px"><div style="font-weight:600">🧾 Contrôle URSSAF du ' + impDate(r.ligne.date) + '</div><div style="margin-top:2px;color:' + (x.significatif ? 'var(--warn,#b45309)' : 'var(--tl)') + '">' + esc(x.phrase) + '</div>'
+          + '<div style="font-size:11px;color:var(--tl);margin-top:2px">Indicatif : la période est estimée d\'après la date du prélèvement. Rien n\'est modifié automatiquement.</div></div>';
+      });
+    }
+    h += '</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="impConfirmer()">Importer</button><button class="btn btn-out" onclick="impVersAnalyse()">← Retour</button></div>';
+    corps.innerHTML = h; return;
+  } else if (_imp.etape === 'fini') {
+    const lot = _imp.lot;
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:6px">✅ Import terminé</div><div style="font-size:13px;line-height:1.6">' + lot.creees.length + ' dépense(s) créée(s), ' + lot.rapprochees.length + ' saisie(s) rapprochée(s), ' + (lot.nbIgnorees + lot.nbCouvertes) + ' ligne(s) ignorée(s) ou déjà couvertes.'
+      + (lot.soldeMaj ? '<br>Solde mis à jour : ' + impEur(lot.soldeMaj.apres) + '.' : '') + '</div>'
+      + '<div style="font-size:12px;color:var(--tl);margin-top:8px">Un import peut être défait depuis cette même fenêtre (« Importer un relevé »).</div></div>'
+      + '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="closeModal(\'modal-import-releve\')">Fermer</button><button class="btn btn-out" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
+    corps.innerHTML = h; return;
+  }
+  h += '</div>';
+  corps.innerHTML = h;
+}
+function impConfirmer() {
+  if (DATA.isExample || window._lectureSeule || !_imp || _imp.etape !== 'recap') return;
+  try {
+    const p = _imp.parsed, cb = document.getElementById('imp-solde');
+    const solde = cb && cb.checked && p.soldeCloture != null ? { valeur: p.soldeCloture, date: p.dateCloture } : null;
+    const lot = window._Releve.appliquerImport(DATA, _imp.analyse, _imp.decisions, {
+      maintenant: new Date().toISOString(), auteurId: window._partage ? window._partage.userId : null, solde,
+      periode: { debut: p.lignes[0].date, fin: p.lignes[p.lignes.length - 1].date },
+    });
+    saveData();
+    renderAll();
+    window.trackEvent('releve_imported', { creees: lot.creees.length, rapprochees: lot.rapprochees.length, proposees: lot.stats.proposees, corrigees: lot.stats.corrigees });
+    _imp = { etape: 'fini', lot };
+    renderImportReleve();
+  } catch (e) {
+    reportError('import_releve_application', e);
+    showToast('⚠️ L\'import n\'a pas pu être enregistré.', 'var(--err)');
+  }
+}
+function impDefaire(lotId) {
+  if (DATA.isExample || window._lectureSeule) return;
+  if (!confirm('Défaire cet import ? Les dépenses créées par l\'import (et non modifiées depuis) seront supprimées, et les saisies rapprochées redeviendront des saisies normales.')) return;
+  try {
+    const r = window._Releve.defaireImport(DATA, lotId);
+    if (!r) return;
+    saveData();
+    renderAll();
+    showToast('Import défait : ' + r.supprimees + ' dépense(s) supprimée(s)' + (r.conservees ? ', ' + r.conservees + ' conservée(s) car modifiée(s) depuis' : '') + '.');
+    _imp = { etape: 'fichier' };
+    renderImportReleve();
+  } catch (e) { reportError('import_releve_annulation', e); }
+}
+
 function saveSoldeReel(val) {
   DATA.params.soldeReel=val;
   DATA.params.soldeReelDate=getCurrentMk();
@@ -17590,6 +17846,14 @@ document.addEventListener('keydown', function(e) {
   import * as Partage from './shared/core/partage.js';
   import * as Personnes from './shared/core/personnes.js';
   import * as Repartition from './shared/core/repartition.js';
+  // Import de relevé bancaire (2026-10-07) : moteur pur, voir shared/core/releve*.js
+  import * as ReleveLecture from './shared/core/releve.js';
+  import * as ReleveClassement from './shared/core/releve_classement.js';
+  import * as ReleveImport from './shared/core/releve_import.js';
+  window._Releve = { parseReleve: ReleveLecture.parseReleve, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
+    decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
+    statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
+    echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf };
   window._Repartition = { verifierRepartition: Repartition.verifierRepartition, repartitionEgale: Repartition.repartitionEgale };
   window._Personnes = { versLocal: Personnes.versLocal, versCloud: Personnes.versCloud, valeursCommunes: Personnes.valeursCommunes, getDataVueCombinee: Personnes.getDataVueCombinee };
   window._Partage = { fusionnerDonnees: Fusion.fusionnerDonnees, egal: Fusion.egal, CHAMPS_VOLATILS: Fusion.CHAMPS_VOLATILS,

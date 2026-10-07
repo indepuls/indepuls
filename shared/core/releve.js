@@ -265,6 +265,7 @@ function lireCsv(texte, options) {
     const res = erreurResultat('mapping_incertain', 'Les colonnes de ce fichier n\'ont pas été reconnues automatiquement.');
     res.format = 'csv'; res.mappingNecessaire = true; res.apercu = apercu;
     res.entetes = apercu[0] || [];
+    res.ligneEntetePropose = Math.max(0, champsParLigne.findIndex((c) => c.some((x) => x.trim())));
     return res;
   }
   const aMontant = colonnes.montant != null || colonnes.debit != null || colonnes.credit != null;

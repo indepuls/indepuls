@@ -872,7 +872,7 @@ html,body{overflow-x:hidden;}
     <div class="card">
       <div class="card-header">
         <div class="card-title" id="depenses-card-title">Dépenses professionnelles</div>
-        <button class="btn btn-acc" id="depenses-add-btn" onclick="openDepModal()">+ Ajouter</button>
+        <span style="display:flex;gap:8px;align-items:center"><button class="btn btn-out" id="depenses-import-btn" onclick="ouvrirImportReleve()">📥 Importer un relevé</button><button class="btn btn-acc" id="depenses-add-btn" onclick="openDepModal()">+ Ajouter</button></span>
       </div>
       <div id="depenses-filters-row" style="padding:6px 20px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--brd)">
         <div style="display:flex;align-items:center;gap:6px">
@@ -5147,6 +5147,8 @@ function saveChargeParam(field, val) {
 // getSasuProjectionFinAnnee → branchée sur core/calculs.js via modes/unified.js (voir le bloc module en fin de fichier)
 // Généralisé à tous les statuts (retour Faustine 2026-09-29) : un solde bancaire réel n'a aucune
 // raison de dépendre du statut juridique simulé, seule la SASU/EURL pouvait le saisir jusqu'ici.
+// Import de relevé bancaire : réservé aux comptes (la démonstration ne conserve rien). Miroir visuel du bouton seulement.
+function ouvrirImportReleve() { showToast("L’import de relevé est disponible avec votre compte, pas dans la démonstration.", "var(--acc)"); }
 function saveSoldeReel(val) {
   DATA.params.soldeReel=val;
   DATA.params.soldeReelDate=getCurrentMk();
