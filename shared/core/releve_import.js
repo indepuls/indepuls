@@ -10,7 +10,7 @@
 //   DATA.mappingsImport      : { 'entêtes normalisés': { date, libelle, montant, ... } }
 //   DATA.importsReleve       : historique des lots, pour pouvoir les défaire
 
-import { libelleCle } from './releve.js';
+import { libelleCle, libelleNettoye } from './releve.js';
 import { suggererMissions, clientSuggere } from './releve_classement.js';
 
 export const MAX_EMPREINTES = 3000;   // environ 1 500 lignes : les plus anciennes sont oubliées d'abord
@@ -101,7 +101,7 @@ export function appliquerImport(DATA, analyse, decisions, options) {
     const dec = decisions[r.index] || { action: 'ignorer' };
     if (dec.action === 'deja' || dec.action === 'plus_tard') return;
     if (dec.action === 'creer') {
-      const dep = { id: 'dep-' + lotId + '-' + r.index, date: r.ligne.date, categorie: dec.categorie || 'Autre', libelle: r.ligne.libelle, montant: arrondi2(Math.abs(r.ligne.montant)),
+      const dep = { id: 'dep-' + lotId + '-' + r.index, date: r.ligne.date, categorie: dec.categorie || 'Autre', libelle: libelleNettoye(r.ligne.libelle), montant: arrondi2(Math.abs(r.ligne.montant)),
         recurrence: 'ponctuelle', dateDebut: '', tvaDeductible: false, montantTVA: 0, importId: r.empreinte, importLot: lotId };
       if (opt.auteurId) dep.auteurId = opt.auteurId;
       DATA.depenses.push(dep);

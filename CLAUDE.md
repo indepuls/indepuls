@@ -4231,6 +4231,15 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-07 — Import de relevé : organismes non professionnels, prêts, libellés lisibles, aide « depuis un ordinateur »
+
+- **Argent reçu non professionnel** : CAF, CPAM, Ameli, France Travail, Pôle emploi, allocations familiales = nature `interne` (ignorés par défaut, explication affichée) dans `proposerCategorie` (liste `MOTS_PERSONNEL`, mots entiers : « café » n'est pas la CAF).
+- **Échéances de prêt** (« ECH PRET… ») = `a_ignorer`, type `pret`, « capital et intérêts à saisir à part ».
+- **`libelleNettoye(libelle)`** (`shared/core/releve.js`) : retire PAIEMENT CB / PRLV SEPA / VIR SEPA…, le numéro de carte et ce qui suit, les dates collées (ddmm), les références et numéros de facture ; le texte d'origine reste affiché et sert aux empreintes. Utilisé pour le libellé de la dépense créée (`appliquerImport`) et affiché à l'écran (« Enregistrée sous : … »).
+- **Aide « Comment récupérer mon fichier ? »** : ajout « si vous ne trouvez pas l'export depuis votre téléphone, essayez depuis un ordinateur (le Crédit Mutuel, par exemple, ne le propose que sur la version ordinateur) ».
+- **Remboursements et avoirs (état réel, à compléter si Faustine le valide)** : une entrée d'argent avec « remboursement/avoir/retour achat » est classée `remboursement` (options revenu ponctuel hors CA ou ignorer). NON couverts : remboursement fait à un client (sortie, encore proposé comme dépense) alors que les profils `marge_commande` ont `DATA.retours` ; avoir ou remboursement fournisseur qui devrait réduire une dépense.
+- Tests : `releve.test.js` (136).
+
 ### 2026-10-07 — Import de relevé : export Crédit Mutuel vu et reconnu
 
 Vrai export Crédit Mutuel fourni par Faustine (jamais copié dans le dépôt) : « Date; Date de valeur; Débit; Crédit; Libellé; Solde », cp1252, dates JJ/MM/AAAA, Débit déjà négatif, séparateur `;`. Lu sans modification : 17 lignes, 0 rejet, soldes d'ouverture et de clôture déduits de la colonne Solde. Test ajouté avec des lignes FICTIVES de même format (`releve.test.js`, 126). Constats sur ce compte (apparemment mixte) : CAF/CPAM proposés comme argent reçu professionnel, échéance de prêt comme dépense « Autre », libellés très bruités (« PAIEMENT CB 1409 PARIS ORANGE VAD 73 CARTE 2080 HIP… »). Pistes proposées à Faustine, non codées : (1) CAF, CPAM, France Travail, mutuelle = non professionnel, ignorés par défaut ; (2) échéance de prêt = à saisir à part, ignorée par défaut ; (3) libellé nettoyé pour la dépense créée.

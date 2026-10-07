@@ -271,6 +271,23 @@ async function main() {
     test('encaissement : autre client, montant proche : pas de rapprochement', 'nouvelle', un({ date: '2026-09-12', libelle: 'VIR SEPA AUTRE CLIENT', montant: 960.4 }, dEnc).statut);
   }
 
+
+  section('Organismes non professionnels, échéances de prêt, libellés lisibles (retour test Crédit Mutuel)');
+  {
+    const nat = (l, m) => C.proposerCategorie(l, [], m).nature;
+    test('virements CAF, CPAM, France Travail : pas un revenu professionnel, ignorés par défaut', ['interne', 'interne', 'interne'], [nat('VIR CAF DE SAONE ET LOIRE 0852423', 672), nat('VIR CPAM SAONE ET LOIRE 262520005600', 19), nat('VIR FRANCE TRAVAIL', 800)]);
+    test('un café n\'est pas pris pour la CAF', 'a_ignorer', nat('CB CAFE DU COIN', -3));
+    test('échéance de prêt : à saisir à part, ignorée par défaut', ['a_ignorer', 'pret'], [nat('ECH PRET CAP+IN 07355 202922 05', -469), C.proposerCategorie('ECH PRET CAP+IN 07355', [], -469).type]);
+    test('les clients qui paient restent de l\'argent reçu', 'encaissement', nat('VIR SEPA DUPONT SAS FACT 2026-041', 1800));
+    const L = R.libelleNettoye;
+    test('paiement par carte : mention, date collée, numéro de carte et référence retirés', 'PARIS ORANGE', L('PAIEMENT CB 1409 PARIS ORANGE VAD 73 CARTE 2080 HIP010081046137175'));
+    test('prélèvement : mention bancaire retirée', 'ADOBE SYSTEMS SOFTWARE', L('PRLV SEPA ADOBE SYSTEMS SOFTWARE'));
+    test('virement : référence et numéro de facture retirés', ['MARTIN CONSEIL', 'DUPONT SAS'], [L('VIR SEPA MARTIN CONSEIL REF 889'), L('VIR SEPA DUPONT SAS FACT 2026-041')]);
+    test('référence collée au nom retirée', 'AMAZON PAYMENTS', L('PAIEMENT CB 1409 PARIS2441535/ AMAZON PAYMENTS CARTE 2080 HIR012625902354682'));
+    test('un libellé déjà propre reste intact', 'COMMISSION FRAIS TENUE DE COMPTE', L('COMMISSION FRAIS TENUE DE COMPTE'));
+    test('libellé vide ou réduit à rien : on garde l\'original', 'CB 1409', L('CB 1409'));
+  }
+
   section('Pipeline complet : groupes et résumé sur le relevé de référence');
   {
     const an = C.analyserReleve(DATA(), parsed, [], []);

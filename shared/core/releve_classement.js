@@ -32,6 +32,8 @@ const REGLES_DEFAUT = [
   { mots: ['dgfip', 'impots gouv', 'impot', 'tresor public', 'tva', 'cfe', 'cvae', 'taxe fonciere', 'prelevement a la source', 'sie '], nature: 'impots', categorie: null, type: 'impots', motif: 'Impôt ou taxe : déjà provisionné par Indépuls' },
   // Virements entre comptes ou vers un particulier.
   { mots: ['virement interne', 'vir interne', 'vir permanent', 'virement permanent', 'epargne', 'livret', 'compte joint', 'retrait dab', 'retrait especes', 'retrait', 'depot especes'], nature: 'interne', categorie: null, motif: 'Virement interne ou vers une personne : pas une dépense professionnelle' },
+  // Échéance de prêt : capital et intérêts, à saisir à part (pas une dépense simple).
+  { mots: ['ech pret', 'echeance pret', 'echeance de pret', 'remboursement pret', 'remboursement de pret', 'prelevement pret'], nature: 'a_ignorer', categorie: null, type: 'pret', motif: 'Échéance de prêt : capital et intérêts à saisir à part' },
   // Frais bancaires.
   { mots: ['commission', 'frais tenue de compte', 'tenue de compte', 'cotisation carte', 'agios', 'frais bancaires', 'frais de tenue', 'cotisation cb', 'frais carte'], nature: 'depense', categorie: 'Frais bancaires', motif: 'Frais bancaires' },
   // Outils et abonnements.
@@ -53,6 +55,8 @@ const REGLES_DEFAUT = [
   { mots: ['edf', 'engie', 'enedis', 'totalenergies electricite', 'eau', 'veolia'], nature: 'depense', categorie: 'Autre', motif: 'Énergie ou eau' },
 ];
 
+// Organismes dont les virements ne sont pas un revenu professionnel (allocations, remboursements de santé...).
+const MOTS_PERSONNEL = ['caf', 'cpam', 'ameli', 'assurance maladie', 'france travail', 'pole emploi', 'allocations familiales', 'msa prestations'];
 const MOTS_REMBOURSEMENT = ['remboursement', 'rembt', 'rmbt', 'avoir', 'retour achat', 'extourne'];
 const MOTS_ENCAISSEMENT_INTERNE = ['virement interne', 'vir interne', 'epargne', 'livret', 'compte joint', 'depot especes'];
 
@@ -77,6 +81,9 @@ export function proposerCategorie(libelle, regles, montant) {
   }
   // 2. Entrées d'argent.
   if (entree === 'entree') {
+    if (MOTS_PERSONNEL.some((m) => contientMot(libN, m))) {
+      return { categorie: null, confiance: 'moyenne', nature: 'interne', source: 'defaut', type: 'personnel', motif: 'Allocation ou remboursement de santé : pas un revenu professionnel' };
+    }
     if (MOTS_REMBOURSEMENT.some((m) => contientMot(libN, m))) {
       return { categorie: null, confiance: 'moyenne', nature: 'remboursement', source: 'defaut', motif: 'Remboursement : à rattacher à la dépense concernée ou à ignorer' };
     }

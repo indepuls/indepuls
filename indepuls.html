@@ -5363,6 +5363,8 @@ function impLigneHtml(r) {
       }
       if ((dec.action === 'mission' || dec.action === 'nouvelle_mission' || dec.action === 'ponctuel') && DATA.params.tva) html += '<div style="font-size:11px;color:var(--tl)">Enregistré hors taxes : ' + impEur(Math.round(Math.abs(l.montant) / (1 + (DATA.params.tauxTVA || 20) / 100) * 100) / 100) + '</div>';
     } else if (dec.action === 'creer') {
+      const propre = window._Releve.libelleNettoye(l.libelle);
+      if (propre !== l.libelle) html += '<div style="font-size:11px;color:var(--tl)">Enregistrée sous : « ' + esc(propre) + ' »</div>';
       html += '<select class="s-select" onchange="impChoisirCategorie(' + r.index + ',this.value)">'
         + impCategories().map((c) => '<option value="' + esc(c) + '"' + (c === dec.categorie ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>';
       if (dec.categorie !== (r.categorie || 'Autre')) {
@@ -5428,7 +5430,7 @@ function renderImportReleve(garderDefilement) {
     h += '<div style="font-size:13px;color:var(--tl);margin-bottom:10px">Le fichier est lu sur votre appareil et n\'est jamais conservé : Indépuls ne garde que les lignes que vous validez. Un seul compte à la fois, formats CSV et OFX (pas de PDF).</div>'
       + '<label style="display:block;border:1px dashed var(--brd);border-radius:10px;padding:22px;text-align:center;cursor:pointer;font-size:13px">📂 Choisir un fichier CSV ou OFX<input type="file" accept=".csv,.ofx,.qfx,.txt,text/csv" style="display:none" onchange="impChoisirFichier(this)"></label>'
       + '<details style="margin-top:12px;font-size:13px"><summary style="cursor:pointer;color:var(--acc)">❓ Comment récupérer mon fichier ?</summary><div style="margin-top:6px;line-height:1.6;color:var(--tl)">'
-      + 'Ce n\'est pas dans les documents ou les relevés PDF : passez par votre <strong>compte</strong>, faites une <strong>recherche par période</strong>, puis cherchez le bouton <strong>Exporter</strong> (ou Télécharger) et choisissez le format <strong>CSV</strong> ou <strong>OFX</strong>. Chez Boursorama, par exemple : ouvrez le compte, recherchez les opérations par dates, puis « Exporter ». Si votre banque ne propose que le PDF, l\'import n\'est pas possible pour l\'instant.'
+      + 'Ce n\'est pas dans les documents ou les relevés PDF : passez par votre <strong>compte</strong>, faites une <strong>recherche par période</strong>, puis cherchez le bouton <strong>Exporter</strong> (ou Télécharger) et choisissez le format <strong>CSV</strong> ou <strong>OFX</strong>. Chez Boursorama, par exemple : ouvrez le compte, recherchez les opérations par dates, puis « Exporter ». Si vous ne trouvez pas l\'export depuis votre téléphone, essayez depuis un <strong>ordinateur</strong> : certaines banques (le Crédit Mutuel, par exemple) ne le proposent que sur la version ordinateur de leur site. Si votre banque ne propose que le PDF, l\'import n\'est pas possible pour l\'instant.'
       + '</div></details>';
     const lots = (DATA.importsReleve || []).slice(-3).reverse();
     if (lots.length) {
@@ -17921,7 +17923,7 @@ document.addEventListener('keydown', function(e) {
   import * as ReleveLecture from './shared/core/releve.js';
   import * as ReleveClassement from './shared/core/releve_classement.js';
   import * as ReleveImport from './shared/core/releve_import.js';
-  window._Releve = { parseReleve: ReleveLecture.parseReleve, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
+  window._Releve = { parseReleve: ReleveLecture.parseReleve, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
     decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
     statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
     echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf, calculerImpactImport: ReleveImport.calculerImpactImport };

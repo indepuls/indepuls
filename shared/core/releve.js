@@ -428,6 +428,24 @@ export function parseReleve(entree, options) {
   }
 }
 
+// Libellé lisible pour une dépense créée : sans les mentions bancaires (PAIEMENT CB, PRLV SEPA...), le numéro de carte,
+// les références et les dates collées (ddmm). Le texte d'origine reste affiché avant validation et sert aux empreintes.
+export function libelleNettoye(libelle) {
+  let t = normaliserEspaces(libelle);
+  t = t.replace(/ CARTE [0-9]{4}( .*)?$/i, '');
+  for (let i = 0; i < 4; i++) t = t.replace(/^(PAIEMENT (CB|PSC)|PAIEMENT|PRLV SEPA|PRLV|VIR SEPA|VIR INST|VIR DE|VIR|F COTIS|COTIS|CB|CARTE) +/i, '');
+  t = t.split(' ').filter((w) => {
+    if (/^[0-9]{4}$/.test(w)) { const a = Number(w.slice(0, 2)), b = Number(w.slice(2)); if (a >= 1 && a <= 31 && b >= 1 && b <= 12) return false; }
+    const nu = w.replace(/[/.,;:]+$/, '');
+    if (/^[0-9]{5,}$/.test(nu)) return false;
+    if (/^[A-Za-z0-9]*[0-9][A-Za-z0-9]{5,}$/.test(nu)) return false;
+    if (/^[0-9A-Za-z]*[0-9]+-[0-9]+$/.test(nu)) return false;
+    return !/^(VAD)$/i.test(w);
+  }).join(' ');
+  t = t.replace(/( +(REF|FACT|FACTURE|N|NO))* *[0-9]{1,3}( +(REF|FACT|FACTURE))*$/i, '').replace(/ +(REF|FACT|FACTURE)$/i, '').trim();
+  return t.length >= 3 ? t : normaliserEspaces(libelle);
+}
+
 // ── Empreintes de ligne ────────────────────────────────────────────────────────────────────────
 // Hash 53 bits (cyrb53) : stable, sans dépendance, largement suffisant pour distinguer des lignes d'un relevé.
 function hash(str) {
