@@ -4231,6 +4231,12 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — Contrôle URSSAF de l'import calculé sur les données APRÈS import + kit de tournage de la vidéo
+
+- **Défaut trouvé en préparant la vidéo** : le contrôle URSSAF comparait le prélèvement à la prévision calculée AVANT l'import ; sur un premier import (aucune mission), il affichait « pas de cotisation prévue » partout. Corrigé : `impDonneesSimulees()` applique l'import sur une COPIE de DATA (`appliquerImport`), et la prévision est calculée sur cette copie via `window._Releve.prevuUrssaf(donnees, mois)` (fonctions pures de `calculs.js` qui prennent DATA en paramètre). DATA réel intact. Les décisions changent : `_imp.simu` est invalidé à chaque entrée dans le récapitulatif.
+- **Mesure** : le regroupement par client en un clic (`groupe` + `nouvelle_mission`) n'est plus compté comme « corrigé » dans `statistiques`.
+- **Kit de tournage** (`video-lancement/`, exclu du déploiement par `.vercelignore`) : `releve_demo_OBM.csv` (relevé FICTIF d'une OBM micro-BNC, janvier au 20 octobre 2026, 118 lignes, solde 3 200 → 7 217,31 €, 5 clients : 3 récurrentes, 1 projet en 2 paiements, 1 ponctuelle ; un écart URSSAF volontaire de 52 € en août) et `Guide_tournage_demo_OBM.md` (réglages, ordre d'apparition, missions à compléter, ordre conseillé). Vérifié dans le navigateur : 6 prélèvements conformes + 1 écart. Piège : sans passer par le choix du statut dans Paramètres, le taux URSSAF reste celui par défaut et tous les contrôles montrent un écart.
+
 ### 2026-10-08 — Import de relevé : première mise à jour d'une année (missions par client, abonnements, carte d'onboarding)
 
 Point de départ (Faustine) : suggérer, à l'onboarding, d'importer le relevé de l'année en cours. Prérequis traités avant la carte :

@@ -179,7 +179,8 @@ export function statistiques(analyse, decisions, DATA) {
     if (r.groupe === 'deja_couvertes' && r.statut === 'deja_importee') return;
     proposees++;
     const a = decisions[r.index] || defaut[r.index], b = defaut[r.index];
-    if (a.action === b.action && a.categorie === b.categorie) tellesQuelles++; else corrigees++;
+    const regroupe = a.groupe && a.action === 'nouvelle_mission' && b.action === 'plus_tard'; // regroupement par client proposé par Indépuls, pas une correction
+    if ((a.action === b.action && a.categorie === b.categorie) || regroupe) tellesQuelles++; else corrigees++;
   });
   return { proposees, tellesQuelles, corrigees };
 }

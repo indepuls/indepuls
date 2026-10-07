@@ -326,6 +326,7 @@ async function main() {
     const g = (nom) => groupes.find((x) => x.clientNom.toUpperCase().includes(nom));
     test('formes détectées : Dupont récurrente, Martin plusieurs paiements, Paul ponctuelle', ['recurrente', 'plusieurs', 'ponctuelle'], [g('DUPONT').forme, g('MARTIN').forme, g('PAUL').forme]);
     test('regroupement : 4 + 2 + 1 entrées', [4, 2, 1], [g('DUPONT').n, g('MARTIN').n, g('PAUL').n]);
+    test('mesure : le regroupement par client en un clic n\'est pas une correction', 0, I.statistiques(an, dec, base()).corrigees);
     // Application
     const d = base();
     const lot = I.appliquerImport(d, an, dec, { maintenant: NOW });

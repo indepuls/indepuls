@@ -5481,18 +5481,19 @@ function impGroupeHtml(titre, rows, ouvert, aide, bulk) {
     + (aide ? '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">' + aide + '</div>' : '')
     + (bulk || '') + rows.map(impLigneHtml).join('') + '</details>';
 }
+// Copie des données avec l’import appliqué : la prévision d’URSSAF doit tenir compte des missions et encaissements que l’import va créer.
+function impDonneesSimulees() {
+  if (_imp.simu) return _imp.simu;
+  const copie = JSON.parse(JSON.stringify(DATA));
+  window._Releve.appliquerImport(copie, _imp.analyse, _imp.decisions, { maintenant: new Date().toISOString(), recurrences: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]) });
+  _imp.simu = copie;
+  return copie;
+}
 function impUrssafControle(l) {
   try {
     const R = window._Releve;
-    const regime = getUrssafRegime();
-    const e = R.echeanceUrssafProche(l.date, regime);
-    let prevu = 0, ca = 0;
-    const mixte = isActiviteMixte();
-    e.mois.forEach((mk) => {
-      const bd = getCaBreakdownMois(mk);
-      prevu += bd.presta * getTauxChargesPresta() + (mixte ? bd.vente * getTauxChargesVente() : 0);
-      ca += bd.presta + (mixte ? bd.vente : 0);
-    });
+    const e = R.echeanceUrssafProche(l.date, getUrssafRegime());
+    const { prevu, ca } = R.prevuUrssaf(impDonneesSimulees(), e.mois);
     return R.comparerUrssaf({ reel: Math.abs(l.montant), prevu: Math.round(prevu), caCompte: Math.round(ca) });
   } catch (err) { reportError('import_releve_urssaf', err); return null; }
 }
@@ -5513,6 +5514,7 @@ function impInstantane(mk) {
   return { caMois: getCaFromMissions(mk) + getPonctuelsCA(mk), depensesMois: getDepensesMois(mk), tauxHoraireMin: th };
 }
 function impVersRecap() {
+  _imp.simu = null;
   // Un client à créer sans nom : on le demande avant de continuer.
   const manque = Object.keys(_imp.decisions).find((i) => _imp.decisions[i].action === 'nouvelle_mission' && !(_imp.decisions[i].clientNom || '').trim());
   if (manque != null) { impMessage('<div class="alert al-warn">Indiquez le nom du client pour chaque mission à créer.</div>'); return; }
@@ -18049,7 +18051,9 @@ document.addEventListener('keydown', function(e) {
   import * as ReleveLecture from './shared/core/releve.js';
   import * as ReleveClassement from './shared/core/releve_classement.js';
   import * as ReleveImport from './shared/core/releve_import.js';
-  window._Releve = { parseReleve: ReleveLecture.parseReleve, proposerGroupesClients: ReleveImport.proposerGroupesClients, resumeGroupes: ReleveImport.resumeGroupes, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
+  import * as CalculsReleve from './shared/core/calculs.js';
+  window._Releve = { prevuUrssaf: (d, moisListe) => { const mixte = CalculsReleve.isActiviteMixte(d); let prevu = 0, ca = 0; moisListe.forEach((mk) => { const bd = CalculsReleve.getCaBreakdownMois(d, mk); prevu += bd.presta * CalculsReleve.getTauxChargesPresta(d) + (mixte ? bd.vente * CalculsReleve.getTauxChargesVente(d) : 0); ca += bd.presta + (mixte ? bd.vente : 0); }); return { prevu, ca }; },
+    parseReleve: ReleveLecture.parseReleve, proposerGroupesClients: ReleveImport.proposerGroupesClients, resumeGroupes: ReleveImport.resumeGroupes, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
     decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
     statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
     echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf, calculerImpactImport: ReleveImport.calculerImpactImport };
