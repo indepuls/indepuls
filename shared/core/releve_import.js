@@ -38,7 +38,7 @@ export function decisionsParDefaut(analyse, DATA) {
     d[r.index] = { action, categorie: r.categorie || 'Autre', retenirRegle: false };
     if (r.nature === 'encaissement' && r.ligne.montant > 0 && action === 'plus_tard') {
       // Un client reconnu dans le libellé : proposition de le rattacher à sa mission. Sinon : à décider (jamais en silence).
-      const sug = DATA ? suggererMissions(DATA, r.ligne.libelle) : [];
+      const sug = DATA ? suggererMissions(DATA, r.ligne.libelle, r.ligne.detail) : [];
       d[r.index].clientNom = clientSuggere(r.ligne.libelle);
       d[r.index].typePonctuel = 'prestation';
       if (sug.length && (sug.length === 1 || sug[0].score - sug[1].score >= 0.5)) { d[r.index].action = 'mission'; d[r.index].missionId = sug[0].missionId; }
@@ -48,12 +48,12 @@ export function decisionsParDefaut(analyse, DATA) {
       d[r.index].clientNom = clientSuggere(r.ligne.libelle);
       if (DATA) {
         if (r.ligne.montant < 0) {
-          const sug = suggererMissions(DATA, r.ligne.libelle);
+          const sug = suggererMissions(DATA, r.ligne.libelle, r.ligne.detail);
           if (sug.length) { d[r.index].missionId = sug[0].missionId; const att = retoursEnAttente(DATA, sug[0].missionId); if (att.length === 1) d[r.index].retourId = att[0].id; }
         } else {
-          const ded = depensesDeductibles(DATA, Math.abs(r.ligne.montant), r.ligne.libelle, r.ligne.date);
+          const ded = depensesDeductibles(DATA, Math.abs(r.ligne.montant), r.ligne.libelle, r.ligne.date, r.ligne.detail);
           if (ded.length && ded[0].proche) d[r.index].depenseId = ded[0].id;
-          const sug = suggererMissions(DATA, r.ligne.libelle);
+          const sug = suggererMissions(DATA, r.ligne.libelle, r.ligne.detail);
           if (sug.length) d[r.index].missionId = sug[0].missionId;
         }
       }
@@ -64,13 +64,13 @@ export function decisionsParDefaut(analyse, DATA) {
 
 // Dépenses ponctuelles qu'un remboursement (ou un avoir) reçu peut réduire : montant suffisant, antérieures au remboursement,
 // la plus ressemblante d'abord (libellé proche, puis date la plus proche).
-export function depensesDeductibles(DATA, montant, libelle, dateLigne) {
+export function depensesDeductibles(DATA, montant, libelle, dateLigne, detail) {
   const liste = [];
   (DATA.depenses || []).forEach((d) => {
     if (!d || d.recurrence === 'mensuelle' || d.recurrence === 'annuelle' || !d.date) return;
     if ((d.montant || 0) < montant - 0.01) return;
     if (dateLigne && d.date > dateLigne) return;
-    liste.push({ id: d.id, libelle: d.libelle || '', date: d.date, montant: d.montant, proche: libellesProches(libelle, d.libelle || '') });
+    liste.push({ id: d.id, libelle: d.libelle || '', date: d.date, montant: d.montant, proche: libellesProches(libelle, d.libelle || '') || !!(detail && libellesProches(detail, d.libelle || '')) });
   });
   return liste.sort((a, b) => (b.proche - a.proche) || (a.date < b.date ? 1 : -1)).slice(0, 40);
 }

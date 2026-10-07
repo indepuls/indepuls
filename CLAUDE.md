@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-07 — Import de relevé : colonne « informations complémentaires » lue en repli
+
+La colonne « Informations complémentaires » (Banque Populaire) est lue dans `ligne.detail` (facultatif, absent s'il est identique au libellé). Elle n'intervient JAMAIS dans les empreintes ni dans l'affichage du libellé : seulement en repli quand le libellé court ne suffit pas, pour le rapprochement « montant légèrement différent » (`ligneProche`), la reconnaissance d'un abonnement, la suggestion de mission/dépense (`suggererMissions(DATA, libelle, detail)`, `depensesDeductibles(..., detail)`) et la catégorie quand elle est inconnue (`confiance: basse`). Tests : `releve.test.js` (144). PDF toujours écarté.
+
 ### 2026-10-07 — Import de relevé : retour client et remboursement fournisseur
 
 - **Détection** (`releve_classement.js`) : un mouvement avec « remboursement / avoir / retour achat » est de nature `remboursement` dans les DEUX sens (sortie : `type:'remboursement_emis'`, après la table de mots-clés pour qu'un prêt garde sa nature). Rangé dans un groupe « Remboursements et avoirs » de l'écran.

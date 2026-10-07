@@ -67,6 +67,9 @@ function contientMot(libelleN, mot) {
   return new RegExp('(^|[^a-z0-9])' + echapper(m).replace(/\s+/g, '\\s+') + '([^a-z0-9]|$)').test(libelleN);
 }
 
+// Une ligne ressemble-t-elle à un texte donné ? Le libellé d'abord ; le texte bancaire complet seulement en repli.
+function ligneProche(l, texte) { return libellesProches(l.libelle, texte) || !!(l.detail && libellesProches(l.detail, texte)); }
+
 // Retourne { categorie, confiance:'haute'|'moyenne'|'basse', nature, source:'apprise'|'defaut'|'signe', motif, type? }
 // `regles` = règles apprises [{motCle, categorie, nature}] : elles priment sur la table par défaut.
 // `montant` (signé, facultatif) : sans lui, la ligne est considérée comme une sortie.
@@ -162,7 +165,7 @@ export function rapprocherRecurrentes(DATA, lignes) {
       const pct = ref ? Math.abs(absM - ref) / ref * 100 : 100;
       const jours = ecartJourAttendu(d, l.date);
       if (jours > 5) return;
-      const libOk = libellesProches(l.libelle, d.libelle || '');
+      const libOk = ligneProche(l, d.libelle || '');
       if (libOk && pct <= 15) paires.push({ i, d, pct, jours, statut: 'couverte', score: pct + jours });
       else if (!libOk && pct <= 2) paires.push({ i, d, pct, jours, statut: 'doute', score: pct + jours + 100 });
     });
@@ -261,7 +264,7 @@ function candidatsPourLigne(l, saisies) {
       if (j > 3) return;
       if (Math.abs(s.montantTTC - absM) <= 0.01) res.push({ s, jours: j, motif: 'montant_ttc' });
       // Montant légèrement différent (arrondi à la saisie) : seulement si le libellé se ressemble.
-      else if (ecartAcceptable(s.montantTTC, absM) && libellesProches(l.libelle, s.libelle)) res.push({ s, jours: j, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
+      else if (ecartAcceptable(s.montantTTC, absM) && ligneProche(l, s.libelle)) res.push({ s, jours: j, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
     });
   } else {
     saisies.encaissements.forEach((s) => {
@@ -269,12 +272,12 @@ function candidatsPourLigne(l, saisies) {
       if (j > 7) return;
       if (Math.abs(s.montantTTC - absM) <= 0.011) res.push({ s, jours: j, motif: 'montant_ttc' });
       else if (Math.abs(s.montantHT - absM) <= 0.011) res.push({ s, jours: j, motif: 'montant_ht' });
-      else if ((ecartAcceptable(s.montantTTC, absM) || ecartAcceptable(s.montantHT, absM)) && libellesProches(l.libelle, s.libelle)) res.push({ s, jours: j, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
+      else if ((ecartAcceptable(s.montantTTC, absM) || ecartAcceptable(s.montantHT, absM)) && ligneProche(l, s.libelle)) res.push({ s, jours: j, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
     });
     saisies.ponctuels.forEach((s) => {
       if (s.mk !== mois(l.date)) return;
       if (Math.abs(s.montantTTC - absM) <= 0.011) res.push({ s, jours: null, motif: 'montant_ttc' });
-      else if (ecartAcceptable(s.montantTTC, absM) && libellesProches(l.libelle, s.libelle)) res.push({ s, jours: null, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
+      else if (ecartAcceptable(s.montantTTC, absM) && ligneProche(l, s.libelle)) res.push({ s, jours: null, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
     });
   }
   return res;
@@ -343,7 +346,11 @@ export function classerLignes(DATA, lignes, empreintesDejaImportees) {
 // Missions dont le nom de client apparaît dans le libellé bancaire (au moins un mot significatif en commun),
 // les plus ressemblantes d'abord. Jamais une certitude : la personne choisit (liste complète dans l'écran).
 const MOTS_SOCIETE = new Set(['sas', 'sarl', 'eurl', 'sasu', 'sa', 'snc', 'ei', 'association', 'asso', 'conseil', 'consulting', 'groupe', 'societe', 'cabinet', 'agence', 'studio', 'atelier']);
-export function suggererMissions(DATA, libelle) {
+export function suggererMissions(DATA, libelle, detail) {
+  const res = suggererSur(DATA, libelle);
+  return res.length || !detail ? res : suggererSur(DATA, detail);
+}
+function suggererSur(DATA, libelle) {
   const lib = new Set(mots(libelle));
   const res = [];
   (DATA.missions || []).forEach((m) => {
@@ -398,7 +405,8 @@ export function analyserReleve(DATA, parsed, empreintesDejaImportees, reglesImpo
 
   // 4. Nature et catégorie pour toutes les lignes, puis groupes.
   res.forEach((r) => {
-    const p = proposerCategorie(r.ligne.libelle, reglesImport, r.ligne.montant);
+    let p = proposerCategorie(r.ligne.libelle, reglesImport, r.ligne.montant);
+    if (p.confiance === 'basse' && r.ligne.detail) { const p2 = proposerCategorie(r.ligne.detail, reglesImport, r.ligne.montant); if (p2.confiance !== 'basse') p = p2; }
     r.nature = p.nature; r.categorie = p.categorie; r.confiance = p.confiance; r.source = p.source; r.motifCategorie = p.motif;
     if (p.type) r.type = p.type;
     if (!r.statut) {

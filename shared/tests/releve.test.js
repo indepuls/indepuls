@@ -288,6 +288,28 @@ async function main() {
     test('libellé vide ou réduit à rien : on garde l\'original', 'CB 1409', L('CB 1409'));
   }
 
+
+  section('Colonne « informations complémentaires » : lue, mais seulement en repli');
+  {
+    const csv = 'Date comptable;Libelle simplifie;Reference;Informations complementaires;Type operation;Debit;Credit;Date operation;Date de valeur;Pointage\n'
+      + '08/09/2026;PRLV DIVERS;REF1;PRLV SEPA CENTRE PAJEMPLOI ECH 0809;Prelevement;-123,15;;08/09/2026;08/09/2026;\n'
+      + '10/09/2026;VIR EXEMPLE;REF2;VIR SEPA MARTIN CONSEIL FACT 12;Virement;;960,00;10/09/2026;10/09/2026;\n'
+      + '11/09/2026;CB SIMPLE;REF3;CB SIMPLE;Carte;-5,00;;11/09/2026;11/09/2026;\n';
+    const p = R.parseReleve(Buffer.from(csv, 'utf8'));
+    test('la colonne est reconnue et lue dans « detail »', [true, 'PRLV SEPA CENTRE PAJEMPLOI ECH 0809', 'VIR SEPA MARTIN CONSEIL FACT 12'], [p.colonnes.detail === 3, p.lignes[0].detail, p.lignes[1].detail]);
+    test('le libellé reste le libellé simplifié', 'PRLV DIVERS', p.lignes[0].libelle);
+    test('un détail identique au libellé n\'est pas conservé', undefined, p.lignes[2].detail);
+    test('les empreintes ne dépendent pas du détail', R.empreintesLignes([{ date: '2026-09-08', libelle: 'PRLV DIVERS', montant: -123.15 }])[0].id, R.empreintesLignes([p.lignes[0]])[0].id);
+    const d = { params: { tva: false }, missions: [{ id: 'm1', client: 'Martin Conseil', statut: 'cours', encaissements: [] }], revenus: {}, depenses: [{ id: 'd-pe', date: '2026-09-08', montant: 123, recurrence: 'ponctuelle', libelle: 'centre pajemploi' }] };
+    const cl = C.classerLignes(d, [p.lignes[0]], [])[0];
+    test('rapprochement impossible avec le libellé seul, possible grâce au détail', ['rapprochement_propose', 'montant_proche', 'd-pe'], [cl.statut, cl.candidat && cl.candidat.motif, cl.candidat && cl.candidat.id]);
+    const sansDetail = Object.assign({}, p.lignes[0]); delete sansDetail.detail;
+    test('sans le détail : nouvelle ligne (le repli ne change rien quand il n\'y en a pas)', 'nouvelle', C.classerLignes(d, [sansDetail], [])[0].statut);
+    test('suggestion de mission : le détail sert quand le libellé ne suffit pas', ['m1', 0], [C.suggererMissions(d, p.lignes[1].libelle, p.lignes[1].detail)[0].missionId, C.suggererMissions(d, p.lignes[1].libelle).length]);
+    const apres = C.analyserReleve(d, { lignes: [{ date: '2026-09-14', libelle: 'PAIEMENT DIVERS', montant: -42.99, detail: 'PAIEMENT CB 1409 PARIS ORANGE VAD 73' }] }, [], []);
+    test('catégorie : le détail aide quand le libellé est inconnu', 'Téléphonie & internet', apres.lignes[0].categorie);
+  }
+
   section('Pipeline complet : groupes et résumé sur le relevé de référence');
   {
     const an = C.analyserReleve(DATA(), parsed, [], []);

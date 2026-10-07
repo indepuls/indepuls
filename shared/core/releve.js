@@ -205,7 +205,8 @@ function roleEntete(cle) {
     if (/valeur|^dateval|valid|regl/.test(cle)) sc = 0.5;
     r.push(['date', sc]);
   }
-  if (/libelle|label/.test(cle)) r.push(['libelle', 4]);
+  if (/complement|informations?$/.test(cle)) r.push(['detail', 3]);
+  else if (/libelle|label/.test(cle)) r.push(['libelle', 4]);
   else if (/description|intitule|objet|designation|nature/.test(cle)) r.push(['libelle', 2]);
   else if (/memo|detail/.test(cle)) r.push(['libelle', 1]);
   return r.length ? r : null;
@@ -323,7 +324,11 @@ function lireCsv(texte, options) {
       montant = arrondi2(Math.abs(vc) - Math.abs(vd));
     }
     dejaUneLigne = true;
-    lignes.push({ date, libelle: normaliserEspaces(val(champs, colonnes.libelle)), montant });
+    const ligneLue = { date, libelle: normaliserEspaces(val(champs, colonnes.libelle)), montant };
+    // Texte bancaire complet (facultatif) : jamais dans les empreintes, seulement en repli pour reconnaître un client ou une catégorie.
+    const detailLu = colonnes.detail != null ? normaliserEspaces(val(champs, colonnes.detail)) : '';
+    if (detailLu && normaliserLibelle(detailLu) !== normaliserLibelle(ligneLue.libelle)) ligneLue.detail = detailLu;
+    lignes.push(ligneLue);
     soldes.push(colonnes.solde != null ? parseMontant(val(champs, colonnes.solde), decimal) : null);
     if (colonnes.devise != null) { const dv = normaliserEspaces(val(champs, colonnes.devise)).toUpperCase(); if (dv && !deviseLue) deviseLue = dv; }
   });
