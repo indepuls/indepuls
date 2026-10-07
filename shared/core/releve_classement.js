@@ -103,6 +103,9 @@ export function proposerCategorie(libelle, regles, montant) {
       return res;
     }
   }
+  if (MOTS_REMBOURSEMENT.some((m) => contientMot(libN, m))) {
+    return { categorie: null, confiance: 'moyenne', nature: 'remboursement', source: 'defaut', type: 'remboursement_emis', motif: 'Remboursement ou avoir : à enregistrer comme retour client ou à ignorer' };
+  }
   return { categorie: 'Autre', confiance: 'basse', nature: 'depense', source: 'defaut', motif: 'Dépense non reconnue : catégorie à confirmer' };
 }
 
@@ -111,7 +114,7 @@ export function proposerCategorie(libelle, regles, montant) {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 const MOTS_VIDES = new Set(['prlv', 'sepa', 'cb', 'carte', 'vir', 'virement', 'paiement', 'pai', 'achat', 'prelevement', 'facture', 'fact', 'ref', 'mandat', 'sa', 'sas', 'sarl', 'eu', 'eurl', 'de', 'du', 'des', 'la', 'le', 'les', 'et', 'pro', 'france', 'clients', 'client', 'auto', 'compte', 'commerce']);
 function mots(s) { return libelleCle(s).split(' ').filter((w) => w.length >= 3 && !MOTS_VIDES.has(w)); }
-function libellesProches(a, b) {
+export function libellesProches(a, b) {
   const ma = mots(a), mb = mots(b);
   if (ma.some((w) => mb.includes(w))) return true;
   const ca = libelleCle(a).replace(/\s/g, ''), cb = libelleCle(b).replace(/\s/g, '');

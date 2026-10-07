@@ -4231,6 +4231,14 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-07 — Import de relevé : retour client et remboursement fournisseur
+
+- **Détection** (`releve_classement.js`) : un mouvement avec « remboursement / avoir / retour achat » est de nature `remboursement` dans les DEUX sens (sortie : `type:'remboursement_emis'`, après la table de mots-clés pour qu'un prêt garde sa nature). Rangé dans un groupe « Remboursements et avoirs » de l'écran.
+- **Retour client** (sortie, profils `marge_commande` seulement, `profilRetours(DATA)`) : action `retour` avec choix de la vente (suggérée par le nom du client) ; crée un `DATA.retours` `{statut:'rembourse', montant HT, type total/partiel, dateRemboursement}` ou marque « remboursé » un retour déjà signalé (`retourId`, mis à jour sans doublon). L'argent sortant n'est PAS créé en dépense. Hors profils retours : « Enregistrer comme dépense », ignorer ou décider plus tard.
+- **Remboursement ou avoir fournisseur** (entrée) : action `deduire` : la dépense choisie (`depensesDeductibles` : ponctuelle, antérieure, montant suffisant, libellé ressemblant en premier) est réduite du montant remboursé. Alternatives : équilibrer par une entrée d'argent sur une vente (action `mission` existante), revenu ponctuel hors CA, ignorer. Jamais appliqué sans choix (défaut « décider plus tard », mission/dépense seulement présélectionnées).
+- **Annulation** : retours créés supprimés s'ils sont inchangés, retours mis à jour restaurés, montants de dépense restaurés seulement s'ils n'ont pas changé depuis (`lot.corrections`, `lot.retoursCrees`, `lot.retoursMaj`). Vérifié dans le navigateur : retour à l'état initial exact.
+- Tests : `releve_import.test.js` (95), `releve.test.js` (136), suite complète verte.
+
 ### 2026-10-07 — Import de relevé : organismes non professionnels, prêts, libellés lisibles, aide « depuis un ordinateur »
 
 - **Argent reçu non professionnel** : CAF, CPAM, Ameli, France Travail, Pôle emploi, allocations familiales = nature `interne` (ignorés par défaut, explication affichée) dans `proposerCategorie` (liste `MOTS_PERSONNEL`, mots entiers : « café » n'est pas la CAF).

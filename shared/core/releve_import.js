@@ -11,7 +11,7 @@
 //   DATA.importsReleve       : historique des lots, pour pouvoir les défaire
 
 import { libelleCle, libelleNettoye } from './releve.js';
-import { suggererMissions, clientSuggere } from './releve_classement.js';
+import { suggererMissions, clientSuggere, libellesProches } from './releve_classement.js';
 
 export const MAX_EMPREINTES = 3000;   // environ 1 500 lignes : les plus anciennes sont oubliées d'abord
 export const MAX_LOTS = 12;
@@ -43,10 +43,42 @@ export function decisionsParDefaut(analyse, DATA) {
       d[r.index].typePonctuel = 'prestation';
       if (sug.length && (sug.length === 1 || sug[0].score - sug[1].score >= 0.5)) { d[r.index].action = 'mission'; d[r.index].missionId = sug[0].missionId; }
       else if (sug.length) d[r.index].missionId = sug[0].missionId;
-    } else if (r.nature === 'remboursement') { d[r.index].typePonctuel = 'hors_ca'; }
+    } else if (r.nature === 'remboursement') {
+      d[r.index].typePonctuel = 'hors_ca';
+      d[r.index].clientNom = clientSuggere(r.ligne.libelle);
+      if (DATA) {
+        if (r.ligne.montant < 0) {
+          const sug = suggererMissions(DATA, r.ligne.libelle);
+          if (sug.length) { d[r.index].missionId = sug[0].missionId; const att = retoursEnAttente(DATA, sug[0].missionId); if (att.length === 1) d[r.index].retourId = att[0].id; }
+        } else {
+          const ded = depensesDeductibles(DATA, Math.abs(r.ligne.montant), r.ligne.libelle, r.ligne.date);
+          if (ded.length && ded[0].proche) d[r.index].depenseId = ded[0].id;
+          const sug = suggererMissions(DATA, r.ligne.libelle);
+          if (sug.length) d[r.index].missionId = sug[0].missionId;
+        }
+      }
+    }
   });
   return d;
 }
+
+// Dépenses ponctuelles qu'un remboursement (ou un avoir) reçu peut réduire : montant suffisant, antérieures au remboursement,
+// la plus ressemblante d'abord (libellé proche, puis date la plus proche).
+export function depensesDeductibles(DATA, montant, libelle, dateLigne) {
+  const liste = [];
+  (DATA.depenses || []).forEach((d) => {
+    if (!d || d.recurrence === 'mensuelle' || d.recurrence === 'annuelle' || !d.date) return;
+    if ((d.montant || 0) < montant - 0.01) return;
+    if (dateLigne && d.date > dateLigne) return;
+    liste.push({ id: d.id, libelle: d.libelle || '', date: d.date, montant: d.montant, proche: libellesProches(libelle, d.libelle || '') });
+  });
+  return liste.sort((a, b) => (b.proche - a.proche) || (a.date < b.date ? 1 : -1)).slice(0, 40);
+}
+// Retours déjà signalés pour une vente et pas encore remboursés (statut demande ou accepte).
+export function retoursEnAttente(DATA, missionId) {
+  return (DATA.retours || []).filter((r) => r.missionId === missionId && (r.statut === 'demande' || r.statut === 'accepte'));
+}
+export const profilRetours = (DATA) => !!(DATA && DATA.params && DATA.params.modules && DATA.params.modules.objectif === 'marge_commande');
 
 // Un mot-clé simple pour une règle apprise : le premier mot significatif du libellé.
 const MOTS_VIDES = new Set(['prlv', 'sepa', 'cb', 'carte', 'vir', 'virement', 'paiement', 'pai', 'achat', 'prelevement', 'facture', 'fact', 'ref', 'mandat', 'sa', 'sas', 'sarl', 'eu', 'eurl', 'de', 'du', 'des', 'la', 'le', 'les', 'et']);
@@ -91,7 +123,7 @@ export function appliquerImport(DATA, analyse, decisions, options) {
   const opt = options || {};
   const maintenant = opt.maintenant || new Date().toISOString();
   const lotId = nouveauLotId(maintenant);
-  const lot = { corrections: [], id: lotId, date: maintenant, periode: opt.periode || null, creees: [], rapprochees: [], encaissementsCrees: [], missionsCreees: [], ponctuelsCrees: [], rapprocheesEnc: [], totaux: { revenus: 0, depenses: 0 }, nbIgnorees: 0, nbCouvertes: 0, empreintes: [], stats: statistiques(analyse, decisions, DATA) };
+  const lot = { corrections: [], retoursCrees: [], retoursMaj: [], nbDeductions: 0, id: lotId, date: maintenant, periode: opt.periode || null, creees: [], rapprochees: [], encaissementsCrees: [], missionsCreees: [], ponctuelsCrees: [], rapprocheesEnc: [], totaux: { revenus: 0, depenses: 0 }, nbIgnorees: 0, nbCouvertes: 0, empreintes: [], stats: statistiques(analyse, decisions, DATA) };
   DATA.depenses = DATA.depenses || [];
   DATA.empreintesImportees = DATA.empreintesImportees || [];
   const dejaConnues = new Set(DATA.empreintesImportees);
@@ -157,6 +189,37 @@ export function appliquerImport(DATA, analyse, decisions, options) {
         (m.encaissements = m.encaissements || []).push(enc);
         lot.encaissementsCrees.push({ missionId: m.id, id: enc.id, sig: sigEnc(enc) });
         lot.totaux.revenus = arrondi2(lot.totaux.revenus + ttc);
+        memoriser(r);
+      }
+    } else if (dec.action === 'retour') {
+      // Remboursement fait à un client : un retour (statut rembourse) sur la vente, ou le retour déjà signalé marqué remboursé.
+      const m = (DATA.missions || []).find((x) => x.id === dec.missionId);
+      if (m) {
+        const ttc = arrondi2(Math.abs(r.ligne.montant)), ht = htDe(DATA, ttc);
+        DATA.retours = DATA.retours || [];
+        const exist = dec.retourId ? DATA.retours.find((x) => x.id === dec.retourId && x.missionId === m.id) : null;
+        if (exist) {
+          lot.retoursMaj.push({ id: exist.id, avant: { statut: exist.statut, montant: exist.montant, dateRemboursement: exist.dateRemboursement, dateModif: exist.dateModif }, apres: { statut: 'rembourse', montant: ht, dateRemboursement: r.ligne.date } });
+          exist.statut = 'rembourse'; exist.montant = ht; exist.dateRemboursement = r.ligne.date; exist.dateModif = r.ligne.date; exist.importLot = lotId;
+        } else {
+          const total = (m.montantDevis || m.montantPrestation || m.montantVente || 0) > 0 && ht >= (m.montantDevis || m.montantPrestation || m.montantVente) * 0.99;
+          const ret = { id: 'ret-' + lotId + '-' + r.index, missionId: m.id, date: r.ligne.date, motif: 'Importé depuis le relevé bancaire', statut: 'rembourse', montant: ht, type: total ? 'total' : 'partiel',
+            dateCreation: r.ligne.date, dateModif: null, dateRemboursement: r.ligne.date, importLot: lotId, importId: r.empreinte };
+          DATA.retours.push(ret);
+          lot.retoursCrees.push({ id: ret.id, sig: [ret.missionId, ret.montant, ret.dateRemboursement].join('|') });
+        }
+        memoriser(r);
+      }
+    } else if (dec.action === 'deduire') {
+      // Remboursement ou avoir reçu d'un fournisseur : la dépense concernée est réduite (annulable).
+      const d = (DATA.depenses || []).find((x) => x.id === dec.depenseId);
+      const ttc = arrondi2(Math.abs(r.ligne.montant));
+      if (d && (d.montant || 0) >= ttc - 0.01) {
+        const apres = arrondi2(Math.max(0, d.montant - ttc));
+        lot.corrections.push({ type: 'depense', id: d.id, avant: { montant: d.montant }, apres: { montant: apres } });
+        d.montant = apres;
+        lot.nbDeductions++;
+        lot.totaux.depenses = arrondi2(lot.totaux.depenses - ttc);
         memoriser(r);
       }
     } else if (dec.action === 'ponctuel') {
@@ -239,6 +302,19 @@ export function defaireImport(DATA, lotId) {
     if (c.type === 'encaissement') { const m = (DATA.missions || []).find((x) => x.id === c.missionId); e = m && (m.encaissements || []).find((x) => x.id === c.id); }
     else e = ((DATA.revenus && DATA.revenus[c.mk] && DATA.revenus[c.mk].autresList) || []).find((x) => x.id === c.id);
     if (e && e.importLot === lotId) { delete e.importId; delete e.importLot; res.rapprochementsRetires++; }
+  });
+  (lot.retoursCrees || []).forEach((c) => {
+    const x = (DATA.retours || []).find((y) => y.id === c.id);
+    if (!x) return;
+    if ([x.missionId, x.montant, x.dateRemboursement].join('|') === c.sig) { DATA.retours = DATA.retours.filter((y) => y.id !== c.id); res.encaissementsSupprimes += 0; res.retoursSupprimes = (res.retoursSupprimes || 0) + 1; }
+    else { delete x.importLot; delete x.importId; res.retoursConserves = (res.retoursConserves || 0) + 1; }
+  });
+  (lot.retoursMaj || []).forEach((c) => {
+    const x = (DATA.retours || []).find((y) => y.id === c.id);
+    if (x && x.statut === c.apres.statut && x.montant === c.apres.montant) {
+      Object.keys(c.avant).forEach((k) => { if (c.avant[k] === undefined) delete x[k]; else x[k] = c.avant[k]; });
+      delete x.importLot;
+    }
   });
   (lot.corrections || []).forEach((c) => {
     let e = null;

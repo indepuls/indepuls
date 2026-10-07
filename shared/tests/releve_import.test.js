@@ -236,6 +236,64 @@ async function main() {
     test('encaissement : annulation restaure HT et TTC', [800, 960], [e1.montant, e1.montantTTC]);
   }
 
+  section("Remboursement fait à un client (profils achat-revente) et remboursement fournisseur reçu");
+  {
+    const base = () => ({
+      params: { tva: true, tauxTVA: 20, modules: { objectif: 'marge_commande' } }, revenus: {}, retours: [],
+      missions: [{ id: 'v1', client: 'Durand Boutique', statut: 'fact', montantDevis: 100, encaissements: [{ id: 'e1', date: '2026-09-01', montant: 100, montantTTC: 120 }] }],
+      depenses: [{ id: 'd-acme', date: '2026-09-02', montant: 80, recurrence: 'ponctuelle', libelle: 'Acme Fournitures', categorie: 'Autre' }, { id: 'd-petit', date: '2026-09-02', montant: 5, recurrence: 'ponctuelle', libelle: 'Acme petit', categorie: 'Autre' }],
+    });
+    const out = { lignes: [{ date: '2026-09-10', libelle: 'VIR REMBOURSEMENT DURAND BOUTIQUE', montant: -60 }] };
+    const inn = { lignes: [{ date: '2026-09-12', libelle: 'VIR REMBOURSEMENT ACME FOURNITURES', montant: 25 }] };
+    const an = (d, p) => C.analyserReleve(d, p, [], []);
+    // Détection dans les deux sens
+    test('remboursement émis (sortie) : nature remboursement, pas une dépense', ['remboursement', 'remboursement_emis'], (() => { const p = C.proposerCategorie('VIR REMBOURSEMENT DURAND BOUTIQUE', [], -60); return [p.nature, p.type]; })());
+    test('remboursement reçu (entrée) : nature remboursement', 'remboursement', C.proposerCategorie('VIR REMBOURSEMENT ACME FOURNITURES', [], 25).nature);
+    test('un prêt qui contient « remboursement » reste un prêt', 'a_ignorer', C.proposerCategorie('REMBOURSEMENT PRET 123', [], -300).nature);
+    // Retour client
+    const d1 = base(); const a1 = an(d1, out); const dec1 = I.decisionsParDefaut(a1, d1);
+    test('retour client : à décider, mais la vente du client est présélectionnée', ['plus_tard', 'v1'], [dec1[0].action, dec1[0].missionId]);
+    dec1[0].action = 'retour';
+    const lot1 = I.appliquerImport(d1, a1, dec1, { maintenant: NOW });
+    const r1 = d1.retours[0];
+    test('retour créé : remboursé, HT converti, partiel, date du virement', ['rembourse', 50, 'partiel', '2026-09-10', 'v1'], [r1.statut, r1.montant, r1.type, r1.dateRemboursement, r1.missionId]);
+    test('retour : l\'argent sortant n\'est PAS créé en dépense', 2, d1.depenses.length);
+    test('retour mémorisé dans le lot', 1, lot1.retoursCrees.length);
+    const rr1 = I.defaireImport(d1, lot1.id);
+    test('annulation : le retour créé est supprimé', [0, 1], [d1.retours.length, rr1.retoursSupprimes]);
+    // Retour déjà signalé : marqué remboursé, puis restauré
+    const d2 = base(); d2.retours.push({ id: 'r-att', missionId: 'v1', date: '2026-09-05', motif: 'cassé', statut: 'demande', montant: 70, type: 'partiel', dateCreation: '2026-09-05', dateModif: null });
+    const a2 = an(d2, out); const dec2 = I.decisionsParDefaut(a2, d2);
+    test('retour déjà signalé : proposé pour être marqué remboursé', 'r-att', dec2[0].retourId);
+    dec2[0].action = 'retour';
+    const lot2 = I.appliquerImport(d2, a2, dec2, { maintenant: NOW });
+    test('retour existant mis à jour, aucun doublon', [1, 'rembourse', 50, '2026-09-10'], [d2.retours.length, d2.retours[0].statut, d2.retours[0].montant, d2.retours[0].dateRemboursement]);
+    I.defaireImport(d2, lot2.id);
+    test('annulation : le retour redevient « demande » avec son montant d\'origine', ['demande', 70, undefined], [d2.retours[0].statut, d2.retours[0].montant, d2.retours[0].dateRemboursement]);
+    // Remboursement fournisseur : réduit la dépense
+    const d3 = base(); const a3 = an(d3, inn); const dec3 = I.decisionsParDefaut(a3, d3);
+    test('remboursement fournisseur : dépense du même nom présélectionnée, non appliquée sans choix', ['plus_tard', 'd-acme'], [dec3[0].action, dec3[0].depenseId]);
+    test('liste des dépenses réductibles : montant suffisant seulement, la plus ressemblante d\'abord', ['d-acme'], I.depensesDeductibles(d3, 25, 'VIR REMBOURSEMENT ACME FOURNITURES', '2026-09-12').filter((x) => x.montant >= 25).map((x) => x.id));
+    dec3[0].action = 'deduire';
+    const lot3 = I.appliquerImport(d3, a3, dec3, { maintenant: NOW });
+    test('dépense réduite du montant remboursé (80 - 25)', [55, 1], [d3.depenses.find((x) => x.id === 'd-acme').montant, lot3.nbDeductions]);
+    I.defaireImport(d3, lot3.id);
+    test('annulation : la dépense retrouve son montant', 80, d3.depenses.find((x) => x.id === 'd-acme').montant);
+    // Montant modifié depuis : jamais écrasé
+    const d4 = base(); const a4 = an(d4, inn); const dec4 = I.decisionsParDefaut(a4, d4); dec4[0].action = 'deduire';
+    const lot4 = I.appliquerImport(d4, a4, dec4, { maintenant: NOW }); d4.depenses.find((x) => x.id === 'd-acme').montant = 60;
+    I.defaireImport(d4, lot4.id);
+    test('dépense modifiée depuis : conservée à l\'annulation', 60, d4.depenses.find((x) => x.id === 'd-acme').montant);
+    // Remboursement supérieur à la dépense : non appliqué (reste à décider)
+    const d5 = base(); const a5 = an(d5, { lignes: [{ date: '2026-09-12', libelle: 'VIR REMBOURSEMENT ACME', montant: 200 }] }); const dec5 = I.decisionsParDefaut(a5, d5); dec5[0].action = 'deduire'; dec5[0].depenseId = 'd-acme';
+    I.appliquerImport(d5, a5, dec5, { maintenant: NOW });
+    test('remboursement plus grand que la dépense : rien n\'est modifié', 80, d5.depenses.find((x) => x.id === 'd-acme').montant);
+    // Équilibrer par une entrée d'argent sur une vente (action existante)
+    const d6 = base(); const a6 = an(d6, inn); const dec6 = I.decisionsParDefaut(a6, d6); dec6[0].action = 'mission'; dec6[0].missionId = 'v1';
+    I.appliquerImport(d6, a6, dec6, { maintenant: NOW });
+    test('alternative : entrée d\'argent rattachée à une vente', 2, d6.missions[0].encaissements.length);
+  }
+
   section("Impact de l'import : constats significatifs seulement, avec leur origine");
   {
     const ctx = { moisLibelle: 'septembre', revenusImportes: 960, depensesImportees: 230, unite: '€/h', soldeMaj: { apres: 6875.09, dateLibelle: '30/09/2026' } };
