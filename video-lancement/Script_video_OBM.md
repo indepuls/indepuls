@@ -1,6 +1,6 @@
 # Vidéo de présentation Indépuls pour la communauté OBM
 
-Durée visée : 6 min 30. Voix en "vous" (à passer en "tu" si tu préfères, tout se transpose).
+Durée visée : 6 min 30. Voix en "tu".
 Les passages entre [crochets] sont à personnaliser ou à confirmer avant de filmer.
 Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la description écrite.
 
@@ -9,8 +9,8 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 | # | Séquence | Durée | Image | Voix |
 |---|---|---|---|---|
 | 0 | Accroche : le résultat | 0:10 | Tableau de bord rempli (filmé EN DERNIER) | Off |
-| 1 | Introduction | 0:25 | Toi à l'écran | Toi |
-| 2 | Le problème | 0:35 | Écran de l'app vide ou page d'accueil | Off |
+| 1 | Introduction et histoire | 0:30 | Toi à l'écran | Toi |
+| 2 | Le problème | 0:30 | Écran de l'app vide ou page d'accueil | Off |
 | 3 | Les réglages | 1:00 | Paramètres | Off |
 | 4 | L'import du relevé | 1:40 | Dépenses, Importer un relevé | Off |
 | 5 | Les missions à compléter | 0:40 | Fiche mission | Off |
@@ -22,13 +22,15 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 ## Script parlé
 
 ### 0. Accroche (10 s, images du tableau de bord à la fin du tournage)
-« Voici mon activité en un coup d'œil : mon Score de Santé, ce que je peux me verser ce mois-ci, l'URSSAF à prévoir. Et ça, je l'ai en quelques minutes. Je vous montre comment on en arrive là. »
+« Voici mon activité en un coup d'œil : mon Score de Santé, ce que je peux me verser ce mois-ci, l'URSSAF à prévoir. Et ça, je l'ai en quelques minutes. Je te montre comment on en arrive là. »
 
-### 1. Introduction (25 s, face caméra)
-« Bonjour, je suis Faustine. [Ton histoire en une phrase : par exemple, pourquoi tu as créé Indépuls.] Quand on est indépendante, on se pose tout le temps la même question : est-ce que ça va ? Est-ce que mon activité est rentable, vraiment ? Indépuls est là pour répondre à cette question, simplement, sans que vous deviez devenir comptable. »
+### 1. Introduction et histoire (30 s, face caméra)
+« Bonjour, je suis Faustine. Indépuls est parti d'un simple tableur Excel : celui de mon mari, artisan, et celui qu'on nous a donné à la Duopreneur Academy. Je me suis mise à les améliorer, encore et encore, jusqu'à en faire une vraie application. Parce que quand on est indépendante, on se pose toujours la même question : est-ce que ça va ? Est-ce que mon activité est rentable, vraiment ? C'est à cette question qu'Indépuls répond, simplement, sans que tu aies à devenir comptable. »
 
-### 2. Le problème (35 s, voix off)
-« Quand on gère des clients, des temps passés, des charges, l'URSSAF, tout est éparpillé : un tableur ici, une application là, un relevé de banque ailleurs. Et on garde en tête cette petite peur de mal gérer. Indépuls rassemble tout au même endroit, et surtout il vous dit où vous en êtes. »
+*Note : prévenir Amélie que tu mentionnes la Duopreneur Academy et son tableur (simple politesse, c'est elle qui t'a donné la scène).*
+
+### 2. Le problème (30 s, voix off)
+« Quand tu gères des clients, du temps passé, des charges, l'URSSAF, tout est éparpillé : un tableur ici, une application là, un relevé de banque ailleurs. Et on garde cette petite peur de mal gérer. Indépuls rassemble tout au même endroit, et surtout, il te dit où tu en es. »
 
 ### 3. Les réglages (1 min)
 *À l'écran : Paramètres. Montrer le profil, le statut, l'objectif, le rythme.*
@@ -49,30 +51,30 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 
 ### 6. Le suivi du temps (55 s)
 *À l'écran : chrono dans la barre latérale, taux de remplissage, congés.*
-« Pour suivre mon temps, un seul chronomètre, dans la barre latérale. Je choisis la mission, je démarre. Je peux aussi suivre mon temps non facturable : la gestion, l'administratif. Ensuite le taux de remplissage me dit quelle part de ma capacité est occupée. Et si je pose mes congés, Indépuls les prend en compte pour que mes indicateurs restent justes. »
+« Pour suivre mon temps, un seul chronomètre, dans la barre latérale. Je choisis la mission, je démarre. Je peux aussi suivre mon temps non facturable : la gestion, l'administratif. Ensuite, le taux de remplissage me dit quelle part de ma capacité est occupée. Et si je pose mes congés, Indépuls les prend en compte pour que mes indicateurs restent justes. »
 
 ### 7. Les outils pour un nouveau client (1 min)
 *À l'écran : Combien facturer ? (vérifier un prix, puis calculer un tarif), Et si ?, Créer un devis.*
-« Un nouveau client me demande un devis. Combien facturer ? Je vérifie si un prix est rentable, ou je calcule le tarif minimum pour atteindre mon objectif. Je peux tester : et si je déléguais une partie du travail ? et si je perdais ce client ? Indépuls me montre l'impact avant que je décide. Et je génère mon devis en PDF directement. »
+« Un nouveau client me demande un devis. Combien facturer ? Je vérifie si un prix est rentable, ou je calcule le tarif minimum pour atteindre mon objectif. Je peux tester : et si je déléguais une partie du travail ? Et si je perdais ce client ? Indépuls me montre l'impact avant que je décide. Et je génère mon devis en PDF directement. »
 
 ### 8. La confiance (20 s)
 *À l'écran : citation d'une bêta-testeuse OBM, 5 à 10 secondes.* [Citation à confirmer et accord écrit à obtenir]
-« Vos données restent les vôtres. Elles ne servent jamais à entraîner une intelligence artificielle, et chaque calcul est expliqué : zéro boîte noire. »
+« Tes données restent les tiennes. Elles ne servent jamais à entraîner une intelligence artificielle, et chaque calcul est expliqué : zéro boîte noire. »
 
 ### 9. Conclusion (25 s, face caméra)
-« Voilà Indépuls. Si vous avez des questions, je suis là, et je vous ai mis tous les liens, avec une offre réservée à la communauté, en description juste en dessous. Merci à Amélie et à la communauté de m'avoir laissé la scène. À très vite. »
+« Voilà Indépuls. Si tu as des questions, je suis là, et tu trouveras tous les liens, avec une offre réservée à la communauté, en description juste en dessous. Merci à Amélie et à la communauté de m'avoir laissé la scène. À très vite. »
 
 ## Texte de la description (groupe Circle)
 
-> Indépuls est un copilote de rentabilité pour les indépendantes : en quelques minutes, vous savez si votre activité va bien, combien facturer, et ce que vous pouvez vous verser.
+> Indépuls est un copilote de rentabilité pour les indépendantes : en quelques minutes, tu sais si ton activité va bien, combien facturer, et ce que tu peux te verser.
 >
 > Dans cette vidéo : les réglages, l'import du relevé bancaire, le suivi du temps et les outils pour un nouveau client.
 >
-> Si vous avez des questions, écrivez-moi ici en commentaire.
+> Si tu as des questions, écris-moi ici en commentaire.
 >
 > Une offre en exclusivité pour la communauté : -50 % pendant 3 mois, soit 9,50 € par mois, puis 19 € par mois, avec le code [CODE], valable jusqu'au [DATE].
 > Le lien : [LIEN]
-> Vous pouvez aussi essayer la démo sans compte : [LIEN DÉMO]
+> Tu peux aussi essayer la démo sans compte : [LIEN DÉMO]
 
 ## Tournage
 
@@ -86,7 +88,7 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 1. Séquences 3, 4, 5, 6, 7 dans l'ordre.
 2. Le tableau de bord rempli : en dernier. C'est cette prise qui sert d'accroche (séquence 0).
 3. Tes passages face caméra (1 et 9) et ta voix off.
-4. Pour les silences et les hésitations : recommencer la phrase et couper au montage.
+4. Pour les silences et les hésitations : recommence la phrase et coupe au montage.
 
 ### Montage (CapCut)
 - Mettre la séquence 0 en premier, puis l'introduction.
