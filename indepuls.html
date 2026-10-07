@@ -4256,6 +4256,7 @@ function guideActionDone(key) {
   if (key === 'revenus') return Object.keys(DATA.revenus || {}).length > 0;
   if (key === 'conges') return (DATA.conges || []).length > 0;
   if (key === 'lots') return (DATA.lots || []).length > 0;
+  if (key === 'completer_annee') return (DATA.empreintesImportees || []).length > 0 || !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
   if (key === 'import_releve') return (DATA.empreintesImportees || []).length > 0 || !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
   return !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
 }
@@ -4273,6 +4274,9 @@ function renderGuideActionsHTML() {
     {key:'revenus', icon:'💶', title:'Complétez vos revenus',
       desc:'Ajoutez ventes et revenus ponctuels pour alimenter votre tableau de bord et obtenir un revenu net fiable.',
       cta:'→ Aller dans Revenus', action:"navigate('revenus')"},
+    ...((DATA.params.dateOuverture && DATA.params.dateOuverture < getCurrentMk()) ? [{key:'completer_annee', icon:'📥', title:'Complétez votre année avec votre relevé bancaire',
+      desc:`Si votre activité a démarré avant ce mois-ci, importez en une fois votre relevé depuis le 1er janvier. Comptez quelques minutes : c'est ce qui rend vos calculs justes dès maintenant, et vos chiffres de fin d'année fidèles à la réalité. Vous pourrez le faire plus tard.`,
+      cta:'→ Importer mon relevé', action:"guideMarkSeen('completer_annee');navigate('depenses');setTimeout(ouvrirImportReleve,200)"}] : []),
     {key:'temps', icon:'⏱', title:'Suivez votre temps',
       desc:`Le cœur du calcul de votre taux horaire réel. Un seul chronomètre, démarrable depuis la barre latérale (en choisissant sur quoi : une ${tVocab('item').toLowerCase()} en cours, ou "Mon entreprise" pour votre gestion, prospection, tout ce qui n'est pas facturable) ou directement depuis la fiche de chaque ${tVocab('item').toLowerCase()}. Le temps sur "Mon entreprise" compte aussi dans vos calculs : sans lui, vos heures de gestion resteraient invisibles et votre taux horaire réel serait surévalué.`,
       cta:tVocab('goTo'), action:"guideMarkSeen('temps');navigate('missions')"},
@@ -5283,7 +5287,8 @@ function impTraiter(buf, mapping) {
     if (res.devise && res.devise !== 'EUR') { impMessage('<div class="alert al-warn">Ce relevé est en ' + esc(res.devise) + ' : seuls les relevés en euros sont pris en charge.</div>'); return; }
     if (!res.lignes.length) { impMessage('<div class="alert al-warn">Aucune ligne exploitable dans ce fichier.' + (res.rejets.length ? ' ' + res.rejets.length + ' ligne(s) illisible(s).' : '') + '</div>'); return; }
     const analyse = R.analyserReleve(DATA, res, DATA.empreintesImportees || [], DATA.reglesImport || []);
-    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse, DATA), inventaire: R.saisiesNonPointees(DATA, analyse) };
+    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse, DATA), inventaire: R.saisiesNonPointees(DATA, analyse), recurrences: {} };
+    (analyse.propositions || []).filter((p) => p.type === 'creer_recurrente').forEach((p, k) => { _imp.recurrences[k] = true; });
     renderImportReleve();
   } catch (e) {
     reportError('import_releve_lecture', e);
@@ -5327,6 +5332,73 @@ function impEstRemboursement(r) { return r.nature === 'remboursement' && !r.cand
 function impEstArgentRecu(r) { return !impEstRemboursement(r) && (r.nature === 'encaissement' || !!(r.candidat && r.candidat.type !== 'depense')); }
 function impChoisirRetourExistant(i, id) { _imp.decisions[i].retourId = id || ''; }
 function impChoisirDepense(i, id) { _imp.decisions[i].depenseId = id; }
+// ── Première mise à jour d’une année : une mission par client, abonnements repérés ─────────────────────────────
+function impGroupesClients() {
+  const n = window._Releve.proposerGroupesClients(DATA, _imp.analyse, _imp.decisions, today());
+  if (!n) { impMessage('<div class="alert al-info">Aucune entrée d’argent à regrouper : les clients ne sont pas reconnaissables dans les libellés, ou tout est déjà rattaché.</div>'); return; }
+  impMessage('');
+  renderImportReleve(true);
+}
+// Applique un réglage (forme, statut, nom du client) à toutes les entrées d’un même client.
+function impGroupeChamp(premier, champ, val) {
+  const cle = _imp.decisions[premier] && _imp.decisions[premier].groupe;
+  if (!cle) return;
+  Object.keys(_imp.decisions).forEach((i) => { const d = _imp.decisions[i]; if (d.groupe === cle && d.action === 'nouvelle_mission') d[champ] = val; });
+  if (champ !== 'clientNom') renderImportReleve(true);
+}
+function impToggleAbo(k, oui) { _imp.recurrences[k] = !!oui; renderImportReleve(true); }
+function impPropositionsAbo() { return (_imp.analyse.propositions || []).filter((p) => p.type === 'creer_recurrente'); }
+function impAboDeLigne(index) {
+  const props = impPropositionsAbo();
+  for (let k = 0; k < props.length; k++) if (_imp.recurrences[k] && props[k].indices.indexOf(index) >= 0) return k;
+  return -1;
+}
+function impAbonnementsHtml() {
+  const props = impPropositionsAbo();
+  if (!props.length) return '';
+  let h = '<details open style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Abonnements repérés (' + props.length + ')</summary>'
+    + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Ces prélèvements reviennent chaque mois. En les enregistrant comme dépense récurrente, vous évitez de créer une dépense par mois.</div>';
+  props.forEach((p, k) => {
+    h += '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:6px 0;border-top:1px solid var(--brd)"><input type="checkbox" onchange="impToggleAbo(' + k + ',this.checked)"' + (_imp.recurrences[k] ? ' checked' : '') + ' style="margin-top:3px">'
+      + '<span><strong>' + esc(window._Releve.libelleNettoye(p.libelle)) + '</strong> : ' + impEur(p.montant) + ' par mois (' + p.indices.length + ' prélèvements, depuis ' + p.mois[0].slice(5) + '/' + p.mois[0].slice(0, 4) + '). '
+      + 'Créer une dépense récurrente à la place de ' + p.indices.length + ' dépenses ponctuelles.</span></label>';
+  });
+  return h + '</details>';
+}
+function impGroupeClientHtml(premier) {
+  const g = window._Releve.resumeGroupes(_imp.analyse, _imp.decisions).find((x) => x.indices.indexOf(premier) >= 0);
+  if (!g) return '';
+  const aide = { ponctuelle: 'Une mission simple, payée en une fois.', plusieurs: 'Une seule mission avec un encaissement par virement (acompte, situation, solde…).', recurrente: 'Une mission récurrente : le même montant chaque mois, qui se poursuit dans vos prévisions tant qu’elle est « en cours ».' }[g.forme] || '';
+  const sel = (liste, courant, champ) => '<select class="s-select" onchange="impGroupeChamp(' + premier + ',\'' + champ + '\',this.value)">' + liste.map(([v, t]) => '<option value="' + v + '"' + (courant === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
+  return '<div style="border:1px solid var(--brd);border-radius:10px;padding:8px 10px;margin:10px 0 2px">'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="s-select" style="flex:1 1 180px;font-weight:600" type="text" placeholder="Nom du client" value="' + esc(g.clientNom || '') + '" oninput="impGroupeChamp(' + premier + ',\'clientNom\',this.value)">'
+    + sel([['ponctuelle', 'Mission simple'], ['plusieurs', 'Plusieurs paiements'], ['recurrente', 'Mission récurrente']], g.forme, 'forme')
+    + sel([['cours', 'En cours'], ['fact', 'Terminée (facturée)']], g.statut, 'statut') + '</div>'
+    + '<div style="font-size:11px;color:var(--tl);margin-top:4px">' + g.n + ' entrée(s) · ' + impEur(g.total) + ' · du ' + impDate(g.premiere) + ' au ' + impDate(g.derniere) + '. ' + aide + ' La fiche sera marquée « à compléter » : temps prévu, description…</div></div>';
+}
+function impArgentRecuHtml(recu) {
+  if (!recu.length) return '';
+  const ordre = {}; let n = 0;
+  recu.forEach((r) => { const d = _imp.decisions[r.index]; const k = (d.action === 'nouvelle_mission' && d.groupe) ? d.groupe : ('~' + r.index); if (ordre[k] == null) ordre[k] = n++; });
+  const triees = recu.slice().sort((a, b) => {
+    const da = _imp.decisions[a.index], db = _imp.decisions[b.index];
+    const ka = (da.action === 'nouvelle_mission' && da.groupe) ? da.groupe : ('~' + a.index), kb = (db.action === 'nouvelle_mission' && db.groupe) ? db.groupe : ('~' + b.index);
+    return ordre[ka] - ordre[kb] || (a.ligne.date < b.ligne.date ? -1 : 1);
+  });
+  const vus = {};
+  let corps = '';
+  triees.forEach((r) => {
+    const d = _imp.decisions[r.index];
+    if (d.action === 'nouvelle_mission' && d.groupe && !vus[d.groupe]) { vus[d.groupe] = true; corps += impGroupeClientHtml(r.index); }
+    corps += impLigneHtml(r);
+  });
+  const possible = recu.some((r) => { const d = _imp.decisions[r.index]; return r.nature === 'encaissement' && r.ligne.montant > 0 && !r.candidat && (d.action === 'plus_tard' || (d.action === 'nouvelle_mission' && !d.groupe)); });
+  return '<details open style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Argent reçu (' + recu.length + ')</summary>'
+    + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Rattachez chaque entrée d’argent à une mission existante, créez une mission pour un nouveau client, ou enregistrez-la comme revenu ponctuel. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.</div>'
+    + (possible ? '<div style="margin:2px 0 4px"><button class="btn btn-acc btn-xs" onclick="impGroupesClients()">Créer une mission par client pour ces entrées</button> <span style="font-size:11px;color:var(--tl)">Les entrées d’un même client sont regroupées, vous pouvez tout corriger ensuite.</span></div>' : '')
+    + corps + '</details>';
+}
+function impCompleterMission(id) { closeModal('modal-import-releve'); navigate('missions'); openMissionModal(id); }
 function impToutCreer(groupe) {
   _imp.analyse.lignes.forEach((r) => { if (r.groupe === groupe && !impEstArgentRecu(r) && r.statut === 'nouvelle') _imp.decisions[r.index].action = 'creer'; });
   renderImportReleve(true);
@@ -5357,6 +5429,7 @@ function impLigneHtml(r) {
   if (dec.action === 'rapprocher' && r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Votre saisie « ' + esc(r.candidat.libelle || 'sans libellé') + ' » est conservée et marquée comme confirmée par la banque. Rien n’est créé.</div>';
   if (r.candidat && r.candidat.motif === 'montant_proche') html += '<div style="font-size:11px;color:var(--warn,#b45309)">Montant saisi ' + impEur(r.candidat.montant) + ', montant en banque ' + impEur(Math.abs(l.montant)) + '</div>';
   if (note) html += '<div style="font-size:11px;color:var(--tl)">' + esc(note) + '</div>';
+  if (dec.action === 'creer' && impAboDeLigne(r.index) >= 0) html += '<div style="font-size:11px;color:var(--ok)">Couverte par l’abonnement proposé : aucune dépense ponctuelle ne sera créée.</div>';
   html += '</div><div style="min-width:76px;text-align:right;font-weight:600;white-space:nowrap">' + impEur(l.montant) + '</div>';
   if (ctrl) {
     html += '<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:4px"><select class="s-select" onchange="impChoisirAction(' + r.index + ',this.value)">' + ctrl + '</select>';
@@ -5379,6 +5452,8 @@ function impLigneHtml(r) {
       if (dec.action === 'mission') {
         const ms = impMissionsChoisissables();
         html += '<select class="s-select" onchange="impChoisirMission(' + r.index + ',this.value)">' + (ms.length ? ms.map((m) => '<option value="' + esc(m.id) + '"' + (m.id === dec.missionId ? ' selected' : '') + '>' + esc(m.client) + '</option>').join('') : '<option value="">Aucune mission pour l\'instant</option>') + '</select>';
+      } else if (dec.action === 'nouvelle_mission' && dec.groupe) {
+        html += '<div style="font-size:11px;color:var(--tl)">Mission « ' + esc(dec.clientNom || 'Client') + ' » (voir ci-dessus)</div>';
       } else if (dec.action === 'nouvelle_mission') {
         html += '<input class="s-select" type="text" placeholder="Nom du client" value="' + esc(dec.clientNom || '') + '" oninput="impClientNom(' + r.index + ',this.value)">';
       } else if (dec.action === 'ponctuel') {
@@ -5422,10 +5497,11 @@ function impUrssafControle(l) {
   } catch (err) { reportError('import_releve_urssaf', err); return null; }
 }
 function impResume() {
-  const c = { creer: 0, rapprocher: 0, ignorer: 0, couvrir: 0, plus_tard: 0, recus: 0, retour: 0, deduire: 0 };
+  const c = { creer: 0, rapprocher: 0, ignorer: 0, couvrir: 0, plus_tard: 0, recus: 0, retour: 0, deduire: 0, abo: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]).length };
   Object.keys(_imp.decisions).forEach((i) => {
     const a = _imp.decisions[i].action;
-    if (a === 'mission' || a === 'nouvelle_mission' || a === 'ponctuel') c.recus++;
+    if (a === 'creer' && impAboDeLigne(Number(i)) >= 0) c.couvrir++;
+    else if (a === 'mission' || a === 'nouvelle_mission' || a === 'ponctuel') c.recus++;
     else if (c[a] != null) c[a]++;
   });
   return c;
@@ -5487,7 +5563,8 @@ function renderImportReleve(garderDefilement) {
       + (p.rejets.length ? '<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--tl)">' + p.rejets.length + ' ligne(s) illisible(s) ignorée(s)</summary>' + p.rejets.map((x) => '<div style="font-size:11px;color:var(--tl)">Ligne ' + x.numeroLigne + ' : ' + esc(x.motif) + '</div>').join('') + '</details>' : '') + '</div>';
     h += impGroupeHtml('Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, confirmées si vous les avez déjà saisies, ou ignorées selon votre choix.');
     h += impGroupeHtml('Remboursements et avoirs', remb, true, 'Un remboursement fait à un client peut devenir un retour (profils achat-revente) ; un remboursement ou un avoir reçu d' + "'" + 'un fournisseur peut réduire la dépense concernée, ou être équilibré par une entrée d' + "'" + 'argent sur une vente. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
-    h += impGroupeHtml('Argent reçu', recu, true, 'Rattachez chaque entrée d\'argent à une mission existante, créez une mission pour un nouveau client, ou enregistrez-la comme revenu ponctuel. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
+    h += impAbonnementsHtml();
+    h += impArgentRecuHtml(recu);
     h += impGroupeHtml('Déjà couvertes', couv, false, 'Déjà importées ou déjà comptées dans vos abonnements.');
     h += impGroupeHtml('Ignorées par défaut', ign, false, 'Cotisations, impôts, virements vers une personne, dépenses souvent personnelles : déjà provisionnés par Indépuls ou pas professionnels.',
       '<div style="margin:2px 0 4px"><button class="btn btn-out btn-xs" onclick="impToutCreer(\'ignorees\')">Créer toutes ces dépenses quand même</button></div>');
@@ -5503,7 +5580,7 @@ function renderImportReleve(garderDefilement) {
     return;
   } else if (_imp.etape === 'recap') {
     const c = impResume(), p = _imp.parsed, st = window._Releve.statistiques(_imp.analyse, _imp.decisions, DATA);
-    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + c.creer + ' dépense(s) créée(s), ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' saisie(s) confirmée(s) par la banque, ' + (c.retour ? c.retour + ' retour(s) client, ' : '') + (c.deduire ? c.deduire + ' dépense(s) réduite(s), ' : '') + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + (c.creer + c.abo) + ' dépense(s) créée(s)' + (c.abo ? ' (dont ' + c.abo + ' abonnement(s) récurrent(s))' : '') + ', ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' saisie(s) confirmée(s) par la banque, ' + (c.retour ? c.retour + ' retour(s) client, ' : '') + (c.deduire ? c.deduire + ' dépense(s) réduite(s), ' : '') + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
       + (c.plus_tard ? '<div style="font-size:12px;color:var(--tl);margin-bottom:8px">' + c.plus_tard + ' ligne(s) d\'argent reçu laissée(s) pour plus tard : elles reviendront au prochain import.</div>' : '')
       + '<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Sur ' + st.proposees + ' ligne(s) proposée(s) : ' + st.tellesQuelles + ' validée(s) telle(s) quelle(s), ' + st.corrigees + ' corrigée(s).</div>';
     if (p.soldeCloture != null) {
@@ -5529,6 +5606,12 @@ function renderImportReleve(garderDefilement) {
       if (imp.rienDeChange) h += '<div style="font-size:13px;color:var(--tl)">Rien de changé dans vos indicateurs.</div>';
       else imp.constats.forEach((c) => { h += '<div style="padding:6px 0;border-top:1px solid var(--brd);font-size:13px">' + esc(c.texte) + '<div style="font-size:11px;color:var(--tl)">' + esc(c.source) + '</div></div>'; });
     }
+    const aCompleter = (lot.missionsCreees || []).map((x) => DATA.missions.find((m) => m.id === x.id)).filter(Boolean);
+    if (aCompleter.length) {
+      h += '<div style="margin-top:12px;font-weight:600;font-size:13px">À compléter</div><div style="font-size:12px;color:var(--tl);margin-bottom:4px">L’import ne connaît que le client, les montants et les dates. Complétez si vous le souhaitez le temps prévu, la description…</div>';
+      aCompleter.slice(0, 12).forEach((m) => { h += '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px solid var(--brd);font-size:13px"><span>' + esc(m.client) + (m.isRecurring ? ' (récurrente)' : '') + '</span><button class="btn btn-out btn-xs" onclick="impCompleterMission(' + String.fromCharCode(39) + esc(m.id) + String.fromCharCode(39) + ')">Compléter la fiche</button></div>'; });
+      if (aCompleter.length > 12) h += '<div style="font-size:11px;color:var(--tl)">… et ' + (aCompleter.length - 12) + ' autre(s), repérables par la mention « à compléter » dans la liste.</div>';
+    }
     h += '<div style="font-size:12px;color:var(--tl);margin-top:10px">' + lot.creees.length + ' dépense(s) et ' + ((lot.encaissementsCrees || []).length + (lot.ponctuelsCrees || []).length) + ' encaissement(s) créé(s)'
       + ((lot.missionsCreees || []).length ? ' (dont ' + lot.missionsCreees.length + ' nouvelle(s) mission(s))' : '') + ((lot.retoursCrees || []).length + (lot.retoursMaj || []).length ? ', ' + ((lot.retoursCrees || []).length + (lot.retoursMaj || []).length) + ' retour(s) client' : '') + (lot.nbDeductions ? ', ' + lot.nbDeductions + ' dépense(s) réduite(s)' : '') + ', ' + (lot.rapprochees.length + (lot.rapprocheesEnc || []).length) + ' saisie(s) confirmée(s) par la banque. Un import peut être défait depuis « Importer un relevé ».</div></div>'
       + '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="closeModal(\'modal-import-releve\');navigate(\'dashboard\')">Voir mon tableau de bord</button><button class="btn btn-out" onclick="closeModal(\'modal-import-releve\')">Compris</button><button class="btn btn-out btn-xs" onclick="impDefaire(\'' + esc(lot.id) + '\')">Défaire cet import</button></div>';
@@ -5548,6 +5631,7 @@ function impConfirmer() {
     const lot = window._Releve.appliquerImport(DATA, _imp.analyse, _imp.decisions, {
       maintenant: new Date().toISOString(), auteurId: window._partage ? window._partage.userId : null, solde,
       periode: { debut: p.lignes[0].date, fin },
+      recurrences: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]),
     });
     saveData();
     renderAll();
@@ -10192,7 +10276,7 @@ function syncAutoDepenseVente(mission, obj) {
 }
 function finalizeSaveMission(editId, obj) {
   let mission=null;
-  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); mission=m; } }
+  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); if(m.aCompleter===true) m.aCompleter=false; mission=m; } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); mission=DATA.missions[DATA.missions.length-1]; }
   if(mission) syncAutoDepenseVente(mission, obj);
   saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); triggerSaveReminderIfNeeded();
@@ -11638,7 +11722,7 @@ function renderMissions() {
     const _recEnc=(m.encaissements||[]).length, _recT=m.nbMoisRec||'?';
     const dateFactCell=m.isRecurring?`${_recEnc}/${_recT} mois encaiss${_recEnc===1?'é':'és'}`:(m.dateFact||'—');
     const montantCell=m.isManagement?'<span class="ts">—</span>':isCol?`<div class="fb">${fmtE(m.montantDevis)}</div><div class="ts">${m.nbParticipants||'?'} × ${fmtE(m.prixParParticipant||0)}</div>`:m.isRecurring?`${fmtE(m.montantMensuel)}<span class="ts">/mois</span><div class="ts" style="margin-top:2px">${getRecurringPeriodLabel(m)}</div>${m.nbMoisRec?`<div class="ts">Total : ${fmtE(m.montantDevis)}</div>`:''}`:(tvaOn?`${fmtE(m.montantDevis)}<div class="ts">TTC : ${fmtE(m.montantDevis*(1+tvaRate))}</div>`:fmtE(m.montantDevis));
-    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${typeof badgeCommune==='function'?badgeCommune(m):''}${typeof badgeAuteur==='function'?badgeAuteur(m):''}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
+    tr.innerHTML=`<td><div class="fb">${m.isManagement?'🏠 ':isCol?'👥 ':''}${esc(m.client||'—')}${typeof badgeCommune==='function'?badgeCommune(m):''}${typeof badgeAuteur==='function'?badgeAuteur(m):''}${m.aCompleter===true?' <span class="badge" style="font-size:10px;background:var(--bg2);color:var(--tl)" title="Créée par un import de relevé : ouvrez la fiche pour la compléter (temps prévu, description…).">à compléter</span>':''}${m.isManagement?' <span class="info-tip" title="Ligne dédiée à votre temps non facturable : gestion, admin, prospection… L\'historique de chaque mois est conservé définitivement — cliquez sur \'historique\' pour y accéder.">?</span>':''}${m.isRecurring?' <span class="badge b-cours" style="font-size:10px;padding:2px 5px;vertical-align:middle">↻ mensuelle</span>':''}${isCol?' <span class="badge" style="font-size:10px;padding:2px 6px;vertical-align:middle;background:var(--acc);color:#fff;border-radius:4px">Collectif</span>':''}${DATA.params.modules?.objectif==='marge_commande'?retourBadgeHtml(m.id):''}${expeditionBadgeHtml(m)}</div><div class="ts">${esc(m.description||'')}</div></td>
       <td><span class="chip">${m.categorie||'—'}</span></td>
       <td class="fb">${montantCell}</td>
       <td><select class="s-select s-${m.statut}" onchange="setMissionStatut('${m.id}',this.value)" ${m.isManagement?'disabled':''}><option value="att" ${m.statut==='att'?'selected':''}>${tVocabStatut('att')}</option><option value="cours" ${m.statut==='cours'?'selected':''}>${tVocabStatut('cours')}</option><option value="ref" ${m.statut==='ref'?'selected':''}>${tVocabStatut('ref',m.isRecurring)}</option><option value="fact" ${m.statut==='fact'?'selected':''}>${tVocabStatut('fact',m.isRecurring,!m.isManagement&&!m.isRecurring&&estMissionPayee(m))}</option></select></td>
@@ -17965,7 +18049,7 @@ document.addEventListener('keydown', function(e) {
   import * as ReleveLecture from './shared/core/releve.js';
   import * as ReleveClassement from './shared/core/releve_classement.js';
   import * as ReleveImport from './shared/core/releve_import.js';
-  window._Releve = { parseReleve: ReleveLecture.parseReleve, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
+  window._Releve = { parseReleve: ReleveLecture.parseReleve, proposerGroupesClients: ReleveImport.proposerGroupesClients, resumeGroupes: ReleveImport.resumeGroupes, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
     decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
     statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
     echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf, calculerImpactImport: ReleveImport.calculerImpactImport };

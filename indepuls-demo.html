@@ -4154,6 +4154,7 @@ function guideActionDone(key) {
   if (key === 'revenus') return Object.keys(DATA.revenus || {}).length > 0;
   if (key === 'conges') return (DATA.conges || []).length > 0;
   if (key === 'lots') return (DATA.lots || []).length > 0;
+  if (key === 'completer_annee') return (DATA.empreintesImportees || []).length > 0 || !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
   if (key === 'import_releve') return (DATA.empreintesImportees || []).length > 0 || !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
   return !!(DATA.onboardingSeen && DATA.onboardingSeen[key]);
 }
@@ -4171,6 +4172,9 @@ function renderGuideActionsHTML() {
     {key:'revenus', icon:'💶', title:'Complétez vos revenus',
       desc:'Ajoutez ventes et revenus ponctuels pour alimenter votre tableau de bord et obtenir un revenu net fiable.',
       cta:'→ Aller dans Revenus', action:"navigate('revenus')"},
+    ...((DATA.params.dateOuverture && DATA.params.dateOuverture < getCurrentMk()) ? [{key:'completer_annee', icon:'📥', title:'Complétez votre année avec votre relevé bancaire',
+      desc:`Si votre activité a démarré avant ce mois-ci, importez en une fois votre relevé depuis le 1er janvier. Comptez quelques minutes : c'est ce qui rend vos calculs justes dès maintenant, et vos chiffres de fin d'année fidèles à la réalité. Vous pourrez le faire plus tard.`,
+      cta:'→ Importer mon relevé', action:"guideMarkSeen('completer_annee');navigate('depenses');setTimeout(ouvrirImportReleve,200)"}] : []),
     {key:'temps', icon:'⏱', title:'Suivez votre temps',
       desc:`Le cœur du calcul de votre taux horaire réel. Un seul chronomètre, démarrable depuis la barre latérale (en choisissant sur quoi : une ${tVocab('item').toLowerCase()} en cours, ou "Mon entreprise" pour votre gestion, prospection, tout ce qui n'est pas facturable) ou directement depuis la fiche de chaque ${tVocab('item').toLowerCase()}. Le temps sur "Mon entreprise" compte aussi dans vos calculs : sans lui, vos heures de gestion resteraient invisibles et votre taux horaire réel serait surévalué.`,
       cta:tVocab('goTo'), action:"guideMarkSeen('temps');navigate('missions')"},

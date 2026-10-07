@@ -11,7 +11,7 @@
 //   DATA.importsReleve       : historique des lots, pour pouvoir les défaire
 
 import { libelleCle, libelleNettoye } from './releve.js';
-import { suggererMissions, clientSuggere, libellesProches, proposerCategorie } from './releve_classement.js';
+import { suggererMissions, clientSuggere, libellesProches, proposerCategorie, cleClientDe, ecartJours } from './releve_classement.js';
 
 export const MAX_EMPREINTES = 3000;   // environ 1 500 lignes : les plus anciennes sont oubliées d'abord
 export const MAX_LOTS = 12;
@@ -89,6 +89,81 @@ export function suggererCategorie(DATA, libelle) {
   return { categorie: p.categorie, source: p.source, motif: p.motif };
 }
 
+// ── Regroupement des entrées d'argent par client et forme de la mission ──────────────────────────────────────
+const mediane = (a) => { const t = a.slice().sort((x, y) => x - y), m = Math.floor(t.length / 2); return t.length % 2 ? t[m] : (t[m - 1] + t[m]) / 2; };
+// paiements : [{ date, ttc }]. Forme proposée (la personne peut la changer) :
+//   ponctuelle : un seul paiement ; recurrente : au moins 3 paiements à peu près égaux (±10 %) à rythme mensuel (20 à 42 jours) ;
+//   plusieurs : tout le reste (acompte, situation, solde...). Statut : « en cours » si le dernier paiement a moins de 45 jours,
+//   « terminée (facturée) » sinon (jamais « en attente » : l'argent est déjà reçu).
+export function detecterForme(paiements, aujourdhui) {
+  const p = paiements.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+  const today = aujourdhui || new Date().toISOString().slice(0, 10);
+  const recent = ecartJours(p[p.length - 1].date, today) <= 45 && p[p.length - 1].date <= today;
+  let forme = p.length >= 2 ? 'plusieurs' : 'ponctuelle';
+  if (p.length >= 3) {
+    const med = mediane(p.map((x) => x.ttc));
+    const stable = p.every((x) => Math.abs(x.ttc - med) <= med * 0.10);
+    const rythme = p.every((x, i) => { if (!i) return true; const g = ecartJours(p[i - 1].date, x.date); return g >= 20 && g <= 42; });
+    if (stable && rythme) forme = 'recurrente';
+  }
+  return { forme, statut: forme === 'ponctuelle' ? 'fact' : (recent ? 'cours' : 'fact') };
+}
+// Regroupe les entrées d'argent encore à décider par client reconnaissable et propose une mission par client. MODIFIE decisions
+// (action nouvelle_mission, groupe, clientNom, forme, statut). Les entrées déjà rattachées à une mission, rapprochées ou ignorées
+// ne sont pas touchées. Retourne le nombre de groupes.
+export function proposerGroupesClients(DATA, analyse, decisions, aujourdhui) {
+  const groupes = {};
+  analyse.lignes.forEach((r) => {
+    const d = decisions[r.index];
+    if (!d || r.nature !== 'encaissement' || r.ligne.montant <= 0 || r.candidat) return;
+    if (d.action !== 'plus_tard' && !(d.action === 'nouvelle_mission' && !d.groupe)) return;
+    const cle = cleClientDe(r.ligne.libelle);
+    if (!cle) return;
+    (groupes[cle] = groupes[cle] || []).push(r);
+  });
+  Object.keys(groupes).forEach((cle) => {
+    const rows = groupes[cle];
+    const f = detecterForme(rows.map((r) => ({ date: r.ligne.date, ttc: Math.abs(r.ligne.montant) })), aujourdhui);
+    rows.forEach((r) => {
+      const d = decisions[r.index];
+      d.action = 'nouvelle_mission'; d.groupe = cle; d.clientNom = d.clientNom || clientSuggere(rows[0].ligne.libelle); d.forme = f.forme; d.statut = f.statut;
+    });
+  });
+  return Object.keys(groupes).length;
+}
+// Les groupes actuels d'après les décisions : [{ cle, clientNom, forme, statut, indices, n, total, premiere, derniere }].
+export function resumeGroupes(analyse, decisions) {
+  const g = {};
+  analyse.lignes.forEach((r) => {
+    const d = decisions[r.index];
+    if (!d || d.action !== 'nouvelle_mission' || !d.groupe) return;
+    const x = (g[d.groupe] = g[d.groupe] || { cle: d.groupe, clientNom: d.clientNom, forme: d.forme, statut: d.statut, indices: [], n: 0, total: 0, premiere: r.ligne.date, derniere: r.ligne.date });
+    x.indices.push(r.index); x.n++; x.total = arrondi2(x.total + Math.abs(r.ligne.montant));
+    if (r.ligne.date < x.premiere) x.premiere = r.ligne.date;
+    if (r.ligne.date > x.derniere) x.derniere = r.ligne.date;
+  });
+  return Object.keys(g).map((k) => g[k]);
+}
+// Mission créée pour un client (une ou plusieurs entrées d'argent). Les champs inconnus de la banque restent à compléter.
+function construireMission(DATA, lotId, cle, dec, paiements, auteurId) {
+  const hts = paiements.map((p) => htDe(DATA, arrondi2(p.ttc)));
+  const total = arrondi2(hts.reduce((t, x) => t + x, 0));
+  const dates = paiements.map((p) => p.date).sort();
+  const forme = dec.forme || (paiements.length > 1 ? 'plusieurs' : 'ponctuelle');
+  const statut = dec.statut === 'cours' ? 'cours' : 'fact';
+  const m = { id: 'mis-' + lotId + '-' + cle.replace(/[^a-z0-9]/g, '') , auteurId: auteurId || null, client: (dec.clientNom || 'Client').trim() || 'Client', categorie: '', description: 'Créée depuis un import de relevé bancaire : à compléter',
+    montantDevis: total, montantPrestation: total, montantVente: 0, statut, dateFact: statut === 'fact' ? dates[dates.length - 1] : null, notes: '', isRecurring: false, montantMensuel: 0, dateDebutRec: '', nbMoisRec: null,
+    chargeEstimee: 0, chargeUnit: 'h_sem', tempsPrevu: null, sessions: [], typeMission: 'individuelle', nbParticipants: 0, prixParParticipant: 0, sourceAcquisition: '', quantite: null, prixAchat: null, lotId: null,
+    heuresSaisies: 0, timerAccumulated: 0, timerRunning: false, timerStart: null, tempsManuel: [], isManagement: false, encaissements: [], importLot: lotId, aCompleter: true };
+  if (forme === 'recurrente') {
+    const moisDistincts = Array.from(new Set(dates.map((d) => d.slice(0, 7))));
+    m.isRecurring = true; m.montantMensuel = arrondi2(mediane(hts)); m.dateDebutRec = dates[0].slice(0, 7);
+    m.nbMoisRec = statut === 'cours' ? null : moisDistincts.length;
+    m.montantDevis = arrondi2(m.montantMensuel * (m.nbMoisRec || 0)); m.montantPrestation = m.montantDevis; m.dateFact = null;
+  }
+  return m;
+}
+
 // Un mot-clé simple pour une règle apprise : le premier mot significatif du libellé.
 const MOTS_VIDES = new Set(['prlv', 'sepa', 'cb', 'carte', 'vir', 'virement', 'paiement', 'pai', 'achat', 'prelevement', 'facture', 'fact', 'ref', 'mandat', 'sa', 'sas', 'sarl', 'eu', 'eurl', 'de', 'du', 'des', 'la', 'le', 'les', 'et']);
 export function motCleSuggere(libelle) {
@@ -138,8 +213,24 @@ export function appliquerImport(DATA, analyse, decisions, options) {
   const dejaConnues = new Set(DATA.empreintesImportees);
   const memoriser = (r) => { [r.empreinte, r.souple].forEach((e) => { if (!dejaConnues.has(e)) { dejaConnues.add(e); DATA.empreintesImportees.push(e); lot.empreintes.push(e); } }); };
 
+  const missionsGroupes = {};
+  // Abonnements acceptés : une dépense récurrente mensuelle remplace les dépenses ponctuelles de ces lignes.
+  const couvertesParAbonnement = new Set();
+  (opt.recurrences || []).forEach((p, k) => {
+    const lignesP = (p.indices || []).map((i) => analyse.lignes[i]).filter(Boolean);
+    if (!lignesP.length) return;
+    const premiere = lignesP.map((x) => x.ligne.date).sort()[0];
+    const dep = { id: 'rec-' + lotId + '-' + k, date: premiere, categorie: (decisions[p.indices[0]] && decisions[p.indices[0]].categorie) || 'Autre', libelle: libelleNettoye(p.libelle), montant: arrondi2(p.montant),
+      recurrence: 'mensuelle', dateDebut: premiere, tvaDeductible: false, montantTVA: 0, importId: lignesP[0].empreinte, importLot: lotId };
+    if (opt.auteurId) dep.auteurId = opt.auteurId;
+    DATA.depenses.push(dep);
+    lot.creees.push({ id: dep.id, sig: signature(dep) });
+    lot.nbRecurrentes = (lot.nbRecurrentes || 0) + 1;
+    (p.indices || []).forEach((i) => couvertesParAbonnement.add(i));
+  });
   analyse.lignes.forEach((r) => {
-    const dec = decisions[r.index] || { action: 'ignorer' };
+    let dec = decisions[r.index] || { action: 'ignorer' };
+    if (couvertesParAbonnement.has(r.index) && dec.action === 'creer') dec = { action: 'couvrir' };
     if (dec.action === 'deja' || dec.action === 'plus_tard') return;
     if (dec.action === 'creer') {
       const dep = { id: 'dep-' + lotId + '-' + r.index, date: r.ligne.date, categorie: dec.categorie || 'Autre', libelle: libelleNettoye(r.ligne.libelle), montant: arrondi2(Math.abs(r.ligne.montant)),
@@ -183,14 +274,17 @@ export function appliquerImport(DATA, analyse, decisions, options) {
       const ttc = arrondi2(Math.abs(r.ligne.montant));
       let m = dec.action === 'mission' ? (DATA.missions || []).find((x) => x.id === dec.missionId) : null;
       if (dec.action === 'nouvelle_mission') {
-        const ht0 = htDe(DATA, ttc);
-        m = { id: 'mis-' + lotId + '-' + r.index, auteurId: opt.auteurId || null, client: (dec.clientNom || 'Client').trim() || 'Client', categorie: '', description: 'Créée depuis un import de relevé bancaire',
-          montantDevis: ht0, montantPrestation: ht0, montantVente: 0, statut: 'fact', dateFact: r.ligne.date, notes: '', isRecurring: false, montantMensuel: 0, dateDebutRec: '', nbMoisRec: null,
-          chargeEstimee: 0, chargeUnit: 'h_sem', tempsPrevu: null, sessions: [], typeMission: 'individuelle', nbParticipants: 0, prixParParticipant: 0, sourceAcquisition: '', quantite: null, prixAchat: null, lotId: null,
-          heuresSaisies: 0, timerAccumulated: 0, timerRunning: false, timerStart: null, tempsManuel: [], isManagement: false, encaissements: [], importLot: lotId };
-        DATA.missions = DATA.missions || [];
-        DATA.missions.push(m);
-        lot.missionsCreees.push({ id: m.id, sig: sigMission(m) });
+        if (dec.groupe && missionsGroupes[dec.groupe]) m = missionsGroupes[dec.groupe];
+        else {
+          // Toutes les entrées encore rattachées à ce client forment UNE mission (acompte, situations, solde, ou mensualités).
+          const lignesGroupe = dec.groupe ? analyse.lignes.filter((x) => decisions[x.index] && decisions[x.index].action === 'nouvelle_mission' && decisions[x.index].groupe === dec.groupe) : [r];
+          m = construireMission(DATA, lotId + '-' + r.index, dec.groupe || 'u' + r.index, dec, lignesGroupe.map((x) => ({ date: x.ligne.date, ttc: Math.abs(x.ligne.montant) })), opt.auteurId);
+          m.id = 'mis-' + lotId + '-' + r.index;
+          DATA.missions = DATA.missions || [];
+          DATA.missions.push(m);
+          lot.missionsCreees.push({ id: m.id, sig: sigMission(m) });
+          if (dec.groupe) missionsGroupes[dec.groupe] = m;
+        }
       }
       if (m) {
         const enc = { id: 'enc-' + lotId + '-' + r.index, date: r.ligne.date, type: 'paiement', montant: htDe(DATA, ttc), note: r.ligne.libelle.slice(0, 80), modeReglement: modeReglementDe(r.ligne.libelle), importId: r.empreinte, importLot: lotId };
@@ -296,7 +390,7 @@ export function defaireImport(DATA, lotId) {
   (lot.missionsCreees || []).forEach((c) => {
     const m = (DATA.missions || []).find((x) => x.id === c.id);
     if (!m) return;
-    if (sigMission(m) === c.sig && !(m.encaissements || []).length && !(m.tempsManuel || []).length && !(m.sessions || []).length) { DATA.missions = DATA.missions.filter((x) => x.id !== c.id); res.missionsSupprimees++; }
+    if (sigMission(m) === c.sig && m.aCompleter === true && !(m.encaissements || []).length && !(m.tempsManuel || []).length && !(m.sessions || []).length) { DATA.missions = DATA.missions.filter((x) => x.id !== c.id); res.missionsSupprimees++; }
     else { delete m.importLot; res.missionsConservees++; }
   });
   (lot.ponctuelsCrees || []).forEach((c) => {

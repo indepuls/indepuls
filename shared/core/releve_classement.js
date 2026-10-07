@@ -377,9 +377,15 @@ function suggererSur(DATA, libelle) {
   });
   return res.sort((a, b) => b.score - a.score);
 }
+// Clé de regroupement : les mots significatifs du nom de client (sans société ni référence), triés. Deux virements du même
+// client donnent la même clé même si la référence ou la mention bancaire change. null si rien d'exploitable.
+export function cleClientDe(libelle) {
+  const k = libelleCle(clientSuggere(libelle)).split(' ').filter((w) => w.length >= 3 && !MOTS_SOCIETE.has(w)).sort().join(' ');
+  return k || null;
+}
 // Nom de client proposé pour une nouvelle mission : les mots du libellé sans les mentions bancaires ni les références.
 export function clientSuggere(libelle) {
-  const mm = libelleCle(libelle).split(' ').filter((w) => w.length >= 2 && !MOTS_VIDES.has(w) && !['ref', 'fact', 'facture', 'reglement', 'rglt', 'remise', 'cheque', 'chq', 'paiement', 'virement'].includes(w));
+  const mm = libelleCle(libelle).split(' ').filter((w) => w.length >= 2 && !MOTS_VIDES.has(w) && !['ref', 'fact', 'facture', 'reglement', 'rglt', 'remise', 'cheque', 'chq', 'paiement', 'virement', 'acompte', 'solde', 'situation', 'avance', 'mensualite', 'echeance', 'prestation', 'honoraires'].includes(w));
   return mm.map((w) => (['sas', 'sarl', 'eurl', 'sasu', 'sa', 'snc'].includes(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 }
 

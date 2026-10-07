@@ -294,6 +294,91 @@ async function main() {
     test('alternative : entrée d\'argent rattachée à une vente', 2, d6.missions[0].encaissements.length);
   }
 
+  section("Premier import : une mission par client, avec la bonne forme (ponctuelle, plusieurs paiements, récurrente)");
+  {
+    const K = await import(pathToFileURL(path.join(ROOT, 'core', 'calculs.js')).href);
+    const AUJ = '2026-10-07';
+    const base = () => ({ params: { tva: false }, missions: [], revenus: {}, depenses: [], retours: [] });
+    const mois = (n, j) => '2026-' + String(n).padStart(2, '0') + '-' + String(j || 5).padStart(2, '0');
+    const virs = (nom, dates, montants) => dates.map((d, k) => ({ date: d, libelle: 'VIR SEPA ' + nom + ' REF ' + (100 + k), montant: montants[k] }));
+    test('même client malgré la référence et la mention bancaire', true, C.cleClientDe('VIR SEPA DUPONT SAS FACT 12') === C.cleClientDe('VIR DUPONT SAS REF 889') && !!C.cleClientDe('VIR SEPA DUPONT SAS FACT 12'));
+    test('acompte et solde du même client : même clé', true, C.cleClientDe('VIR SEPA MARTIN CONSEIL ACOMPTE') === C.cleClientDe('VIR SEPA MARTIN CONSEIL SOLDE REF 8'));
+    test('clients différents : clés différentes', false, C.cleClientDe('VIR MARTIN CONSEIL') === C.cleClientDe('VIR MARTIN BOULANGERIE'));
+    // Formes
+    const F = (arr) => I.detecterForme(arr.map(([d, t]) => ({ date: d, ttc: t })), AUJ);
+    test('un seul paiement : mission ponctuelle, facturée', ['ponctuelle', 'fact'], (() => { const x = F([[mois(2), 900]]); return [x.forme, x.statut]; })());
+    test('acompte, situation, solde (montants et dates irréguliers) : plusieurs paiements', 'plusieurs', F([[mois(1, 10), 3000], [mois(3, 2), 5200], [mois(6, 20), 1800]]).forme);
+    test('six mensualités égales : mission récurrente', 'recurrente', F([1, 2, 3, 4, 5, 6].map((n) => [mois(n), 1800])).forme);
+    test('trois paiements égaux mais espacés de trois mois : plusieurs paiements, pas récurrent', 'plusieurs', F([[mois(1), 1800], [mois(4), 1800], [mois(7), 1800]]).forme);
+    test('trois paiements mensuels de montants très différents : plusieurs paiements', 'plusieurs', F([[mois(1), 1800], [mois(2), 600], [mois(3), 2500]]).forme);
+    test('dernier paiement récent : en cours ; ancien : terminée', ['cours', 'fact'], [F([[mois(9, 20), 500], [mois(10, 3), 500]]).statut, F([[mois(1), 500], [mois(2), 500]]).statut]);
+    // Regroupement
+    const lignes = [].concat(
+      virs('DUPONT SAS', [mois(1), mois(2), mois(3), mois(4)], [1800, 1800, 1800, 1800]),
+      virs('MARTIN CONSEIL', [mois(2, 10), mois(5, 14)], [500, 1500]),
+      virs('PAUL ARTISAN', [mois(7, 3)], [900]),
+      virs('CAF PERSO', [mois(8, 3)], [100]));
+    const an = C.analyserReleve(base(), { lignes }, [], []);
+    const dec = I.decisionsParDefaut(an, base());
+    const nbG = I.proposerGroupesClients(base(), an, dec, AUJ);
+    test('une mission proposée par client reconnaissable (la CAF, ignorée, n\'est pas touchée)', [3, 'ignorer'], [nbG, dec[an.lignes.findIndex((r) => /CAF/.test(r.ligne.libelle))].action]);
+    const groupes = I.resumeGroupes(an, dec);
+    const g = (nom) => groupes.find((x) => x.clientNom.toUpperCase().includes(nom));
+    test('formes détectées : Dupont récurrente, Martin plusieurs paiements, Paul ponctuelle', ['recurrente', 'plusieurs', 'ponctuelle'], [g('DUPONT').forme, g('MARTIN').forme, g('PAUL').forme]);
+    test('regroupement : 4 + 2 + 1 entrées', [4, 2, 1], [g('DUPONT').n, g('MARTIN').n, g('PAUL').n]);
+    // Application
+    const d = base();
+    const lot = I.appliquerImport(d, an, dec, { maintenant: NOW });
+    test('trois missions créées, une par client', 3, d.missions.length);
+    const mD = d.missions.find((m) => /DUPONT/i.test(m.client)), mM = d.missions.find((m) => /MARTIN/i.test(m.client)), mP = d.missions.find((m) => /PAUL/i.test(m.client));
+    test('récurrente terminée : montant mensuel, début, durée, 4 encaissements conservés', [true, 1800, '2026-01', 4, 4], [mD.isRecurring, mD.montantMensuel, mD.dateDebutRec, mD.nbMoisRec, mD.encaissements.length]);
+    test('plusieurs paiements : une seule mission avec deux encaissements, total du devis', [2, 2000, false, 'fact'], [mM.encaissements.length, mM.montantDevis, mM.isRecurring, mM.statut]);
+    test('paiement unique : mission facturée à la date du virement', ['fact', '2026-07-03', 900], [mP.statut, mP.dateFact, mP.montantDevis]);
+    test('toutes les missions créées sont « à compléter », jamais « en attente »', [true, true], [d.missions.every((m) => m.aCompleter === true), d.missions.every((m) => m.statut !== 'att')]);
+    test('chiffre d\'affaires : mois par mois identique aux virements reçus (plusieurs paiements)', [500, 0, 0, 1500], [K.getCaFromMissions({ missions: [mM] }, '2026-02'), K.getCaFromMissions({ missions: [mM] }, '2026-03'), K.getCaFromMissions({ missions: [mM] }, '2026-04'), K.getCaFromMissions({ missions: [mM] }, '2026-05')]);
+    test('chiffre d\'affaires : récurrente terminée, 1 800 € de janvier à avril, rien après', [1800, 1800, 0], [K.getCaFromMissions({ missions: [mD] }, '2026-01'), K.getCaFromMissions({ missions: [mD] }, '2026-04'), K.getCaFromMissions({ missions: [mD] }, '2026-05')]);
+    // Récurrente en cours : sans fin
+    const lr = virs('ECOLE DURAND', [mois(6), mois(7), mois(8), mois(9), mois(10, 3)], [700, 700, 700, 700, 700]);
+    const anR = C.analyserReleve(base(), { lignes: lr }, [], []); const decR = I.decisionsParDefaut(anR, base()); I.proposerGroupesClients(base(), anR, decR, AUJ);
+    const dR = base(); I.appliquerImport(dR, anR, decR, { maintenant: NOW });
+    test('récurrente toujours en cours : statut en cours, sans date de fin', ['cours', null, true], [dR.missions[0].statut, dR.missions[0].nbMoisRec, dR.missions[0].isRecurring]);
+    test('la projection continue pour une récurrente en cours', 700, K.getCaFromMissions({ missions: dR.missions }, '2026-12'));
+    // Corrections de la personne
+    const decC = I.decisionsParDefaut(an, base()); I.proposerGroupesClients(base(), an, decC, AUJ);
+    an.lignes.forEach((r) => { if (/DUPONT/.test(r.ligne.libelle)) { decC[r.index].forme = 'plusieurs'; decC[r.index].statut = 'cours'; decC[r.index].clientNom = 'Dupont Chantier'; } });
+    const dC = base(); I.appliquerImport(dC, an, decC, { maintenant: NOW });
+    const mC = dC.missions.find((m) => m.client === 'Dupont Chantier');
+    test('forme et statut changés par la personne : respectés', [false, 'cours', 7200, 4], [mC.isRecurring, mC.statut, mC.montantDevis, mC.encaissements.length]);
+    const decE = I.decisionsParDefaut(an, base()); I.proposerGroupesClients(base(), an, decE, AUJ);
+    an.lignes.forEach((r) => { if (/DUPONT/.test(r.ligne.libelle) && r.ligne.date.endsWith('-03-05')) decE[r.index].action = 'ignorer'; });
+    const dE = base(); I.appliquerImport(dE, an, decE, { maintenant: NOW });
+    test('une entrée retirée du groupe n\'est plus dans la mission', 3, dE.missions.find((m) => /DUPONT/i.test(m.client)).encaissements.length);
+    // Annulation
+    const du = clone(d); const ru = I.defaireImport(du, du.importsReleve[0].id);
+    test('annulation : les 3 missions créées disparaissent', [0, 3], [du.missions.length, ru.missionsSupprimees]);
+    const dm = clone(d); dm.missions.find((m) => /MARTIN/i.test(m.client)).aCompleter = false;
+    const rm = I.defaireImport(dm, dm.importsReleve[0].id);
+    test('une mission que la personne a ouverte et enregistrée est conservée', [1, 1], [rm.missionsConservees, dm.missions.length]);
+  }
+
+  section("Abonnements repérés : une dépense récurrente au lieu de plusieurs dépenses ponctuelles");
+  {
+    const base = () => ({ params: { tva: false }, missions: [], revenus: {}, depenses: [], retours: [] });
+    const lignes = ['2026-06-03', '2026-07-03', '2026-08-04', '2026-09-03'].map((dt) => ({ date: dt, libelle: 'PRLV SEPA ZEBRA LOGICIEL', montant: -19.99 }));
+    const an = C.analyserReleve(base(), { lignes }, [], []);
+    const prop = an.propositions.filter((p) => p.type === 'creer_recurrente');
+    test('proposition d\'abonnement détectée sur 4 mois', [1, 4], [prop.length, prop[0] && prop[0].indices.length]);
+    const dec = I.decisionsParDefaut(an, base());
+    const dSans = base(); I.appliquerImport(dSans, an, dec, { maintenant: NOW });
+    test('sans accepter : 4 dépenses ponctuelles', [4, 0], [dSans.depenses.length, dSans.depenses.filter((x) => x.recurrence === 'mensuelle').length]);
+    const dAvec = base(); const lotA = I.appliquerImport(dAvec, an, dec, { maintenant: NOW, recurrences: prop });
+    test('en acceptant : une seule dépense mensuelle, depuis le premier prélèvement', [1, 'mensuelle', 19.99, '2026-06-03'], [dAvec.depenses.length, dAvec.depenses[0].recurrence, dAvec.depenses[0].montant, dAvec.depenses[0].dateDebut]);
+    test('les 4 lignes sont mémorisées (elles ne reviendront pas)', true, an.lignes.every((r) => dAvec.empreintesImportees.includes(r.empreinte)));
+    test('le libellé est lisible', 'ZEBRA LOGICIEL', dAvec.depenses[0].libelle);
+    I.defaireImport(dAvec, lotA.id);
+    test('annulation : la dépense récurrente est supprimée', 0, dAvec.depenses.length);
+  }
+
   section("Impact de l'import : constats significatifs seulement, avec leur origine");
   {
     const ctx = { moisLibelle: 'septembre', revenusImportes: 960, depensesImportees: 230, unite: '€/h', soldeMaj: { apres: 6875.09, dateLibelle: '30/09/2026' } };
