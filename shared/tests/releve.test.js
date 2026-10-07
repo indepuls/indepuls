@@ -99,6 +99,18 @@ async function main() {
     test('Boursorama : aucun rejet', 0, r.rejets.length);
   }
 
+
+  section('0.1 En-tête réel Banque Populaire (Date comptable, Libelle simplifie, Debit, Credit, Date operation)');
+  {
+    const csv = 'Date comptable;Libelle simplifie;Reference;Informations complementaires;Type operation;Debit;Credit;Date operation;Date de valeur;Pointage\n'
+      + '08/09/2026;PRLV CENTRE PAJEMPLOI;REF123;PRLV SEPA CENTRE PAJEMPLOI ECH 0809;Prelevement;-123,15;;07/09/2026;08/09/2026;\n'
+      + '10/09/2026;VIR MARTIN CONSEIL;REF9;VIR SEPA MARTIN CONSEIL FACT 12;Virement;;960,00;10/09/2026;10/09/2026;\n';
+    const attendu = [{ date: '2026-09-07', libelle: 'PRLV CENTRE PAJEMPLOI', montant: -123.15 }, { date: '2026-09-10', libelle: 'VIR MARTIN CONSEIL', montant: 960 }];
+    test('Banque Populaire (UTF-8) : colonnes reconnues, date d\'opération, débit et crédit', attendu, simples(R.parseReleve(Buffer.from(csv, 'utf8'))));
+    test('Banque Populaire (latin-1) : même résultat', attendu, simples(R.parseReleve(Buffer.from(csv, 'latin1'))));
+    test('Banque Populaire : aucun rejet, pas de choix de colonnes demandé', [0, undefined], [R.parseReleve(Buffer.from(csv, 'utf8')).rejets.length, R.parseReleve(Buffer.from(csv, 'utf8')).mappingNecessaire]);
+  }
+
   section('0.2 Empreintes : stables, et deux lignes identiques ont deux empreintes différentes');
   {
     const a = R.parseReleve(lire(fichiers[0])), b = R.parseReleve(lire(fichiers[0]));
