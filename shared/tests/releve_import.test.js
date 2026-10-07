@@ -205,6 +205,37 @@ async function main() {
     test("réimport : l'argent reçu non décidé revient dans les lignes à vérifier", true, analyser(dl).lignes.some((r) => r.ligne.libelle.includes('MARTIN') && r.groupe === 'a_verifier'));
   }
 
+  section('Rapprocher avec un montant différent : correction du montant à la demande, et annulation');
+  {
+    const base = () => ({ params: { tva: false }, missions: [], revenus: {}, depenses: [{ id: 'd-pe', date: '2026-09-08', montant: 123, recurrence: 'ponctuelle', libelle: 'centre pajemploi', categorie: 'Autre' }] });
+    const pj = { lignes: [{ date: '2026-09-08', libelle: 'PRLV SEPA CENTRE PAJEMPLOI', montant: -123.15 }] };
+    const analyserPj = (d) => C.analyserReleve(d, pj, d.empreintesImportees || [], []);
+    const d = base(); const a = analyserPj(d); const dec = I.decisionsParDefaut(a, d);
+    test('rapprochement présélectionné, montant NON corrigé par défaut', ['rapprocher', undefined], [dec[0].action, dec[0].corrigerMontant]);
+    const dSans = clone(d); I.appliquerImport(dSans, a, dec, { maintenant: NOW });
+    test('sans correction : la saisie est estampillée et son montant reste 123', [123, true, 1], [dSans.depenses[0].montant, !!dSans.depenses[0].importId, dSans.depenses.length]);
+    dec[0].corrigerMontant = true;
+    const lotC = I.appliquerImport(d, a, dec, { maintenant: NOW });
+    test('avec correction : le montant devient celui de la banque, aucun doublon créé', [123.15, 1], [d.depenses[0].montant, d.depenses.length]);
+    test('la correction est mémorisée dans le lot', [1, 123, 123.15], [lotC.corrections.length, lotC.corrections[0].avant.montant, lotC.corrections[0].apres.montant]);
+    I.defaireImport(d, lotC.id);
+    test('annulation : le montant d\'origine est remis, l\'estampille retirée', [123, false], [d.depenses[0].montant, !!d.depenses[0].importId]);
+    // Montant modifié depuis l'import : jamais écrasé par l'annulation.
+    const d2 = base(); const a2 = analyserPj(d2); const dc2 = I.decisionsParDefaut(a2, d2); dc2[0].corrigerMontant = true;
+    const lot2 = I.appliquerImport(d2, a2, dc2, { maintenant: NOW }); d2.depenses[0].montant = 125;
+    I.defaireImport(d2, lot2.id);
+    test('montant modifié depuis l\'import : conservé à l\'annulation', 125, d2.depenses[0].montant);
+    // Encaissement avec TVA.
+    const dE = { params: { tva: true, tauxTVA: 20 }, revenus: {}, depenses: [], missions: [{ id: 'm1', client: 'Martin Conseil', encaissements: [{ id: 'e1', date: '2026-09-10', montant: 800, montantTTC: 960 }] }] };
+    const pe = { lignes: [{ date: '2026-09-12', libelle: 'VIR SEPA MARTIN CONSEIL', montant: 960.4 }] };
+    const ae = C.analyserReleve(dE, pe, [], []); const de = I.decisionsParDefaut(ae, dE); de[0].corrigerMontant = true;
+    const lotE = I.appliquerImport(dE, ae, de, { maintenant: NOW });
+    const e1 = dE.missions[0].encaissements[0];
+    test('encaissement corrigé : TTC de la banque, HT recalculé', [960.4, 800.33], [e1.montantTTC, e1.montant]);
+    I.defaireImport(dE, lotE.id);
+    test('encaissement : annulation restaure HT et TTC', [800, 960], [e1.montant, e1.montantTTC]);
+  }
+
   section("Impact de l'import : constats significatifs seulement, avec leur origine");
   {
     const ctx = { moisLibelle: 'septembre', revenusImportes: 960, depensesImportees: 230, unite: '€/h', soldeMaj: { apres: 6875.09, dateLibelle: '30/09/2026' } };

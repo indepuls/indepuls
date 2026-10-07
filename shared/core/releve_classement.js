@@ -240,13 +240,18 @@ export function saisiesRapprochables(DATA) {
 
 // Candidats pour chaque ligne. Fenêtre : ±7 jours pour un encaissement, ±3 jours pour une dépense.
 // Piège HT/TTC : la banque voit du TTC, les encaissements sont stockés HT (montant HT × (1 + TVA) ≈ montant bancaire).
+// Écart de montant toléré pour un rapprochement "montant différent" : 1 € ou 2 %, le plus large des deux.
+function ecartAcceptable(saisi, banque) { return Math.abs(saisi - banque) <= Math.max(1, banque * 0.02); }
 function candidatsPourLigne(l, saisies) {
   const absM = Math.abs(l.montant);
   const res = [];
   if (l.montant < 0) {
     saisies.depenses.forEach((s) => {
       const j = ecartJours(s.date, l.date);
-      if (j <= 3 && Math.abs(s.montantTTC - absM) <= 0.01) res.push({ s, jours: j, motif: 'montant_ttc' });
+      if (j > 3) return;
+      if (Math.abs(s.montantTTC - absM) <= 0.01) res.push({ s, jours: j, motif: 'montant_ttc' });
+      // Montant légèrement différent (arrondi à la saisie) : seulement si le libellé se ressemble.
+      else if (ecartAcceptable(s.montantTTC, absM) && libellesProches(l.libelle, s.libelle)) res.push({ s, jours: j, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
     });
   } else {
     saisies.encaissements.forEach((s) => {
@@ -254,9 +259,12 @@ function candidatsPourLigne(l, saisies) {
       if (j > 7) return;
       if (Math.abs(s.montantTTC - absM) <= 0.011) res.push({ s, jours: j, motif: 'montant_ttc' });
       else if (Math.abs(s.montantHT - absM) <= 0.011) res.push({ s, jours: j, motif: 'montant_ht' });
+      else if ((ecartAcceptable(s.montantTTC, absM) || ecartAcceptable(s.montantHT, absM)) && libellesProches(l.libelle, s.libelle)) res.push({ s, jours: j, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
     });
     saisies.ponctuels.forEach((s) => {
-      if (s.mk === mois(l.date) && Math.abs(s.montantTTC - absM) <= 0.011) res.push({ s, jours: null, motif: 'montant_ttc' });
+      if (s.mk !== mois(l.date)) return;
+      if (Math.abs(s.montantTTC - absM) <= 0.011) res.push({ s, jours: null, motif: 'montant_ttc' });
+      else if (ecartAcceptable(s.montantTTC, absM) && libellesProches(l.libelle, s.libelle)) res.push({ s, jours: null, motif: 'montant_proche', ecartMontant: arrondi2(s.montantTTC - absM) });
     });
   }
   return res;
@@ -267,7 +275,7 @@ function candidatsPourLigne(l, saisies) {
 function attribuer(lignes, indicesAUtiliser, saisies) {
   const paires = [];
   indicesAUtiliser.forEach((i) => {
-    candidatsPourLigne(lignes[i], saisies).forEach((c) => paires.push({ i, c, score: (c.motif === 'montant_ttc' ? 0 : 50) + (c.jours == null ? 8 : c.jours) }));
+    candidatsPourLigne(lignes[i], saisies).forEach((c) => paires.push({ i, c, score: (c.motif === 'montant_ttc' ? 0 : c.motif === 'montant_ht' ? 50 : 100 + Math.abs(c.ecartMontant || 0)) + (c.jours == null ? 8 : c.jours) }));
   });
   paires.sort((a, b) => a.score - b.score || a.i - b.i);
   const ligneUtilisee = new Set(), saisieUtilisee = new Set();
@@ -278,14 +286,14 @@ function attribuer(lignes, indicesAUtiliser, saisies) {
     ligneUtilisee.add(p.i); saisieUtilisee.add(cleS);
     // Autres saisies possibles pour cette ligne : si plusieurs, la personne doit trancher.
     const autres = paires.filter((q) => q.i === p.i && q.c.s !== p.c.s && q.score - p.score <= 2).length;
-    resultat[p.i] = { s: p.c.s, jours: p.c.jours, motif: p.c.motif, ambigu: autres > 0 };
+    resultat[p.i] = { s: p.c.s, jours: p.c.jours, motif: p.c.motif, ecartMontant: p.c.ecartMontant, ambigu: autres > 0 };
   });
   return resultat;
 }
 
 function decrireCandidat(c) {
   const s = c.s;
-  const o = { type: s.type, id: s.id, libelle: s.libelle, date: s.date, montant: s.montantTTC, ecartJours: c.jours, motif: c.motif, ambigu: c.ambigu };
+  const o = { type: s.type, id: s.id, libelle: s.libelle, date: s.date, montant: s.montantTTC, ecartJours: c.jours, motif: c.motif, ecartMontant: c.ecartMontant, ambigu: c.ambigu };
   if (s.missionId) o.missionId = s.missionId;
   if (s.mk) o.mk = s.mk;
   return o;
@@ -313,7 +321,7 @@ export function classerLignes(DATA, lignes, empreintesDejaImportees) {
     else if (s.statut === 'peut_etre_deja_importee') s.explication = 'Même date et même montant qu\'une ligne déjà importée : est-ce la même opération ?';
     else if (attrib[i]) {
       s.statut = 'rapprochement_propose'; s.candidat = decrireCandidat(attrib[i]);
-      s.explication = attrib[i].ambigu ? 'Plusieurs saisies correspondent : à vous de choisir' : 'Correspond à une saisie déjà présente dans Indépuls';
+      s.explication = attrib[i].ambigu ? 'Plusieurs saisies correspondent : à vous de choisir' : (attrib[i].motif === 'montant_proche' ? 'Ressemble à une saisie existante, avec un montant légèrement différent' : 'Correspond à une saisie déjà présente dans Indépuls');
     } else { s.statut = 'nouvelle'; s.explication = 'Nouvelle ligne : proposition de création'; }
   });
   return sorties;
@@ -375,7 +383,7 @@ export function analyserReleve(DATA, parsed, empreintesDejaImportees, reglesImpo
   Object.keys(attrib).forEach((i) => {
     const r = res[i];
     r.statut = 'rapprochement_propose'; r.candidat = decrireCandidat(attrib[i]); delete r.couverture;
-    r.explication = attrib[i].ambigu ? 'Plusieurs saisies correspondent : à vous de choisir' : 'Correspond à une saisie déjà présente dans Indépuls';
+    r.explication = attrib[i].ambigu ? 'Plusieurs saisies correspondent : à vous de choisir' : (attrib[i].motif === 'montant_proche' ? 'Ressemble à une saisie existante, avec un montant légèrement différent' : 'Correspond à une saisie déjà présente dans Indépuls');
   });
 
   // 4. Nature et catégorie pour toutes les lignes, puis groupes.

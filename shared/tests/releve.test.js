@@ -223,6 +223,25 @@ async function main() {
     test('chaque proposition dit pourquoi', true, exp.transactions.every((t) => !!C.proposerCategorie(t.libelle, [], t.montant).motif));
   }
 
+  section('Rapprochement "montant légèrement différent" (saisie arrondie à la main)');
+  {
+    const d = () => ({ params: { tva: false }, missions: [], revenus: {}, depenses: [{ id: 'd-pe', date: '2026-09-08', montant: 123, recurrence: 'ponctuelle', libelle: 'centre pajemploi', categorie: 'Autre' }] });
+    const ligne = (over) => Object.assign({ date: '2026-09-08', libelle: 'PRLV SEPA CENTRE PAJEMPLOI', montant: -123.15 }, over || {});
+    const un = (l, data) => C.classerLignes(data || d(), [l], [])[0];
+    const c1 = un(ligne());
+    test('123,00 saisi contre 123,15 en banque, même libellé : rapprochement proposé', ['rapprochement_propose', 'montant_proche', -0.15, 'd-pe'], [c1.statut, c1.candidat.motif, c1.candidat.ecartMontant, c1.candidat.id].map((x, i) => (i === 2 ? Math.round(x * 100) / 100 : x)));
+    test('l\'explication le dit clairement', true, c1.explication.includes('légèrement différent'));
+    test('libellé différent : PAS de rapprochement (reste une nouvelle dépense)', 'nouvelle', un(ligne({ libelle: 'CB AMAZON EU SARL' })).statut);
+    test('écart trop grand (plus de 1 € et 2 %) : pas de rapprochement', 'nouvelle', un(ligne({ montant: -130 })).statut);
+    test('date trop éloignée : pas de rapprochement', 'nouvelle', un(ligne({ date: '2026-09-20' })).statut);
+    test('un montant exact reste prioritaire sur un montant proche', 'montant_ttc', (() => { const dd = d(); dd.depenses.push({ id: 'd-exact', date: '2026-09-08', montant: 123.15, recurrence: 'ponctuelle', libelle: 'centre pajemploi' }); return un(ligne(), dd).candidat.motif; })());
+    // Encaissement : client reconnu, montant arrondi.
+    const dEnc = { params: { tva: true, tauxTVA: 20 }, revenus: {}, depenses: [], missions: [{ id: 'm1', client: 'Martin Conseil', encaissements: [{ id: 'e1', date: '2026-09-10', montant: 800, montantTTC: 960 }] }] };
+    const ce = un({ date: '2026-09-12', libelle: 'VIR SEPA MARTIN CONSEIL', montant: 960.4 }, dEnc);
+    test('encaissement : client reconnu et montant proche : rapprochement proposé', ['rapprochement_propose', 'montant_proche'], [ce.statut, ce.candidat.motif]);
+    test('encaissement : autre client, montant proche : pas de rapprochement', 'nouvelle', un({ date: '2026-09-12', libelle: 'VIR SEPA AUTRE CLIENT', montant: 960.4 }, dEnc).statut);
+  }
+
   section('Pipeline complet : groupes et résumé sur le relevé de référence');
   {
     const an = C.analyserReleve(DATA(), parsed, [], []);

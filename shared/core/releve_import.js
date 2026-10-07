@@ -91,7 +91,7 @@ export function appliquerImport(DATA, analyse, decisions, options) {
   const opt = options || {};
   const maintenant = opt.maintenant || new Date().toISOString();
   const lotId = nouveauLotId(maintenant);
-  const lot = { id: lotId, date: maintenant, periode: opt.periode || null, creees: [], rapprochees: [], encaissementsCrees: [], missionsCreees: [], ponctuelsCrees: [], rapprocheesEnc: [], totaux: { revenus: 0, depenses: 0 }, nbIgnorees: 0, nbCouvertes: 0, empreintes: [], stats: statistiques(analyse, decisions, DATA) };
+  const lot = { corrections: [], id: lotId, date: maintenant, periode: opt.periode || null, creees: [], rapprochees: [], encaissementsCrees: [], missionsCreees: [], ponctuelsCrees: [], rapprocheesEnc: [], totaux: { revenus: 0, depenses: 0 }, nbIgnorees: 0, nbCouvertes: 0, empreintes: [], stats: statistiques(analyse, decisions, DATA) };
   DATA.depenses = DATA.depenses || [];
   DATA.empreintesImportees = DATA.empreintesImportees || [];
   const dejaConnues = new Set(DATA.empreintesImportees);
@@ -110,14 +110,33 @@ export function appliquerImport(DATA, analyse, decisions, options) {
       memoriser(r);
     } else if (dec.action === 'rapprocher' && r.candidat && r.candidat.type === 'depense') {
       const d = DATA.depenses.find((x) => x.id === r.candidat.id);
-      if (d && !d.importId) { d.importId = r.empreinte; d.importLot = lotId; lot.rapprochees.push(d.id); memoriser(r); }
+      if (d && !d.importId) {
+        d.importId = r.empreinte; d.importLot = lotId; lot.rapprochees.push(d.id); memoriser(r);
+        // Montant corrigé avec celui de la banque, seulement si la personne l'a demandé.
+        const nouveau = arrondi2(Math.abs(r.ligne.montant));
+        if (dec.corrigerMontant && d.montant !== nouveau) { lot.corrections.push({ type: 'depense', id: d.id, avant: { montant: d.montant }, apres: { montant: nouveau } }); d.montant = nouveau; }
+      }
     } else if (dec.action === 'rapprocher' && r.candidat && r.candidat.type === 'encaissement') {
       const m = (DATA.missions || []).find((x) => x.id === r.candidat.missionId);
       const e = m && (m.encaissements || []).find((x) => x.id === r.candidat.id);
-      if (e && !e.importId) { e.importId = r.empreinte; e.importLot = lotId; lot.rapprocheesEnc.push({ type: 'encaissement', missionId: m.id, id: e.id }); memoriser(r); }
+      if (e && !e.importId) {
+        e.importId = r.empreinte; e.importLot = lotId; lot.rapprocheesEnc.push({ type: 'encaissement', missionId: m.id, id: e.id }); memoriser(r);
+        const ttc = arrondi2(Math.abs(r.ligne.montant));
+        if (dec.corrigerMontant && Math.abs((e.montantTTC != null ? e.montantTTC : e.montant) - ttc) > 0.001) {
+          lot.corrections.push({ type: 'encaissement', missionId: m.id, id: e.id, avant: { montant: e.montant, montantTTC: e.montantTTC }, apres: { montant: htDe(DATA, ttc), montantTTC: DATA.params && DATA.params.tva ? ttc : undefined } });
+          e.montant = htDe(DATA, ttc); if (DATA.params && DATA.params.tva) e.montantTTC = ttc;
+        }
+      }
     } else if (dec.action === 'rapprocher' && r.candidat && r.candidat.type === 'revenu_ponctuel') {
       const e = ((DATA.revenus && DATA.revenus[r.candidat.mk] && DATA.revenus[r.candidat.mk].autresList) || []).find((x) => x.id === r.candidat.id);
-      if (e && !e.importId) { e.importId = r.empreinte; e.importLot = lotId; lot.rapprocheesEnc.push({ type: 'revenu_ponctuel', mk: r.candidat.mk, id: e.id }); memoriser(r); }
+      if (e && !e.importId) {
+        e.importId = r.empreinte; e.importLot = lotId; lot.rapprocheesEnc.push({ type: 'revenu_ponctuel', mk: r.candidat.mk, id: e.id }); memoriser(r);
+        const ht = htDe(DATA, arrondi2(Math.abs(r.ligne.montant)));
+        if (dec.corrigerMontant && Math.abs(e.montant - ht) > 0.001) {
+          lot.corrections.push({ type: 'revenu_ponctuel', mk: r.candidat.mk, id: e.id, avant: { montant: e.montant, montantPrestation: e.montantPrestation, montantVente: e.montantVente }, apres: { montant: ht, montantPrestation: e.montantPrestation ? ht : 0, montantVente: e.montantVente ? ht : 0 } });
+          e.montant = ht; if (e.montantPrestation) e.montantPrestation = ht; if (e.montantVente) e.montantVente = ht;
+        }
+      }
     } else if (dec.action === 'mission' || dec.action === 'nouvelle_mission') {
       // Argent reçu rattaché à une mission (existante, ou créée pour ce client) : encaissement HT, TTC conservé si TVA.
       const ttc = arrondi2(Math.abs(r.ligne.montant));
@@ -220,6 +239,13 @@ export function defaireImport(DATA, lotId) {
     if (c.type === 'encaissement') { const m = (DATA.missions || []).find((x) => x.id === c.missionId); e = m && (m.encaissements || []).find((x) => x.id === c.id); }
     else e = ((DATA.revenus && DATA.revenus[c.mk] && DATA.revenus[c.mk].autresList) || []).find((x) => x.id === c.id);
     if (e && e.importLot === lotId) { delete e.importId; delete e.importLot; res.rapprochementsRetires++; }
+  });
+  (lot.corrections || []).forEach((c) => {
+    let e = null;
+    if (c.type === 'depense') e = (DATA.depenses || []).find((x) => x.id === c.id);
+    else if (c.type === 'encaissement') { const m = (DATA.missions || []).find((x) => x.id === c.missionId); e = m && (m.encaissements || []).find((x) => x.id === c.id); }
+    else e = ((DATA.revenus && DATA.revenus[c.mk] && DATA.revenus[c.mk].autresList) || []).find((x) => x.id === c.id);
+    if (e && e.montant === c.apres.montant) Object.keys(c.avant).forEach((k) => { if (c.avant[k] === undefined) delete e[k]; else e[k] = c.avant[k]; });
   });
   lot.rapprochees.forEach((id) => {
     const d = (DATA.depenses || []).find((x) => x.id === id);

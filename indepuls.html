@@ -5316,6 +5316,7 @@ function impRegle(i, oui) {
   d.retenirRegle = !!oui;
   d.motCle = oui ? window._Releve.motCleSuggere(_imp.analyse.lignes[i].ligne.libelle) : '';
 }
+function impCorrigerMontant(i, oui) { _imp.decisions[i].corrigerMontant = !!oui; }
 function impChoisirMission(i, id) { _imp.decisions[i].missionId = id; }
 function impClientNom(i, v) { _imp.decisions[i].clientNom = v; }
 function impTypePonctuel(i, v) { _imp.decisions[i].typePonctuel = v; }
@@ -5344,10 +5345,12 @@ function impLigneHtml(r) {
     + '<div style="flex:1 1 220px;min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">' + esc(l.libelle || '(sans libellé)') + '</div>'
     + '<div style="font-size:11px;color:var(--tl)">' + impDate(l.date) + ' · ' + esc(r.explication || '') + '</div>';
   if (r.candidat) html += '<div style="font-size:11px;color:var(--tl)">Saisie existante : « ' + esc(r.candidat.libelle || 'sans libellé') + ' »' + (r.candidat.date ? ' du ' + impDate(r.candidat.date) : '') + ', ' + impEur(r.candidat.montant) + (r.candidat.ambigu ? ' (plusieurs saisies possibles)' : '') + '</div>';
+  if (r.candidat && r.candidat.motif === 'montant_proche') html += '<div style="font-size:11px;color:var(--warn,#b45309)">Montant saisi ' + impEur(r.candidat.montant) + ', montant en banque ' + impEur(Math.abs(l.montant)) + '</div>';
   if (note) html += '<div style="font-size:11px;color:var(--tl)">' + esc(note) + '</div>';
   html += '</div><div style="min-width:76px;text-align:right;font-weight:600;white-space:nowrap">' + impEur(l.montant) + '</div>';
   if (ctrl) {
     html += '<div style="flex:1 1 200px;display:flex;flex-direction:column;gap:4px"><select class="s-select" onchange="impChoisirAction(' + r.index + ',this.value)">' + ctrl + '</select>';
+    if (dec.action === 'rapprocher' && r.candidat && r.candidat.motif === 'montant_proche') html += '<label style="font-size:11px;color:var(--tl)"><input type="checkbox" onchange="impCorrigerMontant(' + r.index + ',this.checked)"' + (dec.corrigerMontant ? ' checked' : '') + '> Corriger le montant avec celui de la banque</label>';
     if (recu) {
       if (dec.action === 'mission') {
         const ms = impMissionsChoisissables();

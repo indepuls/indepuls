@@ -4231,6 +4231,13 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-07 — Import de relevé : rapprochement « montant légèrement différent » (retour test Faustine)
+
+- **Symptôme** : une dépense saisie à la main à 123 € (centre pajemploi) face au prélèvement réel de 123,15 € n'était pas reconnue : proposée en nouvelle dépense, donc doublon si validée.
+- **Cause** : le rapprochement exigeait un montant identique au centime (choix prudent contre les fausses fusions).
+- **Fix** (`releve_classement.js`, `releve_import.js`, UI de `indepuls.html`) : nouveau motif `montant_proche` : même fenêtre de dates (±3 j dépense, ±7 j encaissement), libellé qui se ressemble (un mot significatif commun, nom du client pour un encaissement) ET écart d'au plus 1 € ou 2 %. Un montant exact reste prioritaire. Présélectionné « Rapprocher de ma saisie », avec la mention « Montant saisi X, montant en banque Y » et la case « Corriger le montant avec celui de la banque » (décochée par défaut : la banque est la référence mais on ne modifie jamais une donnée sans demande). Correction mémorisée dans `lot.corrections` ; l'annulation restaure l'ancien montant seulement s'il n'a pas été modifié depuis. Libellé différent ou écart plus grand : toujours une nouvelle ligne.
+- Tests : `releve.test.js` (120), `releve_import.test.js` (77) ; vérifié dans le navigateur avec le cas exact (123 contre 123,15).
+
 ### 2026-10-07 — Import de relevé bancaire, ÉTAPE 3 : argent reçu, impact après import, guide, Nouveautés
 
 - **Argent reçu** (`releve_import.js`, `releve_classement.js`) : actions `rapprocher` (encaissement ou revenu ponctuel saisi, estampillé `importId`/`importLot` sans être modifié), `mission` (encaissement sur une mission existante), `nouvelle_mission` (mission créée pour un client inconnu : statut `fact`, `dateFact` = date du virement, tous les champs d'une mission du formulaire), `ponctuel` (`DATA.revenus[mk].autresList`, type prestation / vente / hors CA), `ignorer`, `plus_tard` (NON mémorisé : la ligne reviendra). Montant bancaire TTC converti en HT si le compte est en TVA (`montantTTC` conservé), mode de règlement déduit du libellé (virement, carte, prélèvement, chèque). Aucune référence justificative n'est renseignée : à compléter dans le livre des recettes si besoin.
