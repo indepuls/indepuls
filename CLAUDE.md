@@ -4231,7 +4231,14 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
-### 2026-10-08 — Écart d'URSSAF : alerte dans le tableau de bord (décision de Faustine)
+### 2026-10-08 — Import : regroupement automatique au premier import et mise à jour d'un abonnement existant
+
+- **Premier import** (aucune mission non « Mon entreprise ») : `proposerGroupesClients` est appliqué d'office à l'ouverture de l'analyse (`_imp.autoGroupes`), avec la phrase « N client(s) repéré(s) : Indépuls a déjà regroupé vos entrées… Rien n'est créé avant « Importer » ». Dès qu'une mission existe, le comportement reste le bouton « Créer une mission par client pour ces entrées ». Le bandeau « Clients repérés » (option B) est écarté (redondant).
+- **Abonnement existant dont le montant a changé** : les propositions `maj_montant` du moteur sont enfin affichées (« Abonnements dont le montant a changé »), à cocher (décoché par défaut, on ne modifie jamais une donnée sans accord) ; `appliquerImport(..., { majMontants })` met la dépense à jour et enregistre la correction dans `lot.corrections` (annulable : l'ancien montant est restauré s'il n'a pas changé depuis ; `lot.nbMajAbo`). Récapitulatif : « N abonnement(s) existant(s) mis à jour ».
+- **Tolérance de rapprochement d'un abonnement existant** portée de ±15 % à ±30 % quand le libellé correspond (`rapprocherRecurrentes`) : une hausse de 12,99 € à 14,99 € (+15,4 %) créait un doublon d'abonnement au lieu de proposer la mise à jour.
+- Tests : `releve_import.test.js` (141), `releve.test.js` (159) ; vérifié dans le navigateur (3 clients regroupés d'office, rien d'automatique à l'import suivant, Canva 12,99 à 14,99 puis annulation). Script et guide de la vidéo adaptés.
+
+'URSSAF : alerte dans le tableau de bord (décision de Faustine)
 
 - **Pourquoi** : la vérification d'un écart (encaissement oublié, déclaration à l'URSSAF, répartition BNC/BIC d'une activité mixte, taux) demande du temps et ne se fait pas pendant l'import.
 - **Import** : le récapitulatif ne détaille plus qu'une phrase (« N prélèvements vérifiés : X conformes, Y écart(s) repéré(s) ») et annonce « Une alerte sera créée dans votre tableau de bord ». Les prélèvements d'URSSAF du relevé (micro) sont mémorisés dans `DATA.controlesUrssaf` : `{id, date, reel, verifie, importLot}` (date et montant réel seulement, 12 maximum, pas de doublon au réimport, retirés par « Défaire cet import »).

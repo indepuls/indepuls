@@ -414,6 +414,25 @@ async function main() {
     test('au plus 12 contrôles conservés', 12, dp.controlesUrssaf.length);
   }
 
+  section("Abonnement déjà saisi dont le montant a changé : proposition, mise à jour à la demande, annulation");
+  {
+    const base = () => ({ params: { tva: false }, missions: [], revenus: {}, retours: [], depenses: [{ id: 'abo', date: '2026-01-03', montant: 29.99, recurrence: 'mensuelle', dateDebut: '2026-01-03', libelle: 'Adobe', categorie: 'Logiciels & abonnements' }] });
+    const lignes = ['2026-07-03', '2026-08-03', '2026-09-03', '2026-10-03'].map((dt) => ({ date: dt, libelle: 'PRLV SEPA ADOBE SYSTEMS', montant: -31.99 }));
+    const d = base(); const an = C.analyserReleve(d, { lignes }, [], []);
+    const maj = an.propositions.filter((p) => p.type === 'maj_montant');
+    test('proposition détectée : 29,99 devient 31,99', [1, 'abo', 29.99, 31.99], [maj.length, maj[0] && maj[0].depenseId, maj[0] && maj[0].montantActuel, maj[0] && maj[0].montantSuggere]);
+    const dec = I.decisionsParDefaut(an, d);
+    const dSans = clone(d); I.appliquerImport(dSans, an, dec, { maintenant: NOW });
+    test('sans accord : le montant de l\'abonnement ne change pas', 29.99, dSans.depenses[0].montant);
+    const lot = I.appliquerImport(d, an, dec, { maintenant: NOW, majMontants: maj.map((x) => ({ depenseId: x.depenseId, montant: x.montantSuggere })) });
+    test('avec accord : abonnement mis à jour, aucune dépense créée', [31.99, 1, 1], [d.depenses[0].montant, d.depenses.length, lot.nbMajAbo]);
+    I.defaireImport(d, lot.id);
+    test('annulation : l\'ancien montant est restauré', 29.99, d.depenses[0].montant);
+    const d2 = base(); const lot2 = I.appliquerImport(d2, an, dec, { maintenant: NOW, majMontants: [{ depenseId: 'abo', montant: 31.99 }] }); d2.depenses[0].montant = 35;
+    I.defaireImport(d2, lot2.id);
+    test('montant modifié depuis : conservé à l\'annulation', 35, d2.depenses[0].montant);
+  }
+
   section("Impact de l'import : constats significatifs seulement, avec leur origine");
   {
     const ctx = { moisLibelle: 'septembre', revenusImportes: 960, depensesImportees: 230, unite: '€/h', soldeMaj: { apres: 6875.09, dateLibelle: '30/09/2026' } };

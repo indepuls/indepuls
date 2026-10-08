@@ -5287,7 +5287,9 @@ function impTraiter(buf, mapping) {
     if (res.devise && res.devise !== 'EUR') { impMessage('<div class="alert al-warn">Ce relevé est en ' + esc(res.devise) + ' : seuls les relevés en euros sont pris en charge.</div>'); return; }
     if (!res.lignes.length) { impMessage('<div class="alert al-warn">Aucune ligne exploitable dans ce fichier.' + (res.rejets.length ? ' ' + res.rejets.length + ' ligne(s) illisible(s).' : '') + '</div>'); return; }
     const analyse = R.analyserReleve(DATA, res, DATA.empreintesImportees || [], DATA.reglesImport || []);
-    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse, DATA), inventaire: R.saisiesNonPointees(DATA, analyse), recurrences: {} };
+    _imp = { etape: 'analyse', parsed: res, analyse, decisions: R.decisionsParDefaut(analyse, DATA), inventaire: R.saisiesNonPointees(DATA, analyse), recurrences: {}, majs: {}, autoGroupes: 0 };
+    // Premier import (aucune mission encore) : les entrées d’argent sont déjà regroupées par client, à corriger si besoin. Rien n’est créé avant « Importer ».
+    if (!(DATA.missions || []).some((m) => !m.isManagement)) _imp.autoGroupes = R.proposerGroupesClients(DATA, analyse, _imp.decisions, today());
     (analyse.propositions || []).filter((p) => p.type === 'creer_recurrente').forEach((p, k) => { _imp.recurrences[k] = true; });
     renderImportReleve();
   } catch (e) {
@@ -5353,6 +5355,19 @@ function impAboDeLigne(index) {
   for (let k = 0; k < props.length; k++) if (_imp.recurrences[k] && props[k].indices.indexOf(index) >= 0) return k;
   return -1;
 }
+function impPropositionsMaj() { return (_imp.analyse.propositions || []).filter((p) => p.type === 'maj_montant'); }
+function impToggleMaj(k, oui) { _imp.majs[k] = !!oui; renderImportReleve(true); }
+function impMajAbonnementsHtml() {
+  const props = impPropositionsMaj();
+  if (!props.length) return '';
+  let h = '<details open style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Abonnements dont le montant a changé (' + props.length + ')</summary>'
+    + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Ces abonnements sont déjà saisis dans Indépuls, mais votre banque prélève un autre montant depuis plusieurs mois. Rien n’est modifié sans votre accord.</div>';
+  props.forEach((p, k) => {
+    h += '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:6px 0;border-top:1px solid var(--brd)"><input type="checkbox" onchange="impToggleMaj(' + k + ',this.checked)"' + (_imp.majs[k] ? ' checked' : '') + ' style="margin-top:3px">'
+      + '<span><strong>' + esc(p.libelle || 'Abonnement') + '</strong> : ' + (p.montantActuel != null ? impEur(p.montantActuel) : '') + ' dans votre abonnement, environ ' + impEur(p.montantSuggere) + ' prélevés ces ' + p.mois.length + ' derniers mois. Mettre l’abonnement à ' + impEur(p.montantSuggere) + ' ?</span></label>';
+  });
+  return h + '</details>';
+}
 function impAbonnementsHtml() {
   const props = impPropositionsAbo();
   if (!props.length) return '';
@@ -5395,6 +5410,7 @@ function impArgentRecuHtml(recu) {
   });
   const possible = recu.some((r) => { const d = _imp.decisions[r.index]; return r.nature === 'encaissement' && r.ligne.montant > 0 && !r.candidat && (d.action === 'plus_tard' || (d.action === 'nouvelle_mission' && !d.groupe)); });
   return '<details open style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Argent reçu (' + recu.length + ')</summary>'
+    + (_imp.autoGroupes ? '<div style="font-size:12px;color:var(--ok);margin:2px 0 6px">' + _imp.autoGroupes + ' client(s) repéré(s) : Indépuls a déjà regroupé vos entrées d’argent par client. Vérifiez la forme et le statut proposés, corrigez si besoin. Rien n’est créé avant « Importer ».</div>' : '')
     + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Rattachez chaque entrée d’argent à une mission existante, créez une mission pour un nouveau client, ou enregistrez-la comme revenu ponctuel. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.</div>'
     + (possible ? '<div style="margin:2px 0 4px"><button class="btn btn-acc btn-xs" onclick="impGroupesClients()">Créer une mission par client pour ces entrées</button> <span style="font-size:11px;color:var(--tl)">Les entrées d’un même client sont regroupées, vous pouvez tout corriger ensuite.</span></div>' : '')
     + corps + '</details>';
@@ -5487,7 +5503,7 @@ function impGroupeHtml(titre, rows, ouvert, aide, bulk) {
 function impDonneesSimulees() {
   if (_imp.simu) return _imp.simu;
   const copie = JSON.parse(JSON.stringify(DATA));
-  window._Releve.appliquerImport(copie, _imp.analyse, _imp.decisions, { maintenant: new Date().toISOString(), recurrences: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]) });
+  window._Releve.appliquerImport(copie, _imp.analyse, _imp.decisions, { maintenant: new Date().toISOString(), recurrences: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]), majMontants: impPropositionsMaj().filter((x, k) => _imp.majs[k]).map((x) => ({ depenseId: x.depenseId, montant: x.montantSuggere })) });
   _imp.simu = copie;
   return copie;
 }
@@ -5568,6 +5584,7 @@ function renderImportReleve(garderDefilement) {
     h += '<div style="font-size:13px;margin-bottom:10px">' + a.lignes.length + ' lignes du ' + impDate(p.lignes[0].date) + ' au ' + impDate(p.lignes[p.lignes.length - 1].date) + '. Chaque ligne indique pourquoi elle est classée ainsi, rien n\'est créé sans votre validation.'
       + (p.rejets.length ? '<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--tl)">' + p.rejets.length + ' ligne(s) illisible(s) ignorée(s)</summary>' + p.rejets.map((x) => '<div style="font-size:11px;color:var(--tl)">Ligne ' + x.numeroLigne + ' : ' + esc(x.motif) + '</div>').join('') + '</details>' : '') + '</div>';
     h += impAbonnementsHtml();
+    h += impMajAbonnementsHtml();
     h += impGroupeHtml(nbAbsorbees ? 'Autres dépenses à vérifier' : 'Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, confirmées si vous les avez déjà saisies, ou ignorées selon votre choix.');
     h += impGroupeHtml('Remboursements et avoirs', remb, true, 'Un remboursement fait à un client peut devenir un retour (profils achat-revente) ; un remboursement ou un avoir reçu d' + "'" + 'un fournisseur peut réduire la dépense concernée, ou être équilibré par une entrée d' + "'" + 'argent sur une vente. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
     h += impArgentRecuHtml(recu);
@@ -5586,7 +5603,7 @@ function renderImportReleve(garderDefilement) {
     return;
   } else if (_imp.etape === 'recap') {
     const c = impResume(), p = _imp.parsed, st = window._Releve.statistiques(_imp.analyse, _imp.decisions, DATA);
-    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + (c.creer + c.abo) + ' dépense(s) créée(s)' + (c.abo ? ' (dont ' + c.abo + ' abonnement(s) récurrent(s))' : '') + ', ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' saisie(s) confirmée(s) par la banque, ' + (c.retour ? c.retour + ' retour(s) client, ' : '') + (c.deduire ? c.deduire + ' dépense(s) réduite(s), ' : '') + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
+    h += '<div style="font-weight:600;font-size:15px;margin-bottom:8px">Prêt à importer : ' + (c.creer + c.abo) + ' dépense(s) créée(s)' + (c.abo ? ' (dont ' + c.abo + ' abonnement(s) récurrent(s))' : '') + (impPropositionsMaj().filter((x, k) => _imp.majs[k]).length ? ', ' + impPropositionsMaj().filter((x, k) => _imp.majs[k]).length + ' abonnement(s) existant(s) mis à jour' : '') + ', ' + c.recus + ' encaissement(s) créé(s), ' + c.rapprocher + ' saisie(s) confirmée(s) par la banque, ' + (c.retour ? c.retour + ' retour(s) client, ' : '') + (c.deduire ? c.deduire + ' dépense(s) réduite(s), ' : '') + (c.ignorer + c.couvrir) + ' ligne(s) ignorée(s) ou déjà couvertes.</div>'
       + (c.plus_tard ? '<div style="font-size:12px;color:var(--tl);margin-bottom:8px">' + c.plus_tard + ' ligne(s) d\'argent reçu laissée(s) pour plus tard : elles reviendront au prochain import.</div>' : '')
       + '<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Sur ' + st.proposees + ' ligne(s) proposée(s) : ' + st.tellesQuelles + ' validée(s) telle(s) quelle(s), ' + st.corrigees + ' corrigée(s).</div>';
     if (p.soldeCloture != null) {
@@ -5645,6 +5662,7 @@ function impConfirmer() {
       maintenant: new Date().toISOString(), auteurId: window._partage ? window._partage.userId : null, solde,
       periode: { debut: p.lignes[0].date, fin },
       recurrences: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]),
+      majMontants: impPropositionsMaj().filter((x, k) => _imp.majs[k]).map((x) => ({ depenseId: x.depenseId, montant: x.montantSuggere })),
       controlesUrssaf: isMicro() ? _imp.analyse.lignes.filter((r) => r.type === 'urssaf' && r.ligne.montant < 0 && r.statut !== 'deja_importee').map((r) => ({ date: r.ligne.date, reel: Math.abs(r.ligne.montant), empreinte: r.empreinte })) : [],
     });
     saveData();

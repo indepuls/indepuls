@@ -31,7 +31,7 @@ Détail du fichier long :
 ## Ce que l'import va montrer (dans l'ordre à l'écran, fichier court)
 
 1. **Abonnements repérés (5)** : Notion, Free Mobile, Canva, Zoom, Google Workspace. Cochés : une dépense récurrente chacun, qui disparaît de la liste des dépenses. Il reste 2 dépenses à vérifier (SNCF, OVH).
-2. **Argent reçu : « Créer une mission par client »** : 3 clients regroupés en un clic.
+2. **Argent reçu** : sur un compte sans mission (cas de la vidéo), les 3 clients sont **déjà regroupés** à l'ouverture de l'écran, avec la forme et le statut proposés. Rien n'est créé avant « Importer ». (Sur un import suivant, il faut cliquer sur « Créer une mission par client pour ces entrées ».)
    - Studio Lumière : mission récurrente, en cours (1 200 € par mois depuis juillet).
    - Maison Elia : plusieurs paiements (acompte 1 500 € en juillet, solde 1 500 € en août), terminée.
    - Bijoux Léa : mission simple, 450 € en août, terminée.

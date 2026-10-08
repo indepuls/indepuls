@@ -166,7 +166,7 @@ function ecartJourAttendu(d, dateLigne) {
 
 // couvertures[i] = null | { depenseId, libelle, ecartMontantPct, ecartJours, statut:'couverte'|'doute', explication }
 // propositions = [{ type:'maj_montant', depenseId, montantActuel, montantSuggere, mois:[...] }]
-// Une récurrente ne couvre qu'UNE ligne par mois. Montant : ±2 % ; jusqu'à ±15 % quand le libellé correspond
+// Une récurrente ne couvre qu'UNE ligne par mois. Montant : ±2 % ; jusqu’à ±30 % quand le libellé correspond (facture variable, hausse de tarif)
 // clairement (facture variable type EDF). Jour : ±5 jours. Libellé qui ne correspond pas : on DEMANDE (statut 'doute').
 export function rapprocherRecurrentes(DATA, lignes) {
   const recs = (DATA.depenses || []).filter((d) => (d.recurrence === 'mensuelle' || d.recurrence === 'annuelle') && d.date && d.montant);
@@ -182,7 +182,7 @@ export function rapprocherRecurrentes(DATA, lignes) {
       const jours = ecartJourAttendu(d, l.date);
       if (jours > 5) return;
       const libOk = ligneProche(l, d.libelle || '');
-      if (libOk && pct <= 15) paires.push({ i, d, pct, jours, statut: 'couverte', score: pct + jours });
+      if (libOk && pct <= 30) paires.push({ i, d, pct, jours, statut: 'couverte', score: pct + jours });
       else if (!libOk && pct <= 2) paires.push({ i, d, pct, jours, statut: 'doute', score: pct + jours + 100 });
     });
   });

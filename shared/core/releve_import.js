@@ -214,6 +214,16 @@ export function appliquerImport(DATA, analyse, decisions, options) {
   const dejaConnues = new Set(DATA.empreintesImportees);
   const memoriser = (r) => { [r.empreinte, r.souple].forEach((e) => { if (!dejaConnues.has(e)) { dejaConnues.add(e); DATA.empreintesImportees.push(e); lot.empreintes.push(e); } }); };
 
+  // Abonnements existants dont le montant prélevé a changé : mis à jour seulement si la personne l'a coché (annulable).
+  (opt.majMontants || []).forEach((m) => {
+    const d = (DATA.depenses || []).find((x) => x.id === m.depenseId);
+    const nouveau = arrondi2(m.montant);
+    if (d && d.montant !== nouveau) {
+      lot.corrections.push({ type: 'depense', id: d.id, avant: { montant: d.montant }, apres: { montant: nouveau } });
+      d.montant = nouveau;
+      lot.nbMajAbo = (lot.nbMajAbo || 0) + 1;
+    }
+  });
   const missionsGroupes = {};
   // Abonnements acceptés : une dépense récurrente mensuelle remplace les dépenses ponctuelles de ces lignes.
   const couvertesParAbonnement = new Set();
