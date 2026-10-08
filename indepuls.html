@@ -5381,32 +5381,35 @@ function impAbonnementsHtml() {
   });
   return h + '</details>';
 }
-function impGroupeClientHtml(premier) {
+// Un client = un BLOC distinct : en-tête (nom, forme, statut, résumé) puis, repliés dedans, ses virements. Sur un gros relevé,
+// la liste se réduit à une carte par client au lieu d’une ligne par virement.
+function impGroupeClientHtml(premier, lignesHtml) {
   const g = window._Releve.resumeGroupes(_imp.analyse, _imp.decisions).find((x) => x.indices.indexOf(premier) >= 0);
-  if (!g) return '';
+  if (!g) return lignesHtml;
   const aide = { ponctuelle: 'Une mission simple, payée en une fois.', plusieurs: 'Une seule mission avec un encaissement par virement (acompte, situation, solde…).', recurrente: 'Une mission récurrente : le même montant chaque mois, qui se poursuit dans vos prévisions tant qu’elle est « en cours ».' }[g.forme] || '';
   const sel = (liste, courant, champ) => '<select class="s-select" onchange="impGroupeChamp(' + premier + ',\'' + champ + '\',this.value)">' + liste.map(([v, t]) => '<option value="' + v + '"' + (courant === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  return '<div style="border:1px solid var(--brd);border-radius:10px;padding:8px 10px;margin:10px 0 2px">'
-    + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input class="s-select" style="flex:1 1 180px;font-weight:600" type="text" placeholder="Nom du client" value="' + esc(g.clientNom || '') + '" oninput="impGroupeChamp(' + premier + ',\'clientNom\',this.value)">'
+  const parMois = g.forme === 'recurrente' && g.n ? ', soit environ ' + impEur(Math.round(g.total / g.n * 100) / 100) + ' par virement' : '';
+  return '<div style="border:1.5px solid var(--acc);border-left-width:6px;border-radius:10px;padding:10px 12px;margin:14px 0">'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span style="font-size:18px" aria-hidden="true">👤</span><input class="s-select" style="flex:1 1 180px;font-weight:700;font-size:15px" type="text" placeholder="Nom du client" value="' + esc(g.clientNom || '') + '" oninput="impGroupeChamp(' + premier + ',\'clientNom\',this.value)">'
     + sel([['ponctuelle', 'Mission simple'], ['plusieurs', 'Plusieurs paiements'], ['recurrente', 'Mission récurrente']], g.forme, 'forme')
     + sel([['cours', 'En cours'], ['fact', 'Terminée (facturée)']], g.statut, 'statut') + '</div>'
-    + '<div style="font-size:11px;color:var(--tl);margin-top:4px">' + g.n + ' entrée(s) · ' + impEur(g.total) + ' · du ' + impDate(g.premiere) + ' au ' + impDate(g.derniere) + '. ' + aide + ' La fiche sera marquée « à compléter » : temps prévu, description…</div></div>';
+    + '<div style="font-size:12px;margin-top:6px"><strong>' + g.n + ' virement(s) · ' + impEur(g.total) + '</strong> · du ' + impDate(g.premiere) + ' au ' + impDate(g.derniere) + parMois + '</div>'
+    + '<div style="font-size:11px;color:var(--tl);margin-top:2px">' + aide + ' La fiche sera marquée « à compléter » : temps prévu, description…</div>'
+    + '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--acc)">Voir les ' + g.n + ' virement(s) de ce client</summary>' + lignesHtml + '</details></div>';
 }
 function impArgentRecuHtml(recu) {
   if (!recu.length) return '';
-  const ordre = {}; let n = 0;
-  recu.forEach((r) => { const d = _imp.decisions[r.index]; const k = (d.action === 'nouvelle_mission' && d.groupe) ? d.groupe : ('~' + r.index); if (ordre[k] == null) ordre[k] = n++; });
-  const triees = recu.slice().sort((a, b) => {
-    const da = _imp.decisions[a.index], db = _imp.decisions[b.index];
-    const ka = (da.action === 'nouvelle_mission' && da.groupe) ? da.groupe : ('~' + a.index), kb = (db.action === 'nouvelle_mission' && db.groupe) ? db.groupe : ('~' + b.index);
-    return ordre[ka] - ordre[kb] || (a.ligne.date < b.ligne.date ? -1 : 1);
-  });
-  const vus = {};
+  const cleDe = (r) => { const d = _imp.decisions[r.index]; return (d.action === 'nouvelle_mission' && d.groupe) ? d.groupe : null; };
+  const lignes = recu.slice().sort((x, y) => (x.ligne.date < y.ligne.date ? -1 : 1));
+  const dejaVus = {};
   let corps = '';
-  triees.forEach((r) => {
-    const d = _imp.decisions[r.index];
-    if (d.action === 'nouvelle_mission' && d.groupe && !vus[d.groupe]) { vus[d.groupe] = true; corps += impGroupeClientHtml(r.index); }
-    corps += impLigneHtml(r);
+  lignes.forEach((r) => {
+    const cle = cleDe(r);
+    if (!cle) { corps += impLigneHtml(r); return; }
+    if (dejaVus[cle]) return;
+    dejaVus[cle] = true;
+    const membres = lignes.filter((x) => cleDe(x) === cle);
+    corps += impGroupeClientHtml(membres[0].index, membres.map(impLigneHtml).join(''));
   });
   const possible = recu.some((r) => { const d = _imp.decisions[r.index]; return r.nature === 'encaissement' && r.ligne.montant > 0 && !r.candidat && (d.action === 'plus_tard' || (d.action === 'nouvelle_mission' && !d.groupe)); });
   return '<details open style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Argent reçu (' + recu.length + ')</summary>'

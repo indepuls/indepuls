@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — Import : un bloc par client, virements repliés (retour de Faustine : « noyé au milieu des lignes »)
+
+`impGroupeClientHtml(premier, lignesHtml)` et `impArgentRecuHtml` (`indepuls.html`) : chaque client forme un BLOC distinct (bordure d'accent à gauche, 👤, nom en gras, forme, statut, résumé « N virements · total · période · environ X par virement »), avec ses virements REPLIÉS dans un « Voir les N virement(s) de ce client » ; les virements non regroupés restent des lignes simples. Sur le relevé court, la liste « Argent reçu » passe de 7 lignes à 3 cartes. Les réglages (nom, forme, statut) s'appliquent toujours à tous les virements du client (`impGroupeChamp`) ; vérifié dans le navigateur (dépliage, changement de forme, import complet).
+
 ### 2026-10-08 — Import : regroupement automatique au premier import et mise à jour d'un abonnement existant
 
 - **Premier import** (aucune mission non « Mon entreprise ») : `proposerGroupesClients` est appliqué d'office à l'ouverture de l'analyse (`_imp.autoGroupes`), avec la phrase « N client(s) repéré(s) : Indépuls a déjà regroupé vos entrées… Rien n'est créé avant « Importer » ». Dès qu'une mission existe, le comportement reste le bouton « Créer une mission par client pour ces entrées ». Le bandeau « Clients repérés » (option B) est écarté (redondant).
