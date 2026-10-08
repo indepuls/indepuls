@@ -42,7 +42,7 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 *Montrer les abonnements repérés.* « Il repère mes abonnements : au lieu de douze dépenses par an, une seule dépense récurrente. »
 *Cliquer sur « Créer une mission par client ».* « Et en un clic, il regroupe mes encaissements par client. Ici, un client en abonnement mensuel, un projet payé en deux fois, une mission ponctuelle. Il propose la bonne forme et je peux tout corriger. »
 *Montrer « Ignorées par défaut ».* « Mes virements personnels et mes dépenses privées sont mis de côté : rien n'est compté à tort. »
-*Récapitulatif.* « Avant de valider, je vois tout ce qui va se passer. Et le contrôle URSSAF compare ce qui a été prélevé à ce qu'Indépuls avait prévu : ici, un écart de 52 euros sur le prélèvement d'octobre, que je peux aller vérifier : il me manque peut-être un encaissement. Je clique sur Importer. »
+*Récapitulatif.* « Avant de valider, je vois tout ce qui va se passer. Et le contrôle URSSAF compare ce qui a été prélevé à ce qu'Indépuls avait prévu : ici, un écart de 52 euros sur le prélèvement d'octobre, que je pourrai vérifier plus tard : Indépuls crée une alerte dans mon tableau de bord pour y revenir. Je clique sur Importer. »
 *Fenêtre d'impact.* « Et voilà : mon année est à jour. Si je me suis trompée, je peux défaire l'import en un clic. »
 
 ### 5. Les missions à compléter (40 s)

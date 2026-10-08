@@ -4231,7 +4231,14 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
-### 2026-10-08 — Import : abonnements en premier, dépenses restantes en dessous (idée de Faustine)
+### 2026-10-08 — Écart d'URSSAF : alerte dans le tableau de bord (décision de Faustine)
+
+- **Pourquoi** : la vérification d'un écart (encaissement oublié, déclaration à l'URSSAF, répartition BNC/BIC d'une activité mixte, taux) demande du temps et ne se fait pas pendant l'import.
+- **Import** : le récapitulatif ne détaille plus qu'une phrase (« N prélèvements vérifiés : X conformes, Y écart(s) repéré(s) ») et annonce « Une alerte sera créée dans votre tableau de bord ». Les prélèvements d'URSSAF du relevé (micro) sont mémorisés dans `DATA.controlesUrssaf` : `{id, date, reel, verifie, importLot}` (date et montant réel seulement, 12 maximum, pas de doublon au réimport, retirés par « Défaire cet import »).
+- **Alerte** (`renderDashboard`, juste après `alertLines`) : `alertesUrssaf(DATA, prevuUrssaf, regime)` recalcule l'écart à CHAQUE affichage avec les données du moment : ajouter l'encaissement oublié la fait disparaître toute seule (écart significatif = au moins 10 € et 3 %). Contenu : montants, mois concerné, chiffre d'affaires manquant estimé, pistes de la plus à la moins probable (encaissement oublié, déclaration URSSAF, répartition prestations/ventes si activité mixte, taux). Actions : « Voir mes revenus », « ✅ C'est vérifié » (`verifierEcartUrssaf`, `verifie:true`), « 🔕 Masquer 15 j » (clé `urssaf_ecart_AAAAMMJJ`).
+- Tests : `releve_import.test.js` (136) ; vérifié dans le navigateur (alerte, disparition après ajout d'un encaissement de 202 €, retour, « C'est vérifié »).
+
+, dépenses restantes en dessous (idée de Faustine)
 
 `indepuls.html` : le bloc « Abonnements repérés » passe AVANT la liste des dépenses ; les dépenses absorbées par un abonnement coché (`impAboDeLigne`) ne sont plus listées, la liste s'intitule alors « Autres dépenses à vérifier » ; décocher un abonnement fait revenir ses dépenses ligne par ligne. Texte de chaque abonnement raccourci (libellé, montant par mois, nombre de prélèvements, début) + une phrase d'explication avec le compte « N sur M cochés ». Vérifié sur le relevé de la vidéo : 98 dépenses à vérifier se réduisent à 4, 7 dépenses récurrentes créées, aucune en double.
 

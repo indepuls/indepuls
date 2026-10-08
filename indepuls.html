@@ -5399,6 +5399,7 @@ function impArgentRecuHtml(recu) {
     + (possible ? '<div style="margin:2px 0 4px"><button class="btn btn-acc btn-xs" onclick="impGroupesClients()">Créer une mission par client pour ces entrées</button> <span style="font-size:11px;color:var(--tl)">Les entrées d’un même client sont regroupées, vous pouvez tout corriger ensuite.</span></div>' : '')
     + corps + '</details>';
 }
+function verifierEcartUrssaf(id) { const c = (DATA.controlesUrssaf || []).find((x) => x.id === id); if (c) { c.verifie = true; saveData(); renderDashboard(); } }
 function impCompleterMission(id) { closeModal('modal-import-releve'); navigate('missions'); openMissionModal(id); }
 function impToutCreer(groupe) {
   _imp.analyse.lignes.forEach((r) => { if (r.groupe === groupe && !impEstArgentRecu(r) && r.statut === 'nouvelle') _imp.decisions[r.index].action = 'creer'; });
@@ -5603,9 +5604,8 @@ function renderImportReleve(garderDefilement) {
           const controles = urs.map((r) => ({ r, x: impUrssafControle(r.ligne) })).filter((o) => o.x);
           const ecarts = controles.filter((o) => o.x.significatif);
           h += '<div style="padding:8px 0;border-top:1px solid var(--brd);font-size:13px"><div style="font-weight:600">🧾 Contrôle URSSAF</div><div style="margin-top:2px;color:var(--tl)">'
-            + (ecarts.length ? controles.length + ' prélèvement(s) vérifié(s) : ' + (controles.length - ecarts.length) + ' conforme(s) à la prévision d’Indépuls, ' + ecarts.length + ' écart(s) à regarder.' : 'Les ' + controles.length + ' prélèvement(s) correspondent à la prévision d’Indépuls.') + '</div>';
-          ecarts.forEach((o) => { h += '<div style="margin-top:6px"><div style="font-weight:600;font-size:12px">Prélèvement du ' + impDate(o.r.ligne.date) + '</div><div style="color:var(--warn,#b45309)">' + esc(o.x.phrase) + '</div></div>'; });
-          h += '<div style="font-size:11px;color:var(--tl);margin-top:4px">Indicatif : la période est estimée d’après la date du prélèvement. Rien n’est modifié automatiquement.</div></div>';
+            + (ecarts.length ? controles.length + ' prélèvement(s) vérifié(s) : ' + (controles.length - ecarts.length) + ' conforme(s) à la prévision d’Indépuls, ' + ecarts.length + ' écart(s) repéré(s) (' + ecarts.map((o) => impDate(o.r.ligne.date) + ' : ' + impEur(Math.abs(o.r.ligne.montant)) + ' prélevés, environ ' + impEur(o.x.prevu) + ' prévus').join(' ; ') + '). Une alerte sera créée dans votre tableau de bord pour y revenir plus tard : la vérification (encaissement oublié, déclaration à l’URSSAF…) demande un peu de temps.' : 'Les ' + controles.length + ' prélèvement(s) correspondent à la prévision d’Indépuls.') + '</div>'
+            + '<div style="font-size:11px;color:var(--tl);margin-top:4px">Indicatif : la période est estimée d’après la date du prélèvement. Rien n’est modifié automatiquement.</div></div>';
         }
       }
     }
@@ -5645,6 +5645,7 @@ function impConfirmer() {
       maintenant: new Date().toISOString(), auteurId: window._partage ? window._partage.userId : null, solde,
       periode: { debut: p.lignes[0].date, fin },
       recurrences: impPropositionsAbo().filter((x, k) => _imp.recurrences[k]),
+      controlesUrssaf: isMicro() ? _imp.analyse.lignes.filter((r) => r.type === 'urssaf' && r.ligne.montant < 0 && r.statut !== 'deja_importee').map((r) => ({ date: r.ligne.date, reel: Math.abs(r.ligne.montant), empreinte: r.empreinte })) : [],
     });
     saveData();
     renderAll();
@@ -8195,6 +8196,18 @@ function wScoreSante(d) {
   // (dépendance client, objectif sous la cible...) est réglé, alors qu'il n'a fait que se taire.
   const _dismissBtn=k=>`<button type="button" class="btn btn-out btn-xs" onclick="DATA.alertsDismissed=DATA.alertsDismissed||{};DATA.alertsDismissed.${k}=Date.now();saveData();renderDashboard();" style="flex-shrink:0" title="Elle réapparaîtra si c'est toujours d'actualité dans 15 jours. Sinon, vous ne la reverrez plus.">🔕 Masquer 15 j</button>`;
   const alertLines=[];
+  // Écart d’URSSAF repéré à l’import d’un relevé (micro) : recalculé à chaque affichage, disparaît quand les données le justifient
+  try {
+    if(isMicro() && window._Releve && window._Releve.alertesUrssaf){
+      window._Releve.alertesUrssaf(DATA, window._Releve.prevuUrssaf, getUrssafRegime()).forEach(a=>{
+        const cle='urssaf_ecart_'+a.date.replace(/-/g,'');
+        if(_alertDismissed(cle)) return;
+        const mk=a.mois[a.mois.length-1], moisLib=new Date(mk+'-15T00:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+        const manque=a.x.caImplique!=null?Math.max(0,a.x.caImplique-a.x.caCompte):null;
+        alertLines.push(`<div class="alert al-warn" style="font-size:12px;margin-bottom:6px;flex-wrap:wrap;gap:8px"><span style="flex:1;min-width:260px">🧾 <strong>Écart d’URSSAF à vérifier</strong> : le prélèvement du ${impDate(a.date)} est de ${fmtE(a.x.reel)}, Indépuls prévoyait environ ${fmtE(a.x.prevu)} pour ${esc(moisLib)} (écart de ${fmtE(Math.abs(a.x.ecart))}${manque?', soit environ '+fmtE(manque)+' de chiffre d’affaires de plus que ce qui est compté':''}).<br>Pistes, de la plus probable à la moins probable : un encaissement de ${esc(moisLib)} oublié dans Indépuls ; une différence avec votre déclaration à l’URSSAF (période ou montant déclaré) ;${isActiviteMixte()?' la répartition prestations / ventes (BNC, BIC) ;':''} le taux, s’il n’était pas déjà correct les mois précédents.</span><button type="button" class="btn btn-out btn-xs" onclick="navigate('revenus')">Voir mes revenus</button><button type="button" class="btn btn-out btn-xs" onclick="verifierEcartUrssaf('${a.id}')">✅ C’est vérifié</button>${_dismissBtn(cle)}</div>`);
+      });
+    }
+  } catch(e){ reportError('alerte_urssaf_ecart', e); }
   // Client dominant
   const clientCA={};
   DATA.missions.filter(m=>!m.isManagement).forEach(m=>{
@@ -18064,7 +18077,7 @@ document.addEventListener('keydown', function(e) {
   import * as ReleveImport from './shared/core/releve_import.js';
   import * as CalculsReleve from './shared/core/calculs.js';
   window._Releve = { prevuUrssaf: (d, moisListe) => { const mixte = CalculsReleve.isActiviteMixte(d); let prevu = 0, ca = 0; moisListe.forEach((mk) => { const bd = CalculsReleve.getCaBreakdownMois(d, mk); prevu += bd.presta * CalculsReleve.getTauxChargesPresta(d) + (mixte ? bd.vente * CalculsReleve.getTauxChargesVente(d) : 0); ca += bd.presta + (mixte ? bd.vente : 0); }); return { prevu, ca }; },
-    parseReleve: ReleveLecture.parseReleve, proposerGroupesClients: ReleveImport.proposerGroupesClients, resumeGroupes: ReleveImport.resumeGroupes, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
+    alertesUrssaf: ReleveImport.alertesUrssaf, parseReleve: ReleveLecture.parseReleve, proposerGroupesClients: ReleveImport.proposerGroupesClients, resumeGroupes: ReleveImport.resumeGroupes, suggererCategorie: ReleveImport.suggererCategorie, depensesDeductibles: ReleveImport.depensesDeductibles, retoursEnAttente: ReleveImport.retoursEnAttente, profilRetours: ReleveImport.profilRetours, libelleNettoye: ReleveLecture.libelleNettoye, analyserReleve: ReleveClassement.analyserReleve, saisiesNonPointees: ReleveClassement.saisiesNonPointees,
     decisionsParDefaut: ReleveImport.decisionsParDefaut, appliquerImport: ReleveImport.appliquerImport, defaireImport: ReleveImport.defaireImport,
     statistiques: ReleveImport.statistiques, motCleSuggere: ReleveImport.motCleSuggere, cleMapping: ReleveImport.cleMapping,
     echeanceUrssafProche: ReleveImport.echeanceUrssafProche, comparerUrssaf: ReleveImport.comparerUrssaf, calculerImpactImport: ReleveImport.calculerImpactImport };

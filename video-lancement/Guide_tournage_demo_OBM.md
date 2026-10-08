@@ -36,7 +36,7 @@ Détail du fichier long :
    - Maison Elia : plusieurs paiements (acompte 1 500 € en juillet, solde 1 500 € en août), terminée.
    - Bijoux Léa : mission simple, 450 € en août, terminée.
 3. **Ignorées par défaut (8)** : virement permanent personnel, restaurant, retrait, allocation CAF, charges sociales.
-4. **Récapitulatif** : mise à jour du solde (3 847,73 € au 20/10/2026) et **contrôle URSSAF** : le prélèvement du 10 septembre est conforme, celui du **10 octobre** a un écart volontaire de 52 € (bon moment pour expliquer l'écart et le chiffre d'affaires déclaré implicite d'environ 200 € de plus que ce que compte Indépuls).
+4. **Récapitulatif** : mise à jour du solde (3 847,73 € au 20/10/2026) et **contrôle URSSAF** : le prélèvement du 10 septembre est conforme, celui du **10 octobre** a un écart volontaire de 52 € (le récapitulatif annonce une alerte dans le tableau de bord). Après l'import, montre l'**alerte du tableau de bord** : elle explique l'écart (il manquerait environ 200 € de chiffre d'affaires) et propose les pistes à vérifier. Si tu ajoutes un encaissement de 200 € en août, l'alerte disparaît toute seule : bon moment pour le montrer, puis le retirer.
 5. **Écran final** : fenêtre d'impact et liste des missions « à compléter ».
 
 (Le fichier long donne 5 clients, 7 abonnements et un écart en août.)

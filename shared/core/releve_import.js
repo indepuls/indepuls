@@ -356,6 +356,20 @@ export function appliquerImport(DATA, analyse, decisions, options) {
     DATA.params.soldeReelDate = (opt.solde.date || maintenant).slice(0, 7);
   }
 
+  // Prélèvements d'URSSAF vus dans le relevé : on ne garde que la date et le montant réel. L'écart avec la prévision est
+  // recalculé à chaque affichage du tableau de bord (voir alertesUrssaf) : l'alerte disparaît d'elle-même quand les données
+  // le justifient, et rien n'est modifié automatiquement.
+  if ((opt.controlesUrssaf || []).length) {
+    DATA.controlesUrssaf = DATA.controlesUrssaf || [];
+    opt.controlesUrssaf.forEach((c) => {
+      const id = 'cu-' + (c.empreinte || (c.date + '-' + c.reel));
+      if (DATA.controlesUrssaf.some((x) => x.id === id)) return;
+      DATA.controlesUrssaf.push({ id, date: c.date, reel: arrondi2(c.reel), verifie: false, importLot: lotId });
+      lot.nbControles = (lot.nbControles || 0) + 1;
+    });
+    if (DATA.controlesUrssaf.length > 12) DATA.controlesUrssaf = DATA.controlesUrssaf.slice(-12);
+  }
+
   // Mémoire plafonnée : les plus anciennes empreintes sont oubliées d'abord.
   if (DATA.empreintesImportees.length > MAX_EMPREINTES) DATA.empreintesImportees = DATA.empreintesImportees.slice(-MAX_EMPREINTES);
   DATA.importsReleve = DATA.importsReleve || [];
@@ -431,6 +445,7 @@ export function defaireImport(DATA, lotId) {
     const d = (DATA.depenses || []).find((x) => x.id === id);
     if (d && d.importLot === lotId) { delete d.importId; delete d.importLot; res.rapprochementsRetires++; }
   });
+  if (DATA.controlesUrssaf) DATA.controlesUrssaf = DATA.controlesUrssaf.filter((x) => x.importLot !== lotId);
   // Les empreintes du lot sont oubliées : ces lignes pourront de nouveau être proposées.
   const aOublier = new Set(lot.empreintes);
   DATA.empreintesImportees = (DATA.empreintesImportees || []).filter((e) => !aOublier.has(e));
@@ -525,4 +540,20 @@ export function calculerImpactImport(avant, apres, ctx) {
   }
   const retenus = constats.slice(0, 3);
   return { titre, constats: retenus, rienDeChange: retenus.length === 0 };
+}
+
+// ── ALERTES D'ÉCART D'URSSAF (tableau de bord, micro-entreprise) ─────────────────────────────────────────────
+// prevuUrssaf(DATA, mois[]) -> { prevu, ca } : fonction fournie par l'appelant (calculs existants). Retourne les prélèvements
+// mémorisés dont l'écart avec la prévision d'Indépuls est significatif (au moins 10 € et 3 %) et qui n'ont pas été marqués
+// « vérifiés ». Recalculé à chaque appel : ajouter l'encaissement oublié fait disparaître l'alerte.
+export function alertesUrssaf(DATA, prevuUrssaf, regime) {
+  const res = [];
+  (DATA.controlesUrssaf || []).forEach((c, i) => {
+    if (c.verifie) return;
+    const e = echeanceUrssafProche(c.date, regime);
+    const p = prevuUrssaf(DATA, e.mois);
+    const x = comparerUrssaf({ reel: c.reel, prevu: Math.round(p.prevu), caCompte: Math.round(p.ca) });
+    if (x.significatif) res.push({ index: i, id: c.id, date: c.date, mois: e.mois, x });
+  });
+  return res;
 }

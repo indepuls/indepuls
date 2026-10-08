@@ -380,6 +380,40 @@ async function main() {
     test('annulation : la dépense récurrente est supprimée', 0, dAvec.depenses.length);
   }
 
+  section("Alerte d'écart d'URSSAF : mémorisée à l'import, recalculée à chaque affichage");
+  {
+    const K = await import(pathToFileURL(path.join(ROOT, 'core', 'calculs.js')).href);
+    const prevu = (d, moisListe) => { let p = 0, ca = 0; moisListe.forEach((mk) => { const bd = K.getCaBreakdownMois(d, mk); p += bd.presta * K.getTauxChargesPresta(d); ca += bd.presta; }); return { prevu: p, ca }; };
+    const base = () => ({ params: { statut: 'micro-bnc', tva: false, tauxURSSAF: 25.6, tauxCFP: 0.2, urssafRegime: 'mensuel' }, revenus: {}, depenses: [], retours: [],
+      missions: [{ id: 'm1', client: 'Lumiere', statut: 'cours', isRecurring: false, encaissements: [{ id: 'e1', date: '2026-07-05', montant: 2750 }, { id: 'e0', date: '2026-06-10', montant: 1000 }] }] });
+    const lignesU = { lignes: [{ date: '2026-09-10', libelle: 'PRLV URSSAF AUTO ENTREPRENEUR', montant: -762 }, { date: '2026-08-10', libelle: 'PRLV URSSAF AUTO ENTREPRENEUR', montant: -258 }] };
+    const d = base(); const an = C.analyserReleve(d, lignesU, [], []); const dec = I.decisionsParDefaut(an, d);
+    const lot = I.appliquerImport(d, an, dec, { maintenant: NOW, controlesUrssaf: an.lignes.filter((r) => r.type === 'urssaf').map((r) => ({ date: r.ligne.date, reel: Math.abs(r.ligne.montant), empreinte: r.empreinte })) });
+    test('les prélèvements d\'URSSAF sont mémorisés (date et montant réel seulement)', [2, true], [d.controlesUrssaf.length, d.controlesUrssaf.every((x) => x.reel > 0 && x.date && x.verifie === false && x.importLot === lot.id)]);
+    const al = I.alertesUrssaf(d, prevu, 'mensuel');
+    test('écart de 52 € (762 prélevés, 710 prévus) : alerte, avec le mois concerné', [1, '2026-09-10', 52, ['2026-07']], [al.length, al[0].date, al[0].x.ecart, al[0].mois]);
+    test('un prélèvement conforme ne donne pas d\'alerte', false, al.some((a) => a.date === '2026-08-10' && Math.abs(a.x.ecart) < 10));
+    test('le chiffre d\'affaires manquant est estimé', true, al[0].x.caImplique > al[0].x.caCompte);
+    // L'encaissement oublié est ajouté : l'alerte disparaît toute seule.
+    d.missions[0].encaissements.push({ id: 'e2', date: '2026-07-20', montant: 200 });
+    test('l\'encaissement oublié est ajouté : l\'alerte disparaît d\'elle-même', 0, I.alertesUrssaf(d, prevu, 'mensuel').filter((a) => a.date === '2026-09-10').length);
+    d.missions[0].encaissements.pop();
+    // « C'est vérifié »
+    d.controlesUrssaf.find((x) => x.date === '2026-09-10').verifie = true;
+    test('marqué « vérifié » : plus d\'alerte', 0, I.alertesUrssaf(d, prevu, 'mensuel').filter((a) => a.date === '2026-09-10').length);
+    // Réimport : pas de doublon
+    const an2 = C.analyserReleve(d, lignesU, d.empreintesImportees, []);
+    I.appliquerImport(d, an2, I.decisionsParDefaut(an2, d), { maintenant: NOW, controlesUrssaf: [{ date: '2026-09-10', reel: 762, empreinte: an.lignes[0].empreinte }] });
+    test('réimport : pas de contrôle en double', 2, d.controlesUrssaf.length);
+    // Annulation
+    I.defaireImport(d, lot.id);
+    test('annulation de l\'import : les contrôles créés sont retirés', 0, (d.controlesUrssaf || []).length);
+    // Plafond
+    const dp = base();
+    I.appliquerImport(dp, an, dec, { maintenant: NOW, controlesUrssaf: Array.from({ length: 15 }, (_, k) => ({ date: '2026-09-10', reel: 100 + k, empreinte: 'x' + k })) });
+    test('au plus 12 contrôles conservés', 12, dp.controlesUrssaf.length);
+  }
+
   section("Impact de l'import : constats significatifs seulement, avec leur origine");
   {
     const ctx = { moisLibelle: 'septembre', revenusImportes: 960, depensesImportees: 230, unite: '€/h', soldeMaj: { apres: 6875.09, dateLibelle: '30/09/2026' } };
