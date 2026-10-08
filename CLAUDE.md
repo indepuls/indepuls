@@ -4231,6 +4231,12 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — FIX : « Temps total estimé ce mois-ci » figé sur le premier chiffre tapé (retour de Faustine)
+
+- **Symptôme** : taper « 14 » dans « Temps réservé » (h/semaine) d'une mission récurrente remplissait « Temps total estimé ce mois-ci » avec 3,7 h au lieu de 51,3 h.
+- **Cause** : `updateTempsPrevuZone` ne remplissait le champ que s'il était VIDE ; au premier chiffre (« 1 », soit 1 h × 44 semaines ÷ 12 = 3,7), le champ se remplissait, puis ne bougeait plus (« jamais écrasé »).
+- **Fix** (`indepuls.html` ET `indepuls-demo.html`) : drapeau `data-auto` sur `#m-temps-prevu`. La suggestion est posée si le champ est vide, et MISE À JOUR tant qu'elle vient de l'application ; dès que la personne tape dans le champ (`oninput` : `this.dataset.auto=''`), elle n'est plus jamais écrasée ; si la charge est effacée, une valeur automatique est retirée ; à l'ouverture d'une fiche, la valeur enregistrée n'est pas automatique. Formule inchangée : h/semaine × semaines par an (44 par défaut) ÷ 12. Vérifié en simulant la frappe : 1 → 3,7 ; 14 → 51,3 ; 15 → 55 ; valeur manuelle conservée.
+
 ### 2026-10-08 — « À compléter » : le texte de la description disparaît aussi à l'enregistrement de la fiche
 
 `saveMission` (édition, `indepuls.html`) : en plus de `aCompleter=false` (badge), la description par défaut « Créée depuis un import de relevé bancaire : à compléter » est effacée si elle n'a pas été réécrite. Le badge et la mention disparaissent donc quand la fiche est ENREGISTRÉE (même sans changement) ; ajouter du temps avec le chrono ou le bouton « Temps » ne les retire pas. Vérifié dans le navigateur (Studio Lumière enregistrée : flag `false`, description vide ; les 2 autres missions inchangées).
