@@ -41,6 +41,18 @@ Détail du fichier long :
 
 (Le fichier long donne 5 clients, 7 abonnements et un écart en août.)
 
+## Saisie manuelle de Canva avant l'import (pour montrer que l'import le reconnaît)
+
+Saisis Canva **comme un abonnement mensuel**, AVANT d'importer :
+- Libellé : Canva (la catégorie « Logiciels & abonnements » se propose toute seule).
+- Montant : 12,99 €.
+- Récurrence : mensuelle.
+- Date de début : 08/07/2026.
+
+À l'import, les 4 prélèvements de Canva apparaissent dans « Déjà couvertes » avec « Déjà comptée dans votre abonnement Canva », et Canva n'est pas proposé comme nouvel abonnement (il reste 4 abonnements repérés : Notion, Free Mobile, Zoom, Google Workspace).
+
+À éviter : saisir Canva comme dépense ponctuelle. L'import reconnaîtrait un seul prélèvement (« Déjà saisie, ne rien ajouter ») et proposerait quand même Canva comme abonnement : le message est moins clair pour la vidéo.
+
 ## Les 3 missions à compléter ensuite (« Compléter la fiche »)
 
 | Mission | Ce qu'on ajoute | Pour montrer |
