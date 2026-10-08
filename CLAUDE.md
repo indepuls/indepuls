@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — « À compléter » : le texte de la description disparaît aussi à l'enregistrement de la fiche
+
+`saveMission` (édition, `indepuls.html`) : en plus de `aCompleter=false` (badge), la description par défaut « Créée depuis un import de relevé bancaire : à compléter » est effacée si elle n'a pas été réécrite. Le badge et la mention disparaissent donc quand la fiche est ENREGISTRÉE (même sans changement) ; ajouter du temps avec le chrono ou le bouton « Temps » ne les retire pas. Vérifié dans le navigateur (Studio Lumière enregistrée : flag `false`, description vide ; les 2 autres missions inchangées).
+
 ### 2026-10-08 — FIX : le sélecteur du chrono gardait les noms de missions d'avant (retour de Faustine)
 
 - **Symptôme** : sur un compte de test réinitialisé puis importé, le sélecteur « Suivre du temps sur » proposait des noms de chantiers qui n'étaient plus dans la liste (ceux du compte d'avant).

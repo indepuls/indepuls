@@ -10323,7 +10323,7 @@ function syncAutoDepenseVente(mission, obj) {
 }
 function finalizeSaveMission(editId, obj) {
   let mission=null;
-  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); if(m.aCompleter===true) m.aCompleter=false; mission=m; } }
+  if(editId) { const m=DATA.missions.find(x=>x.id===editId); if(m){ if(m.statut!=='termine'&&obj.statut==='termine') window.trackEvent('mission_completed',{categorie:obj.categorie}); Object.assign(m,obj); if(m.aCompleter===true){ m.aCompleter=false; if(m.description==='Créée depuis un import de relevé bancaire : à compléter') m.description=''; } mission=m; } }
   else { addMission(obj); window.trackEvent('mission_added',{categorie:obj.categorie}); mission=DATA.missions[DATA.missions.length-1]; }
   if(mission) syncAutoDepenseVente(mission, obj);
   saveData(); closeModal('modal-mission'); showToastIfReal('✅ Mission enregistrée.'); renderMissions(); triggerSaveReminderIfNeeded();
