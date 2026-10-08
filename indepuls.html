@@ -6258,17 +6258,27 @@ function getRentabiliteRoulante() {
 // jamais un blocage : l'agenda peut être plein sans qu'Indépuls le sache (calendrier non renseigné).
 // Aucune saisie neuve : réutilise mission.tempsManuel + la rentabilité/remplissage déjà calculés.
 // DORMANT à cette étape (l'UI "Et si ?" les branchera à l'étape 2).
-function getHeuresMoisParCategories(categories, nbMois = 3) {
+function getHeuresMoisParCategories(categories, nbMois = 3, portee = 'tout') {
   const set = new Set(categories || []);
   if (!set.size || nbMois < 1) return 0;
   const now = new Date();
   const fenetre = new Set();
   for (let i = 0; i < nbMois; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); fenetre.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
   let ms = 0;
-  (DATA.missions || []).forEach(m => (m.tempsManuel || []).forEach(t => {
-    if (t.categorie && set.has(t.categorie) && fenetre.has((t.date || '').slice(0, 7))) ms += (t.ms || 0);
-  }));
+  // portee : 'tout' (missions clients ET « Mon entreprise »), 'entreprise' (seulement la mission de gestion), 'clients' (seulement les missions clients).
+  (DATA.missions || []).forEach(m => {
+    if (portee === 'entreprise' && !m.isManagement) return;
+    if (portee === 'clients' && m.isManagement) return;
+    (m.tempsManuel || []).forEach(t => {
+      if (t.categorie && set.has(t.categorie) && fenetre.has((t.date || '').slice(0, 7))) ms += (t.ms || 0);
+    });
+  });
   return Math.round((ms / 3600000) / nbMois * 10) / 10; // heures/mois moyennées, arrondi 0,1 h
+}
+// Répartition du temps catégorisé : sur « Mon entreprise » et sur les missions clients (même fenêtre, même moyenne mensuelle).
+function getHeuresMoisDetail(categories, nbMois = 3) {
+  const e = getHeuresMoisParCategories(categories, nbMois, 'entreprise'), c = getHeuresMoisParCategories(categories, nbMois, 'clients');
+  return { entreprise: e, clients: c, total: Math.round((e + c) * 10) / 10 };
 }
 // TH net par heure = ce qu'on garde vraiment d'une heure facturable (revenu net roulant ÷ heures
 // roulantes). Même définition que le "TH réel net" affiché ailleurs (thR = caNet/heures).
@@ -6277,8 +6287,8 @@ function getTHNetParHeure() {
   return r.heures > 0 ? r.caNet / r.heures : 0;
 }
 // Simulation complète : tout ce dont l'UI a besoin, garde-fou remplissage inclus.
-function simulerDelegation(categories, nbMois = 3) {
-  const heuresMois = getHeuresMoisParCategories(categories, nbMois);
+function simulerDelegation(categories, nbMois = 3, portee = 'tout') {
+  const heuresMois = getHeuresMoisParCategories(categories, nbMois, portee);
   const thNet = getTHNetParHeure();
   const budget = Math.round(heuresMois * thNet);
   // Remplissage = MÊME source que le pilier du Score de Santé (getPilierRemplissage : temps planifié
@@ -17091,7 +17101,7 @@ const ETSI_METH = {
   rythme: `<strong>Données ·</strong> Vos paramètres réels (Objectifs) et vos dépenses déjà saisies.<br><strong>Calcul ·</strong> (Revenu net visé + dépenses moyennes) ÷ (1 − charges − impôts) ÷ heures disponibles sur l'année (jours × semaines, moins les congés).<br>Un seul curseur à la fois change une valeur ; le reste, y compris vos dépenses réelles, ne bouge pas.`,
   prix: `<strong>Données ·</strong> Votre chiffre d'affaires et vos heures des 12 derniers mois glissants (mêmes valeurs que "Ma rentabilité").<br><strong>Calcul ·</strong> Marge en plus = CA × hausse. Temps gagné = heures actuelles − (heures actuelles ÷ (1 + hausse)) : le temps qu'il faudrait en moins pour gagner la même chose au nouveau tarif.`,
   client: `<strong>Données ·</strong> Le montant mensuel réel de vos missions récurrentes actives, et votre CA brut annuel réel.<br><strong>Calcul ·</strong> Impact du mois = montant mensuel du client. Impact d'ici décembre = montant mensuel × mois restants. % du CA = montant mensuel × 12 ÷ CA brut annuel.<br><strong>Seuils ·</strong> &lt; 10 % → impact limité &nbsp;·&nbsp; 10-25 % → à surveiller &nbsp;·&nbsp; &gt; 25 % → dépendance importante.`,
-  delegation: `<strong>Données ·</strong> Le temps que vous avez passé sur les catégories cochées, sur les 3 derniers mois (moyenne mensuelle), et votre taux horaire net réel (revenu net ÷ heures, sur vos 12 derniers mois glissants, le même "TH réel net" qu'ailleurs).<br><strong>Calcul ·</strong> Budget = heures/mois libérées × taux horaire NET. On prend le net (ce que vous gardez vraiment) et pas le brut (ce que vous facturez), parce que le budget est une dépense réelle : la facture du prestataire. C'est un plafond à coût neutre, jusqu'auquel déléguer ne vous coûte rien si vous revendez le temps libéré.<br><strong>Garde-fou ·</strong> Ce budget ne se réalise que si vous revendez réellement le temps gagné. En dessous de 80 % de remplissage, on vous prévient : libérer du temps ne crée pas de CA tant que votre agenda facturable n'est pas plein. Si votre calendrier n'est pas renseigné, on affiche quand même le budget mais on ne peut pas vérifier votre saturation.`,
+  delegation: `<strong>Données ·</strong> Le temps que vous avez passé sur les catégories cochées, sur vos missions clients et sur « Mon entreprise » (vous pouvez ne retenir que votre entreprise), sur les 3 derniers mois (moyenne mensuelle), et votre taux horaire net réel (revenu net ÷ heures, sur vos 12 derniers mois glissants, le même "TH réel net" qu'ailleurs).<br><strong>Calcul ·</strong> Budget = heures/mois libérées × taux horaire NET. On prend le net (ce que vous gardez vraiment) et pas le brut (ce que vous facturez), parce que le budget est une dépense réelle : la facture du prestataire. C'est un plafond à coût neutre, jusqu'auquel déléguer ne vous coûte rien si vous revendez le temps libéré.<br><strong>Garde-fou ·</strong> Ce budget ne se réalise que si vous revendez réellement le temps gagné. En dessous de 80 % de remplissage, on vous prévient : libérer du temps ne crée pas de CA tant que votre agenda facturable n'est pas plein. Si votre calendrier n'est pas renseigné, on affiche quand même le budget mais on ne peut pas vérifier votre saturation.`,
   statut: `<strong>Données ·</strong> Votre chiffre d'affaires des 12 derniers mois glissants et vos dépenses déjà saisies.<br><strong>Calcul ·</strong><br><strong>Micro :</strong> CA × (1 − charges URSSAF/CFP) − impôt − dépenses. L'impôt est calculé sur le revenu APRÈS abattement forfaitaire (34/50/71 % selon votre sous-régime micro), pas sur le CA brut, le même calcul que "Combien facturer ?".<br><br><strong>Micro avec TVA :</strong> dépend de votre choix "Augmentez vos prix" / "Gardez le même prix total". Si vous augmentez vos prix, la TVA collectée sur les factures est un simple transit reversé à l'État, sans impact ; si vous gardez le même prix total qu'aujourd'hui (cas d'une clientèle de particuliers, par exemple), une partie de ce que vous encaissez devient de la TVA à reverser, donc votre CA hors taxe réel diminue. Dans les deux cas, s'ajoute la TVA récupérable sur vos dépenses : réellement suivie si la TVA est déjà activée sur votre compte, sinon estimée au taux configuré sur vos dépenses hors assurances et prévoyance (toujours exonérées de TVA, jamais incluses dans l'estimation), la case "TVA déductible" n'existant pas encore sur un compte sans TVA.<br><br><strong>EI au réel :</strong> (CA − dépenses) − cotisations sociales − impôt, les deux calculés directement sur ce bénéfice (CA moins dépenses), sans aucun abattement contrairement à la micro, avec le taux de cotisations et le TMI pris depuis Paramètres › Fiscalité.<br><br><strong>EURL/SASU :</strong> (CA − dépenses) ÷ (1 + coût de rémunération forfaitaire : 45 % EURL, 82 % SASU), ce forfait couvre déjà toutes les cotisations sociales, l'URSSAF (propre à la micro) ne s'applique jamais à ces deux statuts.<br><br><strong>Estimation indicative</strong> à CA et dépenses constants, sans modéliser dividendes, IS réel, protection sociale, ni régularisation N+1 des cotisations TNS.`,
   vfl: `<strong>1. Éligibilité</strong><br><strong>Données ·</strong> Le revenu fiscal de référence (RFR) et le nombre de parts fiscales que vous saisissez, tous deux relatifs à l'année N-2 par rapport à l'année pour laquelle l'éligibilité est vérifiée.<br><strong>Calcul ·</strong> RFR ÷ nombre de parts = RFR par part. Éligible si ce montant ne dépasse pas le plafond légal par part (29 579 € en 2026).<br><br><strong>2. Intérêt financier</strong><br><strong>Données ·</strong> Votre CA annualisé réel (moyenne des 12 derniers mois), utilisé comme projection du CA sur lequel seraient basés vos impôts pour l'année simulée, que vous optiez ou non pour le versement libératoire, votre situation fiscale (imposition individuelle ou commune), les autres revenus imposables PROJETÉS du foyer pour l'année simulée et le nombre de parts pour cette même année. Ce champ "autres revenus" n'a aucun lien avec le RFR saisi à l'étape 1 (année différente, usage différent) : il s'agit de tout ce qui viendra s'ajouter à l'impôt du foyer pour l'année simulée en dehors de votre activité, par exemple le salaire de votre conjoint·e, des revenus fonciers (loyers), une pension.<br><strong>Calcul ·</strong> Mécanisme du "taux effectif" (source DGFIP/BOFiP) : sous versement libératoire, votre bénéfice micro (après abattement) n'est pas réimposé au barème, mais reste intégré au revenu du foyer pour déterminer le taux moyen appliqué aux AUTRES revenus. Indépuls calcule donc l'impôt du foyer entier avec et sans versement libératoire (barème progressif, quotient familial, plafonnement du quotient familial pour les enfants à charge classique, puis décote), jamais une comparaison isolée du seul bénéfice micro contre le seul CA.<br><strong>Scénarios prudent/prévu/ambitieux ·</strong> "Prévu" est votre CA annualisé réel. "Prudent" et "ambitieux" appliquent respectivement -20 % et +20 % à ce montant. Vous pouvez aussi saisir n'importe quel autre montant à la main. Si le CA utilisé (quel qu'il soit) dépasse le plafond du régime micro pour votre activité, un avertissement le signale : au-delà, vous ne seriez de toute façon plus en micro-entreprise, donc plus éligible au versement libératoire.<br><strong>Point de bascule ·</strong> À situation fiscale fixée (autres revenus, parts, imposition commune), Indépuls recherche le CA à partir duquel le versement libératoire devient avantageux, dans la limite du plafond du régime micro. Le curseur qui l'accompagne est purement exploratoire : il ne modifie ni ne sauvegarde votre simulation principale.<br><strong>Limites ·</strong> Estimation basée sur le barème le plus récent disponible, pas nécessairement celui de l'année simulée. Les situations de parent isolé, garde alternée, invalidité, ancien combattant ou veuvage ne sont pas prises en charge précisément (plafonds spécifiques différents) : si vous cochez "situation particulière", le résultat reste indicatif mais moins fiable.`,
 };
@@ -17256,6 +17266,7 @@ function saveEtsiStatutInput() {
 // Carte "Et si je déléguais ?" (retour Justin, 2026-08-09). L'utilisateur coche ses PROPRES
 // catégories de temps (aucune imposée, aucune devinée) : Indépuls calcule le budget qu'il pourrait
 // mettre en délégation en revendant le temps libéré. Voir simulerDelegation() pour le détail.
+let _etsiDelegPortee = 'tout';
 function etsiCard5Html() {
   const cats=DATA.categoriesTemps||[];
   const head=`<div class="card-header"><div class="card-title">🤝 Et si je déléguais ?</div><button class="btn btn-out btn-xs" onclick="openEtSiMeth('delegation')">Comment c'est calculé ?</button></div>`;
@@ -17266,8 +17277,14 @@ function etsiCard5Html() {
   }
   const cases=cats.map(c=>`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;background:var(--bg);border:1px solid var(--brd);border-radius:16px;padding:4px 10px;cursor:pointer"><input type="checkbox" value="${esc(c)}" onchange="etsiDelegCatsChanged()" style="accent-color:var(--pri)">${esc(c)}</label>`).join('');
   return `<div class="card" id="etsi-card5">${head}
-    <div class="ts" style="color:var(--tl);margin-bottom:8px">Cochez les tâches que vous pourriez confier à quelqu'un (admin, réseaux, devis…). Indépuls calcule le budget que vous pourriez y consacrer, en revendant le temps libéré.</div>
+    <div class="ts" style="color:var(--tl);margin-bottom:8px">Cochez les tâches que vous pourriez confier à quelqu'un (admin, réseaux, devis…). Indépuls calcule le budget que vous pourriez y consacrer, en revendant le temps libéré. Le temps pris en compte est celui que vous avez catégorisé sur vos 3 derniers mois.</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${cases}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-bottom:6px;font-size:12px">
+      <span class="ts" style="color:var(--tl)">Temps pris en compte :</span>
+      <label style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="radio" name="etsi-deleg-portee" value="tout" ${_etsiDelegPortee==='tout'?'checked':''} onchange="etsiDelegCatsChanged()">Tout (mon entreprise et mes missions clients)</label>
+      <label style="display:inline-flex;gap:5px;align-items:center;cursor:pointer"><input type="radio" name="etsi-deleg-portee" value="entreprise" ${_etsiDelegPortee==='entreprise'?'checked':''} onchange="etsiDelegCatsChanged()">Seulement mon entreprise</label>
+    </div>
+    <div id="etsi-deleg-detail" class="ts" style="color:var(--tl);margin-bottom:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <label class="ts" style="color:var(--tl)">Heures à déléguer / mois</label>
       <input type="number" id="etsi-deleg-heures" min="0" step="0.5" placeholder="0" oninput="etsiDelegationRecalc()" style="width:90px">
@@ -17281,9 +17298,14 @@ function etsiCard5Html() {
 // toutes ses tâches — il peut saisir ses heures directement, avec ou sans cocher).
 function etsiDelegCatsChanged() {
   const cats=[...document.querySelectorAll('#etsi-card5 input[type=checkbox]:checked')].map(c=>c.value);
-  const h=getHeuresMoisParCategories(cats,3);
+  _etsiDelegPortee=document.querySelector('#etsi-card5 input[name=etsi-deleg-portee]:checked')?.value||'tout';
+  const d=getHeuresMoisDetail(cats,3);
+  const h=_etsiDelegPortee==='entreprise'?d.entreprise:d.total;
   const inp=document.getElementById('etsi-deleg-heures');
   if(inp) inp.value=h>0?h:'';
+  const fh=n=>String(n).replace('.',',');
+  const det=document.getElementById('etsi-deleg-detail');
+  if(det) det.textContent=cats.length?('En moyenne sur vos 3 derniers mois : '+fh(d.clients)+' h sur vos missions clients, '+fh(d.entreprise)+' h sur « Mon entreprise » (total '+fh(d.total)+' h).'+(_etsiDelegPortee==='entreprise'?' Seules les heures de votre entreprise sont retenues.':'')):'';
   etsiDelegationRecalc();
 }
 function etsiDelegationRecalc() {

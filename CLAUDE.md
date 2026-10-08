@@ -4231,6 +4231,12 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — « Et si je déléguais ? » : répartition clients / entreprise et choix de la portée (question de Faustine)
+
+- **Constat** (vérifié dans le code) : `getHeuresMoisParCategories` additionne le temps catégorisé (`tempsManuel[].categorie`) sur TOUTES les missions (clients ET « Mon entreprise »), moyenné sur 3 mois ; le temps interne sans catégorie (`DATA.tempsInterne`) n'y entre pas. Le texte d'aide ne disait pas « pour qui » étaient ces tâches.
+- **Fix** (`indepuls.html` ET `indepuls-demo.html`) : (B) `getHeuresMoisDetail(categories, nbMois)` retourne `{entreprise, clients, total}` ; une ligne sous les cases affiche « En moyenne sur vos 3 derniers mois : X h sur vos missions clients, Y h sur « Mon entreprise » (total Z h) ». (C) `getHeuresMoisParCategories(categories, nbMois, portee)` accepte `'tout'` (défaut, comportement inchangé), `'entreprise'` ou `'clients'` ; deux boutons radio « Tout (mon entreprise et mes missions clients) » / « Seulement mon entreprise » (`_etsiDelegPortee`, `etsiDelegCatsChanged`) ; `simulerDelegation(categories, nbMois, portee)` aligné. Phrase d'aide précisée (« temps catégorisé sur vos 3 derniers mois ») et texte « Comment c'est calculé ? » mis à jour.
+- Vérifié dans le navigateur : 30 h d'administratif sur une mission client + 9 h sur Mon entreprise (3 mois) → 10 h + 3 h par mois ; « Tout » 13 h, « Seulement mon entreprise » 3 h.
+
 ### 2026-10-08 — FIX : « Temps total estimé ce mois-ci » figé sur le premier chiffre tapé (retour de Faustine)
 
 - **Symptôme** : taper « 14 » dans « Temps réservé » (h/semaine) d'une mission récurrente remplissait « Temps total estimé ce mois-ci » avec 3,7 h au lieu de 51,3 h.
