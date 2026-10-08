@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — Import : abonnements en premier, dépenses restantes en dessous (idée de Faustine)
+
+`indepuls.html` : le bloc « Abonnements repérés » passe AVANT la liste des dépenses ; les dépenses absorbées par un abonnement coché (`impAboDeLigne`) ne sont plus listées, la liste s'intitule alors « Autres dépenses à vérifier » ; décocher un abonnement fait revenir ses dépenses ligne par ligne. Texte de chaque abonnement raccourci (libellé, montant par mois, nombre de prélèvements, début) + une phrase d'explication avec le compte « N sur M cochés ». Vérifié sur le relevé de la vidéo : 98 dépenses à vérifier se réduisent à 4, 7 dépenses récurrentes créées, aucune en double.
+
 ### 2026-10-08 — Contrôle URSSAF : présentation sobre (retour de l'essai de Faustine)
 
 - **Symptôme** : une alerte orange par prélèvement (« pas de cotisation prévue ») sur un premier import. Cause réelle : seules 2 entrées avaient été traitées à la main, les autres restaient sur « Décider plus tard », donc absentes de la prévision. Le contrôle était cohérent mais mal présenté.

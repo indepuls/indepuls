@@ -5356,12 +5356,13 @@ function impAboDeLigne(index) {
 function impAbonnementsHtml() {
   const props = impPropositionsAbo();
   if (!props.length) return '';
+  const nbCoches = props.filter((p, k) => _imp.recurrences[k]).length;
   let h = '<details open style="margin-bottom:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px;padding:6px 0">Abonnements repérés (' + props.length + ')</summary>'
-    + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Ces prélèvements reviennent chaque mois. En les enregistrant comme dépense récurrente, vous évitez de créer une dépense par mois.</div>';
+    + '<div style="font-size:12px;color:var(--tl);margin:2px 0 6px">Ces prélèvements reviennent chaque mois. Cochés, ils deviennent chacun UNE dépense récurrente et disparaissent de la liste des dépenses ci-dessous (' + nbCoches + ' sur ' + props.length + '). Décochez-en un pour revoir ses dépenses une par une.</div>';
   props.forEach((p, k) => {
     h += '<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:6px 0;border-top:1px solid var(--brd)"><input type="checkbox" onchange="impToggleAbo(' + k + ',this.checked)"' + (_imp.recurrences[k] ? ' checked' : '') + ' style="margin-top:3px">'
-      + '<span><strong>' + esc(window._Releve.libelleNettoye(p.libelle)) + '</strong> : ' + impEur(p.montant) + ' par mois (' + p.indices.length + ' prélèvements, depuis ' + p.mois[0].slice(5) + '/' + p.mois[0].slice(0, 4) + '). '
-      + 'Créer une dépense récurrente à la place de ' + p.indices.length + ' dépenses ponctuelles.</span></label>';
+      + '<span><strong>' + esc(window._Releve.libelleNettoye(p.libelle)) + '</strong> : ' + impEur(p.montant) + ' par mois (' + p.indices.length + ' prélèvements, depuis ' + p.mois[0].slice(5) + '/' + p.mois[0].slice(0, 4) + ')'
+      + '</span></label>';
   });
   return h + '</details>';
 }
@@ -5558,14 +5559,16 @@ function renderImportReleve(garderDefilement) {
     const a = _imp.analyse, p = _imp.parsed;
     const recu = a.lignes.filter((r) => r.groupe === 'a_verifier' && impEstArgentRecu(r));
     const remb = a.lignes.filter((r) => r.groupe === 'a_verifier' && impEstRemboursement(r));
-    const dep = a.lignes.filter((r) => r.groupe === 'a_verifier' && !impEstArgentRecu(r) && !impEstRemboursement(r));
+    const depToutes = a.lignes.filter((r) => r.groupe === 'a_verifier' && !impEstArgentRecu(r) && !impEstRemboursement(r));
+    const dep = depToutes.filter((r) => impAboDeLigne(r.index) < 0);
+    const nbAbsorbees = depToutes.length - dep.length;
     const couv = a.lignes.filter((r) => r.groupe === 'deja_couvertes');
     const ign = a.lignes.filter((r) => r.groupe === 'ignorees');
     h += '<div style="font-size:13px;margin-bottom:10px">' + a.lignes.length + ' lignes du ' + impDate(p.lignes[0].date) + ' au ' + impDate(p.lignes[p.lignes.length - 1].date) + '. Chaque ligne indique pourquoi elle est classée ainsi, rien n\'est créé sans votre validation.'
       + (p.rejets.length ? '<details style="margin-top:4px"><summary style="cursor:pointer;color:var(--tl)">' + p.rejets.length + ' ligne(s) illisible(s) ignorée(s)</summary>' + p.rejets.map((x) => '<div style="font-size:11px;color:var(--tl)">Ligne ' + x.numeroLigne + ' : ' + esc(x.motif) + '</div>').join('') + '</details>' : '') + '</div>';
-    h += impGroupeHtml('Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, confirmées si vous les avez déjà saisies, ou ignorées selon votre choix.');
-    h += impGroupeHtml('Remboursements et avoirs', remb, true, 'Un remboursement fait à un client peut devenir un retour (profils achat-revente) ; un remboursement ou un avoir reçu d' + "'" + 'un fournisseur peut réduire la dépense concernée, ou être équilibré par une entrée d' + "'" + 'argent sur une vente. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
     h += impAbonnementsHtml();
+    h += impGroupeHtml(nbAbsorbees ? 'Autres dépenses à vérifier' : 'Dépenses à vérifier', dep, true, 'Ces lignes seront créées comme dépenses, confirmées si vous les avez déjà saisies, ou ignorées selon votre choix.');
+    h += impGroupeHtml('Remboursements et avoirs', remb, true, 'Un remboursement fait à un client peut devenir un retour (profils achat-revente) ; un remboursement ou un avoir reçu d' + "'" + 'un fournisseur peut réduire la dépense concernée, ou être équilibré par une entrée d' + "'" + 'argent sur une vente. Une ligne laissée sur « Décider plus tard » reviendra au prochain import.');
     h += impArgentRecuHtml(recu);
     h += impGroupeHtml('Déjà couvertes', couv, false, 'Déjà importées ou déjà comptées dans vos abonnements.');
     h += impGroupeHtml('Ignorées par défaut', ign, false, 'Cotisations, impôts, virements vers une personne, dépenses souvent personnelles : déjà provisionnés par Indépuls ou pas professionnels.',
