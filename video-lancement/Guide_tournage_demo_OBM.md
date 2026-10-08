@@ -3,7 +3,13 @@
 Données 100 % fictives. À utiliser avec un **compte de test vierge** (pas ton compte), connecté, sans données, pour montrer l'onboarding en direct.
 Ce dossier n'est pas publié sur le site (voir `.vercelignore`).
 
-## Fichier fourni
+## Fichiers fournis
+
+**Pour la vidéo : `releve_demo_OBM_court.csv`** (juillet au 20 octobre 2026, 37 lignes, solde 2 800 € à 3 847,73 €). Il donne un écran d'import léger : 5 abonnements, 3 clients (7 encaissements), 1 seul écart URSSAF (52 € sur le prélèvement du 10 octobre). Les chiffres de la section « Ce que l'import va montrer » ci-dessous correspondent à ce fichier.
+
+`releve_demo_OBM.csv` (janvier au 20 octobre, 118 lignes, 5 clients) reste disponible pour tester un gros import, mais il est trop lourd à l'écran pour la vidéo.
+
+Détail du fichier long :
 
 `releve_demo_OBM.csv` : relevé de janvier au 20 octobre 2026, au format d'un export Crédit Mutuel (Date; Date de valeur; Débit; Crédit; Libellé; Solde).
 118 lignes, solde d'ouverture 3 200,00 €, solde de clôture 7 217,31 €.
@@ -22,18 +28,18 @@ Ce dossier n'est pas publié sur le site (voir `.vercelignore`).
 
 À montrer : où on règle l'objectif, et ce que ça change dans « Combien facturer ? » (le minimum à facturer).
 
-## Ce que l'import va montrer (dans l'ordre à l'écran)
+## Ce que l'import va montrer (dans l'ordre à l'écran, fichier court)
 
-1. **Abonnements repérés (7)** : Notion, Canva, Zoom, assurance pro, Google Workspace, Free, frais bancaires. Case cochée : une dépense récurrente à la place de dizaines de dépenses ponctuelles.
-2. **Argent reçu : « Créer une mission par client »** : 5 clients regroupés en un clic.
-   - Studio Lumière : mission récurrente, en cours (1 200 € par mois depuis janvier).
-   - Atelier Nova : mission récurrente, en cours (900 € par mois depuis mars).
-   - Sophie Martin Coaching : mission récurrente, en cours (650 € par mois depuis juin).
-   - Maison Elia : plusieurs paiements (acompte 1 500 € en février, solde 1 500 € en mai), terminée.
+1. **Abonnements repérés (5)** : Notion, Free Mobile, Canva, Zoom, Google Workspace. Cochés : une dépense récurrente chacun, qui disparaît de la liste des dépenses. Il reste 2 dépenses à vérifier (SNCF, OVH).
+2. **Argent reçu : « Créer une mission par client »** : 3 clients regroupés en un clic.
+   - Studio Lumière : mission récurrente, en cours (1 200 € par mois depuis juillet).
+   - Maison Elia : plusieurs paiements (acompte 1 500 € en juillet, solde 1 500 € en août), terminée.
    - Bijoux Léa : mission simple, 450 € en août, terminée.
-3. **Ignorées par défaut** : virement permanent personnel, restaurant, boulangerie, retrait, allocation CAF, charges sociales.
-4. **Récapitulatif** : mise à jour du solde (7 217,31 € au 20/10/2026) et **contrôle URSSAF** : tous les prélèvements correspondent à la prévision sauf celui du 10 août, avec un écart volontaire de 52 € (bon moment pour expliquer l'écart et le chiffre d'affaires déclaré implicite).
+3. **Ignorées par défaut (8)** : virement permanent personnel, restaurant, retrait, allocation CAF, charges sociales.
+4. **Récapitulatif** : mise à jour du solde (3 847,73 € au 20/10/2026) et **contrôle URSSAF** : le prélèvement du 10 septembre est conforme, celui du **10 octobre** a un écart volontaire de 52 € (bon moment pour expliquer l'écart et le chiffre d'affaires déclaré implicite d'environ 200 € de plus que ce que compte Indépuls).
 5. **Écran final** : fenêtre d'impact et liste des missions « à compléter ».
+
+(Le fichier long donne 5 clients, 7 abonnements et un écart en août.)
 
 ## Les 3 missions à compléter ensuite (« Compléter la fiche »)
 

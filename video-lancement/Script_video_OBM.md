@@ -40,9 +40,9 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 *À l'écran : Dépenses, Importer un relevé. Montrer l'aide « Comment récupérer mon fichier ? », puis choisir le fichier.*
 « Maintenant, le plus gros gain de temps. Plutôt que de tout saisir à la main, j'importe mon relevé bancaire : un fichier que ma banque me permet de télécharger. Indépuls ne se connecte jamais à ma banque, et le fichier n'est pas conservé. »
 *Montrer les abonnements repérés.* « Il repère mes abonnements : au lieu de douze dépenses par an, une seule dépense récurrente. »
-*Cliquer sur « Créer une mission par client ».* « Et en un clic, il regroupe mes encaissements par client. Ici, trois clients en abonnement mensuel, un projet payé en deux fois, une mission ponctuelle. Il propose la bonne forme et je peux tout corriger. »
+*Cliquer sur « Créer une mission par client ».* « Et en un clic, il regroupe mes encaissements par client. Ici, un client en abonnement mensuel, un projet payé en deux fois, une mission ponctuelle. Il propose la bonne forme et je peux tout corriger. »
 *Montrer « Ignorées par défaut ».* « Mes virements personnels et mes dépenses privées sont mis de côté : rien n'est compté à tort. »
-*Récapitulatif.* « Avant de valider, je vois tout ce qui va se passer. Et le contrôle URSSAF compare ce qui a été prélevé à ce qu'Indépuls avait prévu : ici, un écart de 52 euros en août, que je peux aller vérifier. Je clique sur Importer. »
+*Récapitulatif.* « Avant de valider, je vois tout ce qui va se passer. Et le contrôle URSSAF compare ce qui a été prélevé à ce qu'Indépuls avait prévu : ici, un écart de 52 euros sur le prélèvement d'octobre, que je peux aller vérifier : il me manque peut-être un encaissement. Je clique sur Importer. »
 *Fenêtre d'impact.* « Et voilà : mon année est à jour. Si je me suis trompée, je peux défaire l'import en un clic. »
 
 ### 5. Les missions à compléter (40 s)
@@ -82,7 +82,7 @@ Ne montre ni prix, ni date, ni code promo dans la vidéo : tout cela est dans la
 - Utiliser un compte de test (par exemple ton compte réinitialisé : attention, la réinitialisation efface les données de ce compte, ne le fais jamais sur ton compte personnel).
 - Vérifier que le statut est choisi dans Paramètres (les taux s'appliquent alors tout seuls, nécessaire pour le contrôle URSSAF).
 - Notifications coupées, écran en 1920 x 1080, zoom du navigateur à 110 ou 125 %.
-- Faire un essai complet sans filmer, avec le fichier `releve_demo_OBM.csv`.
+- Faire un essai complet sans filmer, avec le fichier `releve_demo_OBM_court.csv`.
 
 ### Pendant (une prise par séquence)
 1. Séquences 3, 4, 5, 6, 7 dans l'ordre.
