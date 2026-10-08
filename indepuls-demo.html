@@ -14505,10 +14505,26 @@ function sbTimerOptionsHtml(all) {
 // Rebâtit le sélecteur depuis la case "toutes mes missions" — jamais depuis le tick du chrono (voir
 // garde dans updateSbTimer() : rebâtir à chaque seconde effacerait la sélection en cours de
 // l'utilisatrice avant même qu'elle ait pu cliquer Démarrer).
+function sbTimerSignature(all) {
+  return (all?'1':'0')+'|'+DATA.missions.map(m=>[m.id,m.client||'',m.statut||'',m.isManagement?1:0,(!m.isManagement&&isRecurringStillActive(m))?1:0].join(':')).join(',');
+}
 function sbTimerRebuildSelect() {
   const sel=document.getElementById('sb-timer-select');
   if(!sel) return;
-  sel.innerHTML=sbTimerOptionsHtml(!!document.getElementById('sb-timer-all')?.checked);
+  const all=!!document.getElementById('sb-timer-all')?.checked;
+  sel.innerHTML=sbTimerOptionsHtml(all);
+  sel.dataset.sig=sbTimerSignature(all);
+}
+// Resynchronise le sélecteur quand les missions ont changé (import de relevé, réinitialisation, ajout, suppression, synchro d’un autre
+// appareil) : sans cela, il gardait les noms d’avant. Reconstruit seulement si la signature change, en gardant la sélection si possible.
+function sbTimerSync() {
+  const sel=document.getElementById('sb-timer-select');
+  if(!sel) return;
+  const all=!!document.getElementById('sb-timer-all')?.checked;
+  if(sel.dataset.sig===sbTimerSignature(all)) return;
+  const keep=sel.value;
+  sbTimerRebuildSelect();
+  if(Array.from(sel.options).some(o=>o.value===keep)) sel.value=keep;
 }
 // Bouton "Démarrer" séparé du <select> — DEUX clics distincts (choisir, puis lancer), jamais de
 // démarrage automatique au changement de sélection (retour Faustine : risque de déclenchement
@@ -14595,14 +14611,14 @@ function updateSbTimer() {
     // sélection (deux clics distincts, choisir puis Démarrer).
     if(!document.getElementById('sb-timer-select')){
       btns.innerHTML=`<div style="display:flex;flex-direction:column;gap:6px">
-        <select id="sb-timer-select" style="width:100%;font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:var(--sb);color:var(--sbt)">${sbTimerOptionsHtml(false)}</select>
+        <select id="sb-timer-select" data-sig="${sbTimerSignature(false)}" style="width:100%;font-size:11px;padding:5px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:var(--sb);color:var(--sbt)">${sbTimerOptionsHtml(false)}</select>
         <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:rgba(255,255,255,.55);cursor:pointer">
           <input type="checkbox" id="sb-timer-all" onchange="sbTimerRebuildSelect()" style="width:auto">
           Afficher ${tVocabMasculin()?'tous mes':'toutes mes'} ${tVocab('items').toLowerCase()} (tous statuts)
         </label>
         <button class="sb-timer-btn" onclick="sbTimerStartSelected()">▶ Démarrer</button>
       </div>`;
-    }
+    } else sbTimerSync();
     _setInfoTip(ico, SB_TIMER_ICO_IDLE);
     _setInfoTip(tip, SB_TIMER_TIP_IDLE);
   }

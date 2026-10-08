@@ -4231,6 +4231,13 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — FIX : le sélecteur du chrono gardait les noms de missions d'avant (retour de Faustine)
+
+- **Symptôme** : sur un compte de test réinitialisé puis importé, le sélecteur « Suivre du temps sur » proposait des noms de chantiers qui n'étaient plus dans la liste (ceux du compte d'avant).
+- **Cause** : `updateSbTimer()` ne construit le `<select id="sb-timer-select">` qu'une fois (pour ne pas perdre la sélection à chaque tick d'une seconde) et `sbTimerRebuildSelect()` n'était appelée que par la case « toutes mes missions » : jamais après un import, une réinitialisation, un ajout, une suppression ou une synchro d'un autre appareil. Défaut général, pas propre à l'import.
+- **Fix** (`indepuls.html` ET `indepuls-demo.html`) : `sbTimerSignature(all)` (missions, clients, statuts, récurrences actives) stockée dans `data-sig` ; `sbTimerSync()`, appelée par `updateSbTimer()` quand le sélecteur existe déjà, reconstruit les options SEULEMENT si la signature change et conserve la sélection si elle existe encore. Vérifié dans le navigateur : anciens noms remplacés, sélection conservée entre les ticks, case « tous statuts » inchangée.
+- Rappel utile : le message « Données mises à jour depuis un autre appareil » indique qu'une autre session du même compte est ouverte ; la fermer évite de voir ou de réécrire d'anciennes données.
+
 ### 2026-10-08 — Import : un bloc par client, virements repliés (retour de Faustine : « noyé au milieu des lignes »)
 
 `impGroupeClientHtml(premier, lignesHtml)` et `impArgentRecuHtml` (`indepuls.html`) : chaque client forme un BLOC distinct (bordure d'accent à gauche, 👤, nom en gras, forme, statut, résumé « N virements · total · période · environ X par virement »), avec ses virements REPLIÉS dans un « Voir les N virement(s) de ce client » ; les virements non regroupés restent des lignes simples. Sur le relevé court, la liste « Argent reçu » passe de 7 lignes à 3 cartes. Les réglages (nom, forme, statut) s'appliquent toujours à tous les virements du client (`impGroupeChamp`) ; vérifié dans le navigateur (dépliage, changement de forme, import complet).
