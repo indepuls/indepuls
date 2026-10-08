@@ -4231,6 +4231,12 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-08 — Contrôle URSSAF : présentation sobre (retour de l'essai de Faustine)
+
+- **Symptôme** : une alerte orange par prélèvement (« pas de cotisation prévue ») sur un premier import. Cause réelle : seules 2 entrées avaient été traitées à la main, les autres restaient sur « Décider plus tard », donc absentes de la prévision. Le contrôle était cohérent mais mal présenté.
+- **Fix** (`indepuls.html`, récapitulatif) : (1) s'il reste des entrées d'argent à décider, UN message « Contrôle URSSAF non disponible pour l'instant : N entrée(s) d'argent restent à décider… » ; (2) sinon, une ligne de synthèse (« 7 prélèvements vérifiés : 6 conformes, 1 écart ») et le détail des seuls écarts, avec la note « Indicatif » une fois ; (3) phrase moins alarmante quand aucun CA n'est compté (`comparerUrssaf` : « Indépuls ne compte encore aucun chiffre d'affaires pour cette période »).
+- Vérifié dans le navigateur sur le relevé fictif de la vidéo (cas « 2 lignes traitées » et cas « tout regroupé »). En attente de décision de Faustine : bandeau « Clients repérés » (option B) et regroupement automatique au premier import (option C).
+
 ### 2026-10-08 — Contrôle URSSAF de l'import calculé sur les données APRÈS import + kit de tournage de la vidéo
 
 - **Défaut trouvé en préparant la vidéo** : le contrôle URSSAF comparait le prélèvement à la prévision calculée AVANT l'import ; sur un premier import (aucune mission), il affichait « pas de cotisation prévue » partout. Corrigé : `impDonneesSimulees()` applique l'import sur une COPIE de DATA (`appliquerImport`), et la prévision est calculée sur cette copie via `window._Releve.prevuUrssaf(donnees, mois)` (fonctions pures de `calculs.js` qui prennent DATA en paramètre). DATA réel intact. Les décisions changent : `_imp.simu` est invalidé à chaque entrée dans le récapitulatif.

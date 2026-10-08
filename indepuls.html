@@ -5591,12 +5591,20 @@ function renderImportReleve(garderDefilement) {
     }
     if (isMicro()) {
       const urs = _imp.analyse.lignes.filter((r) => r.type === 'urssaf' && r.ligne.montant < 0);
-      urs.forEach((r) => {
-        const x = impUrssafControle(r.ligne);
-        if (!x) return;
-        h += '<div style="padding:8px 0;border-top:1px solid var(--brd);font-size:13px"><div style="font-weight:600">🧾 Contrôle URSSAF du ' + impDate(r.ligne.date) + '</div><div style="margin-top:2px;color:' + (x.significatif ? 'var(--warn,#b45309)' : 'var(--tl)') + '">' + esc(x.phrase) + '</div>'
-          + '<div style="font-size:11px;color:var(--tl);margin-top:2px">Indicatif : la période est estimée d\'après la date du prélèvement. Rien n\'est modifié automatiquement.</div></div>';
-      });
+      if (urs.length) {
+        // Tant que des entrées d’argent restent à décider, la prévision d’URSSAF est incomplète : un seul message plutôt qu’une alerte par prélèvement.
+        const indecis = _imp.analyse.lignes.filter((r) => r.nature === 'encaissement' && r.ligne.montant > 0 && _imp.decisions[r.index] && _imp.decisions[r.index].action === 'plus_tard').length;
+        if (indecis > 0) {
+          h += '<div style="padding:8px 0;border-top:1px solid var(--brd);font-size:13px"><div style="font-weight:600">🧾 Contrôle URSSAF non disponible pour l’instant</div><div style="margin-top:2px;color:var(--tl)">' + indecis + ' entrée(s) d’argent restent à décider : sans elles, la prévision d’Indépuls est incomplète. Rattachez-les à des clients (ou ignorez-les) pour que le contrôle soit juste.</div></div>';
+        } else {
+          const controles = urs.map((r) => ({ r, x: impUrssafControle(r.ligne) })).filter((o) => o.x);
+          const ecarts = controles.filter((o) => o.x.significatif);
+          h += '<div style="padding:8px 0;border-top:1px solid var(--brd);font-size:13px"><div style="font-weight:600">🧾 Contrôle URSSAF</div><div style="margin-top:2px;color:var(--tl)">'
+            + (ecarts.length ? controles.length + ' prélèvement(s) vérifié(s) : ' + (controles.length - ecarts.length) + ' conforme(s) à la prévision d’Indépuls, ' + ecarts.length + ' écart(s) à regarder.' : 'Les ' + controles.length + ' prélèvement(s) correspondent à la prévision d’Indépuls.') + '</div>';
+          ecarts.forEach((o) => { h += '<div style="margin-top:6px"><div style="font-weight:600;font-size:12px">Prélèvement du ' + impDate(o.r.ligne.date) + '</div><div style="color:var(--warn,#b45309)">' + esc(o.x.phrase) + '</div></div>'; });
+          h += '<div style="font-size:11px;color:var(--tl);margin-top:4px">Indicatif : la période est estimée d’après la date du prélèvement. Rien n’est modifié automatiquement.</div></div>';
+        }
+      }
     }
     h += '</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-acc" onclick="impConfirmer()">Importer</button><button class="btn btn-out" onclick="impVersAnalyse()">← Retour</button></div>';
     corps.innerHTML = h; return;

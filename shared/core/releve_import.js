@@ -482,7 +482,7 @@ export function comparerUrssaf({ reel, prevu, caCompte }) {
   const caImplique = prevu > 0 && caCompte > 0 ? Math.round(reel * caCompte / prevu) : null;
   const fmt = (n) => n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
   let phrase;
-  if (!(prevu > 0)) phrase = 'Indépuls n\'avait pas de cotisation prévue pour cette période. Vérifiez que vos encaissements de la période sont bien saisis.';
+  if (!(prevu > 0)) phrase = 'Indépuls ne compte encore aucun chiffre d\'affaires pour cette période : vérifiez que vos encaissements de la période sont bien saisis.';
   else if (!significatif) phrase = 'Le prélèvement correspond à la prévision d\'Indépuls (écart de ' + fmt(Math.abs(ecart)) + ' €).';
   else {
     phrase = 'Prélèvement de ' + fmt(reel) + ' €, Indépuls prévoyait environ ' + fmt(prevu) + ' € (écart de ' + fmt(Math.abs(ecart)) + ' €).';
