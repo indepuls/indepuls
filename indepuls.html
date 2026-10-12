@@ -1273,9 +1273,9 @@ html,body{overflow-x:hidden;}
         </div>
         <div class="ts mb10" id="note-rythme-perso" style="display:none;color:var(--tl)">🤝 Compte partagé : ces trois valeurs sont <strong>personnelles</strong>, chaque personne a les siennes. Dans la vue « tout le compte », Indépuls additionne les capacités de tout le monde.</div>
         <div class="frow3">
-          <div class="fgroup"><label class="flabel">Jours / semaine <span class="info-tip" title="Indiquez uniquement votre temps facturable client — excluez la gestion, l'admin, la prospection. Cette valeur sert à calculer votre taux horaire minimum et votre CA mensuel à atteindre.">?</span></label><input type="number" id="p-jours" step="0.5" min="1" max="7" oninput="saveParam('joursParSemaine',+this.value);recalcObjectifsDebounced()"></div>
+          <div class="fgroup"><label class="flabel">Jours / semaine <span class="info-tip" title="Indiquez uniquement votre temps facturable client : excluez la gestion, l'admin, la prospection. Cette valeur sert à calculer votre taux horaire minimum et votre CA mensuel à atteindre.">?</span></label><input type="number" id="p-jours" step="0.5" min="1" max="7" oninput="saveParam('joursParSemaine',+this.value);recalcObjectifsDebounced()"></div>
           <div class="fgroup"><label class="flabel">Heures / jour</label><input type="number" id="p-heures" step="0.5" min="1" max="12" oninput="saveParam('heuresParJour',+this.value);recalcObjectifsDebounced()"></div>
-          <div class="fgroup"><label class="flabel">Semaines / an <span class="info-tip" title="Déduisez vos congés — ex : 44 sem. pour 8 semaines de vacances">?</span></label><input type="number" id="p-semaines" step="1" min="1" max="52" oninput="saveParam('semainesParAn',+this.value);recalcObjectifsDebounced()"></div>
+          <div class="fgroup"><label class="flabel">Semaines / an <span class="info-tip" title="Déduisez vos congés. Exemple : 44 sem. pour 8 semaines de vacances">?</span></label><input type="number" id="p-semaines" step="1" min="1" max="52" oninput="saveParam('semainesParAn',+this.value);recalcObjectifsDebounced()"></div>
         </div>
         <div class="ts mt12" style="color:var(--tl);font-style:italic">Ce rythme correspond uniquement à votre temps facturable client ; il sert à calculer votre taux horaire minimum et votre CA mensuel brut à atteindre.</div>
         <div id="cap-facturable-display" class="mt8" style="display:none;background:rgba(91,44,74,.06);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--pri)"></div>
@@ -1301,7 +1301,7 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card">
         <div class="card-header">
-          <div><div class="card-title">Calculateur d'objectifs</div><div class="card-sub">Renseignez votre cible — le reste se calcule automatiquement</div></div>
+          <div><div class="card-title">Calculateur d'objectifs</div><div class="card-sub">Renseignez votre cible, le reste se calcule automatiquement</div></div>
         </div>
         <div class="fgroup">
           <label class="flabel" id="objectif-net-label">Revenu net mensuel souhaité (€)</label>
@@ -1313,7 +1313,7 @@ html,body{overflow-x:hidden;}
           <input type="number" id="p-charges-compl" step="100" min="0" oninput="saveParam('chargesAnnuellesCompl',+this.value);recalcObjectifsDebounced()" placeholder="Ex : 1 200">
           <div class="ts mt4" style="color:var(--tl);line-height:1.6">Ajoutez ici une estimation annuelle de dépenses non récurrentes ou exceptionnelles qui ne sont pas rentrées dans l'onglet « Dépenses » : formation, matériel, ordinateur, séminaire, shooting photo, imprévus…</div>
         </div>
-        <div class="alert al-info mb12"><span>💡 Dépenses récurrentes déjà incluses : <strong><span id="dep-rec-display">—</span> / mois</strong> (depuis l'onglet Dépenses). Les charges complémentaires ci-dessus s'y ajoutent.</span></div>
+        <div class="alert al-info mb12"><span>💡 Dépenses récurrentes déjà incluses : <strong><span id="dep-rec-display">0 €</span> / mois</strong> (depuis l'onglet Dépenses). Les charges complémentaires ci-dessus s'y ajoutent.</span></div>
         <div id="objectifs-result"></div>
       </div>
     </div>
@@ -15067,7 +15067,7 @@ function renderObjectifsResult() {
   const capEl=document.getElementById('cap-facturable-display');
   if(capEl){
     capEl.style.display=capH>0?'':'none';
-    capEl.innerHTML=`⏱ Capacité facturable : <strong>${capH} h / semaine</strong> — référence du pilier Remplissage dans mon Score de Santé.`;
+    capEl.innerHTML=`⏱ Capacité facturable : <strong>${capH} h / semaine</strong> : référence du pilier Remplissage dans mon Score de Santé.`;
   }
   const depCompl=(p.chargesAnnuellesCompl||0)/12;
   const dep=depRec+depCompl;
@@ -15091,7 +15091,7 @@ function renderObjectifsResult() {
     el.innerHTML=`
       <div class="g2">
         <div class="kpi neu"><div class="kpi-label">CA HT mensuel à atteindre</div><div class="kpi-val">${fmtE(caMensMin)}</div><div class="kpi-sub">= ${fmtE(caAnMin)} / an</div>${depTxtDetail}</div>
-        <div class="kpi neu"><div class="kpi-label">Taux horaire minimum (brut) <span class="info-tip" title="Ce taux horaire est brut : c'est ce que la société doit facturer, avant charges. Il ne se compare pas directement à votre rémunération nette.">?</span></div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'—'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
+        <div class="kpi neu"><div class="kpi-label">Taux horaire minimum (brut) <span class="info-tip" title="Ce taux horaire est brut : c'est ce que la société doit facturer, avant charges. Il ne se compare pas directement à votre rémunération nette.">?</span></div><div class="kpi-val">${hMens>0?fmtE(thMin,0)+'/h':'À définir'}</div><div class="kpi-sub">basé sur ${fmt(hAn,0)} h/an</div></div>
         <div class="kpi neu"><div class="kpi-label">Heures facturables/mois</div><div class="kpi-val">${fmt(hMens,0)} h</div><div class="kpi-sub">${p.joursParSemaine}j × ${p.heuresParJour}h</div></div>
         <div class="kpi neu"><div class="kpi-label">Coût rémunération / mois</div><div class="kpi-val">${fmtE(coutRemuMens)}</div><div class="kpi-sub">${fmtE(p.objectifNetMensuel||0)} nets + ${p.coutRemunerationPct||82} %</div></div>
       </div>
@@ -15123,10 +15123,10 @@ function renderObjectifsResult() {
   const _rateWord=_objIsChantier?'TJM':_objIsMarge?'gain horaire':'taux horaire';
   const _kpiRateLabel=(_objIsChantier?'TJM minimum':_objIsMarge?'Gain horaire minimum':'Taux horaire minimum')+' (brut)';
   const _kpiRateTooltip=`Ce ${_rateWord} est brut : vos cotisations sociales et vos impôts n'en sont pas encore déduits. Une fois ces charges réglées, il vous reste votre objectif net.`;
-  const _kpiRateVal=_objIsChantier?(thMin>0?fmtE(_tjmMin,0)+'/j':'—'):(thMin>0?fmtE(thMin,0)+'/h':'—');
+  const _kpiRateVal=_objIsChantier?(thMin>0?fmtE(_tjmMin,0)+'/j':'À définir'):(thMin>0?fmtE(thMin,0)+'/h':'À définir');
   const _kpiRateSub=_objIsChantier?`basé sur ${fmt(hAn/(_objHj||7),0)} j/an`:`basé sur ${fmt(hAn,0)} h/an`;
   const _rateValStr=_objIsChantier?fmtE(_tjmMin,0)+'/j':fmtE(thMin,0)+'/h';
-  const _phraseRate=`💡 <strong>${_rateValStr}</strong> est votre ${_rateWord} <strong>brut</strong> minimum à facturer — une fois vos cotisations sociales et impôts déduits, il vous reste votre objectif de <strong>${fmtE(p.objectifNetMensuel)}/mois nets</strong> (soit <strong>${fmtE(caMens)}/mois</strong> facturés au total pour l'atteindre).`;
+  const _phraseRate=`💡 <strong>${_rateValStr}</strong> est votre ${_rateWord} <strong>brut</strong> minimum à facturer. Une fois vos cotisations sociales et impôts déduits, il vous reste votre objectif de <strong>${fmtE(p.objectifNetMensuel)}/mois nets</strong> (soit <strong>${fmtE(caMens)}/mois</strong> facturés au total pour l'atteindre).`;
   const _uniteLbl=_objIsChantier?'Jours facturables/mois':'Heures facturables/mois';
   const _uniteVal=_objIsChantier?`${fmt(hMens/_objHj,1)} j`:`${fmt(hMens,0)} h`;
   const _uniteSub=_objIsChantier?`${p.joursParSemaine}j × ${p.semainesParAn}/52 sem.`:`${p.joursParSemaine}j × ${p.heuresParJour}h`;

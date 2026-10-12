@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-12 — Tirets cadratins retirés de Paramètres > Mes objectifs (demande de Faustine)
+
+8 occurrences visibles remplacées dans `indepuls.html` ET `indepuls-demo.html` : deux infobulles (« Jours / semaine », « Semaines / an »), le sous-titre du calculateur, la valeur d'attente des dépenses récurrentes (`0 €`), la phrase de capacité facturable, les indicateurs vides (« À définir » au lieu de « — » pour le taux horaire minimum / TJM) et la phrase de synthèse du taux brut minimum. Les tirets des commentaires de code sont conservés (non visibles). Vérifié dans le navigateur : `#tab-objectifs` ne contient plus aucun tiret cadratin (texte, attributs, HTML) avec et sans objectif défini. Reste à faire, vague 2 du nettoyage : les autres pages de l'app (environ 1000 occurrences dans chaque fichier).
+
 ### 2026-10-08 — « Et si je déléguais ? » : répartition clients / entreprise et choix de la portée (question de Faustine)
 
 - **Constat** (vérifié dans le code) : `getHeuresMoisParCategories` additionne le temps catégorisé (`tempsManuel[].categorie`) sur TOUTES les missions (clients ET « Mon entreprise »), moyenné sur 3 mois ; le temps interne sans catégorie (`DATA.tempsInterne`) n'y entre pas. Le texte d'aide ne disait pas « pour qui » étaient ces tâches.
