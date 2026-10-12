@@ -973,7 +973,7 @@ html,body{overflow-x:hidden;}
       <div class="card">
         <div class="card-title mb16">Mon activité</div>
         <div class="frow">
-          <div class="fgroup"><label class="flabel">Prénom</label><input type="text" id="p-nom" oninput="saisirPrenom(this.value);updateDashboardTitle()" placeholder="Ex : Faustine, Marie, Alex…"></div>
+          <div class="fgroup"><label class="flabel">Prénom</label><input type="text" id="p-nom" autocomplete="off" oninput="saisirPrenom(this.value);updateDashboardTitle()" placeholder="Ex : Faustine, Marie, Alex…"></div>
           <div class="fgroup">
             <label class="flabel">Date de lancement de l'activité</label>
             <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
@@ -1032,7 +1032,7 @@ html,body{overflow-x:hidden;}
         <div class="frow">
           <div class="fgroup">
             <label class="flabel">N° SIRET <span class="info-tip" title="Sert uniquement à pré-remplir vos devis (mention obligatoire) — jamais utilisé ailleurs dans Indépuls, jamais transmis à un tiers.">?</span></label>
-            <input type="text" id="p-siret" placeholder="Ex : 123 456 789 00012" oninput="saveParam('siret',this.value)">
+            <input type="text" id="p-siret" autocomplete="off" placeholder="Ex : 123 456 789 00012" oninput="saveParam('siret',this.value)">
           </div>
           <div class="fgroup">
             <label class="flabel">Logo (optionnel)</label>
