@@ -977,13 +977,13 @@ html,body{overflow-x:hidden;}
           <div class="fgroup">
             <label class="flabel">Date de lancement de l'activité</label>
             <input type="month" id="p-date-ouverture" oninput="saveParam('dateOuverture',this.value);renderDashboard()">
-            <div class="ts mt4" style="color:var(--tl)">Optionnel — contextualise les KPIs et les archives depuis cette date.</div>
+            <div class="ts mt4" style="color:var(--tl)">Optionnel : contextualise les KPIs et les archives depuis cette date.</div>
           </div>
         </div>
         <div class="fgroup mt12">
           <label class="flabel">Cœur de métier <span class="info-tip" title="Choisissez le profil qui correspond le mieux à votre mode de fonctionnement. Il détermine les fonctionnalités activées et le vocabulaire de l'interface.">?</span></label>
           <select id="p-metier" onchange="onProfilChange(this.value)">
-            <option value="">— Sélectionner —</option>
+            <option value="">Sélectionner</option>
             <optgroup label="Prestation de services">
               <option value="prestataire_services">Prestataire de services</option>
               <option value="creatif_com">Créatif / Communication</option>
@@ -1009,7 +1009,7 @@ html,body{overflow-x:hidden;}
             <label class="tva-regime-opt" id="act-type-mixte"><input type="radio" name="activite-type" value="lesdeux" onchange="saveActiviteType('lesdeux')"><div><strong>Des prestations et des produits</strong><div class="ts mt1">Suivi séparé des seuils TVA et des taux URSSAF selon la nature de chaque vente</div></div></label>
           </div>
         </div>
-        <div id="micro-achat-mixte-warn" style="display:none;margin-top:10px" class="alert al-info">ℹ️ Vous avez sélectionné une activité principale de vente. Les ventes seront calculées au taux commerce (12,3 % + 0,1 % CFP), et les prestations au taux prestation BNC (25,6 % + 0,2 % CFP) — adapté aux activités de conseil, coaching, accompagnement, formation ou OBM.</div>
+        <div id="micro-achat-mixte-warn" style="display:none;margin-top:10px" class="alert al-info">ℹ️ Vous avez sélectionné une activité principale de vente. Les ventes seront calculées au taux commerce (12,3 % + 0,1 % CFP), et les prestations au taux prestation BNC (25,6 % + 0,2 % CFP), adapté aux activités de conseil, coaching, accompagnement, formation ou OBM.</div>
         <div id="micro-charges-mixte-info" style="display:none;margin-top:10px;background:var(--bg);border-radius:8px;padding:12px 14px;border:1px solid var(--brd);font-size:12px;line-height:1.8"></div>
         <div class="divider"></div>
         <div class="sw-wrap">
@@ -1028,10 +1028,10 @@ html,body{overflow-x:hidden;}
       </div>
       <div class="card mt16">
         <div class="card-title mb4">Informations pour mes devis</div>
-        <div class="ts mb12" style="color:var(--tl)">Optionnel — utile uniquement si vous générez des devis depuis Indépuls ("Combien facturer ?" ou fiche mission).</div>
+        <div class="ts mb12" style="color:var(--tl)">Optionnel : utile uniquement si vous générez des devis depuis Indépuls ("Combien facturer ?" ou fiche mission).</div>
         <div class="frow">
           <div class="fgroup">
-            <label class="flabel">N° SIRET <span class="info-tip" title="Sert uniquement à pré-remplir vos devis (mention obligatoire) — jamais utilisé ailleurs dans Indépuls, jamais transmis à un tiers.">?</span></label>
+            <label class="flabel">N° SIRET <span class="info-tip" title="Sert uniquement à pré-remplir vos devis (mention obligatoire). Jamais utilisé ailleurs dans Indépuls, jamais transmis à un tiers.">?</span></label>
             <input type="text" id="p-siret" autocomplete="off" placeholder="Ex : 123 456 789 00012" oninput="saveParam('siret',this.value)">
           </div>
           <div class="fgroup">
