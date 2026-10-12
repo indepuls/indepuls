@@ -1284,7 +1284,7 @@ html,body{overflow-x:hidden;}
           <div class="ts mb12" id="cat-section-desc">Ces entrées apparaissent dans les menus déroulants lors de la création de missions. Vous pouvez y renseigner vos offres, vos services, ou simplement des catégories de travail.</div>
           <div id="categories-list"></div>
           <div class="frow mt14" style="align-items:flex-end">
-            <div class="fgroup" style="margin:0"><input type="text" id="new-cat-input" placeholder="Nouvelle catégorie..." onkeydown="if(event.key==='Enter')addCatInline()"></div>
+            <div class="fgroup" style="margin:0"><input type="text" id="new-cat-input" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="Nouvelle catégorie..." onkeydown="if(event.key==='Enter')addCatInline()"></div>
             <button class="btn btn-acc btn-sm" onclick="addCatInline()" style="white-space:nowrap;height:37px">+ Ajouter</button>
           </div>
         </div>
@@ -1293,7 +1293,7 @@ html,body{overflow-x:hidden;}
           <div class="ts mb12">Pour catégoriser le temps saisi sur vos missions (facultatif) — visible dans la modale "Temps manuel" et dans le suivi du temps travaillé.</div>
           <div id="categories-temps-list"></div>
           <div class="frow mt14" style="align-items:flex-end">
-            <div class="fgroup" style="margin:0"><input type="text" id="new-cat-temps-input" placeholder="Nouvelle catégorie de tâche..." onkeydown="if(event.key==='Enter')addCatTempsInline()"></div>
+            <div class="fgroup" style="margin:0"><input type="text" id="new-cat-temps-input" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" placeholder="Nouvelle catégorie de tâche..." onkeydown="if(event.key==='Enter')addCatTempsInline()"></div>
             <button class="btn btn-acc btn-sm" onclick="addCatTempsInline()" style="white-space:nowrap;height:37px">+ Ajouter</button>
           </div>
         </div>
@@ -13669,7 +13669,7 @@ function renderCategoriesList() {
   const el=document.getElementById('categories-list'); if(!el) return;
   el.innerHTML=DATA.categories.map((c,i)=>{
     if(i===_editCatIdx) return `<div class="flex gap6 mb8">
-      <input type="text" id="edit-cat-inp" value="${c.replace(/"/g,'&quot;')}" style="flex:1;padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--acc)" onkeydown="if(event.key==='Enter')saveCatEdit(${i});if(event.key==='Escape')cancelCatEdit()">
+      <input type="text" id="edit-cat-inp" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" value="${c.replace(/"/g,'&quot;')}" style="flex:1;padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--acc)" onkeydown="if(event.key==='Enter')saveCatEdit(${i});if(event.key==='Escape')cancelCatEdit()">
       <button class="btn btn-acc btn-xs" onclick="saveCatEdit(${i})" title="Enregistrer">✓</button>
       <button class="btn btn-out btn-xs" onclick="cancelCatEdit()" title="Annuler">✗</button>
     </div>`;
@@ -13722,7 +13722,7 @@ function renderCategoriesTempsList() {
   if(!cats.length){ el.innerHTML=`<div class="ts" style="color:var(--tl)">Aucune catégorie de tâches pour l'instant.</div>`; return; }
   el.innerHTML=cats.map((c,i)=>{
     if(i===_editCatTempsIdx) return `<div class="flex gap6 mb8">
-      <input type="text" id="edit-cat-temps-inp" value="${c.replace(/"/g,'&quot;')}" style="flex:1;padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--acc)" onkeydown="if(event.key==='Enter')saveCatTempsEdit(${i});if(event.key==='Escape')cancelCatTempsEdit()">
+      <input type="text" id="edit-cat-temps-inp" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" value="${c.replace(/"/g,'&quot;')}" style="flex:1;padding:7px 12px;font-size:13px;border-radius:8px;border:1px solid var(--acc)" onkeydown="if(event.key==='Enter')saveCatTempsEdit(${i});if(event.key==='Escape')cancelCatTempsEdit()">
       <button class="btn btn-acc btn-xs" onclick="saveCatTempsEdit(${i})" title="Enregistrer">✓</button>
       <button class="btn btn-out btn-xs" onclick="cancelCatTempsEdit()" title="Annuler">✗</button>
     </div>`;
