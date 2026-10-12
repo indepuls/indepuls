@@ -1046,12 +1046,12 @@ html,body{overflow-x:hidden;}
           <div class="fgroup">
             <label class="flabel">Statut <span class="info-tip" title="Vos taux URSSAF et CFP sont pré-remplis selon le statut choisi. Vous pouvez les ajuster manuellement dans la section ci-dessous si nécessaire.">?</span></label>
             <select id="p-statut" onchange="onStatutChange(this.value)">
-              <option value="micro-bnc">Micro libérale (BNC) — professions libérales</option>
+              <option value="micro-bnc">Micro libérale (BNC), professions libérales</option>
               <option value="micro-bic">Micro prestation de service (BIC)</option>
               <option value="micro-achat">Micro achat-revente (BIC commerce)</option>
               <option value="ei-reel">Entreprise individuelle au réel : BNC/BIC réel</option>
-              <option value="sasu">SASU — Société par actions simplifiée</option>
-              <option value="eurl">EURL — Entreprise unipersonnelle à responsabilité limitée</option>
+              <option value="sasu">SASU : Société par actions simplifiée</option>
+              <option value="eurl">EURL : Entreprise unipersonnelle à responsabilité limitée</option>
             </select>
             <div class="ts mt8">Le choix du statut met automatiquement à jour vos taux de charges.</div>
           </div>
@@ -1103,7 +1103,7 @@ html,body{overflow-x:hidden;}
         <div id="micro-charges-block">
           <div class="divider"></div>
           <div class="card-sub mb4">Cotisations sociales</div>
-          <div class="ts mb12" style="color:var(--tl)">Pré-remplies selon votre statut — ajustez uniquement si votre situation est différente.</div>
+          <div class="ts mb12" style="color:var(--tl)">Pré-remplies selon votre statut : ajustez uniquement si votre situation est différente.</div>
           <div class="frow">
             <div class="fgroup"><label class="flabel">Taux URSSAF (%) <span class="info-tip" title="Le taux proposé correspond au cas le plus courant pour votre activité. Certaines professions (ex. CIPAV ou situations particulières) peuvent avoir un taux différent. Si votre URSSAF ou votre expert-comptable vous a communiqué un autre taux, vous pouvez simplement le remplacer.">?</span></label><input type="number" id="p-urssaf" step="0.1" min="0" max="50" oninput="saveChargeParam('tauxURSSAF',+this.value)"></div>
             <div class="fgroup"><label class="flabel">Taux CFP (%) <span class="info-tip" title="Contribution à la Formation Professionnelle. Obligatoire pour les micro-entrepreneurs (0,1% en BNC, 0,2% en BIC prestation). Pré-rempli automatiquement selon votre statut.">?</span></label><input type="number" id="p-cfp" step="0.1" min="0" max="5" oninput="saveChargeParam('tauxCFP',+this.value)"></div>
@@ -1111,7 +1111,7 @@ html,body{overflow-x:hidden;}
           <div class="sw-wrap" style="margin-top:12px">
             <label class="sw"><input type="checkbox" id="p-acre-sw" onchange="toggleAcre(this.checked)"><span class="sw-sl"></span></label>
             <span style="font-weight:600">Je bénéficie de l'ACRE</span>
-            <span class="info-tip" title="L'ACRE réduit vos cotisations sociales pendant une période limitée. Renseignez vos dates ci-dessous et ajustez le taux URSSAF au-dessus pour refléter la réduction — Indépuls vous rappellera de le remettre à son niveau normal avant la fin de la période.">?</span>
+            <span class="info-tip" title="L'ACRE réduit vos cotisations sociales pendant une période limitée. Renseignez vos dates ci-dessous et ajustez le taux URSSAF au-dessus pour refléter la réduction. Indépuls vous rappellera de le remettre à son niveau normal avant la fin de la période.">?</span>
           </div>
           <div id="acre-detail" style="display:none;margin-top:12px">
             <div class="frow">
@@ -1134,10 +1134,10 @@ html,body{overflow-x:hidden;}
         <div class="fgroup">
           <label class="flabel">Régime TVA <span class="info-tip" title="Choisissez le régime indiqué sur votre attestation fiscale ou notifié par votre SIE (service des impôts des entreprises). En cas de doute, votre comptable peut vous le confirmer.">?</span></label>
           <div style="display:flex;flex-direction:column;gap:7px;margin-top:8px">
-            <label class="tva-regime-opt" id="tva-r-franchise"><input type="radio" name="tva-regime" value="franchise" onchange="saveTvaRegime('franchise')"><div><strong>Franchise en base</strong> <span class="info-tip" title="Vous ne facturez pas de TVA tant que votre CA reste sous le seuil légal. Mention obligatoire sur vos factures : «TVA non applicable — art. 293 B du CGI».">?</span><div class="ts mt1">Pas de TVA facturée · Suivi du seuil légal automatique</div></div></label>
+            <label class="tva-regime-opt" id="tva-r-franchise"><input type="radio" name="tva-regime" value="franchise" onchange="saveTvaRegime('franchise')"><div><strong>Franchise en base</strong> <span class="info-tip" title="Vous ne facturez pas de TVA tant que votre CA reste sous le seuil légal. Mention obligatoire sur vos factures : «TVA non applicable, art. 293 B du CGI».">?</span><div class="ts mt1">Pas de TVA facturée · Suivi du seuil légal automatique</div></div></label>
             <label class="tva-regime-opt" id="tva-r-simplifie"><input type="radio" name="tva-regime" value="simplifie" onchange="saveTvaRegime('simplifie')"><div><strong>Réel simplifié</strong> <span class="info-tip" title="Régime courant pour les petites structures assujetties. Vous payez 2 acomptes dans l'année (juillet et décembre) puis un solde en mai N+1 via la déclaration CA12. Accessible si votre CA HT est inférieur à 254 000 € (services) ou 840 000 € (ventes).">?</span><div class="ts mt1">2 acomptes / an (juil. + déc.) · Solde en mai N+1 via déclaration CA12</div></div></label>
-            <label class="tva-regime-opt" id="tva-r-mensuel"><input type="radio" name="tva-regime" value="mensuel" onchange="saveTvaRegime('mensuel')"><div><strong>Réel normal — mensuel</strong> <span class="info-tip" title="Vous déclarez et payez la TVA chaque mois via la CA3. Obligatoire si votre TVA annuelle nette dépasse 15 000 €. Paiement avant le 25 du mois suivant pour les télédéclarants.">?</span><div class="ts mt1">Déclaration CA3 chaque mois · Avant le 25 du mois suivant</div></div></label>
-            <label class="tva-regime-opt" id="tva-r-trimestriel"><input type="radio" name="tva-regime" value="trimestriel" onchange="saveTvaRegime('trimestriel')"><div><strong>Réel normal — trimestriel</strong> <span class="info-tip" title="Même principe que le mensuel, mais regroupé par trimestre. Accessible si votre TVA annuelle nette est inférieure à 4 000 €. Paiement dans les 30 jours après la clôture du trimestre.">?</span><div class="ts mt1">Déclaration CA3 tous les 3 mois · Dans les 30 j après clôture</div></div></label>
+            <label class="tva-regime-opt" id="tva-r-mensuel"><input type="radio" name="tva-regime" value="mensuel" onchange="saveTvaRegime('mensuel')"><div><strong>Réel normal, mensuel</strong> <span class="info-tip" title="Vous déclarez et payez la TVA chaque mois via la CA3. Obligatoire si votre TVA annuelle nette dépasse 15 000 €. Paiement avant le 25 du mois suivant pour les télédéclarants.">?</span><div class="ts mt1">Déclaration CA3 chaque mois · Avant le 25 du mois suivant</div></div></label>
+            <label class="tva-regime-opt" id="tva-r-trimestriel"><input type="radio" name="tva-regime" value="trimestriel" onchange="saveTvaRegime('trimestriel')"><div><strong>Réel normal, trimestriel</strong> <span class="info-tip" title="Même principe que le mensuel, mais regroupé par trimestre. Accessible si votre TVA annuelle nette est inférieure à 4 000 €. Paiement dans les 30 jours après la clôture du trimestre.">?</span><div class="ts mt1">Déclaration CA3 tous les 3 mois · Dans les 30 j après clôture</div></div></label>
           </div>
         </div>
         <div class="ts mt8" id="tva-status-text"></div>
@@ -1196,7 +1196,7 @@ html,body{overflow-x:hidden;}
         <div class="ts mt6" style="color:var(--tl);line-height:1.6">Vous pouvez ensuite l'exporter en PDF ou CSV pour le transmettre à votre expert-comptable ou à l'administration.</div>
       </div>
       <div class="card mt16" id="export-comptable-block">
-        <div class="card-title mb8">Export comptable <span class="info-tip" title="Contrairement au livre des recettes (encaissements seuls, réservé aux micro-entreprises), cet export couvre vos recettes ET vos dépenses, pour tous les statuts — pratique pour transmettre vos chiffres à votre expert-comptable sans tout ressaisir.">?</span></div>
+        <div class="card-title mb8">Export comptable <span class="info-tip" title="Contrairement au livre des recettes (encaissements seuls, réservé aux micro-entreprises), cet export couvre vos recettes ET vos dépenses, pour tous les statuts. Pratique pour transmettre vos chiffres à votre expert-comptable sans tout ressaisir.">?</span></div>
         <div class="ts mb10" style="color:var(--tl);line-height:1.6">Téléchargez vos recettes et dépenses sur la période de votre choix, pour les transmettre à votre expert-comptable.</div>
         <div class="frow" style="gap:10px;align-items:flex-end">
           <div class="fgroup" style="margin:0">
@@ -1216,10 +1216,10 @@ html,body{overflow-x:hidden;}
             <input type="month" id="exp-compta-fin">
           </div>
         </div>
-        <div class="alert al-info mt10">⚠️ Ce fichier reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité — vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
+        <div class="alert al-info mt10">⚠️ Ce fichier reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité. Vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
         <div class="mt10" style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-out btn-sm" onclick="exportComptableCSV()">⬇ CSV — détail (recettes + dépenses)</button>
-          <button class="btn btn-out btn-sm" onclick="exportComptablePDF()">⬇ PDF — récapitulatif</button>
+          <button class="btn btn-out btn-sm" onclick="exportComptableCSV()">⬇ CSV : détail (recettes + dépenses)</button>
+          <button class="btn btn-out btn-sm" onclick="exportComptablePDF()">⬇ PDF : récapitulatif</button>
         </div>
       </div>
     </div>
@@ -8932,7 +8932,7 @@ function exportComptableCSV() {
   a.download = `export-comptable-${mks[0]}_${mks[mks.length - 1]}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   const n = recettes.length + depenseLignes.length;
-  showToast(`✅ Export généré — ${n} ligne${n > 1 ? 's' : ''}`);
+  showToast(`✅ Export généré : ${n} ligne${n > 1 ? 's' : ''}`);
 }
 // PDF = récapitulatif par mois (CA brut, charges, impôt estimé, dépenses, revenu net), même
 // formule que le bilan mensuel de la page Revenus (renderRevenus()) — jamais un second calcul
@@ -8968,9 +8968,9 @@ function exportComptablePDF() {
     tfoot td{font-weight:700;border-top:2px solid #ddd;padding-top:8px}
     @media print{body{margin:8px}button{display:none}}
   </style></head><body>
-  <h1>📊 Export comptable — récapitulatif</h1>
+  <h1>📊 Export comptable : récapitulatif</h1>
   <p class="sub">Période : ${monthLabelFull(mks[0])} → ${monthLabelFull(mks[mks.length - 1])} · Exporté le ${new Date().toLocaleDateString('fr-FR')} · ${DATA.params && DATA.params.nom ? DATA.params.nom : ''}</p>
-  <div class="warn">⚠️ Ce document reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité — vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
+  <div class="warn">⚠️ Ce document reprend telles quelles les données enregistrées dans Indépuls. Ce n'est pas un logiciel de comptabilité. Vérifiez ces informations avec votre expert-comptable avant toute utilisation officielle.</div>
   <table><thead><tr><th>Mois</th><th>CA brut</th><th>${isEIReel() ? 'Cotisations sociales' : 'Charges URSSAF+CFP'}</th>${tva ? '<th>TVA collectée</th>' : ''}<th>Impôt estimé</th><th>Dépenses</th><th>Revenu net</th></tr></thead>
   <tbody>${rows}</tbody>
   <tfoot><tr><td>Total</td><td class="num">${fmtE(totBrut)}</td><td class="num">${fmtE(totCharges)}</td>${tva ? `<td class="num">${fmtE(totTVA)}</td>` : ''}<td class="num">${fmtE(totImp)}</td><td class="num">${fmtE(totDep)}</td><td class="num">${fmtE(totNet)}</td></tr></tfoot>
@@ -12985,7 +12985,7 @@ function renderTvaParams() {
     if(inp) inp.disabled=(r==='franchise'&&tvaZoneWorst==='depasse');
     if(lbl) lbl.classList.toggle('locked',!!(inp&&inp.disabled));
   });
-  const statusLabels={franchise:'Franchise en base — aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié — 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel — déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel — déclaration CA3 chaque trimestre.'};
+  const statusLabels={franchise:'Franchise en base : aucune TVA facturée · suivi du seuil assuré.',simplifie:'Réel simplifié : 2 acomptes / an + solde CA12.',mensuel:'Réel normal mensuel : déclaration CA3 chaque mois.',trimestriel:'Réel normal trimestriel : déclaration CA3 chaque trimestre.'};
   document.getElementById('tva-status-text').textContent=statusLabels[regime]||'';
   const zoneAlertEl=document.getElementById('tva-zone-alert');
   if(zoneAlertEl) zoneAlertEl.innerHTML=tvaZoneWorst==='depasse'
@@ -13006,12 +13006,12 @@ function renderTvaParams() {
     const {franchise:fS,tolerance:tS}=getTVASeuilsStatut();
     if(el) el.innerHTML=mixte
       ?`<div class="ts" style="line-height:1.7">
-          <div><strong>Prestations / services :</strong> franchise à <strong>${fmtE(TVA_SEUILS.prestation.franchise,0)}</strong> — tolérance jusqu'à <strong>${fmtE(TVA_SEUILS.prestation.tolerance,0)}</strong></div>
-          <div class="mt4"><strong>Ventes / produits :</strong> franchise à <strong>${fmtE(TVA_SEUILS.achat.franchise,0)}</strong> — tolérance jusqu'à <strong>${fmtE(TVA_SEUILS.achat.tolerance,0)}</strong></div>
+          <div><strong>Prestations / services :</strong> franchise à <strong>${fmtE(TVA_SEUILS.prestation.franchise,0)}</strong>, tolérance jusqu'à <strong>${fmtE(TVA_SEUILS.prestation.tolerance,0)}</strong></div>
+          <div class="mt4"><strong>Ventes / produits :</strong> franchise à <strong>${fmtE(TVA_SEUILS.achat.franchise,0)}</strong>, tolérance jusqu'à <strong>${fmtE(TVA_SEUILS.achat.tolerance,0)}</strong></div>
           <div class="mt6" style="color:var(--tl)">Ces seuils légaux 2026 s'appliquent séparément à chaque type d'activité.</div>
         </div>`
       :`<div class="ts" style="line-height:1.7">
-          Franchise TVA : <strong>${fmtE(fS,0)}</strong> — tolérance jusqu'à <strong>${fmtE(tS,0)}</strong>.<br>
+          Franchise TVA : <strong>${fmtE(fS,0)}</strong>, tolérance jusqu'à <strong>${fmtE(tS,0)}</strong>.<br>
           <span style="color:var(--tl)">Seuil légal 2026 pour les prestations de services.</span>
         </div>`;
   } else {
