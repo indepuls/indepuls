@@ -4231,6 +4231,10 @@ Pas de moyen de quitter la page autrement que par le menu de gauche. **Ajouté**
 
 **Vérifié** (banc d'essai avec observateur de la classe du sélecteur) : premier chargement du membre = affiché puis masqué, marqueur posé ; deuxième chargement = jamais affiché ; membre révoqué = marqueur retiré et choix de profil rendu ; nouveau compte solo sur un appareil où un ancien membre s'était connecté = choix de profil affiché normalement.
 
+### 2026-10-13 — Encadré bleu « En savoir plus » de la page Dépenses : alignement (demande de Faustine)
+
+`.alert` est un conteneur flex (`display:flex`) : le texte, le lien « En savoir plus » et le bloc de détail se plaçaient côte à côte quand on dépliait. Le contenu est maintenant enveloppé dans un `<div style="flex:1;min-width:0">` (flux normal) et le détail est présenté en deux lignes (« Mensuelles et annuelles → … » / « Ponctuelles → … Pour les provisionner : Paramètres › Objectifs »). `indepuls.html` ET `indepuls-demo.html`. Vérifié dans le navigateur (détail sous la phrase, pleine largeur). Piège général : tout `.alert` dont le contenu mêle texte nu et blocs doit avoir un conteneur interne.
+
 ### 2026-10-12 — Plus de suggestion du gestionnaire de mots de passe sur les champs de catégories (demande de Faustine)
 
 Le navigateur (Edge) proposait « Mots de passe enregistrés » en cliquant dans « Nouvelle catégorie… ». Les 4 champs de saisie de Paramètres > Mes catégories reçoivent `autocomplete="off"` + `data-lpignore="true" data-1p-ignore="true" data-bwignore="true"` (LastPass, 1Password, Bitwarden) : `#new-cat-input`, `#new-cat-temps-input` (nouvelle catégorie, nouvelle catégorie de tâche) et leurs champs de modification `#edit-cat-inp`, `#edit-cat-temps-inp` (générés par `renderCategoriesList` / `renderCategoriesTempsList`), dans `indepuls.html` ET `indepuls-demo.html`. Attributs vérifiés dans le DOM ; le comportement réel du gestionnaire de mots de passe dépend du navigateur et n'est pas testable en local. Piste de repli si une suggestion revenait : champ en lecture seule jusqu'au focus.

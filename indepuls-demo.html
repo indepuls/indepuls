@@ -861,9 +861,11 @@ html,body{overflow-x:hidden;}
   <div class="page" id="page-depenses">
     <div id="dep-summary" style="margin-bottom:16px"></div>
     <div class="alert al-info" style="margin-bottom:14px;font-size:12px">
+      <div style="flex:1;min-width:0">
       💡 Catégorisez vos dépenses pour affiner votre objectif de CA.
       <span id="dep-info-toggle" style="cursor:pointer;text-decoration:underline;margin-left:4px" onclick="document.getElementById('dep-info-detail').style.display='';this.style.display='none'">En savoir plus</span>
-      <div id="dep-info-detail" style="display:none;margin-top:8px;line-height:1.6"><strong>Mensuelles</strong> et <strong>annuelles</strong> → alimentent votre objectif de CA automatiquement. <strong>Ponctuelles</strong> → visibles dans le revenu net réel uniquement (trop variables pour l'objectif). Pour les provisionner : <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('params');setTimeout(()=>switchParamTab('objectifs',document.querySelector('[onclick*=objectifs]')),100)">Paramètres › Objectifs</span>.</div>
+      <div id="dep-info-detail" style="display:none;margin-top:8px;line-height:1.6"><div><strong>Mensuelles</strong> et <strong>annuelles</strong> → alimentent votre objectif de CA automatiquement.</div><div style="margin-top:4px"><strong>Ponctuelles</strong> → visibles dans le revenu net réel uniquement (trop variables pour l'objectif). Pour les provisionner : <span style="cursor:pointer;text-decoration:underline;font-weight:700" onclick="navigate('params');setTimeout(()=>switchParamTab('objectifs',document.querySelector('[onclick*=objectifs]')),100)">Paramètres › Objectifs</span>.</div></div>
+      </div>
     </div>
     <div id="depenses-tabs-wrap" style="display:none;margin-bottom:12px;gap:6px">
       <button class="btn btn-out btn-sm" id="depenses-tab-btn-depenses" onclick="switchDepensesTab('depenses')">Dépenses professionnelles</button>
